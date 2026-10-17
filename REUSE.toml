@@ -1,0 +1,33 @@
+# SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
+# SPDX-License-Identifier: EUPL-1.2
+
+version = 1
+
+# Files that cannot carry comments (JSON) or are generated.
+[[annotations]]
+path = ["package-lock.json", "flake.lock"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 The restlos-urlaubsplaner authors"
+SPDX-License-Identifier = "CC0-1.0"
+
+[[annotations]]
+path = [".mcp.json", ".claude/settings.json", "tools/claude-plugins/**/*.json", "package.json", "tsconfig*.json"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 The restlos-urlaubsplaner authors"
+SPDX-License-Identifier = "EUPL-1.2"
+
+# Holiday and calendar data (code/data license).
+[[annotations]]
+path = ["src/data/**"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 The restlos-urlaubsplaner authors"
+SPDX-License-Identifier = "EUPL-1.2"
+
+# Typst templates and example files: free to copy into own work.
+# LICENSES/MIT-0.txt is added together with the first such file
+# (`reuse download MIT-0`); an unused license text fails `reuse lint`.
+[[annotations]]
+path = ["templates/**", "examples/**", "**/*.urlaub.json", "**/*.regeln.json"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 The restlos-urlaubsplaner authors"
+SPDX-License-Identifier = "MIT-0"

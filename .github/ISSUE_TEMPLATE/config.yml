@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
+# SPDX-License-Identifier: EUPL-1.2
+blank_issues_enabled: false
+contact_links:
+  - name: Sicherheitslücke melden / Report a vulnerability
+    url: https://github.com/errariumde/restlos-urlaubsplaner/security/advisories/new
+    about: Bitte nicht öffentlich melden. / Please do not report publicly.

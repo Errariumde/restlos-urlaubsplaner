@@ -1,0 +1,17 @@
+{
+  "svelte": {
+    "command": "svelteserver",
+    "args": ["--stdio"],
+    "extensionToLanguage": { ".svelte": "svelte" }
+  },
+  "typst": {
+    "command": "tinymist",
+    "args": ["lsp"],
+    "extensionToLanguage": { ".typ": "typst" }
+  },
+  "nix": {
+    "command": "nixd",
+    "args": [],
+    "extensionToLanguage": { ".nix": "nix" }
+  }
+}

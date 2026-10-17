@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
+# SPDX-License-Identifier: EUPL-1.2
+
+# flake.lock is not covered: Dependabot has no Nix support. It is updated
+# manually, see .claude/skills/dependency-update/SKILL.md.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 14
+    open-pull-requests-limit: 3
+    ignore:
+      # Pinned to the playwright-driver version of the Nix dev shell;
+      # updated together with flake.lock.
+      - dependency-name: "@playwright/test"
+    groups:
+      npm-all:
+        patterns: ["*"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 14
+    groups:
+      actions:
+        patterns: ["*"]

@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
+# SPDX-License-Identifier: EUPL-1.2
+name: Idee / Feature request
+description: Vorschlag für eine Verbesserung. / Suggest an improvement.
+labels: [enhancement]
+body:
+  - type: checkboxes
+    id: hobby
+    attributes:
+      label: Hobbyprojekt / Hobby project
+      options:
+        - label: Mir ist klar, dass Ideen ohne Begründung abgelehnt werden können. / I understand ideas may be declined without explanation.
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Welches Problem löst das? / What problem does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Vorschlag / Proposal
+  - type: textarea
+    id: holiday
+    attributes:
+      label: Bei Feiertagsdaten – amtliche Quelle / For holiday data – official source

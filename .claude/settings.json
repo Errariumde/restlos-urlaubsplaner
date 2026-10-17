@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "GIT_CONFIG_COUNT": "2",
+    "GIT_CONFIG_KEY_0": "commit.gpgsign",
+    "GIT_CONFIG_VALUE_0": "false",
+    "GIT_CONFIG_KEY_1": "tag.gpgsign",
+    "GIT_CONFIG_VALUE_1": "false"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npm ci)",
+      "Bash(npm test *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(reuse lint *)",
+      "Bash(typst compile *)"
+    ],
+    "ask": [
+      "Bash(npm install *)",
+      "Bash(npm update *)",
+      "Bash(npm uninstall *)",
+      "Bash(npx *)",
+      "Bash(npm exec *)",
+      "Bash(git commit *)"
+    ],
+    "deny": [
+      "Bash(npm publish *)",
+      "Bash(git push)",
+      "Bash(git push *)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Read(~/.ssh/**)",
+      "Read(~/.gnupg/**)",
+      "Read(~/.config/gh/**)",
+      "Read(~/.git-credentials)",
+      "Read(./.env)",
+      "Read(./.env.*)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": false,
+    "excludedCommands": ["nix *"],
+    "filesystem": {
+      "allowWrite": ["~/.npm"],
+      "denyRead": ["~/.ssh", "~/.gnupg", "~/.config/gh", "~/.git-credentials"]
+    },
+    "network": {
+      "allowedDomains": ["registry.npmjs.org"]
+    }
+  },
+  "enableAllProjectMcpServers": false,
+  "enabledMcpjsonServers": ["svelte"],
+  "enabledPlugins": {
+    "typescript-lsp@claude-plugins-official": true,
+    "restlos-lsp@restlos-tools": true
+  },
+  "extraKnownMarketplaces": {
+    "restlos-tools": {
+      "source": {
+        "source": "directory",
+        "path": "./tools/claude-plugins"
+      }
+    }
+  }
+}

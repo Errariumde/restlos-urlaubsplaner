@@ -1,0 +1,11 @@
+{
+  "name": "restlos-tools",
+  "owner": { "name": "restlos-urlaubsplaner maintainers" },
+  "plugins": [
+    {
+      "name": "restlos-lsp",
+      "source": "./restlos-lsp",
+      "description": "Language servers for Svelte, Typst and Nix (binaries come from the Nix dev shell)."
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+# SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
+# SPDX-License-Identifier: EUPL-1.2
+name: Fehler / Bug
+description: Etwas funktioniert nicht wie beschrieben. / Something does not work as described.
+labels: [bug]
+body:
+  - type: checkboxes
+    id: hobby
+    attributes:
+      label: Hobbyprojekt / Hobby project
+      options:
+        - label: Mir ist klar, dass es keine Zusage für Antwort oder Behebung gibt. / I understand there is no commitment to reply or fix.
+          required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Siehe „Über“ / see "About"
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser + Version
+    validations:
+      required: true
+  - type: dropdown
+    id: variant
+    attributes:
+      label: Variante / Variant
+      options: [HTML-Datei / HTML file, GitHub Pages (Web-App)]
+  - type: textarea
+    id: steps
+    attributes:
+      label: Schritte / Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Erwartet vs. tatsächlich / Expected vs. actual
+    validations:
+      required: true
+  - type: textarea
+    id: file
+    attributes:
+      label: Beispieldatei (ohne persönliche Daten) / Example file (no personal data)
+      render: json

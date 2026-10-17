@@ -1,0 +1,49 @@
+# SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
+# SPDX-License-Identifier: EUPL-1.2
+
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+.direnv/
+result
+result-*
+*.log
+.env
+.env.*
+.DS_Store
+# Claude Code personal settings (shared settings stay in .claude/settings.json)
+.claude/settings.local.json
+CLAUDE.local.md
+# Plan files and rule sets from manual testing (may contain personal or
+# company data). Add an exception here for any new fixture directory.
+*.urlaub.json
+*.regeln.json
+!examples/**/*.urlaub.json
+!examples/**/*.regeln.json
+!tests/**/*.urlaub.json
+!tests/**/*.regeln.json
+# Claude Code sandbox: placeholders it mounts over protected paths that don't
+# exist yet. They are only visible inside the sandbox, but there they would
+# break `git add -A` and `reuse lint`. To share project agents, commands or
+# hooks later, delete the matching line.
+/.bash_profile
+/.bashrc
+/.profile
+/.zprofile
+/.zshrc
+/.gitconfig
+/.gitmodules
+/.ripgreprc
+/.idea
+/.vscode
+/.claude/agents
+/.claude/commands
+/.claude/hooks
+/.claude/launch.json
+/.claude/loop.md
+/.claude/output-styles
+/.claude/routines
+/.claude/scheduled_tasks.json
+/.claude/workflows

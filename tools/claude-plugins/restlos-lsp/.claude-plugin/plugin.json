@@ -1,0 +1,6 @@
+{
+  "name": "restlos-lsp",
+  "version": "0.1.0",
+  "description": "Svelte, Typst and Nix language servers for Claude Code. Requires svelteserver, tinymist and nixd on PATH (nix develop).",
+  "license": "EUPL-1.2"
+}
