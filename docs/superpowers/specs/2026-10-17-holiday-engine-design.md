@@ -124,7 +124,7 @@ All eight rule types from the spec table. *Designer's call:* the three that Germ
 | Level | What |
 | --- | --- |
 | Date arithmetic | Known dates, leap years (2000 yes, 2100 no, 1900 no), Easter tables (Western and Orthodox, including the earliest and latest dates in the range), fast-check round trips ISO ↔ day number ↔ year/month/day and weekday consistency over the supported range |
-| Weights | Fractions and decimals accepted, non-exact values (e.g. `"1/7"`, `"0.3"`) and out-of-range values rejected |
+| Weights | Fractions and decimals accepted, non-exact values (e.g. `"1/7"`, `"0.33"`; `"0.3"` is exact, 144/480) and out-of-range values rejected |
 | Rule types | Table-driven, one table per type; synthetic data for n-th weekday, Orthodox Easter and substitute day (including a Fri/Sat weekend); 29 Feb behaviors; validity ranges at the boundary years |
 | German data | Known dates for at least three years per rule, including the year before and after each rule change (e.g. BE 2018/2019, MV 2022/2023, Reformation Day 2016/2017/2018) |
 | date-holidays | Runs directly in Vitest: all 16 states, 2000–2100, statutory holidays only; switch combinations mapped to date-holidays' closest regions |
