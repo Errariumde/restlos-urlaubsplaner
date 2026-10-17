@@ -42,7 +42,7 @@ restlos is an offline vacation planner delivered as a single HTML file (plus a G
 ## Environment
 
 - Work inside the Nix dev shell (`nix develop`, or direnv with `use flake`). It provides Node.js, Typst, REUSE, language servers, Firefox ESR and Playwright browsers.
-- Commands (to be completed during setup): `npm ci`, `npm run check`, `npm run build`, `npm test`, `npm run test:e2e`.
+- Commands: `npm ci`, `npm test`, `npm run lint`, `npm run typecheck`, `npm run check` (all of these plus `reuse lint`). `npm run build` and `npm run test:e2e` follow with the UI.
 
 ## Repository-specific procedures
 

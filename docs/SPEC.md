@@ -576,6 +576,8 @@ Recommendation: use common, widespread tools, but choose them deliberately and s
 | vitest | tests | no | fits Vite, shares its configuration |
 | fast-check | property-based testing | no | few dependencies; high value for the counting model |
 | eslint, eslint-plugin-svelte, svelte-check | lint, type checking | no | standard; covers among others "no `Date` in the engine" |
+| typescript-eslint | ESLint parser and rules for TypeScript | no | needed to lint TypeScript; umbrella for parser, plugin, utils and typescript-estree from the same project |
+| @eslint/js | ESLint's recommended rule set | no | from the ESLint team, no dependencies; no longer installed with eslint since ESLint 10 |
 | ical.js | read iCal (and verify the export) | yes | 0 dependencies, MPL-2.0 ([depscope](https://depscope.dev/pkg/npm/ical.js)); proven parser instead of an own implementation, also covers `RRULE`/`EXDATE` |
 | intl-messageformat (FormatJS) | ICU messages | yes | established ICU implementation; check the dependency tree during setup, otherwise `@messageformat/core` |
 | date-holidays | reference model | no | development dependency, tests only |

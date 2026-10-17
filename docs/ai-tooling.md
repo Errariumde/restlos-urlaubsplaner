@@ -127,6 +127,6 @@ GitHub MCP servers and connectors stay off (see section 3): they would act on Gi
 
 - **Marketplace path:** the docs don't say how the relative `path` of a `directory` marketplace in `extraKnownMarketplaces` is resolved. If Claude Code doesn't find it, run the commands from section 2.
 - **Server arguments:** `svelteserver --stdio`, `tinymist lsp` and `nixd` without arguments are untested; check with `/plugin` and the LSP diagnostics in a session.
-- **Sandbox with the toolchain:** writing to `~/.npm`, Node child processes with IPC and worker threads work inside the sandbox (checked 2026-10-17). Still to check once `package.json` exists: `npm ci` against the registry and `npm run test:e2e`.
+- **Sandbox with the toolchain:** writing to `~/.npm`, Node child processes with IPC and worker threads work inside the sandbox (checked 2026-10-17). `npm install` against the registry works inside the sandbox (checked 2026-10-18). Still to check: `npm ci` and `npm run test:e2e`.
 - **Unsigned agent commits:** check that the `env` setting reaches the shell: in a Claude Code session, `git config commit.gpgsign` should print `false`.
 - **GitHub workflows** are still missing. Actions must be pinned by commit SHA (see the specification).
