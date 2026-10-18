@@ -54,11 +54,22 @@ export type SourceDay =
     }
   | { readonly type: "paidClosure" | "info"; readonly day: DayNumber; readonly sourceId: string }
   | {
-      readonly type: "mandatory" | "otherPlan";
+      readonly type: "mandatory";
       readonly day: DayNumber;
       readonly sourceId: string;
       readonly take: Units;
       readonly part?: Part;
+    }
+  | {
+      /** A span another plan charged on this day; covers leave here but never costs. */
+      readonly type: "otherPlan";
+      readonly day: DayNumber;
+      readonly sourceId: string;
+      /** Day positions: units of a full day, 0 = start of a full working day; 0 ≤ from < to ≤ 480. */
+      readonly from: Units;
+      readonly to: Units;
+      /** What the other plan charged it as; for display only. */
+      readonly kind: "leave" | "mandatory";
     };
 
 export interface LeaveDay {

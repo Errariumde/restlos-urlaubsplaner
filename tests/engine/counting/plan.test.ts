@@ -43,6 +43,7 @@ describe("computePlan: stretches from the design", () => {
     const morning = plan({ contract, leave: [leave("2027-12-24", HALF, "start")] });
     expect(listed(morning)).toEqual(["2027-12-24@0 2027-12-26@480 480/1440"]);
     expect([dayOf(morning, "2027-12-24").evaluation.ownCost, dayOf(morning, "2027-12-24").evaluation.mandatoryCost]).toEqual([240, 240]);
+    expect(dayOf(morning, "2027-12-24").evaluation.charged).toEqual([{ from: 0, to: 240, kind: "leave" }, { from: 240, to: 480, kind: "mandatory" }]);
     expect(listed(plan({ contract, leave: [leave("2027-12-24", HALF, "end")] }))).toEqual(["2027-12-24@240 2027-12-26@480 240/1200"]);
   });
   it("lists a standalone paid closure with cost 0", () => {
@@ -61,15 +62,15 @@ describe("computePlan: stretches from the design", () => {
   });
   it("lists each other plan once in a leaveTakenInOtherPlan problem", () => {
     const sources: SourceDay[] = [
-      { type: "otherPlan", day: d("2027-05-05"), sourceId: "p", take: FULL },
-      { type: "otherPlan", day: d("2027-05-05"), sourceId: "p", take: FULL },
+      { type: "otherPlan", day: d("2027-05-05"), sourceId: "p", from: 0, to: FULL, kind: "leave" },
+      { type: "otherPlan", day: d("2027-05-05"), sourceId: "p", from: 0, to: FULL, kind: "leave" },
     ];
     expect(plan({ sources, leave: [leave("2027-05-05")] }).problems).toEqual([{ code: "leaveTakenInOtherPlan", day: d("2027-05-05"), sourceIds: ["p"] }]);
   });
   it("names only the other plans that overlap the own leave", () => {
     const sources: SourceDay[] = [
-      { type: "otherPlan", day: d("2027-05-05"), sourceId: "morning", take: HALF, part: "start" },
-      { type: "otherPlan", day: d("2027-05-05"), sourceId: "evening", take: HALF, part: "end" },
+      { type: "otherPlan", day: d("2027-05-05"), sourceId: "morning", from: 0, to: HALF, kind: "leave" },
+      { type: "otherPlan", day: d("2027-05-05"), sourceId: "evening", from: HALF, to: FULL, kind: "leave" },
     ];
     expect(plan({ sources, leave: [leave("2027-05-05", HALF, "end")] }).problems).toEqual([{ code: "leaveTakenInOtherPlan", day: d("2027-05-05"), sourceIds: ["evening"] }]);
   });
@@ -86,7 +87,7 @@ describe("computePlan: totals and plans that share a month", () => {
   it("charges a closure over New Year once across two plans", () => {
     const plan2027 = plan({ contract: withRules(closureRule), period: { from: month(2027, 1), to: month(2028, 1) } });
     expect(plan2027.totals.byYear).toEqual([{ year: 2027, planned: 2400 }, { year: 2028, planned: 960 }]);
-    const otherPlan: SourceDay[] = ["2028-01-03", "2028-01-04"].map((x) => ({ type: "otherPlan", day: d(x), sourceId: "plan-2027", take: FULL }));
+    const otherPlan: SourceDay[] = ["2028-01-03", "2028-01-04"].map((x) => ({ type: "otherPlan", day: d(x), sourceId: "plan-2027", from: 0, to: FULL, kind: "leave" }));
     const plan2028 = plan({ contract: withRules(closureRule), period: { from: month(2028, 1), to: month(2029, 1) }, sources: otherPlan });
     expect(plan2028.totals.planned).toBe(0);
     const again = plan({ contract: withRules(closureRule), period: { from: month(2028, 1), to: month(2029, 1) }, sources: otherPlan, leave: [leave("2028-01-03")] });
@@ -94,7 +95,7 @@ describe("computePlan: totals and plans that share a month", () => {
     expect(again.problems).toEqual([{ code: "leaveTakenInOtherPlan", day: d("2028-01-03"), sourceIds: ["plan-2027"] }]);
   });
   it("never counts leave from another plan and shows it on the day", () => {
-    const sources: SourceDay[] = span("2027-06-01", "2027-06-03").map((x) => ({ type: "otherPlan", day: d(x), sourceId: "p", take: FULL }));
+    const sources: SourceDay[] = span("2027-06-01", "2027-06-03").map((x) => ({ type: "otherPlan", day: d(x), sourceId: "p", from: 0, to: FULL, kind: "leave" }));
     const result = plan({ sources });
     expect(result.totals.planned).toBe(0);
     expect(dayOf(result, "2027-06-02").facts.sources.map((s) => s.sourceId)).toEqual(["p"]);
@@ -122,7 +123,7 @@ describe("computePlan: problems", () => {
       plan({
         contract: withRules({ id: "a", match: once("2027-03-13"), requiredExactly: HALF }, { id: "b", match: once("2027-03-13"), requiredExactly: FULL }),
         leave: [leave("2027-03-13")],
-        sources: [{ type: "otherPlan", day: d("2027-03-13"), sourceId: "p", take: FULL }],
+        sources: [{ type: "otherPlan", day: d("2027-03-13"), sourceId: "p", from: 0, to: FULL, kind: "leave" }],
       }).problems,
     ).toEqual([
       { code: "leaveTakenInOtherPlan", day: d("2027-03-13"), sourceIds: ["p"] },

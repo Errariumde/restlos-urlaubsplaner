@@ -76,7 +76,7 @@ function leavePieces(facts: DayFacts, own: PlanInput["leave"][number] | undefine
     if (source.type === "mandatory") {
       pieces.push({ kind: "mandatory", take: source.take, part: source.part ?? "end", sourceId: source.sourceId });
     } else if (source.type === "otherPlan") {
-      pieces.push({ kind: "otherPlan", take: source.take, part: source.part ?? "end", sourceId: source.sourceId });
+      pieces.push({ kind: "otherPlan", from: source.from, to: source.to, sourceId: source.sourceId });
     }
   }
   return pieces;
@@ -123,7 +123,7 @@ export function computePlan(input: PlanInput): PlanResult {
     if (inPeriod) {
       if (own && required.value === 0) problems.push({ code: "leaveWithoutRequiredWork", day: facts.day });
       if (evaluation.ownCoveredByOtherPlan) {
-        problems.push({ code: "leaveTakenInOtherPlan", day: facts.day, sourceIds: overlappingOtherPlanIds(required.value, pieces) });
+        problems.push({ code: "leaveTakenInOtherPlan", day: facts.day, sourceIds: overlappingOtherPlanIds(required, pieces) });
       }
       if (required.conflictingRules.length > 0) {
         problems.push({ code: "conflictingForcedRules", day: facts.day, ruleIds: required.conflictingRules });
