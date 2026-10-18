@@ -3,7 +3,7 @@
 
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { formatAmount, formatWeight, parseAmount, parseWeight, WeightError } from "../../src/engine/weight";
+import { formatAmount, formatSpan, formatWeight, parseAmount, parseWeight, WeightError } from "../../src/engine/weight";
 
 // lib has no DOM; performance exists in Node and in Firefox.
 declare const performance: { now(): number };
@@ -98,5 +98,20 @@ describe("parseAmount", () => {
     expect(formatAmount(15_840)).toBe("33");
     expect(formatAmount(6000)).toBe("25/2");
     for (const units of [0, 1, 239, 240, 481, 15_840, 4_800_000]) expect(parseAmount(formatAmount(units))).toBe(units);
+  });
+});
+
+describe("formatSpan", () => {
+  it.each([
+    [120, 240, ["1/4", "2/4"]], [0, 240, ["0", "1/2"]], [240, 480, ["1/2", "1"]], [0, 480, ["0", "1"]],
+    [96, 160, ["3/15", "5/15"]], [90, 120, ["3/16", "4/16"]],
+  ])("writes %i-%i as %j", (from, to, text) => expect(formatSpan(from, to)).toEqual(text));
+  it("round-trips through parseWeight", () => {
+    for (let from = 0; from < 480; from += 15) {
+      for (let to = from + 15; to <= 480; to += 15) {
+        const [a, b] = formatSpan(from, to);
+        expect([parseWeight(a), parseWeight(b)]).toEqual([from, to]);
+      }
+    }
   });
 });

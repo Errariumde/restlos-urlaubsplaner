@@ -144,3 +144,21 @@ export function formatAmount(units: Units): string {
   const den = UNITS_PER_DAY / divisor;
   return den === 1 ? String(num) : `${num}/${den}`;
 }
+
+const lcm = (a: number, b: number): number => (a / gcd(a, b)) * b;
+
+/**
+ * Writes a span of a working day (0 <= from < to <= 480 units) as two fractions with one shared denominator:
+ * "1/4", "2/4". 0 and a full day are written "0" and "1". Throws RangeError for units outside 0..480.
+ */
+export function formatSpan(from: Units, to: Units): [string, string] {
+  checkUnits(from, "Span start");
+  checkUnits(to, "Span end");
+  const denominator = lcm(UNITS_PER_DAY / gcd(from, UNITS_PER_DAY), UNITS_PER_DAY / gcd(to, UNITS_PER_DAY));
+  const write = (units: Units): string => {
+    if (units === 0) return "0";
+    if (units === UNITS_PER_DAY) return "1";
+    return `${String((units * denominator) / UNITS_PER_DAY)}/${String(denominator)}`;
+  };
+  return [write(from), write(to)];
+}
