@@ -1,10 +1,10 @@
 ---
-status: open
+status: done
 priority: 1
 area: calendar sources, file format
-branch:
+branch: file-format
 created: 2026-10-18
-closed:
+closed: 2026-10-18
 ---
 <!--
 SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
@@ -31,3 +31,5 @@ The counting model does not charge mandatory leave on the part of a day that lea
 ## Notes
 
 The other plan's mandatory days are computed from its own contract without its own "Leave from another plan" sources, so two plans that reference each other don't depend on each other recursively. Whether such mutual references should then charge a shared day in neither plan, or need a tie-break, is open.
+
+The `.urlaub.json` part is done (charged spans, design 2026-10-18-file-format); the `.ics` criterion moved to issue 0010. Mutual references charge a shared day once because each plan stores what the other actually charged.
