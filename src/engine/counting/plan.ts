@@ -59,6 +59,15 @@ export function periodBounds(period: PlanPeriod): { from: DayNumber; to: DayNumb
   return { from, to };
 }
 
+/** The days a plan's results cover: the period ± STRETCH_MARGIN_DAYS, clamped to the supported years. Throws RangeError for an invalid period. */
+export function computationWindow(period: PlanPeriod): { from: DayNumber; to: DayNumber } {
+  const bounds = periodBounds(period);
+  return {
+    from: Math.max(MIN_DAY, bounds.from - STRETCH_MARGIN_DAYS),
+    to: Math.min(MAX_DAY, bounds.to + STRETCH_MARGIN_DAYS),
+  };
+}
+
 const PROBLEM_ORDER: Record<Problem["code"], number> = {
   leaveOutsidePeriod: 0,
   leaveWithoutRequiredWork: 1,
@@ -108,8 +117,7 @@ export function computePlan(input: PlanInput): PlanResult {
     leaveByDay.set(entry.day, entry);
   }
 
-  const windowFrom = Math.max(MIN_DAY, period.from - STRETCH_MARGIN_DAYS);
-  const windowTo = Math.min(MAX_DAY, period.to + STRETCH_MARGIN_DAYS);
+  const { from: windowFrom, to: windowTo } = computationWindow(input.period);
   const days: DayResult[] = [];
   const problems: Problem[] = [];
 
