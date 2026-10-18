@@ -25,6 +25,9 @@ describe("suggestPart", () => {
   it("suggests the end for a full day", () => expect(suggest("2027-05-12", FULL)).toBe("end"));
   it("sees free days before the period", () =>
     expect(suggest("2027-02-01", HALF, { period: { from: { year: 2027, month: 2 }, to: { year: 2027, month: 12 } } })).toBe("start"));
+  it("returns null at the last supported day without throwing", () =>
+    expect(suggest("9999-12-31", HALF, { period: { from: { year: 9999, month: 1 }, to: { year: 9999, month: 12 } } })).toBeNull());
+  it.each([[1], [479]])("suggests the start on a Monday after a Sunday for take %i", (take) => expect(suggest("2027-05-10", take)).toBe("start"));
   it.each([
     ["2028-01-03", HALF],
     ["2027-05-12", 0],

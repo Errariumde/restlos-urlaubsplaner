@@ -13,7 +13,7 @@ Reference for people who write day rules by hand, for example in the `rules` lis
 | --- | --- |
 | `id` | Unique rule ID within the file (`"christmas-eve"`). Appears in warnings and in the detail view as the source of a value. |
 | `match` | Which days the rule applies to, see [Match](#match). |
-| `validFrom`, `validUntil` | Optional years, both inclusive. Outside this range the rule produces nothing. For a range, the year in which it starts counts. |
+| `validFrom`, `validUntil` | Optional years, both inclusive. Outside this range the rule produces nothing. For a range, the year in which it starts counts. For a rule that matches one day per year, the year is the rule's year, and its day can fall in the neighbouring calendar year: `{ "type": "weekdayRelative", "weekday": "sat", "relation": "before", "month": 1, "day": 1 }` with `validFrom` and `validUntil` 2028 matches only `2027-12-25`. |
 | `requiredAtMost`, `requiredExactly`, `mandatory` | The effect. Exactly one of the three, see [Effects](#effects). |
 | `part` | Optional `"start"` or `"end"`, see [Part](#part). |
 | `label` | Optional name of the rule, `{ "de": "Silvester", "en": "New Year's Eve" }`. Only shown, never interpreted. |
@@ -49,9 +49,9 @@ The two required-work effects accept `"0"` (no work on that day). `mandatory` mu
 
 ## Part
 
-`part` states where the free time lies when the value is below a full day. `"end"` (the default) means the work comes first and the free time is at the end, as on 24 December when the work stops at noon. `"start"` means the free time is at the start of the day. It matters for stretches (which days off form an unbroken block), and for cost only where own and mandatory leave overlap on the same part of the day, which counts once.
+`part` states where the free time lies when the value is below a full day. `"end"` (the default) means the work comes first and the free time is at the end, as on 24 December when the work stops at noon. `"start"` means the free time is at the start of the day. It matters for stretches (which days off form an unbroken block) and, where pieces of leave meet on one day, for cost: own and mandatory leave on the same part of the day count once, and mandatory leave is not charged on the part that leave from another plan already covers. Example: mandatory `"1/2"` with `part: "end"` next to another plan's half day in the morning costs ½; with `part: "start"` it costs nothing.
 
-When several layers give the same lowest required value on a day, the free time lies where the first layer of the deciding stage with an explicit `part` says; if none has one, where the first layer says; if that has no `part` either, at the end.
+If several layers give the same lowest required work on a day, the first of them with an explicit `part` decides where the free time lies; if none has one, it lies at the end. The layers are compared in this order: the work week, public holidays, calendar sources in their list order, then `requiredAtMost` rules in rule-list order. If `requiredExactly` rules apply, only they are compared (in rule-list order), and a manual change of the single date replaces all of them.
 
 ## Warnings
 

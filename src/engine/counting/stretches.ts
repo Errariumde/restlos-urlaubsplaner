@@ -34,11 +34,22 @@ interface Open {
   closure: boolean;
 }
 
+function checkDay(x: StretchDay): void {
+  const { freeStart, freeEnd, costStart, costEnd } = x;
+  if (![freeStart, freeEnd, costStart, costEnd].every(Number.isInteger)) throw new RangeError("Stretch day values must be integers");
+  const valid = x.whole
+    ? freeStart === UNITS_PER_DAY && freeEnd === UNITS_PER_DAY && costEnd === 0 && costStart >= 0 && costStart <= UNITS_PER_DAY
+    : freeStart >= 0 && freeEnd >= 0 && freeStart + freeEnd < UNITS_PER_DAY && costStart >= 0 && costStart <= freeStart && costEnd >= 0 && costEnd <= freeEnd;
+  if (!valid) throw new RangeError("Inconsistent free time or cost of a stretch day");
+}
+
 /**
  * Finds the stretches of unbroken time off in a run of consecutive days. Any work, however short,
  * ends a stretch. The first and last day of a stretch may be partial.
+ * Throws RangeError for days that are not consecutive or whose free time and cost are inconsistent.
  */
 export function findStretches(days: readonly StretchDay[]): Stretch[] {
+  days.forEach(checkDay);
   for (let i = 1; i < days.length; i++) {
     if (days[i]!.day !== days[i - 1]!.day + 1) throw new RangeError("days must be consecutive");
   }

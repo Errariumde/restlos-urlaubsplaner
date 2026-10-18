@@ -39,22 +39,20 @@ function hasMixedEnds(match: RangeMatch): boolean {
 function neverApplies(rule: DayRule): boolean {
   const { match } = rule;
   const dates = match.type === "range" ? [match.from, match.to] : [match];
-  const years = new Set<number>();
+  // A day of rule year Y may lie in Y − 1 or Y + 1, so every window reaches one year further on both sides.
+  const windows: { first: number; last: number }[] = [];
   for (const date of dates) {
     if (date?.type !== "once") continue;
     const year = ymdFromDay(dayFromIso(date.date)).year;
-    for (let y = year - 1; y <= year + 1; y++) years.add(clampYear(y));
+    windows.push({ first: clampYear(year - 2), last: clampYear(year + 2) });
   }
-  if (years.size === 0) {
+  if (windows.length === 0) {
     const first = Math.max(MIN_YEAR, rule.validFrom ?? DEFAULT_FIRST_YEAR);
     const last = Math.min(first + NEVER_APPLIES_YEARS - 1, rule.validUntil ?? MAX_YEAR, MAX_YEAR);
-    for (let y = first; y <= last; y++) years.add(y);
+    if (first > last) return true;
+    windows.push({ first: clampYear(first - 1), last: clampYear(last + 1) });
   }
-  if (years.size === 0) return true;
-  // A day of rule year Y may lie in Y − 1 or Y + 1.
-  const first = clampYear(Math.min(...years) - 1);
-  const last = clampYear(Math.max(...years) + 1);
-  return ruleDays(rule, dayFromYmd(first, 1, 1), dayFromYmd(last, 12, 31)).length === 0;
+  return windows.every(({ first, last }) => ruleDays(rule, dayFromYmd(first, 1, 1), dayFromYmd(last, 12, 31)).length === 0);
 }
 
 /** Warnings, not errors, for a day rule that is legal but probably not what its author meant. */

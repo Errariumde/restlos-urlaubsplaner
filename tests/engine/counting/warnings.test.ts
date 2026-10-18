@@ -22,6 +22,7 @@ describe("dayRuleWarnings", () => {
     [{ type: "range", from: once("2027-02-27"), days: 4 }, []],
     [{ type: "range", from: easter(-52), days: 6 }, []],
     [{ type: "range", from: fixed(2, 27), to: fixed(3, 2) }, []],
+    [{ type: "range", from: { type: "fixed", month: 2, day: 29, nonLeap: "drop" }, days: 4 }, []],
   ] as [RangeMatch, string[]][])("leap-year length of %j", (match, expected) =>
     expect(codes(r(match))).toEqual(expected),
   );
@@ -51,6 +52,16 @@ describe("dayRuleWarnings", () => {
     expect(codes(r(once("2027-03-13")))).toEqual([]);
     expect(codes(r(fixed(12, 31)))).toEqual([]);
   });
+  it("reports several warnings of one rule in code order", () => {
+    expect(codes(r({ type: "range", from: fixed(2, 27), days: 4 }, { validFrom: 2030, validUntil: 2029 }))).toEqual(["leapYearLength", "neverApplies"]);
+    expect(codes(r({ type: "range", from: once("2027-03-01"), to: easter(1) }, { validFrom: 2028 }))).toEqual(["mixedRangeEnds", "neverApplies"]);
+  });
+  it("looks at a `once` date in `to` only", () => {
+    const match: RangeMatch = { type: "range", from: fixed(12, 27), to: once("2028-01-04") };
+    expect(codes(r(match))).toEqual([]);
+    expect(codes(r(match, { validUntil: 2026 }))).toEqual(["neverApplies"]);
+  });
+  it("reports a rule that starts after the last supported year", () => expect(codes(r(fixed(1, 1), { validFrom: 10000 }))).toEqual(["neverApplies"]));
   it("doesn't report a rule whose only day lies in the year before its valid year", () =>
     expect(
       codes(r({ type: "weekdayRelative", weekday: "sat", relation: "before", month: 1, day: 1 }, { validFrom: 2028, validUntil: 2028 })),

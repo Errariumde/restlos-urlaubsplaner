@@ -77,10 +77,11 @@ export interface YearMonth {
   readonly year: number;
   readonly month: number;
 }
+/** The months a plan covers, both inclusive. */
 export interface PlanPeriod {
   readonly from: YearMonth;
   readonly to: YearMonth;
-} // both months inclusive
+}
 
 export interface PlanInput {
   readonly country: CountryData; // holiday data for contract.region.country

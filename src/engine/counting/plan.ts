@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-import { dayFromYmd, daysInMonth, MAX_YEAR, MIN_YEAR, ymdFromDay } from "../days";
+import { dayFromYmd, daysInMonth, MAX_DAY, MIN_DAY, ymdFromDay } from "../days";
 import type { DayNumber } from "../days";
 import { checkUnits, UNITS_PER_DAY } from "../weight";
 import type { Units } from "../weight";
@@ -58,15 +58,40 @@ export function periodBounds(period: PlanPeriod): { from: DayNumber; to: DayNumb
   return { from, to };
 }
 
-const FIRST_DAY = dayFromYmd(MIN_YEAR, 1, 1);
-const LAST_DAY = dayFromYmd(MAX_YEAR, 12, 31);
-
 const PROBLEM_ORDER: Record<Problem["code"], number> = {
   leaveOutsidePeriod: 0,
   leaveWithoutRequiredWork: 1,
   leaveTakenInOtherPlan: 2,
   conflictingForcedRules: 3,
 };
+
+/** The pieces of leave on a day: own leave, mandatory leave of rules and sources, and leave from other plans. */
+function leavePieces(facts: DayFacts, own: PlanInput["leave"][number] | undefined): LeavePiece[] {
+  const pieces: LeavePiece[] = [];
+  if (own) pieces.push({ kind: "own", take: own.take, part: own.part ?? "end" });
+  for (const rule of facts.rules) {
+    if (rule.mandatory !== undefined) pieces.push({ kind: "mandatory", take: rule.mandatory, part: rule.part ?? "end", ruleId: rule.id });
+  }
+  for (const source of facts.sources) {
+    if (source.type === "mandatory") {
+      pieces.push({ kind: "mandatory", take: source.take, part: source.part ?? "end", sourceId: source.sourceId });
+    } else if (source.type === "otherPlan") {
+      pieces.push({ kind: "otherPlan", take: source.take, part: source.part ?? "end", sourceId: source.sourceId });
+    }
+  }
+  return pieces;
+}
+
+/** A day with work in the work week that a paid closure or a rule setting the work to 0 takes away. */
+function isClosure(facts: DayFacts, required: RequiredWork): boolean {
+  return (
+    required.value === 0 &&
+    facts.base.value > 0 &&
+    required.layers.some(
+      (layer) => layer.kind === "paidClosure" || ((layer.kind === "ruleAtMost" || layer.kind === "ruleExactly") && layer.value === 0),
+    )
+  );
+}
 
 export function computePlan(input: PlanInput): PlanResult {
   const period = periodBounds(input.period);
@@ -81,34 +106,18 @@ export function computePlan(input: PlanInput): PlanResult {
     leaveByDay.set(entry.day, entry);
   }
 
-  const windowFrom = Math.max(FIRST_DAY, period.from - STRETCH_MARGIN_DAYS);
-  const windowTo = Math.min(LAST_DAY, period.to + STRETCH_MARGIN_DAYS);
+  const windowFrom = Math.max(MIN_DAY, period.from - STRETCH_MARGIN_DAYS);
+  const windowTo = Math.min(MAX_DAY, period.to + STRETCH_MARGIN_DAYS);
   const days: DayResult[] = [];
   const problems: Problem[] = [];
 
   for (const facts of dayFacts(input, windowFrom, windowTo)) {
     const inPeriod = facts.day >= period.from && facts.day <= period.to;
     const required = requiredWork(facts);
-    const pieces: LeavePiece[] = [];
     const own = inPeriod ? leaveByDay.get(facts.day) : undefined;
-    if (own) pieces.push({ kind: "own", take: own.take, part: own.part ?? "end" });
-    for (const rule of facts.rules) {
-      if (rule.mandatory !== undefined) pieces.push({ kind: "mandatory", take: rule.mandatory, part: rule.part ?? "end", ruleId: rule.id });
-    }
-    for (const source of facts.sources) {
-      if (source.type === "mandatory") {
-        pieces.push({ kind: "mandatory", take: source.take, part: source.part ?? "end", sourceId: source.sourceId });
-      } else if (source.type === "otherPlan") {
-        pieces.push({ kind: "otherPlan", take: source.take, part: source.part ?? "end", sourceId: source.sourceId });
-      }
-    }
+    const pieces = leavePieces(facts, own);
     const evaluation = evaluateLeave(required, pieces, inPeriod);
-    const closure =
-      required.value === 0 &&
-      facts.base.value > 0 &&
-      required.layers.some(
-        (layer) => layer.kind === "paidClosure" || ((layer.kind === "ruleAtMost" || layer.kind === "ruleExactly") && layer.value === 0),
-      );
+    const closure = isClosure(facts, required);
     days.push({ day: facts.day, inPeriod, facts, required, leave: pieces, evaluation, closure });
 
     if (inPeriod) {

@@ -3,7 +3,7 @@
 
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { computePlan } from "../../../src/engine/counting/plan";
+import { computePlan, periodBounds } from "../../../src/engine/counting/plan";
 import type { PlanResult } from "../../../src/engine/counting/plan";
 import type { Stretch } from "../../../src/engine/counting/stretches";
 import type { DayRule, LeaveDay, Part, PlanInput, SourceDay } from "../../../src/engine/counting/types";
@@ -117,6 +117,23 @@ describe("computePlan: problems", () => {
   it("reports conflicting forced rules", () =>
     expect(plan({ contract: withRules({ id: "a", match: once("2027-03-13"), requiredExactly: HALF }, { id: "b", match: once("2027-03-13"), requiredExactly: FULL }) }).problems)
       .toEqual([{ code: "conflictingForcedRules", day: d("2027-03-13"), ruleIds: ["a", "b"] }]));
+  it("reports several problems on one day in order", () =>
+    expect(
+      plan({
+        contract: withRules({ id: "a", match: once("2027-03-13"), requiredExactly: HALF }, { id: "b", match: once("2027-03-13"), requiredExactly: FULL }),
+        leave: [leave("2027-03-13")],
+        sources: [{ type: "otherPlan", day: d("2027-03-13"), sourceId: "p", take: FULL }],
+      }).problems,
+    ).toEqual([
+      { code: "leaveTakenInOtherPlan", day: d("2027-03-13"), sourceIds: ["p"] },
+      { code: "conflictingForcedRules", day: d("2027-03-13"), ruleIds: ["a", "b"] },
+    ]));
+  it.each([
+    [{ leave: [{ day: d("2027-05-05"), take: 481 }] }], [{ allowance: 1.5 }],
+  ] as [Partial<PlanInput>][])("rejects out-of-range units %#", (changes) => expect(() => plan(changes)).toThrow(RangeError));
+  it.each([
+    ["month 0", month(2027, 0)], ["month 13", month(2027, 13)], ["year 1582", month(1582, 1)], ["year 10000", month(10000, 1)],
+  ])("periodBounds rejects %s", (_, bad) => expect(() => periodBounds({ from: bad, to: month(2027, 12) })).toThrow(RangeError));
   it.each([
     [{ leave: [leave("2027-05-05"), leave("2027-05-05")] }], [{ leave: [{ day: d("2027-05-05"), take: 0 }] }],
     [{ leave: [{ day: d("2027-05-05"), take: HALF }] }], [{ allowance: -1 }], [{ period: { from: month(2027, 5), to: month(2027, 4) } }],

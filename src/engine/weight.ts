@@ -85,6 +85,7 @@ function parseDecimal(text: string, intText: string, fracText: string): Units {
   return scaled / scale;
 }
 
+// Euclid's algorithm
 const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
 
 /**

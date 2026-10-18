@@ -3,7 +3,7 @@
 
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { evaluateLeave } from "../../../src/engine/counting/leave";
+import { evaluateLeave, overlappingOtherPlanIds } from "../../../src/engine/counting/leave";
 import type { DayLeave, LeaveKind, LeavePiece } from "../../../src/engine/counting/leave";
 import type { Part } from "../../../src/engine/counting/types";
 
@@ -55,6 +55,16 @@ describe("evaluateLeave", () => {
   ] as [string, ReturnType<typeof at>, LeavePiece[]][])("rejects %s", (_, required, pieces) =>
     expect(() => evaluateLeave(required, pieces, true)).toThrow(RangeError));
 
+  it("names the other-plan pieces that overlap own leave", () =>
+    expect(overlappingOtherPlanIds(480, [own(240, "start"), other(240, "start"), other(240)])).toEqual(["o"]));
+  it.each([
+    ["take 0", 480, [other(0)]],
+    ["take 481", 480, [own(481)]],
+    ["required 481", 481, []],
+    ["required 1.5", 1.5, []],
+  ] as [string, number, LeavePiece[]][])("overlappingOtherPlanIds rejects %s", (_, r, pieces) =>
+    expect(() => overlappingOtherPlanIds(r, pieces)).toThrow(RangeError));
+
   const thirtySecond = fc.integer({ min: 0, max: 32 }).map((k) => k * 15);
   const part = fc.constantFrom<Part>("start", "end");
   it("costs min(taken, required work) for any multiple of 1/32", () =>
@@ -81,7 +91,7 @@ describe("evaluateLeave", () => {
     });
     fc.assert(
       fc.property(multiple, part, fc.array(piece, { maxLength: 4 }), fc.boolean(), (r, freePart, pieces, charge) => {
-        // One boolean per unit of the 480 of the work block's day; slot i is covered by a piece of that kind.
+        // One boolean per unit of the work block, which has length r; slot i is covered by a piece of that kind.
         const covered: Record<LeaveKind, boolean[]> = {
           own: new Array<boolean>(r).fill(false),
           mandatory: new Array<boolean>(r).fill(false),
@@ -93,11 +103,12 @@ describe("evaluateLeave", () => {
             if (inside) covered[x.kind][i] = true;
           }
         }
-        // The free time at an end is as long as the longest piece there, whatever its kind.
-        const longest = (partName: Part) =>
-          Math.min(r, Math.max(0, ...pieces.filter((x) => x.part === partName).map((x) => x.take)));
-        const p = longest("start");
-        const q = longest("end");
+        // A slot is free when any kind covers it; the free time at an end is the run of free slots there.
+        const free = Array.from({ length: r }, (_, i) => covered.own[i] || covered.mandatory[i] || covered.otherPlan[i]);
+        let p = 0;
+        while (p < r && free[p]) p++;
+        let q = 0;
+        while (q < r && free[r - 1 - q]) q++;
         let ownCost = 0;
         let mandatoryCost = 0;
         let costStart = 0;
@@ -112,7 +123,7 @@ describe("evaluateLeave", () => {
           if (charged && i >= r - q) costEnd++;
           if (covered.own[i] && covered.otherPlan[i]) ownCovered = true;
         }
-        const remaining = Math.max(0, r - p - q);
+        const remaining = free.filter((isFree) => !isFree).length;
         const whole = remaining === 0;
         const a = freePart === "end" ? 0 : 480 - r;
         const cost = ownCost + mandatoryCost;

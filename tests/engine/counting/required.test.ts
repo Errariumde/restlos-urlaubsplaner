@@ -129,6 +129,35 @@ describe("dayFacts", () => {
     expect(facts[1]?.sources.map((s) => s.sourceId)).toEqual(["school"]);
     expect(facts[1]?.rules.map((r) => r.id)).toEqual(["b", "a"]);
   });
+  it("doesn't report forced rules with the same value as conflicting", () => {
+    const w = req("2027-03-13", rules({ id: "a", match: once("2027-03-13"), requiredExactly: FULL }, { id: "b", match: once("2027-03-13"), requiredExactly: FULL }));
+    expect([w.value, w.conflictingRules]).toEqual([FULL, []]);
+  });
+  it("lets the first forced rule with a part decide where the free time lies", () => {
+    const w = req("2027-03-13", rules({ id: "a", match: once("2027-03-13"), requiredExactly: HALF }, { id: "b", match: once("2027-03-13"), requiredExactly: HALF, part: "start" }));
+    expect([w.freePart, w.decidedBy]).toMatchObject(["start", { ruleId: "b" }]);
+  });
+  it("takes the part of an override", () => {
+    const w = req("2027-03-13", { overrides: [{ day: d("2027-03-13"), required: HALF, part: "start" }] });
+    expect([w.freePart, w.decidedBy.kind]).toEqual(["start", "override"]);
+  });
+  it("lets a source that comes first decide the part on a tie with a later rule", () => {
+    const w = req("2027-05-05", {
+      sources: [{ type: "holiday", day: d("2027-05-05"), sourceId: "company", required: HALF, part: "end" }],
+      ...rules({ id: "later", match: once("2027-05-05"), requiredAtMost: HALF, part: "start" }),
+    });
+    expect([w.value, w.freePart]).toEqual([HALF, "end"]);
+  });
+  it("gives no facts when the range is reversed", () => expect(dayFacts(baseInput(), d("2027-05-06"), d("2027-05-05"))).toEqual([]));
+  it.each([
+    [rules({ id: "r", match: once("2027-05-05"), requiredAtMost: -1 })],
+    [rules({ id: "r", match: once("2027-05-05"), requiredExactly: 1.5 })],
+    [{ overrides: [{ day: d("2027-05-05"), required: 481 }] }],
+    [{ contract: { ...BAVARIA, week: [{ from: d("2020-01-01"), required: { ...FULL_TIME, mon: 600 } }] } }],
+    [{ contract: { ...BAVARIA, week: [{ from: d("2020-01-01"), required: { mon: FULL, tue: FULL, wed: FULL, thu: FULL, fri: FULL, sat: 0 } as unknown as typeof FULL_TIME }] } }],
+  ] as [Partial<PlanInput>][])("rejects out-of-range or missing values %#", (changes) =>
+    expect(() => dayFacts(baseInput(changes), d("2027-05-01"), d("2027-05-31"))).toThrow(RangeError),
+  );
   it.each([
     [{ contract: { ...BAVARIA, week: [] } }],
     [

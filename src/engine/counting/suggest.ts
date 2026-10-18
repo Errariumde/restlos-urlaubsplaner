@@ -21,7 +21,7 @@ export function suggestPart(input: PlanInput, day: DayNumber, take: Units): Part
   const plan = computePlan({ ...input, leave: input.leave.filter((entry) => entry.day !== day) });
   const index = plan.days.findIndex((result) => result.day === day);
   const today = plan.days[index];
-  if (!today) throw new RangeError("The day lies outside the plan period");
+  if (!today) throw new Error("The day is missing from the plan result"); // the period check above rules this out
 
   const wholeWith = (part: Part): boolean =>
     evaluateLeave(today.required, [...today.leave, { kind: "own", take, part }], today.inPeriod).whole;

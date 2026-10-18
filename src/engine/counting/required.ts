@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-import { weekdayOf } from "../days";
+import { WEEKDAYS, weekdayOf } from "../days";
 import type { DayNumber } from "../days";
 import { holidaysBetween } from "../holidays/holidays";
 import type { Holiday } from "../holidays/types";
@@ -58,13 +58,14 @@ export function dayFacts(
 ): DayFacts[] {
   const { contract, sources, overrides } = input;
   const { week, rules } = contract;
-  if (week.length === 0) throw new RangeError("The work week needs at least one entry");
+  const [firstEntry] = week;
+  if (firstEntry === undefined) throw new RangeError("The work week needs at least one entry");
   week.forEach((entry, index) => {
     const previous = week[index - 1];
     if (previous && entry.from <= previous.from) {
       throw new RangeError("Work-week entries must have strictly increasing start dates");
     }
-    for (const value of Object.values(entry.required)) checkUnits(value, "Required work in the work week");
+    for (const weekday of WEEKDAYS) checkUnits(entry.required[weekday], "Required work in the work week");
   });
   for (const source of sources) {
     if (source.type === "holiday") checkUnits(source.required, "Required work of a source");
@@ -78,6 +79,7 @@ export function dayFacts(
     else checkUnits(rule.mandatory, "Mandatory leave of a rule", 1);
   }
   const overrideByDay = new Map<DayNumber, RequiredOverride>();
+  // Every override is validated, also those outside the window, because a duplicate is invalid input either way.
   for (const override of overrides) {
     checkUnits(override.required, "Required work of an override");
     if (overrideByDay.has(override.day)) throw new RangeError("At most one override per day");
@@ -97,7 +99,7 @@ export function dayFacts(
 
   const result: DayFacts[] = [];
   for (let day = from; day <= to; day++) {
-    let entry = week[0] as (typeof week)[number];
+    let entry = firstEntry;
     for (const candidate of week) if (candidate.from <= day) entry = candidate;
     const override = overrideByDay.get(day);
     result.push({
@@ -159,8 +161,9 @@ export function requiredWork(facts: DayFacts): RequiredWork {
 
   const value = Math.min(...stage.map((layer) => layer.value));
   const matching = stage.filter((layer) => layer.value === value);
-  const decidedBy = (matching.find((layer) => "part" in layer && layer.part !== undefined) ??
-    matching[0]) as RequiredLayer;
+  const decidedBy = matching.find((layer) => "part" in layer && layer.part !== undefined) ?? matching[0];
+  // The stage always holds the work-week layer, the forced rules or the override, and the minimum comes from one of them.
+  if (decidedBy === undefined) throw new Error("No layer decides the required work");
   const freePart = ("part" in decidedBy ? decidedBy.part : undefined) ?? "end";
 
   const conflicting = exactly.some((layer) => layer.value !== exactly[0]?.value);

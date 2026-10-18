@@ -29,7 +29,7 @@ export interface DayLeave {
   readonly ownCoveredByOtherPlan: boolean;
 }
 
-/** Half-open interval [from, to) with from < to. */
+/** Half-open interval [from, to). Entries of a list have from < to; a window passed to `measureWithin` may be empty. */
 type Interval = readonly [from: number, to: number];
 
 /** Sorted, non-overlapping, non-touching intervals. */
@@ -44,6 +44,7 @@ function union(...lists: readonly (readonly Interval[])[]): Interval[] {
   return out;
 }
 
+/** The parts of `a` not covered by `b`. Both lists must be sorted and disjoint, as `union` returns them. */
 function difference(a: readonly Interval[], b: readonly Interval[]): Interval[] {
   const out: Interval[] = [];
   for (const [from, to] of a) {
@@ -58,10 +59,22 @@ function difference(a: readonly Interval[], b: readonly Interval[]): Interval[] 
   return out;
 }
 
-function measure(list: readonly Interval[], within: Interval = [-Infinity, Infinity]): Units {
+function measure(list: readonly Interval[]): Units {
   let sum = 0;
-  for (const [from, to] of list) sum += Math.max(0, Math.min(to, within[1]) - Math.max(from, within[0]));
+  for (const [from, to] of list) sum += to - from;
   return sum;
+}
+
+/** The total length of the parts of `list` that lie inside the window [from, to). */
+function measureWithin(list: readonly Interval[], from: number, to: number): Units {
+  let sum = 0;
+  for (const [start, end] of list) sum += Math.max(0, Math.min(end, to) - Math.max(start, from));
+  return sum;
+}
+
+function checkInputs(r: Units, pieces: readonly LeavePiece[]): void {
+  checkUnits(r, "Required work");
+  for (const piece of pieces) checkUnits(piece.take, "Leave take", 1);
 }
 
 /** The part of the work block `[0, r)` a piece covers; null when it covers nothing. */
@@ -71,14 +84,15 @@ function pieceInterval(piece: LeavePiece, r: Units): Interval | null {
   return piece.part === "start" ? [0, length] : [r - length, r];
 }
 
-/** IDs of the other-plan pieces that overlap own leave, each once, in input order. */
+/** IDs of the other-plan pieces that overlap own leave, each once, in input order. Throws RangeError for units out of range. */
 export function overlappingOtherPlanIds(r: Units, pieces: readonly LeavePiece[]): string[] {
+  checkInputs(r, pieces);
   const own = pieces.flatMap((piece) => (piece.kind === "own" ? [pieceInterval(piece, r)] : [])).filter((x) => x !== null);
   const ids = new Set<string>();
   for (const piece of pieces) {
     if (piece.kind !== "otherPlan" || piece.sourceId === undefined) continue;
     const span = pieceInterval(piece, r);
-    if (span !== null && measure(own, span) > 0) ids.add(piece.sourceId);
+    if (span !== null && measureWithin(own, span[0], span[1]) > 0) ids.add(piece.sourceId);
   }
   return [...ids];
 }
@@ -94,8 +108,7 @@ export function evaluateLeave(
   charge: boolean,
 ): DayLeave {
   const r = required.value;
-  checkUnits(r, "Required work");
-  for (const piece of pieces) checkUnits(piece.take, "Leave take", 1);
+  checkInputs(r, pieces);
   const sets: Record<LeaveKind, Interval[]> = { own: [], mandatory: [], otherPlan: [] };
   let p = 0;
   let q = 0;
@@ -127,8 +140,8 @@ export function evaluateLeave(
     whole,
     freeStart: whole ? UNITS_PER_DAY : a + p,
     freeEnd: whole ? UNITS_PER_DAY : UNITS_PER_DAY - a - r + q,
-    costStart: whole ? cost : measure(charged, [0, p]),
-    costEnd: whole ? 0 : measure(charged, [r - q, r]),
-    ownCoveredByOtherPlan: measure(difference(own, difference(own, other))) > 0,
+    costStart: whole ? cost : measureWithin(charged, 0, p),
+    costEnd: whole ? 0 : measureWithin(charged, r - q, r),
+    ownCoveredByOtherPlan: measure(own) > measure(difference(own, other)),
   };
 }

@@ -32,9 +32,23 @@ describe("findStretches", () => {
   it("closes a stretch at the end of the list", () => expect(run(work, free(480))).toEqual(["2027-05-06@0 2027-05-06@480 480/480 listed"]));
   it("rejects days that are not consecutive", () =>
     expect(() => findStretches([{ ...work, day: 10 }, { ...work, day: 12 }])).toThrow(RangeError));
+  it("finds no stretch in no days", () => expect(findStretches([])).toEqual([]));
+  it("keeps a single whole day without cost as an unlisted stretch", () =>
+    expect(run(free())).toEqual(["2027-05-05@0 2027-05-05@480 0/480"]));
+  it.each([
+    ["free time that fills the day", partial(240, 240)],
+    ["cost beyond the free time at the start", partial(120, 120, 121, 0)],
+    ["cost beyond the free time at the end", partial(120, 120, 0, 121)],
+    ["negative free time", partial(-1, 100)],
+    ["fractional free time", partial(1.5, 100)],
+    ["a whole day with cost above 480", free(481)],
+    ["a whole day with free time below 480", { ...free(), freeStart: 240 }],
+    ["a whole day with cost at the end", { ...free(), costEnd: 1 }],
+  ] as [string, Shape][])("rejects %s", (_, shape) => expect(() => findStretches(seq(shape))).toThrow(RangeError));
   it("keeps every unit of cost and free time", () => {
     const shape = fc.oneof(
       fc.integer({ min: 0, max: 480 }).map((c) => free(c)),
+      fc.integer({ min: 0, max: 480 }).map((c) => free(c, true)),
       fc.tuple(fc.integer({ min: 0, max: 239 }), fc.integer({ min: 0, max: 239 })).chain(([s, e]) =>
         fc.tuple(fc.integer({ min: 0, max: s }), fc.integer({ min: 0, max: e })).map(([cs, ce]) => partial(s, e, cs, ce))),
     );
@@ -42,8 +56,17 @@ describe("findStretches", () => {
       const days = seq(...shapes);
       const stretches = findStretches(days);
       const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+      const pos = (point: { day: number; offset: number }) => point.day * 480 + point.offset;
       expect(sum(stretches.map((s) => s.cost))).toBe(sum(days.map((x) => x.costStart + x.costEnd)));
       expect(sum(stretches.map((s) => s.daysOff))).toBe(sum(days.map((x) => (x.whole ? 480 : x.freeStart + x.freeEnd))));
+      stretches.forEach((s, index) => {
+        expect(pos(s.start)).toBeLessThan(pos(s.end));
+        expect(s.daysOff).toBe(pos(s.end) - pos(s.start)); // unbroken
+        const previous = stretches[index - 1];
+        if (previous) expect(pos(s.start)).toBeGreaterThan(pos(previous.end));
+        const closureInside = days.some((x) => x.closure && x.day >= s.start.day && x.day <= s.end.day);
+        expect(s.listed).toBe(s.cost > 0 || closureInside);
+      });
     }));
   });
 });

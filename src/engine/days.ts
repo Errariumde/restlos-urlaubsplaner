@@ -56,8 +56,8 @@ export function dayFromYmd(year: number, month: number, day: number): DayNumber 
   return era * 146097 + dayOfEra - 719468;
 }
 
-const MIN_DAY = dayFromYmd(MIN_YEAR, 1, 1);
-const MAX_DAY = dayFromYmd(MAX_YEAR, 12, 31);
+export const MIN_DAY = dayFromYmd(MIN_YEAR, 1, 1);
+export const MAX_DAY = dayFromYmd(MAX_YEAR, 12, 31);
 
 // Howard Hinnant's civil_from_days.
 export function ymdFromDay(day: DayNumber): Ymd {

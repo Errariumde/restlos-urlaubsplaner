@@ -80,4 +80,6 @@ describe("ruleDays", () => {
   ] as [RangeMatch][])("rejects %j", (match) =>
     expect(() => ruleDays({ match }, d("2027-01-01"), d("2027-12-31"))).toThrow(RangeError),
   );
+  it("rejects a malformed range even when the validity makes it empty", () =>
+    expect(() => ruleDays({ match: { type: "range", from: fixed(1, 1) }, validFrom: 2030, validUntil: 2029 }, d("2027-01-01"), d("2027-12-31"))).toThrow(RangeError));
 });

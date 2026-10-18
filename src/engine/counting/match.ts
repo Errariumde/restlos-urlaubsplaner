@@ -35,8 +35,8 @@ export function ruleDays(
     return [...found].sort((a, b) => a - b);
   }
 
-  const { days, weekdays } = match;
-  if ((match.to === undefined) === (days === undefined)) {
+  const { days, weekdays, to: toRule } = match;
+  if ((toRule === undefined) === (days === undefined)) {
     throw new RangeError("A range needs exactly one of `to` and `days`");
   }
   if (days !== undefined && (!Number.isInteger(days) || days < 1 || days > MAX_RANGE_DAYS)) {
@@ -50,11 +50,10 @@ export function ruleDays(
     if (year < validFrom || year > validUntil) continue;
     const start = ruleDate(match.from, year);
     if (start === null) continue;
-    let end: DayNumber | null;
+    let end: DayNumber | null = null;
     if (days !== undefined) {
       end = start + days - 1;
-    } else {
-      const toRule = match.to as NonNullable<typeof match.to>;
+    } else if (toRule !== undefined) {
       const sameYear = ruleDate(toRule, year);
       end = sameYear !== null && sameYear >= start ? sameYear : null;
       if (end === null && year + 1 <= MAX_YEAR) {
