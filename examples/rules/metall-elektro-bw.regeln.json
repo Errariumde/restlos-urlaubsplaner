@@ -9,8 +9,8 @@
       "en": "Metal and electrical industry, Baden-Württemberg (MTV 2024)"
     },
     "description": {
-      "de": "Für Beschäftigte der Metall- und Elektroindustrie in Baden-Württemberg, für die der Manteltarifvertrag von 2024 gilt; ob er für dich gilt, hängt von der Tarifbindung deines Betriebs und deinem Arbeitsvertrag ab. Am Werktag unmittelbar vor dem ersten Weihnachtsfeiertag und vor Neujahr endet die Arbeit um 12 Uhr, hier als halber Tag frei am Ende des Tages; ist Heiligabend oder Silvester ein Sonntag, gilt das für den Samstag davor. Nicht abgebildet: die genaue Uhrzeit (½ ist eine Näherung), eine Betriebsvereinbarung zum Vor- oder Nacharbeiten, Schichtpläne. Arbeitswoche Montag bis Freitag mit ganzen Tagen; arbeitest du samstags, in Teilzeit oder an anderen Tagen, passe die Arbeitswoche an. Prüfe alles an deinem eigenen Arbeitsvertrag und Tarifvertrag. Es gibt keine Gewähr, dass die Regeln stimmen, vollständig oder aktuell sind.",
-      "en": "For employees in the metal and electrical industry in Baden-Württemberg covered by the 2024 framework agreement (MTV); whether it applies to you depends on your employer's collective bargaining coverage and your employment contract. On the working day right before Christmas Day and New Year's Day work ends at noon, written here as half a day free at the end of the day; if Christmas Eve or New Year's Eve is a Sunday, this applies to the Saturday before. Not modelled: the exact time (½ is an approximation), a works agreement on working the hours before or after, shift plans. Work week Monday to Friday with full days; if you work on Saturdays, part-time or on other days, adjust the work week. Check everything against your own employment contract and collective agreement. There is no guarantee that these rules are correct, complete or up to date."
+      "de": "Für Beschäftigte der Metall- und Elektroindustrie in Baden-Württemberg, für die der Manteltarifvertrag von 2024 gilt; ob er für dich gilt, hängt von der Tarifbindung deines Betriebs und deinem Arbeitsvertrag ab. Am Werktag unmittelbar vor dem ersten Weihnachtsfeiertag und vor Neujahr endet die Arbeit spätestens um 12 Uhr, hier als halber Tag frei am Ende des Tages. Ist Heiligabend oder Silvester ein Sonntag, lesen wir § 27 so, dass das für den Samstag davor gilt; das ist nicht eindeutig – prüfe es für deinen Betrieb. Nicht abgebildet: die genaue Uhrzeit (½ ist eine Näherung), eine Betriebsvereinbarung zum Vor- oder Nacharbeiten, Schichtpläne. Arbeitswoche Montag bis Freitag mit ganzen Tagen; arbeitest du samstags, in Teilzeit oder an anderen Tagen, passe die Arbeitswoche an. Prüfe alles an deinem eigenen Arbeitsvertrag und Tarifvertrag. Es gibt keine Gewähr, dass die Regeln stimmen, vollständig oder aktuell sind.",
+      "en": "For employees in the metal and electrical industry in Baden-Württemberg covered by the 2024 framework agreement (MTV); whether it applies to you depends on your employer's collective bargaining coverage and your employment contract. On the working day right before Christmas Day and New Year's Day work ends at 12:00 at the latest, written here as half a day free at the end of the day. If Christmas Eve or New Year's Eve is a Sunday, we read § 27 as applying to the Saturday before; that is not certain – check it for your workplace. Not modelled: the exact time (½ is an approximation), a works agreement on working the hours before or after, shift plans. Work week Monday to Friday with full days; if you work on Saturdays, part-time or on other days, adjust the work week. Check everything against your own employment contract and collective agreement. There is no guarantee that these rules are correct, complete or up to date."
     },
     "references": {
       "mtv": {
@@ -46,8 +46,8 @@
       {
         "id": "christmas-eve",
         "label": {
-          "de": "Heiligabend: Arbeitsende 12 Uhr",
-          "en": "Christmas Eve: work ends at noon"
+          "de": "Heiligabend: Arbeitsende spätestens 12 Uhr",
+          "en": "Christmas Eve: work ends at 12:00 at the latest"
         },
         "match": {
           "type": "range",
@@ -79,8 +79,8 @@
       {
         "id": "saturday-before-christmas",
         "label": {
-          "de": "Samstag, 23. Dezember, wenn Heiligabend ein Sonntag ist: Arbeitsende 12 Uhr",
-          "en": "Saturday 23 December when Christmas Eve is a Sunday: work ends at noon"
+          "de": "Samstag, 23. Dezember, wenn Heiligabend ein Sonntag ist: Arbeitsende spätestens 12 Uhr",
+          "en": "Saturday 23 December when Christmas Eve is a Sunday: work ends at 12:00 at the latest"
         },
         "match": {
           "type": "range",
@@ -97,8 +97,8 @@
         "requiredAtMost": "1/2",
         "part": "end",
         "note": {
-          "de": "Ist Heiligabend ein Sonntag, ist der Samstag davor der Werktag unmittelbar vor dem ersten Weihnachtsfeiertag, und die Arbeit endet dann an diesem Samstag um 12 Uhr. Das ändert nur etwas, wenn du samstags arbeitest.",
-          "en": "If Christmas Eve is a Sunday, the Saturday before it is the working day right before Christmas Day, so work ends at noon on that Saturday. This only matters if you work on Saturdays."
+          "de": "Wir lesen § 27 so, dass bei einem Sonntag am 24. Dezember der Samstag davor der Werktag unmittelbar vor dem ersten Weihnachtsfeiertag ist und die Arbeit dann an diesem Samstag spätestens um 12 Uhr endet. Das ist nicht eindeutig – prüfe es für deinen Betrieb. Es ändert nur etwas, wenn du samstags arbeitest.",
+          "en": "We read § 27 to mean that when 24 December is a Sunday, the Saturday before it is the working day right before Christmas Day, so work ends at 12:00 at the latest on that Saturday. That is not certain – check it for your workplace. It only matters if you work on Saturdays."
         },
         "references": [
           "mtv"
@@ -107,8 +107,8 @@
       {
         "id": "new-years-eve",
         "label": {
-          "de": "Silvester: Arbeitsende 12 Uhr",
-          "en": "New Year's Eve: work ends at noon"
+          "de": "Silvester: Arbeitsende spätestens 12 Uhr",
+          "en": "New Year's Eve: work ends at 12:00 at the latest"
         },
         "match": {
           "type": "range",
@@ -140,8 +140,8 @@
       {
         "id": "saturday-before-new-year",
         "label": {
-          "de": "Samstag, 30. Dezember, wenn Silvester ein Sonntag ist: Arbeitsende 12 Uhr",
-          "en": "Saturday 30 December when New Year's Eve is a Sunday: work ends at noon"
+          "de": "Samstag, 30. Dezember, wenn Silvester ein Sonntag ist: Arbeitsende spätestens 12 Uhr",
+          "en": "Saturday 30 December when New Year's Eve is a Sunday: work ends at 12:00 at the latest"
         },
         "match": {
           "type": "range",
@@ -158,8 +158,8 @@
         "requiredAtMost": "1/2",
         "part": "end",
         "note": {
-          "de": "Ist Silvester ein Sonntag, ist der Samstag davor der Werktag unmittelbar vor Neujahr, und die Arbeit endet dann an diesem Samstag um 12 Uhr. Das ändert nur etwas, wenn du samstags arbeitest.",
-          "en": "If New Year's Eve is a Sunday, the Saturday before it is the working day right before New Year's Day, so work ends at noon on that Saturday. This only matters if you work on Saturdays."
+          "de": "Wir lesen § 27 so, dass bei einem Sonntag am 31. Dezember der Samstag davor der Werktag unmittelbar vor Neujahr ist und die Arbeit dann an diesem Samstag spätestens um 12 Uhr endet. Das ist nicht eindeutig – prüfe es für deinen Betrieb. Es ändert nur etwas, wenn du samstags arbeitest.",
+          "en": "We read § 27 to mean that when 31 December is a Sunday, the Saturday before it is the working day right before New Year's Day, so work ends at 12:00 at the latest on that Saturday. That is not certain – check it for your workplace. It only matters if you work on Saturdays."
         },
         "references": [
           "mtv"

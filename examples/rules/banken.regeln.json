@@ -9,7 +9,7 @@
       "en": "Banks (MTV private banks 2024, MTV cooperative banks 2025)"
     },
     "description": {
-      "de": "Für Beschäftigte privater Banken und der Volks- und Raiffeisenbanken, für die diese Manteltarifverträge gelten: Heiligabend und Silvester sind frei. Nicht abgebildet: Arbeit an Silvester für erforderliche Arbeiten (vor allem Abschlussarbeiten) mit Freizeitausgleich an einem anderen Arbeitstag; Arbeit an Orten, an denen konkurrierende Institute geöffnet haben; Samstagsarbeit. Nicht geprüft: die Tarifverträge der öffentlichen Banken und der Sparkassen. Arbeitswoche Montag bis Freitag mit ganzen Tagen; arbeitest du in Teilzeit oder an anderen Tagen, passe die Arbeitswoche an. Prüfe alles an deinem eigenen Arbeitsvertrag und Tarifvertrag. Es gibt keine Gewähr, dass die Regeln stimmen, vollständig oder aktuell sind.",
+      "de": "Für Beschäftigte privater Banken und der Volks- und Raiffeisenbanken, für die diese Manteltarifverträge gelten: Heiligabend und Silvester sind frei. Nicht abgebildet: Einsatz an Silvester für erforderliche Arbeiten (vor allem Abschlussarbeiten) mit Freizeitausgleich an einem anderen Arbeitstag; Arbeit an Orten, an denen konkurrierende Institute geöffnet haben; Samstagsarbeit. Nicht geprüft: die Tarifverträge der öffentlichen Banken und der Sparkassen. Arbeitswoche Montag bis Freitag mit ganzen Tagen; arbeitest du in Teilzeit oder an anderen Tagen, passe die Arbeitswoche an. Prüfe alles an deinem eigenen Arbeitsvertrag und Tarifvertrag. Es gibt keine Gewähr, dass die Regeln stimmen, vollständig oder aktuell sind.",
       "en": "For employees of private banks and of the cooperative banks (Volksbanken und Raiffeisenbanken) covered by these framework agreements: Christmas Eve and New Year's Eve are days off. Not modelled: work on New Year's Eve for necessary tasks (mainly year-end closing) with time off in lieu on another working day; work in places where competing banks stay open; Saturday work. Not checked: the agreements of the public banks and of the savings banks (Sparkassen). Work week Monday to Friday with full days; if you work part-time or on other days, adjust the work week. Check everything against your own employment contract and collective agreement. There is no guarantee that these rules are correct, complete or up to date."
     },
     "references": {
@@ -64,7 +64,7 @@
         },
         "requiredAtMost": "0",
         "note": {
-          "de": "„Am 24. Dezember ist dienstfrei (Bankfeiertag).“ Bei Volks- und Raiffeisenbanken dürfen Mitarbeiter an diesem Tag an Orten beschäftigt werden, an denen konkurrierende Kreditinstitute geöffnet haben; dann passt diese Regel nicht.",
+          "de": "„Am 24. Dezember ist dienstfrei (Bankfeiertag).“ Bei Volks- und Raiffeisenbanken dürfen Beschäftigte an diesem Tag an Orten beschäftigt werden, an denen konkurrierende Kreditinstitute geöffnet haben; dann passt diese Regel nicht.",
           "en": "\"24 December is off duty (bank holiday).\" Cooperative banks may employ staff on this day in places where competing banks stay open; then this rule does not fit."
         },
         "references": [

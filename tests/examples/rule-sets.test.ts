@@ -40,6 +40,10 @@ describe("example rule sets: files", () => {
     expect(id).toMatch(UUID_V4);
     expect(bothLanguages(contract.name)).toBe(true);
     expect(bothLanguages(contract.description)).toBe(true);
+    // Every file ends with the same warning that there is no guarantee.
+    const description = contract.description as Readonly<Record<string, string>>;
+    expect(description["de"]).toMatch(/ Es gibt keine Gewähr, dass die Regeln stimmen, vollständig oder aktuell sind\.$/);
+    expect(description["en"]).toMatch(/ There is no guarantee that these rules are correct, complete or up to date\.$/);
     for (const text of Object.values(contract.name ?? {})) expect(text).toMatch(/\b\d{4}\b/); // the version year
     const keys = Object.keys(contract.references);
     expect(keys.length).toBeGreaterThan(0);
@@ -164,7 +168,7 @@ describe("example rule sets: hand-worked plans", () => {
     expect(required(result, "2027-03-27")).toEqual({ value: 0, freePart: "end", by: "ruleAtMost" });
     expect(required(result, "2027-05-15")).toEqual({ value: 0, freePart: "end", by: "ruleAtMost" });
     // Saturdays are working days now: leave Tue 30 Mar – Sat 3 Apr costs 5 days. (MTV § 13 says Saturdays are no leave
-    // days; the counting model can't express a working day without leave cost, and the description says so.) Sat 2 Jan 2027 is a working day, so
+    // days, so the description recommends keeping Saturday at 0; this plan is what happens when Saturday work is entered.) Sat 2 Jan 2027 is a working day, so
     // the turn of the year 2026/27 is only Thu 31 Dec 2026 (rule) and Fri 1 Jan (holiday). Sat 15 May, Sun 16 May and
     // Whit Monday 17 May form a listed stretch: a working Saturday made free by a rule.
     expect(listed(result)).toEqual([
