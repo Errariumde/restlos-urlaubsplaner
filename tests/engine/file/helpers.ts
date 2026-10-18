@@ -26,3 +26,21 @@ export function minimal(overrides: Record<string, unknown> = {}): string {
     ...overrides,
   });
 }
+
+export const BAVARIA_CONTRACT = { ...MINIMAL_CONTRACT, region: { country: "DE", state: "BY" } };
+
+/** JSON text of a smallest valid plan file in Bavaria (2027); `plan` keys replace those of the plan, `overrides` the top-level keys. */
+export function planFile(plan: Record<string, unknown> = {}, overrides: Record<string, unknown> = {}): string {
+  return JSON.stringify({
+    schema: "restlos/1",
+    kind: "plan",
+    id: "test-plan",
+    revision: 1,
+    contract: BAVARIA_CONTRACT,
+    sources: [],
+    templates: [],
+    theme: null,
+    plan: { range: { from: "2027-01", to: "2027-12" }, allowance: "30", days: [], overrides: [], notes: [], ...plan },
+    ...overrides,
+  });
+}

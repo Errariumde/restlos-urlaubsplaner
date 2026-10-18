@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 import { describe, expect, it } from "vitest";
-import { suggestPart } from "../../../src/engine/counting/suggest";
+import { suggestPart, suggestParts } from "../../../src/engine/counting/suggest";
 import type { Part, PlanInput } from "../../../src/engine/counting/types";
 import { BAVARIA, baseInput, CHRISTMAS_EVE_RULES, d, FULL, HALF, fixed } from "./helpers";
 
@@ -33,4 +33,25 @@ describe("suggestPart", () => {
     ["2027-05-12", 0],
     ["2027-05-12", 481],
   ] as [string, number][])("rejects %s with %i", (iso, take) => expect(() => suggest(iso, take)).toThrow(RangeError));
+});
+
+describe("suggestParts", () => {
+  const cases: [string, number][] = [
+    ["2027-05-10", HALF],
+    ["2027-05-14", HALF],
+    ["2027-05-07", HALF],
+    ["2027-05-12", HALF],
+    ["2027-05-12", FULL],
+    ["2027-05-10", 1],
+  ];
+  it("gives the same answers as suggestPart per request", () => {
+    const input = baseInput();
+    expect(suggestParts(input, cases.map(([iso, take]) => ({ day: d(iso), take })))).toEqual(cases.map(([iso, take]) => suggestPart(input, d(iso), take)));
+  });
+  it("gives the same answers with own leave on the requested days", () => {
+    const input = baseInput({ leave: [{ day: d("2027-05-10"), take: FULL }] });
+    expect(suggestParts(input, [{ day: d("2027-05-10"), take: HALF }])).toEqual(["start"]);
+  });
+  it("answers an empty list with an empty list", () => expect(suggestParts(baseInput(), [])).toEqual([]));
+  it("rejects a day outside the period", () => expect(() => suggestParts(baseInput(), [{ day: d("2028-01-03"), take: HALF }])).toThrow(RangeError));
 });

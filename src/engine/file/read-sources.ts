@@ -44,7 +44,7 @@ function readColor(value: unknown, path: string, report: Report): Color | undefi
   return undefined;
 }
 
-function readPlanRef(value: unknown, path: string, report: Report): OtherPlanRef | undefined {
+export function readPlanRef(value: unknown, path: string, report: Report): OtherPlanRef | undefined {
   if (isRecord(value)) {
     const { id, revision } = value;
     const name = readText(value["name"], child(path, "name"), LIMITS.shortText, report);

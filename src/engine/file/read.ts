@@ -2,13 +2,20 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 import { LIMITS, textLength, utf8Length } from "./limits";
+import { computationWindow } from "../counting/plan";
+import { suggestParts } from "../counting/suggest";
+import type { LeaveDay } from "../counting/types";
+import { expandSources, planInput } from "./model";
+import { readPlanDraft } from "./read-plan";
+import { readPlanRef } from "./read-sources";
 import { readContract } from "./read-contract";
 import { readSources } from "./read-sources";
 import { readTemplates, readTheme } from "./read-templates";
 import { Refused, Report, checkKeys, isRecord, type ReadResult } from "./report";
-import type { RuleSetFile } from "./types";
+import type { PlanFile, RuleSetFile } from "./types";
 
 const RULE_SET_KEYS = ["schema", "kind", "id", "revision", "contract", "sources", "templates", "theme"];
+const PLAN_KEYS = [...RULE_SET_KEYS, "ruleSet", "plan"];
 
 function checkSchema(value: unknown): void {
   if (typeof value !== "string") throw new Refused({ code: "unknownSchema", path: "schema" });
@@ -30,10 +37,11 @@ function readEnvelope(text: string): ReadResult {
 
   const kind = json["kind"];
   if (kind === "settings") throw new Refused({ code: "settingsNotSupported", path: "kind" });
-  // "plan" is added with the plan section; until then it counts as unknown.
-  if (kind !== "ruleSet") throw new Refused({ code: "unknownKind", path: "kind" });
-  for (const key of ["plan", "ruleSet"]) {
-    if (key in json) throw new Refused({ code: "kindMismatch", path: key });
+  if (kind !== "ruleSet" && kind !== "plan") throw new Refused({ code: "unknownKind", path: "kind" });
+  if (kind === "ruleSet") {
+    for (const key of ["plan", "ruleSet"]) {
+      if (key in json) throw new Refused({ code: "kindMismatch", path: key });
+    }
   }
 
   const id = json["id"];
@@ -42,13 +50,42 @@ function readEnvelope(text: string): ReadResult {
   if (typeof revision !== "number" || !Number.isSafeInteger(revision) || revision < 1) throw new Refused({ code: "invalidCore", path: "revision" });
 
   const report = new Report();
-  checkKeys(json, RULE_SET_KEYS, "", report);
-  const contract = readContract(json["contract"], "contract", "ruleSet", report);
-  const sources = readSources(json["sources"], "sources", "ruleSet", report);
-  const templates = readTemplates(json["templates"], "templates", "ruleSet", report);
+  checkKeys(json, kind === "plan" ? PLAN_KEYS : RULE_SET_KEYS, "", report);
+  const contract = readContract(json["contract"], "contract", kind, report);
+  const sources = readSources(json["sources"], "sources", kind, report);
+  const templates = readTemplates(json["templates"], "templates", kind, report);
   const theme = readTheme(json["theme"], "theme", report);
-  const file: RuleSetFile = { kind: "ruleSet", id, revision, contract, sources, templates, theme };
-  return { ok: true, file, report: report.entries };
+  if (kind === "ruleSet") {
+    const file: RuleSetFile = { kind: "ruleSet", id, revision, contract, sources, templates, theme };
+    return { ok: true, file, report: report.entries };
+  }
+
+  let ruleSet: PlanFile["ruleSet"];
+  if (json["ruleSet"] !== undefined) ruleSet = readPlanRef(json["ruleSet"], "ruleSet", report);
+  const { plan, drafted } = readPlanDraft(json["plan"], "plan", contract, report);
+  const draft: PlanFile = { kind: "plan", id, revision, ...(ruleSet ? { ruleSet } : {}), contract, sources, templates, theme, plan };
+
+  // The sources are expanded once over the computation window; more days than the limit are refused.
+  const window = computationWindow(plan.range);
+  if (expandSources(sources, window.from, window.to) === null) {
+    throw new Refused({ code: "limitExceeded", path: "sources", data: { limit: "sourceDays" } });
+  }
+  if (drafted.size === 0) return { ok: true, file: draft, report: report.entries };
+
+  // Partial leave without a `part`: one computation answers all of them.
+  const requests = plan.days.filter((entry) => drafted.has(entry));
+  const suggestions = suggestParts(
+    planInput(draft),
+    requests.map((entry) => ({ day: entry.day, take: entry.take })),
+  );
+  const replaced = new Map<LeaveDay, LeaveDay>();
+  requests.forEach((entry, index) => {
+    const part = suggestions[index] ?? "end";
+    replaced.set(entry, { day: entry.day, take: entry.take, part });
+    report.add("partSuggested", drafted.get(entry) ?? "plan.days", { part });
+  });
+  const days = plan.days.map((entry) => replaced.get(entry) ?? entry);
+  return { ok: true, file: { ...draft, plan: { ...plan, days } }, report: report.entries };
 }
 
 /** Reads a plan file or rule set from untrusted text. Never throws: every problem is a report entry or a refusal. */

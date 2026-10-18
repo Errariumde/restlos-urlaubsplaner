@@ -251,6 +251,8 @@ export function readContract(value: unknown, path: string, kind: "plan" | "ruleS
     value["description"] === undefined ? undefined : readText(value["description"], child(path, "description"), LIMITS.longText, report);
   const references = readReferences(value["references"], child(path, "references"), report);
   const region = readRegion(value["region"], child(path, "region"), report);
+  // A plan needs the whole region; a rule set may leave the state to "New → From rule set".
+  if (kind === "plan" && region.state === undefined) throw new Refused({ code: "invalidCore", path: child(child(path, "region"), "state") });
   const minUnit = readMinUnit(value["minUnit"], child(path, "minUnit"), report);
   const week = readWeek(value["week"], child(path, "week"), report);
   const rules = readRules(value["rules"], child(path, "rules"), references, kind, report);
