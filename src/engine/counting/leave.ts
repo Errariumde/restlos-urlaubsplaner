@@ -29,7 +29,7 @@ export interface DayLeave {
   readonly ownCoveredByOtherPlan: boolean;
 }
 
-/** Half-open interval [from, to). Entries of a list have from < to; a window passed to `measureWithin` may be empty. */
+/** Half-open interval [from, to). Entries of a list have from < to. */
 type Interval = readonly [from: number, to: number];
 
 /** Sorted, non-overlapping, non-touching intervals. */
@@ -65,7 +65,7 @@ function measure(list: readonly Interval[]): Units {
   return sum;
 }
 
-/** The total length of the parts of `list` that lie inside the window [from, to). */
+/** The total length of the parts of `list` that lie inside the window [from, to); the window may be empty. */
 function measureWithin(list: readonly Interval[], from: number, to: number): Units {
   let sum = 0;
   for (const [start, end] of list) sum += Math.max(0, Math.min(end, to) - Math.max(start, from));

@@ -35,6 +35,7 @@ interface Open {
 }
 
 function checkDay(x: StretchDay): void {
+  if (!Number.isInteger(x.day)) throw new RangeError("A stretch day must be an integer day number");
   const { freeStart, freeEnd, costStart, costEnd } = x;
   if (![freeStart, freeEnd, costStart, costEnd].every(Number.isInteger)) throw new RangeError("Stretch day values must be integers");
   const valid = x.whole

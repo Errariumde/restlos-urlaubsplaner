@@ -35,6 +35,7 @@ describe("findStretches", () => {
   it("finds no stretch in no days", () => expect(findStretches([])).toEqual([]));
   it("keeps a single whole day without cost as an unlisted stretch", () =>
     expect(run(free())).toEqual(["2027-05-05@0 2027-05-05@480 0/480"]));
+  it("rejects a fractional day number", () => expect(() => findStretches([{ ...work, day: 0.5 }])).toThrow(RangeError));
   it.each([
     ["free time that fills the day", partial(240, 240)],
     ["cost beyond the free time at the start", partial(120, 120, 121, 0)],
@@ -59,6 +60,18 @@ describe("findStretches", () => {
       const pos = (point: { day: number; offset: number }) => point.day * 480 + point.offset;
       expect(sum(stretches.map((s) => s.cost))).toBe(sum(days.map((x) => x.costStart + x.costEnd)));
       expect(sum(stretches.map((s) => s.daysOff))).toBe(sum(days.map((x) => (x.whole ? 480 : x.freeStart + x.freeEnd))));
+      // Every fragment of free time lies inside exactly one stretch, which is charged its cost.
+      const fragments = days.flatMap((x) => {
+        const start = x.day * 480;
+        if (x.whole) return [{ from: start, to: start + 480, cost: x.costStart + x.costEnd }];
+        return [
+          ...(x.freeStart > 0 ? [{ from: start, to: start + x.freeStart, cost: x.costStart }] : []),
+          ...(x.freeEnd > 0 ? [{ from: start + 480 - x.freeEnd, to: start + 480, cost: x.costEnd }] : []),
+        ];
+      });
+      const inside = (f: { from: number; to: number }, s: Stretch) => f.from >= pos(s.start) && f.to <= pos(s.end);
+      for (const f of fragments) expect(stretches.filter((s) => inside(f, s))).toHaveLength(1);
+      for (const s of stretches) expect(s.cost).toBe(sum(fragments.filter((f) => inside(f, s)).map((f) => f.cost)));
       stretches.forEach((s, index) => {
         expect(pos(s.start)).toBeLessThan(pos(s.end));
         expect(s.daysOff).toBe(pos(s.end) - pos(s.start)); // unbroken

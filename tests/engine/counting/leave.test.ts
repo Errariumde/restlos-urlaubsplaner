@@ -56,7 +56,7 @@ describe("evaluateLeave", () => {
     expect(() => evaluateLeave(required, pieces, true)).toThrow(RangeError));
 
   it("names the other-plan pieces that overlap own leave", () =>
-    expect(overlappingOtherPlanIds(480, [own(240, "start"), other(240, "start"), other(240)])).toEqual(["o"]));
+    expect(overlappingOtherPlanIds(480, [own(240, "start"), { ...other(240, "start"), sourceId: "overlaps" }, { ...other(240), sourceId: "apart" }])).toEqual(["overlaps"]));
   it.each([
     ["take 0", 480, [other(0)]],
     ["take 481", 480, [own(481)]],

@@ -133,7 +133,7 @@ describe("computePlan: problems", () => {
   ] as [Partial<PlanInput>][])("rejects out-of-range units %#", (changes) => expect(() => plan(changes)).toThrow(RangeError));
   it.each([
     ["month 0", month(2027, 0)], ["month 13", month(2027, 13)], ["year 1582", month(1582, 1)], ["year 10000", month(10000, 1)],
-  ])("periodBounds rejects %s", (_, bad) => expect(() => periodBounds({ from: bad, to: month(2027, 12) })).toThrow(RangeError));
+  ])("periodBounds rejects %s", (_, bad) => expect(() => periodBounds({ from: month(2027, 1), to: bad })).toThrow(RangeError));
   it.each([
     [{ leave: [leave("2027-05-05"), leave("2027-05-05")] }], [{ leave: [{ day: d("2027-05-05"), take: 0 }] }],
     [{ leave: [{ day: d("2027-05-05"), take: HALF }] }], [{ allowance: -1 }], [{ period: { from: month(2027, 5), to: month(2027, 4) } }],
