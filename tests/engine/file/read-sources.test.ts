@@ -310,6 +310,15 @@ describe("duplicate ids", () => {
   });
 });
 
+describe("fields that need a match", () => {
+  it.each(["validFrom", "validUntil", "except"])("reports %s on a date entry as unknown and drops it", (field) => {
+    const value = field === "except" ? ["2027-01-02"] : 2027;
+    const result = withSources([source({ entries: [{ date: "2027-01-01", [field]: value }] })]);
+    expect(codes(result)).toEqual([`unknownField@sources[0].entries[0].${field}`]);
+    expect(sourcesOf(result)[0]?.entries).toEqual([{ date: day("2027-01-01") }]);
+  });
+});
+
 describe("origin", () => {
   it("is an unknown field of a source in a rule set", () => {
     const result = withSources([source({ origin: "set-1" })]);

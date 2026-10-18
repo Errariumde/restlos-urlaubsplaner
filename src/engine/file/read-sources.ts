@@ -144,7 +144,7 @@ function readEntry(value: unknown, path: string, type: SourceType, sourceId: str
     if (name === undefined) return undefined;
   }
 
-  const allowed = ["name", ...FIELDS[type], ...(type === "otherPlan" ? ["date"] : ["date", "match", "validFrom", "validUntil", "except"])];
+  const allowed = ["name", ...FIELDS[type], ...(type === "otherPlan" ? ["date"] : match ? ["match", "validFrom", "validUntil", "except"] : ["date"])];
   checkKeys(value, allowed, path, report);
   report.entries.push(...matchReport.entries);
 

@@ -70,6 +70,15 @@ describe("templates", () => {
   it("reports unknown fields", () => {
     expect(codes(read({ templates: [template({ colour: 1 })] }))).toEqual(["unknownField@templates[0].colour"]);
   });
+  it("reports an unknown field of an image", () => {
+    const images = [{ name: "x.png", type: "image/png", data: "QQ==", alt: "x" }];
+    expect(codes(read({ templates: [template({ images })] }))).toEqual(["unknownField@templates[0].images[0].alt"]);
+  });
+  it("reports origin of a template in a rule set as unknown and drops it", () => {
+    const result = read({ templates: [template({ origin: "set-1" })] });
+    expect(codes(result)).toEqual(["unknownField@templates[0].origin"]);
+    expect(fileOf(result).templates[0]).not.toHaveProperty("origin");
+  });
   it("keeps the first of two templates with the same id", () => {
     const result = read({ templates: [template(), template({ typ: "other" })] });
     expect(codes(result)).toEqual(["duplicateId@templates[1].id"]);

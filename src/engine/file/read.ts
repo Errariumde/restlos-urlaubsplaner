@@ -45,7 +45,7 @@ function readEnvelope(text: string): ReadResult {
   checkKeys(json, RULE_SET_KEYS, "", report);
   const contract = readContract(json["contract"], "contract", "ruleSet", report);
   const sources = readSources(json["sources"], "sources", "ruleSet", report);
-  const templates = readTemplates(json["templates"], "templates", report);
+  const templates = readTemplates(json["templates"], "templates", "ruleSet", report);
   const theme = readTheme(json["theme"], "theme", report);
   const file: RuleSetFile = { kind: "ruleSet", id, revision, contract, sources, templates, theme };
   return { ok: true, file, report: report.entries };

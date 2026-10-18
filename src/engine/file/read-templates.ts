@@ -18,7 +18,7 @@ function decodedSize(data: string): number | undefined {
   return (data.length / 4) * 3 - padding;
 }
 
-function readImage(value: unknown): { image: TemplateImage; bytes: number } | undefined {
+function readImage(value: unknown, path: string, report: Report): { image: TemplateImage; bytes: number } | undefined {
   if (!isRecord(value)) return undefined;
   const { name, type, data } = value;
   if (typeof name !== "string" || name.length === 0 || name.length > LIMITS.shortText) return undefined;
@@ -26,10 +26,11 @@ function readImage(value: unknown): { image: TemplateImage; bytes: number } | un
   if (imageType === undefined || typeof data !== "string") return undefined;
   const bytes = decodedSize(data);
   if (bytes === undefined) return undefined;
+  checkKeys(value, ["name", "type", "data"], path, report);
   return { image: { name, type: imageType, data }, bytes };
 }
 
-function readTemplate(value: unknown, path: string, ids: ReadonlySet<string>, report: Report): Template | undefined {
+function readTemplate(value: unknown, path: string, kind: "plan" | "ruleSet", ids: ReadonlySet<string>, report: Report): Template | undefined {
   const fail = (field?: string): undefined => {
     report.add("invalidEntry", field === undefined ? path : child(path, field));
     return undefined;
@@ -43,7 +44,8 @@ function readTemplate(value: unknown, path: string, ids: ReadonlySet<string>, re
   }
   const name = readText(value["name"], child(path, "name"), LIMITS.shortText, report);
   if (name === undefined) return undefined;
-  const { api, typst, typ, origin } = value;
+  const { api, typst, typ } = value;
+  const origin = kind === "plan" ? value["origin"] : undefined;
   if (typeof api !== "number" || !Number.isSafeInteger(api) || api < 1) return fail("api");
   if (typeof typst !== "string" || typst.length === 0 || typst.length > LIMITS.shortText) return fail("typst");
   if (typeof typ !== "string") return fail("typ");
@@ -60,7 +62,7 @@ function readTemplate(value: unknown, path: string, ids: ReadonlySet<string>, re
     images = [];
     let total = 0;
     for (let i = 0; i < imagesValue.length; i++) {
-      const read = readImage(imagesValue[i]);
+      const read = readImage(imagesValue[i], at(child(path, "images"), i), report);
       if (!read) {
         report.add("invalidEntry", at(child(path, "images"), i));
         return undefined;
@@ -73,7 +75,8 @@ function readTemplate(value: unknown, path: string, ids: ReadonlySet<string>, re
       images.push(read.image);
     }
   }
-  checkKeys(value, ["id", "name", "api", "typst", "typ", "images", "origin"], path, report);
+  // Rule sets have no `origin`; there it counts as an unknown field.
+  checkKeys(value, ["id", "name", "api", "typst", "typ", "images", ...(kind === "plan" ? ["origin"] : [])], path, report);
   return { id, name, api, typst, typ, ...(images ? { images } : {}), ...(origin !== undefined ? { origin } : {}) };
 }
 
@@ -81,14 +84,14 @@ function readTemplate(value: unknown, path: string, ids: ReadonlySet<string>, re
  * Reads `templates`. A missing list reads as empty; anything but a list, or more than 20 templates, is refused.
  * A template that is invalid or over its limits is dropped with a report entry.
  */
-export function readTemplates(value: unknown, path: string, report: Report): Template[] {
+export function readTemplates(value: unknown, path: string, kind: "plan" | "ruleSet", report: Report): Template[] {
   if (value === undefined) return [];
   if (!Array.isArray(value)) throw new Refused({ code: "invalidCore", path });
   if (value.length > LIMITS.templates) throw new Refused({ code: "limitExceeded", path, data: { limit: "templates" } });
   const templates: Template[] = [];
   const ids = new Set<string>();
   for (let i = 0; i < value.length; i++) {
-    const template = readTemplate(value[i], at(path, i), ids, report);
+    const template = readTemplate(value[i], at(path, i), kind, ids, report);
     if (!template) continue;
     ids.add(template.id);
     templates.push(template);
