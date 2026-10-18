@@ -13,6 +13,7 @@
     "test": "vitest run --dir tests",
     "lint": "eslint .",
     "typecheck": "tsc",
+    "reference:python": "python3 scripts/python-holidays-reference.py tests/reference/python-holidays-de.json",
     "check": "npm run lint && npm run typecheck && npm test && reuse lint"
   },
   "devDependencies": {
