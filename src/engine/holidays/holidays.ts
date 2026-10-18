@@ -32,7 +32,8 @@ function appliesTo(rule: HolidayRule, selection: RegionSelection): boolean {
 
 /**
  * Holidays of a region selection between two days (both inclusive), sorted by
- * day, rule ID, regular before substitute. Throws RangeError for an invalid selection.
+ * day, rule ID, regular before substitute. Throws RangeError for an invalid selection
+ * or when `from` or `to` lies outside the years 1583 to 9999.
  */
 export function holidaysBetween(
   data: CountryData,

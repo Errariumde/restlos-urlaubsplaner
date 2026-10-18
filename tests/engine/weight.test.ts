@@ -5,6 +5,9 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { parseWeight, WeightError } from "../../src/engine/weight";
 
+// lib has no DOM; performance exists in Node and in Firefox.
+declare const performance: { now(): number };
+
 const code = (s: string) => {
   try {
     parseWeight(s);
@@ -35,6 +38,39 @@ describe("parseWeight", () => {
     expect(e?.name).toBe("WeightError");
     expect(e?.input).toBe("0,5");
     expect(e?.message).toContain("0,5");
+  });
+
+  it("accepts 12-digit fraction terms and rejects 13 digits as syntax", () => {
+    expect(parseWeight("999999999999/999999999999")).toBe(480);
+    expect(code("9999999999999/9999999999999")).toBe("syntax");
+  });
+
+  it("handles very long input in linear time", () => {
+    const n = 1_000_000;
+    for (const [input, expected] of [
+      ["0." + "0".repeat(n) + "1", "inexact"],
+      ["0." + "0".repeat(n), "ok"],
+      ["0".repeat(n) + "1", "ok"],
+      ["1".repeat(n) + "/2", "syntax"],
+    ] as const) {
+      const start = performance.now();
+      expect(code(input)).toBe(expected);
+      expect(performance.now() - start).toBeLessThan(1000);
+    }
+  });
+
+  it("gives an integer in 0..480 or a WeightError for any string", () => {
+    const digitish = fc.stringMatching(/^[0-9./]{0,40}$/);
+    const check = (s: string) => {
+      try {
+        const units = parseWeight(s);
+        return Number.isInteger(units) && units >= 0 && units <= 480;
+      } catch (e) {
+        return e instanceof WeightError && ["syntax", "range", "inexact"].includes(e.code);
+      }
+    };
+    fc.assert(fc.property(fc.string(), check));
+    fc.assert(fc.property(digitish, check));
   });
 
   it("parses k/32 as k * 15 units", () => {

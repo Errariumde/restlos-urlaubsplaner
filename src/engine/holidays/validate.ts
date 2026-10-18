@@ -91,8 +91,10 @@ class Checker {
     if (list.length === 0) this.report(path, "must not be empty");
     const result: string[] = [];
     list.forEach((entry, i) => {
-      if (typeof entry === "string" && known.has(entry)) result.push(entry);
-      else this.report(at(path, i), `unknown ${what}`);
+      if (typeof entry === "string" && known.has(entry)) {
+        if (result.includes(entry)) this.report(at(path, i), `duplicate ${what}`);
+        else result.push(entry);
+      } else this.report(at(path, i), `unknown ${what}`);
     });
     return result;
   }
@@ -112,6 +114,8 @@ function checkWeek(c: Checker, data: Obj): void {
   const weekend = c.array(data["weekend"], "weekend");
   if (weekend) {
     if (weekend.length === 0) c.report("weekend", "must not be empty");
+    // Substitute days would never be found if every weekday were a weekend day.
+    if (WEEKDAYS.every((day) => weekend.includes(day))) c.report("weekend", "must leave at least one weekday free");
     const seen = new Set<unknown>();
     weekend.forEach((day, i) => {
       c.weekday(day, at("weekend", i));
@@ -329,9 +333,9 @@ function checkHoliday(c: Checker, value: unknown, path: string, ctx: HolidayCont
       if (when) {
         if (when.length === 0) c.report(whenPath, "must not be empty");
         when.forEach((day, i) => {
-          if (c.weekday(day, at(whenPath, i)) && !ctx.weekend.includes(day)) {
-            c.report(at(whenPath, i), "must be a weekend day of the country");
-          }
+          if (!c.weekday(day, at(whenPath, i))) return;
+          if (!ctx.weekend.includes(day)) c.report(at(whenPath, i), "must be a weekend day of the country");
+          if (when.indexOf(day) < i) c.report(at(whenPath, i), "duplicate weekday");
         });
       }
     }

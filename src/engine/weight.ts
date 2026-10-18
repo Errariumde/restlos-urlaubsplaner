@@ -28,6 +28,13 @@ const MAX_EXACT_FRACTION_DIGITS = 5;
 
 const stripLeadingZeros = (digits: string): string => digits.replace(/^0+(?=\d)/, "");
 
+// A regex like /0+$/ backtracks quadratically on long runs of zeros; scan instead.
+function stripTrailingZeros(digits: string): string {
+  let end = digits.length;
+  while (end > 0 && digits.charCodeAt(end - 1) === 48) end--;
+  return digits.slice(0, end);
+}
+
 /**
  * Parses "1", "0.5" or "1/2" (a share of one day, 0..1) into integer units.
  * Integer arithmetic only. Check order: syntax, range, exactness.
@@ -56,7 +63,7 @@ function parseFraction(text: string, numText: string, denText: string): Units {
 
 function parseDecimal(text: string, intText: string, fracText: string): Units {
   const whole = stripLeadingZeros(intText);
-  const frac = fracText.replace(/0+$/, "");
+  const frac = stripTrailingZeros(fracText);
   // No arithmetic on the integer part: only "0" and "1" can be in range.
   if (whole.length > 1 || (whole !== "0" && whole !== "1")) throw new WeightError("range", text);
   if (whole === "1") {

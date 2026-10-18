@@ -15,12 +15,14 @@ Reference for the country data files in `src/data/holidays/` (one JSON file per 
 | `country` | Country code, two uppercase letters (`"DE"`). Must match the `country` of a region selection. |
 | `nameKey` | Translation key of the country name (`"country.DE"`). |
 | `weekStart` | First day of the week shown in the UI: `mon` … `sun`. |
-| `weekend` | Non-empty list of distinct weekdays. Substitute days skip these days. |
+| `weekend` | Non-empty list of distinct weekdays, at most six of them (at least one weekday must stay free). Substitute days skip these days. |
 | `workWeek` | Standard required work for each of the seven weekdays, as weight strings (`"1"`, `"0"`, `"1/2"`, `"0.5"`). Every weekday must be present; values must be exact in 1/480 day. |
 | `sources` | Map from a source key to `{ title, url, checked }`, see [Sources](#sources). |
 | `regions` | Non-empty list of `{ id, nameKey }`; for DE the 16 federal states (`region.DE.BY`). IDs are unique. |
 | `localRules` | List of switches, see [Local rules](#local-rules). |
 | `holidays` | List of holiday rules, see [Holiday rules](#holiday-rules). |
+
+The German data (`de.json`) is correct from the year 2000 onwards; earlier rules such as Repentance Day as a nationwide holiday until 1994 are not modelled.
 
 ## Sources
 
@@ -53,7 +55,7 @@ Two rules may produce the same day (in Germany, 1 May 2008 was both Labour Day a
 | --- | --- | --- |
 | `fixed` | `month`, `day`, `nonLeap` | The given calendar day. `nonLeap` is required for 29 February and only allowed there: `drop` (no holiday in common years), `feb28` or `mar1`. |
 | `easter` | `offset` | Western (Gregorian) Easter Sunday plus `offset` days, −200 … 200. |
-| `orthodoxEaster` | `offset` | Orthodox Easter Sunday (Julian computus, expressed as a Gregorian date) plus `offset` days. |
+| `orthodoxEaster` | `offset` | Orthodox Easter Sunday (Julian computus, expressed as a Gregorian date) plus `offset` days (`offset` from -200 to 200). |
 | `weekdayRelative` | `weekday`, `relation`, `month`, `day` | The `weekday` relative to the reference date `month`/`day` (never 29 February). `before` and `after` are strict: the reference date itself never matches. `onOrBefore` and `onOrAfter` include it. Example: the Day of Repentance and Prayer is `wed` `before` 11-23, so it is 16 November when 23 November is itself a Wednesday. |
 | `nthWeekday` | `month`, `weekday`, `n` | The `n`-th `weekday` of the month, `n` = 1 … 4, or `-1` for the last one. |
 | `once` | `date` | The ISO date, only in its own year. |
