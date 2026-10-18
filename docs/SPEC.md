@@ -764,7 +764,7 @@ The repository follows the FSFE's [REUSE specification](https://reuse.software):
 
 ### AI tools in the repository
 
-`AGENTS.md` is the shared instruction file for AI coding tools; `CLAUDE.md` includes it for Claude Code via `@AGENTS.md`. In addition there are `.claude/` (settings, skills), `.mcp.json` (Svelte MCP) and a local plugin for language servers. Agents commit unsigned on branches and never push; the maintainer reviews, signs and pushes over SSH. Rationale and setup are in `docs/ai-tooling.md`.
+`AGENTS.md` is the shared instruction file for AI coding tools; `CLAUDE.md` includes it for Claude Code via `@AGENTS.md`. In addition there are `.claude/` (settings, skills), `.mcp.json` (Svelte MCP) and a local plugin for language servers. Agents commit unsigned on branches and never push; the maintainer reviews, signs and pushes over SSH. Follow-ups and open decisions are tracked as Markdown files in `issues/` (conventions in `issues/README.md`); this internal backlog is separate from GitHub issues, which stay the channel for bug reports and ideas from users. Rationale and setup are in `docs/ai-tooling.md`.
 
 ### Releases and updates
 

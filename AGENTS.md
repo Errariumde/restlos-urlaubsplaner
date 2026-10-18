@@ -26,6 +26,13 @@ restlos is an offline vacation planner delivered as a single HTML file (plus a G
 - Order of work: feasibility tests from the spec → engine (holidays, counting model, file format) → UI → exports.
 - Run `npm run check` before declaring a task done.
 
+## Issue tracking
+
+- Follow-up work found during a task goes into `issues/` as a new file (see `issues/README.md`, copy `issues/_template.md`). Do not fix it in place unless it is trivial and inside the current task's scope; mention new issues in your summary.
+- Before creating an issue, check `issues/` for an existing one on the same topic and update that instead.
+- When a commit fixes an issue, set `status: done`, `closed:` and `branch:` in that same commit.
+- Never change an issue from `open` to `next` without the user's confirmation.
+
 ## Hard rules
 
 - **Counting model:** 1 day = 480 integer units. No floats for day fractions, no assumption "only 0, ½, 1". Cost per day = min(taken, required). Required work = minimum of all lowering layers, then forced rules, then manual override. UI v1 offers only full and half days, but data model and engine must work down to 1/32.
@@ -52,3 +59,4 @@ Step-by-step procedures live as skills in `.claude/skills/*/SKILL.md` (Agent Ski
 - `ui-texts` – adding or changing UI texts in both languages
 - `dependency-update` – updating npm packages and the Nix dev shell safely
 - `release` – release checklist
+- `triage` – proposing which issues to do on the next branch; started only by the maintainer (`/triage` in Claude Code)

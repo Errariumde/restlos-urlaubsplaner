@@ -14,7 +14,8 @@ As of 2026-10-17. The setup targets Claude Code and stays usable for other agent
 | `AGENTS.md` | Canonical rules for all agents | Codex, Cursor, Copilot, Gemini CLI, Zed, … |
 | `CLAUDE.md` | Imports `@AGENTS.md`, plus a few Claude Code notes | Claude Code |
 | `docs/SPEC.md` | Specification, authoritative | linked from `AGENTS.md`, not loaded automatically |
-| `.claude/skills/*/SKILL.md` | Procedures (holiday data, UI texts, updates, release) | Claude Code automatically; other agents as plain Markdown |
+| `.claude/skills/*/SKILL.md` | Procedures (holiday data, UI texts, updates, release, issue triage) | Claude Code automatically; other agents as plain Markdown |
+| `issues/` | File-based issue tracker for follow-ups and open decisions; conventions in `issues/README.md`, rules in `AGENTS.md` | all agents |
 
 Why the import instead of `AGENTS.md` alone: Claude Code reads `AGENTS.md` natively only since version 2.1.277, and only when there is no `CLAUDE.md` (nixpkgs 26.05 ships 2.1.223). With both files present it loads only `CLAUDE.md`, so the `@AGENTS.md` import is what loads the shared rules; the import never loads them twice. It works in every version and keeps a single source. The specification is deliberately not imported (about 65 KB in every session); agents read the relevant sections on demand.
 
@@ -54,14 +55,15 @@ Recommendation: **only the Svelte MCP server, as a remote server** (`.mcp.json` 
 
 ## 4. Skills
 
-The skills follow the open Agent Skills format (agentskills.io) and use only portable frontmatter fields (`name`, `description`, `license`, `metadata`). Other agents can read them as plain instructions; `AGENTS.md` points to them.
+The skills follow the open Agent Skills format (agentskills.io) and use only portable frontmatter fields (`name`, `description`, `license`, `metadata`). Other agents can read them as plain instructions; `AGENTS.md` points to them. The one exception is `triage`: only the maintainer starts it (`/triage`), so it also uses the Claude Code fields `disable-model-invocation`, `argument-hint` and `allowed-tools`.
 
 | Skill | When | Key points |
 | --- | --- | --- |
-| `holiday-data` | changing holiday rules | official source, rule as data, tests over several years, cross-check with python-holidays |
+| `holiday-data` | changing holiday rules | official source, rule as data, tests over several years, cross-check with date-holidays and python-holidays |
 | `ui-texts` | changing texts | both catalogs, ICU MessageFormat, no sentence concatenation |
 | `dependency-update` | package and nixpkgs updates | no new packages without asking, review the lockfile diff, couple Playwright to the Nix version |
 | `release` | preparing a release | checks, `reuse lint`, SPDX bill of materials, manual test in Firefox ESR; tagging and pushing only by the maintainer |
+| `triage` | choosing issues for the next branch (maintainer only) | checks open issues in `issues/` against the code, proposes a plan, changes status only after confirmation, no commit |
 
 No external skills (marketplaces) are needed. Deliberately left out: a skill for Typst templates, which only makes sense once templates exist.
 
