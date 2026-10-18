@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { computePlan, periodBounds } from "../../../src/engine/counting/plan";
 import type { PlanResult } from "../../../src/engine/counting/plan";
 import type { Stretch } from "../../../src/engine/counting/stretches";
-import type { DayRule, LeaveDay, Part, PlanInput, SourceDay } from "../../../src/engine/counting/types";
+import type { DayRule, LeaveDay, Part, PlanInput, PlanPeriod, SourceDay } from "../../../src/engine/counting/types";
 import { isoFromDay } from "../../../src/engine/days";
 import { BAVARIA, baseInput, CHRISTMAS_EVE_RULES, d, FULL, HALF, fixed, once, span } from "./helpers";
 
@@ -131,9 +131,13 @@ describe("computePlan: problems", () => {
   it.each([
     [{ leave: [{ day: d("2027-05-05"), take: 481 }] }], [{ allowance: 1.5 }],
   ] as [Partial<PlanInput>][])("rejects out-of-range units %#", (changes) => expect(() => plan(changes)).toThrow(RangeError));
+  // Each bad value sits where the period would otherwise be in order, so only the month or year check can reject it.
   it.each([
-    ["month 0", month(2027, 0)], ["month 13", month(2027, 13)], ["year 1582", month(1582, 1)], ["year 10000", month(10000, 1)],
-  ])("periodBounds rejects %s", (_, bad) => expect(() => periodBounds({ from: month(2027, 1), to: bad })).toThrow(RangeError));
+    ["month 0", { from: month(2027, 0), to: month(2027, 12) }],
+    ["month 13", { from: month(2027, 1), to: month(2027, 13) }],
+    ["year 1582", { from: month(1582, 1), to: month(2027, 12) }],
+    ["year 10000", { from: month(2027, 1), to: month(10000, 1) }],
+  ] as [string, PlanPeriod][])("periodBounds rejects %s", (_, period) => expect(() => periodBounds(period)).toThrow(RangeError));
   it.each([
     [{ leave: [leave("2027-05-05"), leave("2027-05-05")] }], [{ leave: [{ day: d("2027-05-05"), take: 0 }] }],
     [{ leave: [{ day: d("2027-05-05"), take: HALF }] }], [{ allowance: -1 }], [{ period: { from: month(2027, 5), to: month(2027, 4) } }],
