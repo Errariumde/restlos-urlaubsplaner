@@ -1,0 +1,141 @@
+{
+  "schema": "restlos/1",
+  "kind": "ruleSet",
+  "id": "9491dab8-261f-4a8e-b0d1-f92e22673b98",
+  "revision": 1,
+  "contract": {
+    "name": {
+      "de": "Beispiel GmbH (ohne Tarifvertrag, Stand 2026)",
+      "en": "Beispiel GmbH (no collective agreement, as of 2026)"
+    },
+    "description": {
+      "de": "Fiktives Beispiel: eine Firma ohne Tarifvertrag in einer bayerischen Gemeinde, in der Mariä Himmelfahrt ein Feiertag ist (nicht Augsburg). Heiligabend und Silvester gibt es nachmittags frei; vom 27. bis 30. Dezember ist Betriebsruhe, Montag bis Freitag als Pflichturlaub. Rechtlicher Hintergrund: Ohne Tarifvertrag, Betriebsvereinbarung oder Arbeitsvertrag sind der 24. und 31. Dezember normale Arbeitstage; bei Betriebsferien bestimmt ein Betriebsrat mit. Nutze es als Vorlage und ändere die Regeln so, wie sie bei dir gelten. Arbeitswoche Montag bis Freitag mit ganzen Tagen. Prüfe alles an deinem eigenen Arbeitsvertrag und Tarifvertrag. Es gibt keine Gewähr, dass die Regeln stimmen, vollständig oder aktuell sind.",
+      "en": "A fictional example: a company without a collective agreement in a Bavarian municipality where Assumption Day is a public holiday (not Augsburg). The afternoons of Christmas Eve and New Year's Eve are off; from 27 to 30 December the company closes, Monday to Friday as mandatory leave. Legal background: without a collective agreement, a works agreement or the employment contract, 24 and 31 December are ordinary working days; a works council has a say in company closures. Use it as a template and change the rules to what applies where you work. Work week Monday to Friday with full days. Check everything against your own employment contract and collective agreement. There is no guarantee that these rules are correct, complete or up to date."
+    },
+    "references": {
+      "cms": {
+        "title": "CMS: „Alle Jahre wieder“: Freistellung von der Arbeitspflicht an Weihnachten und Silvester",
+        "version": {
+          "de": "Beitrag vom 3. Dezember 2022, zuletzt geändert am 5. Juni 2026",
+          "en": "article of 3 December 2022, last modified on 5 June 2026"
+        },
+        "url": "https://cms.law/de/deu/legal-updates/Alle-Jahre-wieder-Freistellung-von-der-Arbeitspflicht-an-Weihnachten-und-Silvester",
+        "checked": "2026-10-18"
+      },
+      "betrvg": {
+        "title": "Betriebsverfassungsgesetz (BetrVG), § 87 Abs. 1 Nr. 5",
+        "version": {
+          "de": "in der Fassung der Bekanntmachung vom 25. September 2001, zuletzt geändert durch Art. 1 des Gesetzes vom 19. Juli 2024 (BGBl. 2024 I Nr. 248)",
+          "en": "as published on 25 September 2001, last amended by Art. 1 of the Act of 19 July 2024 (BGBl. 2024 I No. 248)"
+        },
+        "url": "https://www.gesetze-im-internet.de/betrvg/__87.html",
+        "checked": "2026-10-18"
+      }
+    },
+    "region": {
+      "country": "DE",
+      "state": "BY",
+      "options": {
+        "assumption": true,
+        "augsburg": false
+      }
+    },
+    "minUnit": "1/2",
+    "week": [
+      {
+        "from": "2026-01-01",
+        "required": {
+          "mon": "1",
+          "tue": "1",
+          "wed": "1",
+          "thu": "1",
+          "fri": "1",
+          "sat": "0",
+          "sun": "0"
+        }
+      }
+    ],
+    "rules": [
+      {
+        "id": "christmas-eve",
+        "label": {
+          "de": "Heiligabend: nachmittags frei",
+          "en": "Christmas Eve: afternoon off"
+        },
+        "match": {
+          "type": "fixed",
+          "month": 12,
+          "day": 24
+        },
+        "requiredAtMost": "1/2",
+        "part": "end",
+        "note": {
+          "de": "In dieser fiktiven Firma gibt es am 24. Dezember den Nachmittag frei. Ohne Tarifvertrag, Betriebsvereinbarung oder Regel im Arbeitsvertrag ist der Tag ein normaler Arbeitstag; ein Anspruch kann aber aus betrieblicher Übung entstehen, wenn der Arbeitgeber ihn regelmäßig ohne Vorbehalt freigibt.",
+          "en": "In this fictional company the afternoon of 24 December is off. Without a collective agreement, a works agreement or a clause in the employment contract the day is an ordinary working day; a claim can still arise from established company practice when the employer gives it off regularly without reservation."
+        },
+        "references": [
+          "cms"
+        ]
+      },
+      {
+        "id": "new-years-eve",
+        "label": {
+          "de": "Silvester: nachmittags frei",
+          "en": "New Year's Eve: afternoon off"
+        },
+        "match": {
+          "type": "fixed",
+          "month": 12,
+          "day": 31
+        },
+        "requiredAtMost": "1/2",
+        "part": "end",
+        "note": {
+          "de": "In dieser fiktiven Firma gibt es am 31. Dezember den Nachmittag frei. Ohne Tarifvertrag, Betriebsvereinbarung oder Regel im Arbeitsvertrag ist der Tag ein normaler Arbeitstag; ein Anspruch kann aber aus betrieblicher Übung entstehen, wenn der Arbeitgeber ihn regelmäßig ohne Vorbehalt freigibt.",
+          "en": "In this fictional company the afternoon of 31 December is off. Without a collective agreement, a works agreement or a clause in the employment contract the day is an ordinary working day; a claim can still arise from established company practice when the employer gives it off regularly without reservation."
+        },
+        "references": [
+          "cms"
+        ]
+      },
+      {
+        "id": "company-closure",
+        "label": {
+          "de": "Betriebsruhe 27. bis 30. Dezember",
+          "en": "Company closure 27 to 30 December"
+        },
+        "match": {
+          "type": "range",
+          "from": {
+            "type": "fixed",
+            "month": 12,
+            "day": 27
+          },
+          "to": {
+            "type": "fixed",
+            "month": 12,
+            "day": 30
+          },
+          "weekdays": [
+            "mon",
+            "tue",
+            "wed",
+            "thu",
+            "fri"
+          ]
+        },
+        "mandatory": "1",
+        "note": {
+          "de": "Pflichturlaub: Die Tage von Montag bis Freitag kosten Urlaub. Gibt es einen Betriebsrat, bestimmt er bei Betriebsferien mit (§ 87 Abs. 1 Nr. 5 BetrVG: allgemeine Urlaubsgrundsätze und Urlaubsplan).",
+          "en": "Mandatory leave: the days from Monday to Friday cost leave. Where there is a works council, it has a say in company closures (§ 87 (1) no. 5 BetrVG: general leave principles and the leave plan)."
+        },
+        "references": [
+          "betrvg"
+        ]
+      }
+    ]
+  },
+  "sources": [],
+  "templates": [],
+  "theme": null
+}

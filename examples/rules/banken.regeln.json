@@ -1,0 +1,101 @@
+{
+  "schema": "restlos/1",
+  "kind": "ruleSet",
+  "id": "4e27931f-52a8-4843-83e6-b63d3bfd81d2",
+  "revision": 1,
+  "contract": {
+    "name": {
+      "de": "Banken (MTV privates Bankgewerbe 2024, MTV Volks- und Raiffeisenbanken 2025)",
+      "en": "Banks (MTV private banks 2024, MTV cooperative banks 2025)"
+    },
+    "description": {
+      "de": "Für Beschäftigte privater Banken und der Volks- und Raiffeisenbanken, für die diese Manteltarifverträge gelten: Heiligabend und Silvester sind frei. Nicht abgebildet: Arbeit an Silvester für erforderliche Arbeiten (vor allem Abschlussarbeiten) mit Freizeitausgleich an einem anderen Arbeitstag; Arbeit an Orten, an denen konkurrierende Institute geöffnet haben; Samstagsarbeit. Nicht geprüft: die Tarifverträge der öffentlichen Banken und der Sparkassen. Arbeitswoche Montag bis Freitag mit ganzen Tagen; arbeitest du in Teilzeit oder an anderen Tagen, passe die Arbeitswoche an. Prüfe alles an deinem eigenen Arbeitsvertrag und Tarifvertrag. Es gibt keine Gewähr, dass die Regeln stimmen, vollständig oder aktuell sind.",
+      "en": "For employees of private banks and of the cooperative banks (Volksbanken und Raiffeisenbanken) covered by these framework agreements: Christmas Eve and New Year's Eve are days off. Not modelled: work on New Year's Eve for necessary tasks (mainly year-end closing) with time off in lieu on another working day; work in places where competing banks stay open; Saturday work. Not checked: the agreements of the public banks and of the savings banks (Sparkassen). Work week Monday to Friday with full days; if you work part-time or on other days, adjust the work week. Check everything against your own employment contract and collective agreement. There is no guarantee that these rules are correct, complete or up to date."
+    },
+    "references": {
+      "mtv-private": {
+        "title": "Manteltarifvertrag für das private Bankgewerbe (MTV), § 3",
+        "version": {
+          "de": "in der ab 1. Dezember 2023/1. Juli 2024 geltenden Fassung (Tarifverträge für das private Bankgewerbe, Stand August 2024)",
+          "en": "as in force from 1 December 2023/1 July 2024 (collective agreements for private banking, as of August 2024)"
+        },
+        "url": "https://iason.hamburg.de/iason/doc/66f51b4a5575ce25188e728e/27-01_A_2024-08-komprimiert.pdf",
+        "checked": "2026-10-18"
+      },
+      "mtv-cooperative": {
+        "title": "Manteltarifvertrag für die Volksbanken und Raiffeisenbanken sowie die genossenschaftliche Zentralbank (MTV Teil A), § 3",
+        "version": {
+          "de": "abgeschlossen am 18. April 1979, in der Fassung vom 18. März 2025",
+          "en": "concluded on 18 April 1979, as amended on 18 March 2025"
+        },
+        "url": "https://www.avr.org/Tarifvertraege/Download/Teil-A-Manteltarifvertrag-MTV_05-06-2025",
+        "checked": "2026-10-18"
+      }
+    },
+    "region": {
+      "country": "DE"
+    },
+    "minUnit": "1/2",
+    "week": [
+      {
+        "from": "2026-01-01",
+        "required": {
+          "mon": "1",
+          "tue": "1",
+          "wed": "1",
+          "thu": "1",
+          "fri": "1",
+          "sat": "0",
+          "sun": "0"
+        }
+      }
+    ],
+    "rules": [
+      {
+        "id": "christmas-eve",
+        "label": {
+          "de": "Heiligabend (Bankfeiertag)",
+          "en": "Christmas Eve (bank holiday)"
+        },
+        "match": {
+          "type": "fixed",
+          "month": 12,
+          "day": 24
+        },
+        "requiredAtMost": "0",
+        "note": {
+          "de": "„Am 24. Dezember ist dienstfrei (Bankfeiertag).“ Bei Volks- und Raiffeisenbanken dürfen Mitarbeiter an diesem Tag an Orten beschäftigt werden, an denen konkurrierende Kreditinstitute geöffnet haben; dann passt diese Regel nicht.",
+          "en": "\"24 December is off duty (bank holiday).\" Cooperative banks may employ staff on this day in places where competing banks stay open; then this rule does not fit."
+        },
+        "references": [
+          "mtv-private",
+          "mtv-cooperative"
+        ]
+      },
+      {
+        "id": "new-years-eve",
+        "label": {
+          "de": "Silvester",
+          "en": "New Year's Eve"
+        },
+        "match": {
+          "type": "fixed",
+          "month": 12,
+          "day": 31
+        },
+        "requiredAtMost": "0",
+        "note": {
+          "de": "„Am 31. Dezember ist grundsätzlich dienstfrei.“ Wer für erforderliche Arbeiten (vorrangig Abschlussarbeiten) eingesetzt wird, bekommt an einem anderen Arbeitstag einen zusammenhängenden Freizeitausgleich in gleicher Höhe; das bildet die Regel nicht ab. Geschäftsstellen dürfen dort öffnen, wo konkurrierende Sparkassen geöffnet haben.",
+          "en": "\"31 December is as a rule off duty.\" Staff needed for necessary work (mainly year-end closing) get the same amount of time off in one piece on another working day; this rule does not model that. Branches may open where competing savings banks stay open."
+        },
+        "references": [
+          "mtv-private",
+          "mtv-cooperative"
+        ]
+      }
+    ]
+  },
+  "sources": [],
+  "templates": [],
+  "theme": null
+}

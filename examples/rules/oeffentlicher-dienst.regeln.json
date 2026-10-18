@@ -1,0 +1,134 @@
+{
+  "schema": "restlos/1",
+  "kind": "ruleSet",
+  "id": "700793cf-2dbd-4eca-874f-938d7da87ba1",
+  "revision": 1,
+  "contract": {
+    "name": {
+      "de": "Öffentlicher Dienst (TVöD 2025, TV-L 2026)",
+      "en": "Public sector (TVöD 2025, TV-L 2026)"
+    },
+    "description": {
+      "de": "Für Tarifbeschäftigte nach TVöD (Bund und Kommunen), TV-L (Länder außer Hessen) und TV-H (Hessen) sowie für Beamtinnen und Beamte des Bundes (AZV) und Bayerns (BayAzV): Heiligabend und Silvester sind frei. Nicht abgebildet: Nach TVöD, TV-L und TV-H gilt die Freistellung nur, soweit die betrieblichen/dienstlichen Verhältnisse es zulassen, sonst gibt es Freizeitausgleich innerhalb von drei Monaten; Dienstpläne, Schicht- und Wochenendarbeit; die Besonderen Teile und Sonderregelungen einzelner Bereiche. Nicht geprüft: das Beamtenrecht der anderen Länder und spätere Änderungen des TV-H. Rosenmontag und Fasching regelt keiner dieser Texte. Arbeitswoche Montag bis Freitag mit ganzen Tagen; arbeitest du in Teilzeit oder an anderen Tagen, passe die Arbeitswoche an. Prüfe alles an deinem eigenen Arbeitsvertrag und Tarifvertrag. Es gibt keine Gewähr, dass die Regeln stimmen, vollständig oder aktuell sind.",
+      "en": "For employees under the TVöD (federal and municipal), TV-L (federal states except Hesse) and TV-H (Hesse), and for civil servants of the Federation (AZV) and of Bavaria (BayAzV): Christmas Eve and New Year's Eve are days off. Not modelled: under the TVöD, TV-L and TV-H the release applies only as far as operational/service conditions permit, otherwise there is time off in lieu within three months; rosters, shift and weekend work; the special parts and special rules of individual areas. Not checked: the civil service rules of the other federal states and later amendments to the TV-H. None of these texts covers Rosenmontag or carnival. Work week Monday to Friday with full days; if you work part-time or on other days, adjust the work week. Check everything against your own employment contract and collective agreement. There is no guarantee that these rules are correct, complete or up to date."
+    },
+    "references": {
+      "tvoed": {
+        "title": "Tarifvertrag für den öffentlichen Dienst (TVöD), § 6 Abs. 3",
+        "version": {
+          "de": "vom 13. September 2005 in der Fassung des Änderungstarifvertrages Nr. 22 vom 6. April 2025, Stand 1. Januar 2026 (Lesefassung der VKA, inhaltsgleich für Bund und VKA)",
+          "en": "of 13 September 2005 as amended by Amendment Agreement No. 22 of 6 April 2025, as of 1 January 2026 (VKA reading version, identical for the Federation and the VKA)"
+        },
+        "url": "https://vka.de/wp-content/uploads/2026/04/TVoeD_AT_AETV_22_Lesefassung_Stand_01_01_2026.pdf",
+        "checked": "2026-10-18"
+      },
+      "tv-l": {
+        "title": "Tarifvertrag für den öffentlichen Dienst der Länder (TV-L), § 6 Abs. 3",
+        "version": {
+          "de": "vom 12. Oktober 2006 in der Fassung des Änderungstarifvertrages Nr. 14 vom 14. Februar 2026",
+          "en": "of 12 October 2006 as amended by Amendment Agreement No. 14 of 14 February 2026"
+        },
+        "url": "https://www.tdl-online.de/fileadmin/downloads/TV-L/260812_TV-L__i.d.F._des_%C3%84TV_Nr._14_VT_neu.pdf",
+        "checked": "2026-10-18"
+      },
+      "tv-h": {
+        "title": "Tarifvertrag für den öffentlichen Dienst des Landes Hessen (TV-H), § 6 Abs. 3",
+        "version": {
+          "de": "vom 1. September 2009, Grundfassung (Abschrift); spätere Änderungstarifverträge wurden nicht geprüft",
+          "en": "of 1 September 2009, base text (copy); later amendment agreements were not checked"
+        },
+        "url": "https://oeffentlicher-dienst.info/pdf/tv-h/tv-h.pdf",
+        "checked": "2026-10-18"
+      },
+      "azv": {
+        "title": "Arbeitszeitverordnung (AZV) des Bundes, § 6 Abs. 1",
+        "version": {
+          "de": "vom 23. Februar 2006, zuletzt geändert durch Art. 1 der Verordnung vom 19. Februar 2025 (BGBl. 2025 I Nr. 49)",
+          "en": "of 23 February 2006, last amended by Art. 1 of the Ordinance of 19 February 2025 (BGBl. 2025 I No. 49)"
+        },
+        "url": "https://www.gesetze-im-internet.de/azv/__6.html",
+        "checked": "2026-10-18"
+      },
+      "bayazv": {
+        "title": "Bayerische Arbeitszeitverordnung (BayAzV), § 5 Abs. 2",
+        "version": {
+          "de": "vom 25. Juli 1995 (GVBl. S. 409), Text gültig ab 1. August 2023",
+          "en": "of 25 July 1995 (GVBl. p. 409), text valid from 1 August 2023"
+        },
+        "url": "https://www.gesetze-bayern.de/Content/Document/BayAzV-5",
+        "checked": "2026-10-18"
+      }
+    },
+    "region": {
+      "country": "DE"
+    },
+    "minUnit": "1/2",
+    "week": [
+      {
+        "from": "2026-01-01",
+        "required": {
+          "mon": "1",
+          "tue": "1",
+          "wed": "1",
+          "thu": "1",
+          "fri": "1",
+          "sat": "0",
+          "sun": "0"
+        }
+      }
+    ],
+    "rules": [
+      {
+        "id": "christmas-eve",
+        "label": {
+          "de": "Heiligabend",
+          "en": "Christmas Eve"
+        },
+        "match": {
+          "type": "fixed",
+          "month": 12,
+          "day": 24
+        },
+        "requiredAtMost": "0",
+        "note": {
+          "de": "TVöD, TV-L und TV-H: Am 24. Dezember wirst du freigestellt, „soweit es die betrieblichen/dienstlichen Verhältnisse zulassen“. Geht das nicht, gibt es entsprechenden Freizeitausgleich innerhalb von drei Monaten; diesen Ausgleich bildet die Regel nicht ab. Beamtinnen und Beamte des Bundes: Heiligabend ist „grundsätzlich dienstfrei“ (AZV § 6). Bayerische Beamtinnen und Beamte: „allgemein dienstfrei“ (BayAzV § 5).",
+          "en": "TVöD, TV-L and TV-H: on 24 December you are released from work \"as far as operational/service conditions permit\". If that is not possible, you get equivalent time off within three months; this rule does not model that time off. Federal civil servants: Christmas Eve is \"as a rule\" off duty (AZV § 6). Bavarian civil servants: \"generally off duty\" (BayAzV § 5)."
+        },
+        "references": [
+          "tvoed",
+          "tv-l",
+          "tv-h",
+          "azv",
+          "bayazv"
+        ]
+      },
+      {
+        "id": "new-years-eve",
+        "label": {
+          "de": "Silvester",
+          "en": "New Year's Eve"
+        },
+        "match": {
+          "type": "fixed",
+          "month": 12,
+          "day": 31
+        },
+        "requiredAtMost": "0",
+        "note": {
+          "de": "TVöD, TV-L und TV-H: Am 31. Dezember wirst du freigestellt, „soweit es die betrieblichen/dienstlichen Verhältnisse zulassen“. Geht das nicht, gibt es entsprechenden Freizeitausgleich innerhalb von drei Monaten; diesen Ausgleich bildet die Regel nicht ab. Beamtinnen und Beamte des Bundes: Silvester ist „grundsätzlich dienstfrei“ (AZV § 6). Bayerische Beamtinnen und Beamte: „allgemein dienstfrei“ (BayAzV § 5).",
+          "en": "TVöD, TV-L and TV-H: on 31 December you are released from work \"as far as operational/service conditions permit\". If that is not possible, you get equivalent time off within three months; this rule does not model that time off. Federal civil servants: New Year's Eve is \"as a rule\" off duty (AZV § 6). Bavarian civil servants: \"generally off duty\" (BayAzV § 5)."
+        },
+        "references": [
+          "tvoed",
+          "tv-l",
+          "tv-h",
+          "azv",
+          "bayazv"
+        ]
+      }
+    ]
+  },
+  "sources": [],
+  "templates": [],
+  "theme": null
+}

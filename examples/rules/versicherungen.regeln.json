@@ -1,0 +1,128 @@
+{
+  "schema": "restlos/1",
+  "kind": "ruleSet",
+  "id": "5328468f-7e91-4c49-95ad-782e5b737f5c",
+  "revision": 1,
+  "contract": {
+    "name": {
+      "de": "Versicherungen (MTV 2026)",
+      "en": "Insurance (MTV 2026)"
+    },
+    "description": {
+      "de": "Für Angestellte im Innendienst privater Versicherungsunternehmen, für die der Manteltarifvertrag in der Fassung vom Mai 2026 gilt: Heiligabend und Silvester sind frei; wer kraft Betriebsvereinbarung samstags arbeitet, hat auch die Samstage vor Ostern und Pfingsten frei. Nicht abgebildet: Nach § 13 sind Samstage keine Urlaubstage; arbeitest du samstags, zählt restlos einen freien Samstag trotzdem als Urlaubstag. Ebenfalls nicht abgebildet: Sonderdienste am Pfingstsamstag, abweichende Verteilungen der Arbeitszeit durch Betriebsvereinbarung und der Werbeaußendienst (eigene Regeln). Arbeitswoche Montag bis Freitag mit ganzen Tagen; arbeitest du samstags, in Teilzeit oder an anderen Tagen, passe die Arbeitswoche an. Prüfe alles an deinem eigenen Arbeitsvertrag und Tarifvertrag. Es gibt keine Gewähr, dass die Regeln stimmen, vollständig oder aktuell sind.",
+      "en": "For office staff of private insurance companies covered by the framework agreement (MTV) as in force since May 2026: Christmas Eve and New Year's Eve are days off; staff who work on Saturdays under a works agreement also have the Saturdays before Easter and Whit Sunday off. Not modelled: under § 13 Saturdays are no leave days; if you work on Saturdays and take a Saturday off, restlos still counts it as a day of leave. Also not modelled: special duty on Whit Saturday, other distributions of working time by works agreement, and the field sales force (own rules). Work week Monday to Friday with full days; if you work on Saturdays, part-time or on other days, adjust the work week. Check everything against your own employment contract and collective agreement. There is no guarantee that these rules are correct, complete or up to date."
+    },
+    "references": {
+      "mtv": {
+        "title": "Manteltarifvertrag für das private Versicherungsgewerbe (MTV), § 12 und § 13 Ziff. 1",
+        "version": {
+          "de": "in der seit 1. Mai 2026 geltenden Fassung",
+          "en": "as in force since 1 May 2026"
+        },
+        "url": "https://www.agv-vers.de/fileadmin/doc/tarifvertraege_downloads/tarifvertraege/MTV_20260501.pdf",
+        "checked": "2026-10-18"
+      }
+    },
+    "region": {
+      "country": "DE"
+    },
+    "minUnit": "1/2",
+    "week": [
+      {
+        "from": "2026-01-01",
+        "required": {
+          "mon": "1",
+          "tue": "1",
+          "wed": "1",
+          "thu": "1",
+          "fri": "1",
+          "sat": "0",
+          "sun": "0"
+        }
+      }
+    ],
+    "rules": [
+      {
+        "id": "christmas-eve",
+        "label": {
+          "de": "Heiligabend",
+          "en": "Christmas Eve"
+        },
+        "match": {
+          "type": "fixed",
+          "month": 12,
+          "day": 24
+        },
+        "requiredAtMost": "0",
+        "note": {
+          "de": "„Der 24. und 31.12. sind arbeitsfrei.“ (§ 12 Ziff. 2) Nach § 13 Ziff. 1 sind sie auch keine Arbeitstage im Sinne der Urlaubsbestimmungen, kosten also keinen Urlaub.",
+          "en": "\"24 and 31 December are days off.\" (§ 12 no. 2) Under § 13 no. 1 they are also no working days for leave, so they cost no leave."
+        },
+        "references": [
+          "mtv"
+        ]
+      },
+      {
+        "id": "new-years-eve",
+        "label": {
+          "de": "Silvester",
+          "en": "New Year's Eve"
+        },
+        "match": {
+          "type": "fixed",
+          "month": 12,
+          "day": 31
+        },
+        "requiredAtMost": "0",
+        "note": {
+          "de": "„Der 24. und 31.12. sind arbeitsfrei.“ (§ 12 Ziff. 2) Nach § 13 Ziff. 1 sind sie auch keine Arbeitstage im Sinne der Urlaubsbestimmungen, kosten also keinen Urlaub.",
+          "en": "\"24 and 31 December are days off.\" (§ 12 no. 2) Under § 13 no. 1 they are also no working days for leave, so they cost no leave."
+        },
+        "references": [
+          "mtv"
+        ]
+      },
+      {
+        "id": "easter-saturday",
+        "label": {
+          "de": "Samstag vor Ostern",
+          "en": "Saturday before Easter"
+        },
+        "match": {
+          "type": "easter",
+          "offset": -1
+        },
+        "requiredAtMost": "0",
+        "note": {
+          "de": "Frei für Angestellte, die kraft betrieblicher Vereinbarung samstags arbeiten (§ 12 Ziff. 1). Arbeitest du samstags nicht, ändert die Regel nichts.",
+          "en": "A day off for staff who work on Saturdays under a works agreement (§ 12 no. 1). If you don't work on Saturdays, the rule changes nothing."
+        },
+        "references": [
+          "mtv"
+        ]
+      },
+      {
+        "id": "whit-saturday",
+        "label": {
+          "de": "Samstag vor Pfingsten",
+          "en": "Saturday before Whit Sunday"
+        },
+        "match": {
+          "type": "easter",
+          "offset": 48
+        },
+        "requiredAtMost": "0",
+        "note": {
+          "de": "Frei für Angestellte, die kraft betrieblicher Vereinbarung samstags arbeiten (§ 12 Ziff. 1). Hagelversicherer können für den Pfingstsamstag einen Sonderdienst einrichten; wer dazu eingeteilt ist, hat einen anderen Arbeitstag frei – das bildet die Regel nicht ab.",
+          "en": "A day off for staff who work on Saturdays under a works agreement (§ 12 no. 1). Hail insurers may set up a special duty on Whit Saturday; staff assigned to it get another working day off, which this rule does not model."
+        },
+        "references": [
+          "mtv"
+        ]
+      }
+    ]
+  },
+  "sources": [],
+  "templates": [],
+  "theme": null
+}
