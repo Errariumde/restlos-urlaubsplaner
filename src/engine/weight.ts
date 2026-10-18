@@ -6,6 +6,13 @@ export const UNITS_PER_DAY = 480;
 /** Integer multiples of 1/480 day. */
 export type Units = number;
 
+/** Throws RangeError unless `value` is a whole number of units from `min` to one day. */
+export function checkUnits(value: number, what: string, min = 0): void {
+  if (!Number.isInteger(value) || value < min || value > UNITS_PER_DAY) {
+    throw new RangeError(`${what} must be a whole number of units from ${min} to ${UNITS_PER_DAY}`);
+  }
+}
+
 export type WeightErrorCode = "syntax" | "range" | "inexact";
 
 export class WeightError extends Error {

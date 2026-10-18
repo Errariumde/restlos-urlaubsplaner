@@ -45,6 +45,16 @@ describe("evaluateLeave", () => {
   it("frees time but charges nothing when charge is false", () =>
     expect(pick(evaluateLeave(at(480), [own(480)], false))).toEqual([0, 0, 0, 0, 480, 480]));
 
+  it.each([
+    ["take 0", at(480), [own(0)]],
+    ["take 481", at(480), [own(481)]],
+    ["take 1.5", at(480), [own(1.5)]],
+    ["required -1", at(-1), []],
+    ["required 481", at(481), []],
+    ["required 1.5", at(1.5), []],
+  ] as [string, ReturnType<typeof at>, LeavePiece[]][])("rejects %s", (_, required, pieces) =>
+    expect(() => evaluateLeave(required, pieces, true)).toThrow(RangeError));
+
   const sixteenth = fc.integer({ min: 0, max: 32 }).map((k) => k * 15);
   const part = fc.constantFrom<Part>("start", "end");
   it("costs min(taken, required work) for any multiple of 1/32", () =>

@@ -5,7 +5,7 @@ import { weekdayOf } from "../days";
 import type { DayNumber } from "../days";
 import { holidaysBetween } from "../holidays/holidays";
 import type { Holiday } from "../holidays/types";
-import { UNITS_PER_DAY } from "../weight";
+import { checkUnits } from "../weight";
 import type { Units } from "../weight";
 import { ruleDays } from "./match";
 import type { DayRule, Part, PlanInput, RequiredOverride, SourceDay } from "./types";
@@ -38,12 +38,6 @@ export interface DayFacts {
   /** Matching rules, in contract order. */
   readonly rules: readonly DayRule[];
   readonly override?: RequiredOverride;
-}
-
-function checkUnits(value: number, what: string): void {
-  if (!Number.isInteger(value) || value < 0 || value > UNITS_PER_DAY) {
-    throw new RangeError(`${what} must be a whole number of units from 0 to ${UNITS_PER_DAY}`);
-  }
 }
 
 function groupByDay<T extends { readonly day: DayNumber }>(items: readonly T[]): Map<DayNumber, T[]> {

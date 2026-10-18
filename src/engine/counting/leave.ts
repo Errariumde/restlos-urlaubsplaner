@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-import { UNITS_PER_DAY } from "../weight";
+import { checkUnits, UNITS_PER_DAY } from "../weight";
 import type { Units } from "../weight";
 import type { RequiredWork } from "./required";
 import type { Part } from "./types";
@@ -66,8 +66,8 @@ function measure(list: readonly Interval[], within: Interval = [-Infinity, Infin
 
 /**
  * Cost of one day and where its free time lies. Positions are relative to the work block of
- * length `required.value`; `charge` is false for days outside the plan period or without
- * allowance cost, which frees time but charges nothing.
+ * length `required.value`; `charge` is false for days outside the plan period, where
+ * leave frees time but costs nothing in this plan. Throws RangeError for units out of range.
  */
 export function evaluateLeave(
   required: Pick<RequiredWork, "value" | "freePart">,
@@ -75,6 +75,8 @@ export function evaluateLeave(
   charge: boolean,
 ): DayLeave {
   const r = required.value;
+  checkUnits(r, "Required work");
+  for (const piece of pieces) checkUnits(piece.take, "Leave take", 1);
   const sets: Record<LeaveKind, Interval[]> = { own: [], mandatory: [], otherPlan: [] };
   let p = 0;
   let q = 0;
