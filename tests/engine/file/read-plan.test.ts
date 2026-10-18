@@ -183,6 +183,12 @@ describe("plan section: suggested parts", () => {
     expect(load(result).plan.days).toEqual([{ day: d("2027-05-12"), take: 240, part: "end" }]);
   });
   it("gives no suggestion for a full day", () => expect(codes(read({ days: [{ date: "2027-05-12", take: "1" }] }))).toEqual([]));
+  it("drafts a half day outside the period as end and reports it", () => {
+    const result = read({ days: [{ date: "2026-12-30", take: "1/2" }] });
+    expect(codes(result)).toEqual(["outsidePeriod@plan.days[0]", "partSuggested@plan.days[0]"]);
+    expect(result.ok && result.report[1]?.data).toEqual({ part: "end" });
+    expect(load(result).plan.days).toEqual([{ day: d("2026-12-30"), take: 240, part: "end" }]);
+  });
   it("suggests 300 parts from one computation in under 500 ms", () => {
     const days = Array.from({ length: 300 }, (_, i) => ({ date: isoFromDay(d("2027-01-01") + i), take: "1/2" }));
     const startedAt = performance.now();
@@ -210,22 +216,36 @@ describe("at the limits", () => {
     const rules = Array.from({ length: 1000 }, (_, i) => ({
       id: `r${String(i)}`, match: { type: "fixed", month: (i % 12) + 1, day: (i % 28) + 1 }, requiredAtMost: "1",
     }));
+    // 50 sources x 2 entries x 500 days = 50,000 source days (the limit), inside the window of the 36-month period.
     const last = isoFromDay(d("2027-01-01") + 499);
     const entries = [0, 1].map(() => ({ match: { type: "range", from: { type: "once", date: "2027-01-01" }, to: { type: "once", date: last } } }));
     const sources = Array.from({ length: 50 }, (_, i) => ({
       id: `s${String(i)}`, name: "S", type: "info", color: { slot: "accent-1" }, visible: true, entries,
     }));
-    const days = Array.from({ length: 2000 }, (_, i) => ({ date: isoFromDay(d("2027-01-01") + (i % 365)), take: "1/2", part: "end" })).filter(
-      (entry, i, all) => all.findIndex((other) => other.date === entry.date) === i,
-    );
-    const notes = Array.from({ length: 2000 }, (_, i) => ({ date: isoFromDay(d("2027-01-01") + (i % 365)), text: "n" })).filter(
-      (entry, i, all) => all.findIndex((other) => other.date === entry.date) === i,
-    );
+    // 2000 unique dates from 2026-10-01 on: the first ~92 lie before the period and are kept with outsidePeriod.
+    // Every 7th leave day is half a day; those with i % 14 === 0 give no `part` (drafted, then suggested inside the period).
+    const first = d("2026-10-01");
+    const days = Array.from({ length: 2000 }, (_, i) => ({
+      date: isoFromDay(first + i),
+      take: i % 7 === 0 ? "1/2" : "1",
+      ...(i % 14 === 7 ? { part: "start" } : {}),
+    }));
+    const notes = Array.from({ length: 2000 }, (_, i) => ({ date: isoFromDay(first + i), text: "n" }));
     const text = planFile({ range: { from: "2027-01", to: "2029-12" }, days, notes }, { contract: { ...BAVARIA_CONTRACT, rules }, sources });
+    const run = () => {
+      const result = readFile(text);
+      const file = load(result);
+      computePlan(planInput(file));
+      return result;
+    };
+    run(); // warm-up
     const startedAt = performance.now();
-    const result = readFile(text);
-    const file = load(result);
-    computePlan(planInput(file));
-    expect(performance.now() - startedAt).toBeLessThan(1000);
+    const result = run();
+    const elapsed = performance.now() - startedAt;
+    expect(result.ok && result.report.some((entry) => entry.code === "outsidePeriod")).toBe(true);
+    expect(result.ok && result.report.some((entry) => entry.code === "partSuggested")).toBe(true);
+    expect(load(result).plan.days).toHaveLength(2000);
+    expect(load(result).plan.notes).toHaveLength(2000);
+    expect(elapsed).toBeLessThan(1000);
   });
 });

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 import { LIMITS, textLength, utf8Length } from "./limits";
-import { computationWindow } from "../counting/plan";
+import { computationWindow, periodBounds } from "../counting/plan";
 import { suggestParts } from "../counting/suggest";
 import type { LeaveDay } from "../counting/types";
 import { expandSources, planInput } from "./model";
@@ -72,8 +72,11 @@ function readEnvelope(text: string): ReadResult {
   }
   if (drafted.size === 0) return { ok: true, file: draft, report: report.entries };
 
-  // Partial leave without a `part`: one computation answers all of them.
-  const requests = plan.days.filter((entry) => drafted.has(entry));
+  // Partial leave without a `part`: one computation answers all days inside the period.
+  // A day outside the period keeps the drafted "end" (suggestions are only defined inside it) and is reported all the same.
+  const bounds = periodBounds(plan.range);
+  const inside = (entry: LeaveDay): boolean => entry.day >= bounds.from && entry.day <= bounds.to;
+  const requests = plan.days.filter((entry) => drafted.has(entry) && inside(entry));
   const suggestions = suggestParts(
     planInput(draft),
     requests.map((entry) => ({ day: entry.day, take: entry.take })),
@@ -84,6 +87,9 @@ function readEnvelope(text: string): ReadResult {
     replaced.set(entry, { day: entry.day, take: entry.take, part });
     report.add("partSuggested", drafted.get(entry) ?? "plan.days", { part });
   });
+  for (const [entry, path] of drafted) {
+    if (!inside(entry)) report.add("partSuggested", path, { part: "end" });
+  }
   const days = plan.days.map((entry) => replaced.get(entry) ?? entry);
   return { ok: true, file: { ...draft, plan: { ...plan, days } }, report: report.entries };
 }

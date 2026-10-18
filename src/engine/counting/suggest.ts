@@ -14,8 +14,11 @@ export interface PartRequest {
 }
 
 /**
- * `suggestPart` for several requests at once, from one `computePlan` of `input` without the leave of the requested days.
- * The answers are the same as asking one by one, as long as the requested days are distinct.
+ * `suggestPart` for several requests at once, from one `computePlan` of `input`.
+ * Each request is answered against the plan without the leave of ANY requested day, so the (not yet known) parts of the
+ * requested days never influence each other. With one request this is exactly `suggestPart`; with adjacent requested
+ * days the answers can differ from asking one by one, because `suggestPart` keeps the leave of the other days.
+ * The requested days must be distinct.
  * Throws RangeError when a day is outside the plan period or a `take` is not an integer from 1 to 480.
  */
 export function suggestParts(input: PlanInput, requests: readonly PartRequest[]): (Part | null)[] {
