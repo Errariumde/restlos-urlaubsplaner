@@ -14,7 +14,8 @@ As of 2026-10-17. The setup targets Claude Code and stays usable for other agent
 | `AGENTS.md` | Canonical rules for all agents | Codex, Cursor, Copilot, Gemini CLI, Zed, … |
 | `CLAUDE.md` | Imports `@AGENTS.md`, plus a few Claude Code notes | Claude Code |
 | `docs/SPEC.md` | Specification, authoritative | linked from `AGENTS.md`, not loaded automatically |
-| `.claude/skills/*/SKILL.md` | Procedures (holiday data, UI texts, updates, release) | Claude Code automatically; other agents as plain Markdown |
+| `.claude/skills/*/SKILL.md` | Procedures (holiday data, UI texts, updates, release, issue triage) | Claude Code automatically; other agents as plain Markdown |
+| `issues/` | File-based issue tracker for follow-ups and open decisions; conventions in `issues/README.md`, rules in `AGENTS.md` | all agents |
 
 Why the import instead of `AGENTS.md` alone: Claude Code reads `AGENTS.md` natively only since version 2.1.277, and only when there is no `CLAUDE.md` (nixpkgs 26.05 ships 2.1.223). With both files present it loads only `CLAUDE.md`, so the `@AGENTS.md` import is what loads the shared rules; the import never loads them twice. It works in every version and keeps a single source. The specification is deliberately not imported (about 65 KB in every session); agents read the relevant sections on demand.
 
@@ -54,14 +55,15 @@ Recommendation: **only the Svelte MCP server, as a remote server** (`.mcp.json` 
 
 ## 4. Skills
 
-The skills follow the open Agent Skills format (agentskills.io) and use only portable frontmatter fields (`name`, `description`, `license`, `metadata`). Other agents can read them as plain instructions; `AGENTS.md` points to them.
+The skills follow the open Agent Skills format (agentskills.io) and use only portable frontmatter fields (`name`, `description`, `license`, `metadata`). Other agents can read them as plain instructions; `AGENTS.md` points to them. The one exception is `triage`: only the maintainer starts it (`/triage`), so it also uses the Claude Code fields `disable-model-invocation`, `argument-hint` and `allowed-tools`.
 
 | Skill | When | Key points |
 | --- | --- | --- |
-| `holiday-data` | changing holiday rules | official source, rule as data, tests over several years, cross-check with python-holidays |
+| `holiday-data` | changing holiday rules | official source, rule as data, tests over several years, cross-check with date-holidays and python-holidays |
 | `ui-texts` | changing texts | both catalogs, ICU MessageFormat, no sentence concatenation |
 | `dependency-update` | package and nixpkgs updates | no new packages without asking, review the lockfile diff, couple Playwright to the Nix version |
 | `release` | preparing a release | checks, `reuse lint`, SPDX bill of materials, manual test in Firefox ESR; tagging and pushing only by the maintainer |
+| `triage` | choosing issues for the next branch (maintainer only) | checks open issues in `issues/` against the code, proposes a plan, changes status only after confirmation, no commit |
 
 No external skills (marketplaces) are needed. Deliberately left out: a skill for Typst templates, which only makes sense once templates exist.
 
@@ -127,6 +129,6 @@ GitHub MCP servers and connectors stay off (see section 3): they would act on Gi
 
 - **Marketplace path:** the docs don't say how the relative `path` of a `directory` marketplace in `extraKnownMarketplaces` is resolved. If Claude Code doesn't find it, run the commands from section 2.
 - **Server arguments:** `svelteserver --stdio`, `tinymist lsp` and `nixd` without arguments are untested; check with `/plugin` and the LSP diagnostics in a session.
-- **Sandbox with the toolchain:** writing to `~/.npm`, Node child processes with IPC and worker threads work inside the sandbox (checked 2026-10-17). Still to check once `package.json` exists: `npm ci` against the registry and `npm run test:e2e`.
+- **Sandbox with the toolchain:** writing to `~/.npm`, Node child processes with IPC and worker threads work inside the sandbox (checked 2026-10-17). `npm install` and `npm ci` against the registry work inside the sandbox (checked 2026-10-18). Still to check: `npm run test:e2e`.
 - **Unsigned agent commits:** check that the `env` setting reaches the shell: in a Claude Code session, `git config commit.gpgsign` should print `false`.
 - **GitHub workflows** are still missing. Actions must be pinned by commit SHA (see the specification).

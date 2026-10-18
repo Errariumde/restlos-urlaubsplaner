@@ -153,7 +153,7 @@ The app doesn't download these files itself; the user imports the saved file.
 | Source | Role |
 | --- | --- |
 | [date-holidays](https://github.com/commenthol/date-holidays) (code ISC, data CC BY-SA 3.0) | reference model in CI, not embedded |
-| [python-holidays](https://python-holidays.readthedocs.io/en/latest/_autosummary/holidays.countries.germany.html) (MIT; Assumption Day for all of BY, BYP for Protestant municipalities, Augsburg not in BY) | second reference model in CI |
+| [python-holidays](https://python-holidays.readthedocs.io/en/latest/_autosummary/holidays.countries.germany.html) (MIT; in version 0.97 Assumption Day in BY and Corpus Christi in SN and TH are in the opt-in category "catholic", and Augsburg is its own subdivision) | second reference model in CI |
 
 date-holidays is a development dependency and runs directly in the Vitest tests (all 16 federal states, 2000–2100); deviations are bugs or are on a documented exception list. python-holidays serves only as an occasional second cross-check: a script generates a reference file on rule changes, which is checked in. No online fetching at runtime.
 
@@ -576,6 +576,8 @@ Recommendation: use common, widespread tools, but choose them deliberately and s
 | vitest | tests | no | fits Vite, shares its configuration |
 | fast-check | property-based testing | no | few dependencies; high value for the counting model |
 | eslint, eslint-plugin-svelte, svelte-check | lint, type checking | no | standard; covers among others "no `Date` in the engine" |
+| typescript-eslint | ESLint parser and rules for TypeScript | no | needed to lint TypeScript; umbrella for parser, plugin, utils and typescript-estree from the same project |
+| @eslint/js | ESLint's recommended rule set | no | from the ESLint team, no dependencies; no longer installed with eslint since ESLint 10 |
 | ical.js | read iCal (and verify the export) | yes | 0 dependencies, MPL-2.0 ([depscope](https://depscope.dev/pkg/npm/ical.js)); proven parser instead of an own implementation, also covers `RRULE`/`EXDATE` |
 | intl-messageformat (FormatJS) | ICU messages | yes | established ICU implementation; check the dependency tree during setup, otherwise `@messageformat/core` |
 | date-holidays | reference model | no | development dependency, tests only |
@@ -762,7 +764,7 @@ The repository follows the FSFE's [REUSE specification](https://reuse.software):
 
 ### AI tools in the repository
 
-`AGENTS.md` is the shared instruction file for AI coding tools; `CLAUDE.md` includes it for Claude Code via `@AGENTS.md`. In addition there are `.claude/` (settings, skills), `.mcp.json` (Svelte MCP) and a local plugin for language servers. Agents commit unsigned on branches and never push; the maintainer reviews, signs and pushes over SSH. Rationale and setup are in `docs/ai-tooling.md`.
+`AGENTS.md` is the shared instruction file for AI coding tools; `CLAUDE.md` includes it for Claude Code via `@AGENTS.md`. In addition there are `.claude/` (settings, skills), `.mcp.json` (Svelte MCP) and a local plugin for language servers. Agents commit unsigned on branches and never push; the maintainer reviews, signs and pushes over SSH. Follow-ups and open decisions are tracked as Markdown files in `issues/` (conventions in `issues/README.md`); this internal backlog is separate from GitHub issues, which stay the channel for bug reports and ideas from users. Rationale and setup are in `docs/ai-tooling.md`.
 
 ### Releases and updates
 

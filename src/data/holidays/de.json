@@ -1,0 +1,426 @@
+{
+  "schema": 1,
+  "country": "DE",
+  "nameKey": "country.DE",
+  "weekStart": "mon",
+  "weekend": ["sat", "sun"],
+  "workWeek": { "mon": "1", "tue": "1", "wed": "1", "thu": "1", "fri": "1", "sat": "0", "sun": "0" },
+  "sources": {
+    "unification-treaty": {
+      "title": "Vertrag zwischen der Bundesrepublik Deutschland und der Deutschen Demokratischen Republik über die Herstellung der Einheit Deutschlands (Einigungsvertrag), Art. 2 Abs. 2",
+      "url": "https://www.gesetze-im-internet.de/einigvtr/art_2.html",
+      "checked": "2026-10-18"
+    },
+    "bb-law": {
+      "title": "Gesetz über die Sonn- und Feiertage (Feiertagsgesetz – FTG), § 2",
+      "url": "https://bravors.brandenburg.de/gesetze/ftg_2015",
+      "checked": "2026-10-18"
+    },
+    "be-law": {
+      "title": "Gesetz über die Sonn- und Feiertage vom 28. Oktober 1954, § 1 und Änderungsnachweis",
+      "url": "https://gesetze.berlin.de/bsbe/document/jlr-NNLBE000049DF",
+      "checked": "2026-10-18"
+    },
+    "be-reformation-2017": {
+      "title": "Gesetz zur Änderung des Gesetzes über die Sonn- und Feiertage vom 14. Oktober 2015 (GVBl. S. 378)",
+      "url": "https://pardok.parlament-berlin.de/starweb/adis/citat/VT/17/gvbl/g15220378.pdf",
+      "checked": "2026-10-18"
+    },
+    "be-2019": {
+      "title": "Drittes Gesetz zur Änderung des Gesetzes über die Sonn- und Feiertage vom 30. Januar 2019 (GVBl. S. 22)",
+      "url": "https://pardok.parlament-berlin.de/starweb/adis/citat/VT/18/gvbl/g19030022.pdf",
+      "checked": "2026-10-18"
+    },
+    "be-2024": {
+      "title": "Viertes Gesetz zur Änderung des Gesetzes über die Sonn- und Feiertage vom 10. Juli 2024 (GVBl. S. 460)",
+      "url": "https://pardok.parlament-berlin.de/starweb/adis/citat/VT/19/gvbl/g24280460.pdf",
+      "checked": "2026-10-18"
+    },
+    "bw-law": {
+      "title": "Gesetz über die Sonntage und Feiertage (Feiertagsgesetz – FTG) in der Fassung vom 8. Mai 1995, § 1 und Änderungsnachweis",
+      "url": "https://www.landesrecht-bw.de/bsbw/document/jlr-NNLBW00008DAE",
+      "checked": "2026-10-18"
+    },
+    "bw-reformation-2017": {
+      "title": "Gesetz zur Änderung des Feiertagsgesetzes (§ 1a, Reformationsfest 2017): Gesetzentwurf der Landesregierung, Landtagsdrucksache 15/5718",
+      "url": "https://www.landtag-bw.de/resource/blob/227634/acfbf529d8b75d869e39622a6c4a6704/15_5718_D.pdf",
+      "checked": "2026-10-18"
+    },
+    "by-law": {
+      "title": "Gesetz über den Schutz der Sonn- und Feiertage (Feiertagsgesetz – FTG), Art. 1",
+      "url": "https://www.gesetze-bayern.de/Content/Document/BayFTG-1",
+      "checked": "2026-10-18"
+    },
+    "by-reformation-2017": {
+      "title": "Gesetz zur Änderung des Feiertagsgesetzes vom 12. April 2016 (GVBl. S. 50)",
+      "url": "https://www.verkuendung-bayern.de/gvbl/2016-50/",
+      "checked": "2026-10-18"
+    },
+    "by-assumption": {
+      "title": "Bayerisches Landesamt für Statistik: Mariä Himmelfahrt (Feststellung nach Art. 1 Abs. 3 FTG)",
+      "url": "https://www.statistik.bayern.de/statistik/gebiet_bevoelkerung/zensus/himmelfahrt/index.php",
+      "checked": "2026-10-18"
+    },
+    "hb-law": {
+      "title": "Gesetz über die Sonn-, Gedenk- und Feiertage, § 2",
+      "url": "https://www.transparenz.bremen.de/metainformationen/gesetz-ueber-die-sonn-gedenk-und-feiertage-vom-12-november-1954-296390?asl=bremen203_tpgesetz.c.55340.de&template=20_gp_ifg_meta_detail_d",
+      "checked": "2026-10-18"
+    },
+    "hb-reformation-2017": {
+      "title": "Gesetz zur Änderung des Gesetzes über die Sonn- und Feiertage vom 21. Mai 2013 (Brem.GBl. S. 231)",
+      "url": "https://www.gesetzblatt.bremen.de/fastmedia/218/2013-05-31-gesetzblatt-2013-nr-33-aendg-sonn--und-feiertage.pdf",
+      "checked": "2026-10-18"
+    },
+    "hb-2018": {
+      "title": "Gesetz zur Änderung des Gesetzes über die Sonn- und Feiertage vom 26. Juni 2018 (Brem.GBl. S. 302)",
+      "url": "https://www.gesetzblatt.bremen.de/fastmedia/218/2018_06_28_GBl_Nr_0063_signed.pdf",
+      "checked": "2026-10-18"
+    },
+    "he-law": {
+      "title": "Hessisches Feiertagsgesetz (HFeiertagsG) in der Fassung vom 29. Dezember 1971, §§ 1 und 2",
+      "url": "https://www.rv.hessenrecht.hessen.de/bshe/document/jlr-NNLHE000051B5",
+      "checked": "2026-10-18"
+    },
+    "he-reformation-2017": {
+      "title": "Verordnung zur Bestimmung des Reformationstages 2017 zum gesetzlichen Feiertag vom 16. Oktober 2013 (GVBl. S. 566)",
+      "url": "https://starweb.hessen.de/cache/GVBL/2013/00025.pdf",
+      "checked": "2026-10-18"
+    },
+    "hh-law": {
+      "title": "Gesetz über Sonntage, Feiertage, Gedenktage und Trauertage (Feiertagsgesetz) vom 16. Oktober 1953, §§ 1 und 2 und Änderungsnachweis",
+      "url": "https://www.landesrecht-hamburg.de/bsha/document/jlr-NNLHH00006CB9",
+      "checked": "2026-10-18"
+    },
+    "hh-reformation-2017": {
+      "title": "Fünfte Verordnung zum Feiertagsgesetz (Verordnung über den Reformationstag 2017) vom 30. April 2013 (HmbGVBl. S. 192)",
+      "url": "https://www.luewu.de/wp-content/uploads/2025/08/GVBL_HH_2013-16.pdf",
+      "checked": "2026-10-18"
+    },
+    "mv-law": {
+      "title": "Gesetz über Sonn- und Feiertage (Feiertagsgesetz Mecklenburg-Vorpommern – FTG M-V) in der Fassung vom 8. März 2002, § 2",
+      "url": "https://www.landesrecht-mv.de/bsmv/document/jlr-NNLMV00007A2F",
+      "checked": "2026-10-18"
+    },
+    "mv-2022": {
+      "title": "Viertes Gesetz zur Änderung des Feiertagsgesetzes Mecklenburg-Vorpommern vom 7. Juli 2022 (GVOBl. M-V S. 427)",
+      "url": "https://www.dokumentation.landtag-mv.de/parldok/dokument/53736/gesetz_und_verordnungsblatt_2022_31.pdf",
+      "checked": "2026-10-18"
+    },
+    "ni-law": {
+      "title": "Niedersächsisches Gesetz über die Feiertage (NFeiertagsG), § 2",
+      "url": "https://www.mi.niedersachsen.de/startseite/themen/allgemeine_angelegenheiten_des_inneren/feiertagsrecht/feiertagsgesetz-61491.html",
+      "checked": "2026-10-18"
+    },
+    "ni-reformation-2017": {
+      "title": "Niedersächsisches Gesetz über die Feiertage, Fassung des Änderungsgesetzes vom 5. Juni 2013 (Nds. GVBl. S. 131), § 2 Abs. 1",
+      "url": "https://www.mi.niedersachsen.de/startseite/themen/allgemeine_angelegenheiten_des_inneren/feiertagsrecht/feiertagsgesetz-166174.html",
+      "checked": "2026-10-18"
+    },
+    "nw-law": {
+      "title": "Gesetz über die Sonn- und Feiertage (Feiertagsgesetz NW), § 2",
+      "url": "https://recht.nrw.de/lrgv/gesetz/01012000-bekanntmachung-der-neufassung-des-gesetzes-ueber-die-sonn-und-feiertage/",
+      "checked": "2026-10-18"
+    },
+    "nw-reformation-2017": {
+      "title": "Gesetz über die Bestimmung des 31. Oktober 2017 als 500. Jahrestag der Reformation zum Feiertag in Nordrhein-Westfalen vom 25. Juni 2015 (GV. NRW. S. 496)",
+      "url": "https://recht.nrw.de/lrgv/gesetz/04072015-gesetz-ueber-die-bestimmung-des-31-oktober-2017-als-500-jahrestag-der/",
+      "checked": "2026-10-18"
+    },
+    "rp-law": {
+      "title": "Landesgesetz über den Schutz der Sonn- und Feiertage (Feiertagsgesetz – LFtG) vom 15. Juli 1970, § 2",
+      "url": "https://www.landesrecht.rlp.de/bsrp/document/jlr-NNLRP00006125",
+      "checked": "2026-10-18"
+    },
+    "rp-reformation-2017": {
+      "title": "Landesverordnung zur Bestimmung des Reformationstages 2017 zum gesetzlichen Feiertag vom 27. November 2015 (GVBl. S. 433)",
+      "url": "https://gvbl.rlp.de/fileadmin/gvbl/2015/GVBl.Nr.14_vom_04.12.2015.pdf",
+      "checked": "2026-10-18"
+    },
+    "sh-law": {
+      "title": "Gesetz über Sonn- und Feiertage (SFTG) vom 28. Juni 2004, § 2 und Änderungsnachweis",
+      "url": "https://www.gesetze-rechtsprechung.sh.juris.de/bssh/document/jlr-NNLSH00003261",
+      "checked": "2026-10-18"
+    },
+    "sh-reformation-2017": {
+      "title": "Landesverordnung über den Reformationstag 2017 vom 24. November 2014 (GVOBl. Schl.-H. S. 380)",
+      "url": "https://www.gesetze-rechtsprechung.sh.juris.de/bssh/document/jlr-NNLSH00003042",
+      "checked": "2026-10-18"
+    },
+    "sl-law": {
+      "title": "Gesetz Nr. 1040 über die Sonn- und Feiertage (Feiertagsgesetz – SFG) vom 18. Februar 1976, § 2",
+      "url": "https://recht.saarland.de/bssl/document/jlr-NNLSL0000A2D6NN00000000003",
+      "checked": "2026-10-18"
+    },
+    "sl-reformation-2017": {
+      "title": "Verordnung zur Erklärung des 500. Reformationsjubiläums am 31. Oktober 2017 zum Feiertag vom 18. Juni 2014 (Amtsbl. I S. 283)",
+      "url": "https://recht.saarland.de/bssl/document/jlr-NNLSL0000A896",
+      "checked": "2026-10-18"
+    },
+    "sn-law": {
+      "title": "Gesetz über Sonn- und Feiertage im Freistaat Sachsen (SächsSFG), § 1",
+      "url": "https://www.revosax.sachsen.de/vorschrift/3997",
+      "checked": "2026-10-18"
+    },
+    "sn-corpus-christi": {
+      "title": "Verordnung des Sächsischen Staatsministeriums des Innern über den regionalen Feiertag Fronleichnam (FronleichnamsVO)",
+      "url": "https://www.revosax.sachsen.de/vorschrift/4142",
+      "checked": "2026-10-18"
+    },
+    "st-law": {
+      "title": "Gesetz über die Sonn- und Feiertage (FeiertG LSA) in der Fassung vom 25. August 2004, § 2",
+      "url": "https://www.landesrecht.sachsen-anhalt.de/bsst/document/jlr-NNLST0000411C",
+      "checked": "2026-10-18"
+    },
+    "th-law": {
+      "title": "Thüringer Feier- und Gedenktagsgesetz (ThürFGtG) vom 21. Dezember 1994, §§ 2 und 10 und Änderungsnachweis",
+      "url": "https://landesrecht.thueringen.de/bsth/document/jlr-NNLTH00003E03",
+      "checked": "2026-10-18"
+    }
+  },
+  "regions": [
+    { "id": "BB", "nameKey": "region.DE.BB" },
+    { "id": "BE", "nameKey": "region.DE.BE" },
+    { "id": "BW", "nameKey": "region.DE.BW" },
+    { "id": "BY", "nameKey": "region.DE.BY" },
+    { "id": "HB", "nameKey": "region.DE.HB" },
+    { "id": "HE", "nameKey": "region.DE.HE" },
+    { "id": "HH", "nameKey": "region.DE.HH" },
+    { "id": "MV", "nameKey": "region.DE.MV" },
+    { "id": "NI", "nameKey": "region.DE.NI" },
+    { "id": "NW", "nameKey": "region.DE.NW" },
+    { "id": "RP", "nameKey": "region.DE.RP" },
+    { "id": "SH", "nameKey": "region.DE.SH" },
+    { "id": "SL", "nameKey": "region.DE.SL" },
+    { "id": "SN", "nameKey": "region.DE.SN" },
+    { "id": "ST", "nameKey": "region.DE.ST" },
+    { "id": "TH", "nameKey": "region.DE.TH" }
+  ],
+  "localRules": [
+    {
+      "id": "augsburg",
+      "regions": ["BY"],
+      "nameKey": "localRule.DE.augsburg",
+      "explanationKey": "localRule.DE.augsburg.help",
+      "sources": ["by-law"]
+    },
+    {
+      "id": "assumption",
+      "regions": ["BY"],
+      "nameKey": "localRule.DE.assumption",
+      "explanationKey": "localRule.DE.assumption.help",
+      "sources": ["by-law", "by-assumption"]
+    },
+    {
+      "id": "corpusChristi",
+      "regions": ["SN", "TH"],
+      "nameKey": "localRule.DE.corpusChristi",
+      "explanationKey": "localRule.DE.corpusChristi.help",
+      "sources": ["sn-law", "sn-corpus-christi", "th-law"]
+    }
+  ],
+  "holidays": [
+    {
+      "id": "new-years-day",
+      "nameKey": "holiday.new-years-day",
+      "date": { "type": "fixed", "month": 1, "day": 1 },
+      "regions": "all",
+      "sources": ["bb-law", "be-law", "bw-law", "by-law", "hb-law", "he-law", "hh-law", "mv-law", "ni-law", "nw-law", "rp-law", "sh-law", "sl-law", "sn-law", "st-law", "th-law"]
+    },
+    {
+      "id": "epiphany",
+      "nameKey": "holiday.epiphany",
+      "date": { "type": "fixed", "month": 1, "day": 6 },
+      "regions": ["BW", "BY", "ST"],
+      "sources": ["bw-law", "by-law", "st-law"]
+    },
+    {
+      "id": "womens-day-be",
+      "nameKey": "holiday.womens-day",
+      "date": { "type": "fixed", "month": 3, "day": 8 },
+      "regions": ["BE"],
+      "validFrom": 2019,
+      "sources": ["be-law", "be-2019"]
+    },
+    {
+      "id": "womens-day-mv",
+      "nameKey": "holiday.womens-day",
+      "date": { "type": "fixed", "month": 3, "day": 8 },
+      "regions": ["MV"],
+      "validFrom": 2023,
+      "sources": ["mv-law", "mv-2022"]
+    },
+    {
+      "id": "good-friday",
+      "nameKey": "holiday.good-friday",
+      "date": { "type": "easter", "offset": -2 },
+      "regions": "all",
+      "sources": ["bb-law", "be-law", "bw-law", "by-law", "hb-law", "he-law", "hh-law", "mv-law", "ni-law", "nw-law", "rp-law", "sh-law", "sl-law", "sn-law", "st-law", "th-law"]
+    },
+    {
+      "id": "easter-sunday",
+      "nameKey": "holiday.easter-sunday",
+      "date": { "type": "easter", "offset": 0 },
+      "regions": ["BB"],
+      "sources": ["bb-law"]
+    },
+    {
+      "id": "easter-monday",
+      "nameKey": "holiday.easter-monday",
+      "date": { "type": "easter", "offset": 1 },
+      "regions": "all",
+      "sources": ["bb-law", "be-law", "bw-law", "by-law", "hb-law", "he-law", "hh-law", "mv-law", "ni-law", "nw-law", "rp-law", "sh-law", "sl-law", "sn-law", "st-law", "th-law"]
+    },
+    {
+      "id": "labour-day",
+      "nameKey": "holiday.labour-day",
+      "date": { "type": "fixed", "month": 5, "day": 1 },
+      "regions": "all",
+      "sources": ["bb-law", "be-law", "bw-law", "by-law", "hb-law", "he-law", "hh-law", "mv-law", "ni-law", "nw-law", "rp-law", "sh-law", "sl-law", "sn-law", "st-law", "th-law"]
+    },
+    {
+      "id": "liberation-day-2020",
+      "nameKey": "holiday.liberation-day",
+      "date": { "type": "once", "date": "2020-05-08" },
+      "regions": ["BE"],
+      "sources": ["be-2019"]
+    },
+    {
+      "id": "liberation-day-2025",
+      "nameKey": "holiday.liberation-day",
+      "date": { "type": "once", "date": "2025-05-08" },
+      "regions": ["BE"],
+      "sources": ["be-2024"]
+    },
+    {
+      "id": "uprising-anniversary-2028",
+      "nameKey": "holiday.uprising-anniversary",
+      "date": { "type": "once", "date": "2028-06-17" },
+      "regions": ["BE"],
+      "sources": ["be-law", "be-2024"]
+    },
+    {
+      "id": "ascension-day",
+      "nameKey": "holiday.ascension-day",
+      "date": { "type": "easter", "offset": 39 },
+      "regions": "all",
+      "sources": ["bb-law", "be-law", "bw-law", "by-law", "hb-law", "he-law", "hh-law", "mv-law", "ni-law", "nw-law", "rp-law", "sh-law", "sl-law", "sn-law", "st-law", "th-law"]
+    },
+    {
+      "id": "whit-sunday",
+      "nameKey": "holiday.whit-sunday",
+      "date": { "type": "easter", "offset": 49 },
+      "regions": ["BB"],
+      "sources": ["bb-law"]
+    },
+    {
+      "id": "whit-monday",
+      "nameKey": "holiday.whit-monday",
+      "date": { "type": "easter", "offset": 50 },
+      "regions": "all",
+      "sources": ["bb-law", "be-law", "bw-law", "by-law", "hb-law", "he-law", "hh-law", "mv-law", "ni-law", "nw-law", "rp-law", "sh-law", "sl-law", "sn-law", "st-law", "th-law"]
+    },
+    {
+      "id": "corpus-christi",
+      "nameKey": "holiday.corpus-christi",
+      "date": { "type": "easter", "offset": 60 },
+      "regions": ["BW", "BY", "HE", "NW", "RP", "SL"],
+      "sources": ["bw-law", "by-law", "he-law", "nw-law", "rp-law", "sl-law"]
+    },
+    {
+      "id": "corpus-christi-local",
+      "nameKey": "holiday.corpus-christi",
+      "date": { "type": "easter", "offset": 60 },
+      "regions": ["SN", "TH"],
+      "localRule": "corpusChristi",
+      "sources": ["sn-law", "sn-corpus-christi", "th-law"]
+    },
+    {
+      "id": "augsburg-peace-festival",
+      "nameKey": "holiday.augsburg-peace-festival",
+      "date": { "type": "fixed", "month": 8, "day": 8 },
+      "regions": ["BY"],
+      "localRule": "augsburg",
+      "sources": ["by-law"]
+    },
+    {
+      "id": "assumption-day",
+      "nameKey": "holiday.assumption-day",
+      "date": { "type": "fixed", "month": 8, "day": 15 },
+      "regions": ["SL"],
+      "sources": ["sl-law"]
+    },
+    {
+      "id": "assumption-day-local",
+      "nameKey": "holiday.assumption-day",
+      "date": { "type": "fixed", "month": 8, "day": 15 },
+      "regions": ["BY"],
+      "localRule": "assumption",
+      "sources": ["by-law", "by-assumption"]
+    },
+    {
+      "id": "world-childrens-day",
+      "nameKey": "holiday.world-childrens-day",
+      "date": { "type": "fixed", "month": 9, "day": 20 },
+      "regions": ["TH"],
+      "validFrom": 2019,
+      "sources": ["th-law"]
+    },
+    {
+      "id": "german-unity-day",
+      "nameKey": "holiday.german-unity-day",
+      "date": { "type": "fixed", "month": 10, "day": 3 },
+      "regions": "all",
+      "sources": ["unification-treaty"]
+    },
+    {
+      "id": "reformation-day",
+      "nameKey": "holiday.reformation-day",
+      "date": { "type": "fixed", "month": 10, "day": 31 },
+      "regions": ["BB", "MV", "SN", "ST", "TH"],
+      "sources": ["bb-law", "mv-law", "sn-law", "st-law", "th-law"]
+    },
+    {
+      "id": "reformation-day-north",
+      "nameKey": "holiday.reformation-day",
+      "date": { "type": "fixed", "month": 10, "day": 31 },
+      "regions": ["HB", "HH", "NI", "SH"],
+      "validFrom": 2018,
+      "sources": ["hb-law", "hb-2018", "hh-law", "ni-law", "sh-law"]
+    },
+    {
+      "id": "reformation-day-2017",
+      "nameKey": "holiday.reformation-day",
+      "date": { "type": "once", "date": "2017-10-31" },
+      "regions": ["BE", "BW", "BY", "HB", "HE", "HH", "NI", "NW", "RP", "SH", "SL"],
+      "sources": ["be-reformation-2017", "bw-reformation-2017", "bw-law", "by-reformation-2017", "hb-reformation-2017", "he-reformation-2017", "he-law", "hh-reformation-2017", "hh-law", "ni-reformation-2017", "nw-reformation-2017", "rp-reformation-2017", "rp-law", "sh-reformation-2017", "sh-law", "sl-reformation-2017", "sl-law"]
+    },
+    {
+      "id": "all-saints-day",
+      "nameKey": "holiday.all-saints-day",
+      "date": { "type": "fixed", "month": 11, "day": 1 },
+      "regions": ["BW", "BY", "NW", "RP", "SL"],
+      "sources": ["bw-law", "by-law", "nw-law", "rp-law", "sl-law"]
+    },
+    {
+      "id": "repentance-day",
+      "nameKey": "holiday.repentance-day",
+      "date": { "type": "weekdayRelative", "weekday": "wed", "relation": "before", "month": 11, "day": 23 },
+      "regions": ["SN"],
+      "sources": ["sn-law"]
+    },
+    {
+      "id": "christmas-day",
+      "nameKey": "holiday.christmas-day",
+      "date": { "type": "fixed", "month": 12, "day": 25 },
+      "regions": "all",
+      "sources": ["bb-law", "be-law", "bw-law", "by-law", "hb-law", "he-law", "hh-law", "mv-law", "ni-law", "nw-law", "rp-law", "sh-law", "sl-law", "sn-law", "st-law", "th-law"]
+    },
+    {
+      "id": "second-christmas-day",
+      "nameKey": "holiday.second-christmas-day",
+      "date": { "type": "fixed", "month": 12, "day": 26 },
+      "regions": "all",
+      "sources": ["bb-law", "be-law", "bw-law", "by-law", "hb-law", "he-law", "hh-law", "mv-law", "ni-law", "nw-law", "rp-law", "sh-law", "sl-law", "sn-law", "st-law", "th-law"]
+    }
+  ]
+}

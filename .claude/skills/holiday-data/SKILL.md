@@ -12,15 +12,16 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Holiday data
 
-1. Read the section "Holiday sources and work week" in `docs/SPEC.md`.
-2. Find the **official legal source** (law, state gazette, ministry page). Wikipedia or holiday websites are not sufficient as the only source.
-3. Express the rule as data (fixed date, Easter offset, weekday rule, date range of validity) – do not add special-case code if the existing rule types suffice. If a new rule type is needed, stop and ask.
-4. Add the source URL and the date you checked it as a comment/field next to the rule.
-5. Add tests:
-   - known dates for at least three years, including a year before/after a rule change;
-   - cross-check against the Python `holidays` package in the dev shell, e.g.
-     `python3 -c "import holidays; print(sorted(holidays.country_holidays('DE', subdiv='BY', years=2027).items()))"`.
-     Differences must be explained (the package is an oracle, not the authority).
-6. Regional sub-areas (e.g. Augsburg, Catholic municipalities in Bavaria) are separate selectable regions, never silently applied.
-7. School holidays are **not** built in; they come via iCal import.
-8. Run `npm run check` (includes `reuse lint`).
+1. Read the section "Holiday sources and work week" in `docs/SPEC.md` and the format reference `docs/holiday-data-format.md`.
+2. Find the **official legal source** (law portal, official gazette, parliament documentation, authority page). Wikipedia, legal reference collections or holiday websites are not sources. Cite only documents you actually opened and read.
+3. Express the rule as data in `src/data/holidays/<cc>.json` with the existing rule types (`fixed`, `easter`, `orthodoxEaster`, `weekdayRelative`, `nthWeekday`, `once`, plus `validFrom`/`validUntil` and `substitute`) – do not add special-case code. If a new rule type is needed, stop and ask.
+4. Add each document to the file's `sources` map as `{ title, url, checked }` (`checked` = ISO date you read it) and list its key in the rule's `sources`. Cite the defining law and, where it matters, the amending law behind a change of validity.
+5. Regional sub-areas (e.g. Augsburg, Catholic municipalities in Bavaria) are local-rule switches (`localRules`, plus `localRule` on the holiday), phrased as "applies at my place of work" – never silently applied, no municipality lists. A new switch also needs a variant in `tests/reference/variants.ts` and its mapping in `tests/reference/date-holidays.test.ts` and `scripts/python-holidays-reference.py`.
+6. Add tests in `tests/data/holidays/<cc>.test.ts`: known dates for at least three years per rule, including the years before and after each rule change, written from the source, not from engine output.
+7. Cross-check against the reference models:
+   - date-holidays runs inside `npm test`;
+   - after rule changes, run `npm run reference:python` and commit the regenerated `tests/reference/python-holidays-de.json`.
+   Fix every difference or explain it in `tests/reference/known-differences.ts` with the official source that settles it (the packages are oracles, not the authority).
+8. Add the translation keys used by the data (`nameKey`, `explanationKey`) to both message catalogs (`ui-texts` skill).
+9. School holidays are **not** built in; they come via iCal import.
+10. Run `npm run check` (includes `reuse lint`).
