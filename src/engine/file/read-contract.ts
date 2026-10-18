@@ -27,8 +27,8 @@ function tryParse<T>(parse: (text: string) => T, value: unknown): T | undefined 
   }
 }
 
-const isoDay = (value: unknown): number | undefined => tryParse(dayFromIso, value);
-const weight = (value: unknown): Units | undefined => tryParse(parseWeight, value);
+export const isoDay = (value: unknown): number | undefined => tryParse(dayFromIso, value);
+export const weight = (value: unknown): Units | undefined => tryParse(parseWeight, value);
 
 function limit(count: number, max: number, key: string, path: string): void {
   if (count > max) throw new Refused({ code: "limitExceeded", path, data: { limit: key } });
@@ -155,6 +155,7 @@ function readRule(
   value: unknown,
   path: string,
   references: Readonly<Record<string, Reference>>,
+  kind: "plan" | "ruleSet",
   report: Report,
 ): FileRule | undefined {
   const fail = (field?: string): undefined => {
@@ -180,7 +181,7 @@ function readRule(
   if (validUntil !== undefined && !isYear(validUntil)) return fail("validUntil");
   if (isYear(validFrom) && isYear(validUntil) && validFrom > validUntil) return fail("validUntil");
   if (part !== undefined && part !== "start" && part !== "end") return fail("part");
-  if (value["origin"] !== undefined && !isId(value["origin"])) return fail("origin");
+  if (kind === "plan" && value["origin"] !== undefined && !isId(value["origin"])) return fail("origin");
 
   let citations: string[] | undefined;
   const referencesValue = value["references"];
@@ -201,7 +202,8 @@ function readRule(
   const note = value["note"] === undefined ? undefined : readText(value["note"], child(path, "note"), LIMITS.longText, report);
   if (value["note"] !== undefined && note === undefined) return undefined;
 
-  checkKeys(value, RULE_KEYS, path, report);
+  // Rule sets have no `origin`; there it counts as an unknown field.
+  checkKeys(value, kind === "plan" ? RULE_KEYS : RULE_KEYS.filter((key) => key !== "origin"), path, report);
   report.entries.push(...matchReport.entries);
   const effects =
     effect === "requiredAtMost" ? { requiredAtMost: units } : effect === "requiredExactly" ? { requiredExactly: units } : { mandatory: units };
@@ -215,20 +217,20 @@ function readRule(
     ...(label !== undefined ? { label } : {}),
     ...(note !== undefined ? { note } : {}),
     ...(citations !== undefined ? { references: citations } : {}),
-    ...(value["origin"] !== undefined ? { origin: value["origin"] } : {}),
+    ...(kind === "plan" && isId(value["origin"]) ? { origin: value["origin"] } : {}),
   };
   for (const warning of dayRuleWarnings(rule)) report.add("ruleWarning", path, { warning: warning.code });
   return rule;
 }
 
-function readRules(value: unknown, path: string, references: Readonly<Record<string, Reference>>, report: Report): FileRule[] {
+function readRules(value: unknown, path: string, references: Readonly<Record<string, Reference>>, kind: "plan" | "ruleSet", report: Report): FileRule[] {
   if (!Array.isArray(value)) throw new Refused({ code: "invalidCore", path });
   limit(value.length, LIMITS.rules, "rules", path);
   const rules: FileRule[] = [];
   const ids = new Set<string>();
   for (let i = 0; i < value.length; i++) {
     const rulePath = at(path, i);
-    const rule = readRule(value[i], rulePath, references, report);
+    const rule = readRule(value[i], rulePath, references, kind, report);
     if (!rule) continue;
     if (ids.has(rule.id)) {
       report.add("duplicateId", child(rulePath, "id"));
@@ -241,7 +243,7 @@ function readRules(value: unknown, path: string, references: Readonly<Record<str
 }
 
 /** Reads `contract`. Throws `Refused` for core problems and for counts over a limit. */
-export function readContract(value: unknown, path: string, _kind: "plan" | "ruleSet", report: Report): FileContract {
+export function readContract(value: unknown, path: string, kind: "plan" | "ruleSet", report: Report): FileContract {
   if (!isRecord(value)) throw new Refused({ code: "invalidCore", path });
   checkKeys(value, ["name", "description", "references", "region", "minUnit", "week", "rules"], path, report);
   const name = value["name"] === undefined ? undefined : readText(value["name"], child(path, "name"), LIMITS.shortText, report);
@@ -251,7 +253,7 @@ export function readContract(value: unknown, path: string, _kind: "plan" | "rule
   const region = readRegion(value["region"], child(path, "region"), report);
   const minUnit = readMinUnit(value["minUnit"], child(path, "minUnit"), report);
   const week = readWeek(value["week"], child(path, "week"), report);
-  const rules = readRules(value["rules"], child(path, "rules"), references, report);
+  const rules = readRules(value["rules"], child(path, "rules"), references, kind, report);
   return {
     ...(name !== undefined ? { name } : {}),
     ...(description !== undefined ? { description } : {}),

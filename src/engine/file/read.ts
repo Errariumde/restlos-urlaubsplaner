@@ -3,6 +3,8 @@
 
 import { LIMITS, textLength, utf8Length } from "./limits";
 import { readContract } from "./read-contract";
+import { readSources } from "./read-sources";
+import { readTemplates, readTheme } from "./read-templates";
 import { Refused, Report, checkKeys, isRecord, type ReadResult } from "./report";
 import type { RuleSetFile } from "./types";
 
@@ -42,14 +44,10 @@ function readEnvelope(text: string): ReadResult {
   const report = new Report();
   checkKeys(json, RULE_SET_KEYS, "", report);
   const contract = readContract(json["contract"], "contract", "ruleSet", report);
-  // Sources, templates and theme are read in the next step; for now only their shape and counts are checked.
-  for (const [key, max] of [["sources", LIMITS.sources], ["templates", LIMITS.templates]] as const) {
-    const list = json[key];
-    if (list === undefined) continue;
-    if (!Array.isArray(list)) throw new Refused({ code: "invalidCore", path: key });
-    if (list.length > max) throw new Refused({ code: "limitExceeded", path: key, data: { limit: key } });
-  }
-  const file: RuleSetFile = { kind: "ruleSet", id, revision, contract, sources: [], templates: [], theme: null };
+  const sources = readSources(json["sources"], "sources", "ruleSet", report);
+  const templates = readTemplates(json["templates"], "templates", report);
+  const theme = readTheme(json["theme"], "theme", report);
+  const file: RuleSetFile = { kind: "ruleSet", id, revision, contract, sources, templates, theme };
   return { ok: true, file, report: report.entries };
 }
 

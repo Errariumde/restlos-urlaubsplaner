@@ -67,7 +67,7 @@ describe("week", () => {
 describe("rules", () => {
   it("reads one rule of every effect with the file-only fields", () => {
     const rules = [
-      rule({ id: "a", label: { de: "Heiligabend" }, note: "n", references: ["law"], origin: "set-1" }),
+      rule({ id: "a", label: { de: "Heiligabend" }, note: "n", references: ["law"] }),
       rule({ id: "b", requiredAtMost: undefined, requiredExactly: "0" }),
       rule({ id: "c", requiredAtMost: undefined, mandatory: "1/2", part: "start", validFrom: 2020, validUntil: 2030 }),
     ];
@@ -76,7 +76,7 @@ describe("rules", () => {
     expect(codes(result)).toEqual([]);
     const contract = contractOf(result);
     expect(contract.rules).toEqual([
-      { id: "a", match: { type: "fixed", month: 12, day: 24 }, requiredAtMost: 240, label: { de: "Heiligabend" }, note: "n", references: ["law"], origin: "set-1" },
+      { id: "a", match: { type: "fixed", month: 12, day: 24 }, requiredAtMost: 240, label: { de: "Heiligabend" }, note: "n", references: ["law"] },
       { id: "b", match: { type: "fixed", month: 12, day: 24 }, requiredExactly: 0 },
       { id: "c", match: { type: "fixed", month: 12, day: 24 }, mandatory: 240, part: "start", validFrom: 2020, validUntil: 2030 },
     ]);
