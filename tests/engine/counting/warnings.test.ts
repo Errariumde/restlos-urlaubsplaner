@@ -1,0 +1,58 @@
+// SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
+// SPDX-License-Identifier: EUPL-1.2
+
+import { describe, expect, it } from "vitest";
+import type { DayMatch, DayRule, RangeMatch } from "../../../src/engine/counting/types";
+import { dayRuleWarnings } from "../../../src/engine/counting/warnings";
+import { easter, fixed, once } from "./helpers";
+
+const r = (match: DayMatch, extra: { validFrom?: number; validUntil?: number } = {}): DayRule => ({
+  id: "r",
+  match,
+  requiredAtMost: 0,
+  ...extra,
+});
+const codes = (rule: DayRule) => dayRuleWarnings(rule).map((w) => w.code);
+
+describe("dayRuleWarnings", () => {
+  it.each([
+    [{ type: "range", from: fixed(2, 27), days: 4 }, ["leapYearLength"]],
+    [{ type: "range", from: fixed(12, 1), days: 100 }, ["leapYearLength"]],
+    [{ type: "range", from: fixed(12, 27), days: 6 }, []],
+    [{ type: "range", from: once("2027-02-27"), days: 4 }, []],
+    [{ type: "range", from: easter(-52), days: 6 }, []],
+    [{ type: "range", from: fixed(2, 27), to: fixed(3, 2) }, []],
+  ] as [RangeMatch, string[]][])("leap-year length of %j", (match, expected) =>
+    expect(codes(r(match))).toEqual(expected),
+  );
+  it.each([
+    [{ type: "range", from: easter(-52), to: fixed(3, 1) }, ["mixedRangeEnds"]],
+    [{ type: "range", from: fixed(4, 20), to: easter(1) }, ["mixedRangeEnds"]],
+    [{ type: "range", from: once("2028-03-20"), to: easter(1) }, ["mixedRangeEnds"]],
+    [{ type: "range", from: fixed(12, 27), to: fixed(1, 2) }, []],
+    [{ type: "range", from: easter(-52), to: easter(-47) }, []],
+    [
+      {
+        type: "range",
+        from: { type: "nthWeekday", month: 11, weekday: "sun", n: 4 },
+        to: { type: "weekdayRelative", weekday: "sun", relation: "before", month: 12, day: 25 },
+      },
+      [],
+    ],
+  ] as [RangeMatch, string[]][])("mixed ends of %j", (match, expected) =>
+    expect(codes(r(match))).toEqual(expected),
+  );
+  it("finds rules that never produce a day", () => {
+    expect(codes(r(once("2027-03-13"), { validFrom: 2028 }))).toEqual(["neverApplies"]);
+    expect(codes(r({ type: "range", from: easter(0), days: 1, weekdays: ["mon"] }))).toEqual([
+      "neverApplies",
+    ]);
+    expect(codes(r(fixed(12, 31), { validFrom: 2030, validUntil: 2029 }))).toEqual(["neverApplies"]);
+    expect(codes(r(once("2027-03-13")))).toEqual([]);
+    expect(codes(r(fixed(12, 31)))).toEqual([]);
+  });
+  it("reports the rule ID", () =>
+    expect(
+      dayRuleWarnings({ id: "x", match: once("1999-01-01"), validFrom: 2000, mandatory: 480 }),
+    ).toEqual([{ code: "neverApplies", ruleId: "x" }]));
+});
