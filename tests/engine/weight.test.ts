@@ -3,7 +3,7 @@
 
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { parseWeight, WeightError } from "../../src/engine/weight";
+import { formatWeight, parseWeight, WeightError } from "../../src/engine/weight";
 
 // lib has no DOM; performance exists in Node and in Firefox.
 declare const performance: { now(): number };
@@ -76,4 +76,13 @@ describe("parseWeight", () => {
   it("parses k/32 as k * 15 units", () => {
     fc.assert(fc.property(fc.integer({ min: 0, max: 32 }), (k) => parseWeight(`${k}/32`) === k * 15));
   });
+});
+
+describe("formatWeight", () => {
+  it.each([[0, "0"], [480, "1"], [240, "1/2"], [45, "3/32"], [15, "1/32"], [1, "1/480"], [144, "3/10"], [160, "1/3"]])(
+    "writes %i units as %j", (units, text) => expect(formatWeight(units)).toBe(text));
+  it("round-trips every multiple of 1/480 day", () => {
+    for (let units = 0; units <= 480; units++) expect(parseWeight(formatWeight(units))).toBe(units);
+  });
+  it.each([-1, 481, 1.5, Number.NaN])("rejects %j", (units) => expect(() => formatWeight(units)).toThrow(RangeError));
 });

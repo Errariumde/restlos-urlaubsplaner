@@ -77,3 +77,19 @@ function parseDecimal(text: string, intText: string, fracText: string): Units {
   if (scaled % scale !== 0) throw new WeightError("inexact", text);
   return scaled / scale;
 }
+
+const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+
+/**
+ * Writes integer units as the reduced fraction of a day used in files:
+ * "0", "1", "1/2", "3/32". Throws RangeError unless units is an integer in 0..UNITS_PER_DAY.
+ */
+export function formatWeight(units: Units): string {
+  if (!Number.isInteger(units) || units < 0 || units > UNITS_PER_DAY) {
+    throw new RangeError(`Weight units out of range: ${units}`);
+  }
+  const divisor = gcd(units, UNITS_PER_DAY);
+  const num = units / divisor;
+  const den = UNITS_PER_DAY / divisor;
+  return den === 1 ? String(num) : `${num}/${den}`;
+}
