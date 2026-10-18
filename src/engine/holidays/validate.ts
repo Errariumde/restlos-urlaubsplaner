@@ -207,8 +207,9 @@ function checkLocalRules(
     checkSourceRefs(c, rule["sources"], sub(path, "sources"), sourceIds, used);
     const id = rule["id"];
     if (!c.nonEmptyString(id, sub(path, "id"))) return;
+    // A duplicate keeps the first definition, so holidays are checked against one set of regions.
     if (known.has(id)) c.report(sub(path, "id"), "duplicate id");
-    known.set(id, regions);
+    else known.set(id, regions);
   });
   return known;
 }
@@ -235,7 +236,7 @@ function checkDate(c: Checker, value: unknown, path: string): void {
       const dayOk = c.integerInRange(date["day"], 1, max, sub(path, "day"));
       const leapDay = m === 2 && dayOk && date["day"] === 29;
       const nonLeap = date["nonLeap"];
-      if (leapDay && !NON_LEAP.includes(nonLeap as string)) {
+      if (leapDay && (typeof nonLeap !== "string" || !NON_LEAP.includes(nonLeap))) {
         c.report(sub(path, "nonLeap"), `required for 02-29, one of ${NON_LEAP.join(", ")}`);
       } else if (!leapDay && nonLeap !== undefined) {
         c.report(sub(path, "nonLeap"), "only allowed for 02-29");

@@ -4,72 +4,83 @@
 import type { DayNumber, Weekday } from "../days";
 
 export interface Source {
-  title: string;
-  url: string;
-  checked: string; // ISO date
+  readonly title: string;
+  readonly url: string;
+  readonly checked: string; // ISO date
 }
 
 export type DateRule =
-  | { type: "fixed"; month: number; day: number; nonLeap?: "drop" | "feb28" | "mar1" } // nonLeap only, and required, for 02-29
-  | { type: "easter"; offset: number }
-  | { type: "orthodoxEaster"; offset: number }
   | {
-      type: "weekdayRelative";
-      weekday: Weekday;
-      relation: "before" | "onOrBefore" | "after" | "onOrAfter";
-      month: number;
-      day: number;
+      readonly type: "fixed";
+      readonly month: number;
+      readonly day: number;
+      readonly nonLeap?: "drop" | "feb28" | "mar1"; // only, and required, for 02-29
     }
-  | { type: "nthWeekday"; month: number; weekday: Weekday; n: 1 | 2 | 3 | 4 | -1 } // -1 = last
-  | { type: "once"; date: string }; // ISO date
+  | { readonly type: "easter"; readonly offset: number }
+  | { readonly type: "orthodoxEaster"; readonly offset: number }
+  | {
+      readonly type: "weekdayRelative";
+      readonly weekday: Weekday;
+      readonly relation: "before" | "onOrBefore" | "after" | "onOrAfter";
+      readonly month: number;
+      readonly day: number;
+    }
+  | {
+      readonly type: "nthWeekday";
+      readonly month: number;
+      readonly weekday: Weekday;
+      readonly n: 1 | 2 | 3 | 4 | -1; // -1 = last
+    }
+  | { readonly type: "once"; readonly date: string }; // ISO date
 
 export interface HolidayRule {
-  id: string;
-  nameKey: string;
-  date: DateRule;
-  regions: "all" | string[]; // region IDs
-  localRule?: string; // applies only when this switch is on
-  validFrom?: number; // years, inclusive
-  validUntil?: number;
-  substitute?: { when: Weekday[] }; // subset of the country's weekend
-  sources: string[]; // keys of CountryData.sources, non-empty
+  readonly id: string;
+  readonly nameKey: string;
+  readonly date: DateRule;
+  readonly regions: "all" | readonly string[]; // region IDs
+  readonly localRule?: string; // applies only when this switch is on
+  readonly validFrom?: number; // years, inclusive
+  readonly validUntil?: number;
+  readonly substitute?: { readonly when: readonly Weekday[] }; // subset of the country's weekend
+  readonly sources: readonly string[]; // keys of CountryData.sources, non-empty
 }
 
 export interface Region {
-  id: string;
-  nameKey: string;
+  readonly id: string;
+  readonly nameKey: string;
 }
 
 export interface LocalRule {
-  id: string;
-  regions: string[];
-  nameKey: string;
-  explanationKey: string;
-  sources: string[];
+  readonly id: string;
+  readonly regions: readonly string[];
+  readonly nameKey: string;
+  readonly explanationKey: string;
+  readonly sources: readonly string[];
 }
 
+/** Country data is shared by all callers (see src/data/holidays), hence read-only throughout. */
 export interface CountryData {
-  schema: 1;
-  country: string;
-  nameKey: string;
-  weekStart: Weekday;
-  weekend: Weekday[];
-  workWeek: Record<Weekday, string>; // weight strings
-  sources: Record<string, Source>;
-  regions: Region[];
-  localRules: LocalRule[];
-  holidays: HolidayRule[];
+  readonly schema: 1;
+  readonly country: string;
+  readonly nameKey: string;
+  readonly weekStart: Weekday;
+  readonly weekend: readonly Weekday[];
+  readonly workWeek: Readonly<Record<Weekday, string>>; // weight strings
+  readonly sources: Readonly<Record<string, Source>>;
+  readonly regions: readonly Region[];
+  readonly localRules: readonly LocalRule[];
+  readonly holidays: readonly HolidayRule[];
 }
 
 export interface RegionSelection {
-  country: string;
-  state: string;
-  options?: Readonly<Record<string, boolean>>;
+  readonly country: string;
+  readonly state: string;
+  readonly options?: Readonly<Record<string, boolean>>;
 }
 
 export interface Holiday {
-  day: DayNumber;
-  ruleId: string;
-  nameKey: string;
-  substitute: boolean;
+  readonly day: DayNumber;
+  readonly ruleId: string;
+  readonly nameKey: string;
+  readonly substitute: boolean;
 }

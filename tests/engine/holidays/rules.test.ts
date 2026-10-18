@@ -50,7 +50,7 @@ describe("ruleDate orthodoxEaster", () => {
 });
 
 describe("ruleDate weekdayRelative", () => {
-  // 23 Nov 2022 is a Wednesday, 23 Nov 2027 a Tuesday, 20 Jun 2027 a Sunday
+  // 23 Nov 2022 is a Wednesday, 23 Nov 2027 a Tuesday, 20 Jun 2027 a Sunday, 1 Jan 2027 a Friday
   it.each([
     [rel("wed", "before", 11, 23), 2027, "2027-11-17"],
     [rel("wed", "before", 11, 23), 2022, "2022-11-16"],
@@ -60,6 +60,8 @@ describe("ruleDate weekdayRelative", () => {
     [rel("tue", "onOrAfter", 11, 23), 2027, "2027-11-23"],
     [rel("sat", "onOrAfter", 6, 20), 2027, "2027-06-26"],
     [rel("mon", "after", 12, 31), 2027, "2028-01-03"],
+    [rel("fri", "before", 1, 1), 2027, "2026-12-25"],
+    [rel("sun", "before", 1, 1), 2027, "2026-12-27"],
   ] as [DateRule, number, string][])("%j in %i", (rule, year, expected) => {
     expect(at(rule, year)).toBe(expected);
   });
@@ -70,6 +72,9 @@ describe("ruleDate nthWeekday", () => {
     [{ type: "nthWeekday", month: 11, weekday: "thu", n: 4 }, 2027, "2027-11-25"],
     [{ type: "nthWeekday", month: 5, weekday: "mon", n: -1 }, 2027, "2027-05-31"],
     [{ type: "nthWeekday", month: 9, weekday: "mon", n: 1 }, 2027, "2027-09-06"],
+    [{ type: "nthWeekday", month: 10, weekday: "mon", n: 2 }, 2027, "2027-10-11"],
+    [{ type: "nthWeekday", month: 1, weekday: "mon", n: 3 }, 2027, "2027-01-18"],
+    [{ type: "nthWeekday", month: 1, weekday: "fri", n: 3 }, 2027, "2027-01-15"],
     [{ type: "nthWeekday", month: 2, weekday: "sun", n: -1 }, 2028, "2028-02-27"],
   ] as [DateRule, number, string][])("%j in %i", (rule, year, expected) => {
     expect(at(rule, year)).toBe(expected);

@@ -6,8 +6,8 @@ import { beforeAll, expect, it } from "vitest";
 import { countries } from "../../src/data/holidays/index";
 import { dayFromYmd } from "../../src/engine/days";
 import { holidaysBetween } from "../../src/engine/holidays/holidays";
-import { diffHolidays, explain } from "./compare";
-import type { Difference, ReferenceHoliday } from "./compare";
+import { comparisonOf, diffHolidays, explain } from "./compare";
+import type { Comparison, ReferenceHoliday } from "./compare";
 import { KNOWN_DIFFERENCES } from "./known-differences";
 import { FIRST_YEAR, LAST_YEAR, VARIANTS } from "./variants";
 
@@ -36,19 +36,30 @@ function referenceHolidays(key: string): ReferenceHoliday[] {
   return result;
 }
 
-const diffs = new Map<string, Difference[]>();
+const results = new Map<string, Comparison>();
 
 beforeAll(() => {
   for (const { key, selection } of VARIANTS) {
     const ours = holidaysBetween(de, selection, dayFromYmd(FIRST_YEAR, 1, 1), dayFromYmd(LAST_YEAR, 12, 31));
-    diffs.set(key, diffHolidays(key, ours, referenceHolidays(key)));
+    const theirs = referenceHolidays(key);
+    results.set(key, { ours: ours.length, theirs: theirs.length, diffs: diffHolidays(key, ours, theirs) });
   }
 }, 120_000);
 
+it("maps exactly the variants with local rules to a date-holidays region", () => {
+  const withOptions = VARIANTS.filter((v) => v.selection.options !== undefined).map((v) => v.key);
+  expect(Object.keys(REFERENCE).sort()).toEqual(withOptions.sort());
+});
+
 it.each(VARIANTS.map((v) => v.key))("%s matches date-holidays apart from known differences", (key) => {
-  expect(explain("date-holidays", diffs.get(key) ?? [], KNOWN_DIFFERENCES).unexplained).toEqual([]);
+  const { ours, theirs, diffs } = comparisonOf(results, key);
+  const minimum = 9 * (LAST_YEAR - FIRST_YEAR + 1);
+  expect(ours).toBeGreaterThanOrEqual(minimum);
+  expect(theirs).toBeGreaterThanOrEqual(minimum);
+  expect(explain("date-holidays", diffs, KNOWN_DIFFERENCES).unexplained).toEqual([]);
 });
 
 it("has no unused known differences", () => {
-  expect(explain("date-holidays", [...diffs.values()].flat(), KNOWN_DIFFERENCES).unused).toEqual([]);
+  const diffs = [...results.values()].flatMap((r) => r.diffs);
+  expect(explain("date-holidays", diffs, KNOWN_DIFFERENCES).unused).toEqual([]);
 });

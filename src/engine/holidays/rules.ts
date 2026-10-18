@@ -15,6 +15,11 @@ function forwardDistance(from: DayNumber, target: Weekday): number {
   return (weekdayIndex(target) - weekdayIndex(weekdayOf(from)) + 7) % 7;
 }
 
+/** Days from `from` backward to the previous `target` weekday (0 when equal). */
+function backwardDistance(from: DayNumber, target: Weekday): number {
+  return (weekdayIndex(weekdayOf(from)) - weekdayIndex(target) + 7) % 7;
+}
+
 /**
  * The day a rule falls on in `year`, or null when it has no occurrence that year.
  * Assumes a valid rule (validated by the data validator).
@@ -72,9 +77,4 @@ export function ruleDate(rule: DateRule, year: number): DayNumber | null {
       return unreachable;
     }
   }
-}
-
-/** Days from `from` backward to the previous `target` weekday (0 when equal). */
-function backwardDistance(from: DayNumber, target: Weekday): number {
-  return (weekdayIndex(weekdayOf(from)) - weekdayIndex(target) + 7) % 7;
 }

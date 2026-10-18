@@ -79,3 +79,17 @@ export function explain(
   });
   return { unexplained, unused: entries.filter((entry) => !used.has(entry)) };
 }
+
+/** One variant compared with a reference: the holiday counts on both sides and the differences. */
+export interface Comparison {
+  ours: number;
+  theirs: number;
+  diffs: Difference[];
+}
+
+/** The comparison of a variant; throws when the variant was never compared. */
+export function comparisonOf(results: ReadonlyMap<string, Comparison>, variant: string): Comparison {
+  const result = results.get(variant);
+  if (result === undefined) throw new Error(`variant ${variant} was not compared`);
+  return result;
+}

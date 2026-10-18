@@ -31,8 +31,8 @@ export const testCountry: CountryData = {
     },
   ],
   holidays: [
-    rule("new-year", { date: { type: "fixed", month: 1, day: 1 }, regions: "all", substitute: { when: [...sub.when] } }),
-    rule("second-day", { date: { type: "fixed", month: 1, day: 2 }, regions: "all", substitute: { when: [...sub.when] } }),
+    rule("new-year", { date: { type: "fixed", month: 1, day: 1 }, regions: "all", substitute: sub }),
+    rule("second-day", { date: { type: "fixed", month: 1, day: 2 }, regions: "all", substitute: sub }),
     rule("labour", { date: { type: "fixed", month: 5, day: 1 }, regions: "all" }),
     rule("ascension", { date: { type: "easter", offset: 39 }, regions: "all" }),
     rule("region-a-day", {
@@ -43,8 +43,8 @@ export const testCountry: CountryData = {
     }),
     rule("special-day", { date: { type: "fixed", month: 6, day: 1 }, regions: ["A"], localRule: "special" }),
     rule("once-day", { date: { type: "once", date: "2026-07-01" }, regions: ["B"] }),
-    rule("christmas", { date: { type: "fixed", month: 12, day: 25 }, regions: "all", substitute: { when: [...sub.when] } }),
-    rule("boxing", { date: { type: "fixed", month: 12, day: 26 }, regions: "all", substitute: { when: [...sub.when] } }),
+    rule("christmas", { date: { type: "fixed", month: 12, day: 25 }, regions: "all", substitute: sub }),
+    rule("boxing", { date: { type: "fixed", month: 12, day: 26 }, regions: "all", substitute: sub }),
   ],
 };
 

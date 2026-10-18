@@ -1,14 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-import { MAX_YEAR, MIN_YEAR, dayFromYmd } from "./days";
+import { assertYear, dayFromYmd } from "./days";
 import type { DayNumber } from "./days";
-
-function assertYear(year: number): void {
-  if (!Number.isInteger(year) || year < MIN_YEAR || year > MAX_YEAR) {
-    throw new RangeError(`Year out of range: ${String(year)}`);
-  }
-}
 
 /** Western Easter Sunday (Gregorian computus, Meeus/Jones/Butcher). */
 export function westernEaster(year: number): DayNumber {

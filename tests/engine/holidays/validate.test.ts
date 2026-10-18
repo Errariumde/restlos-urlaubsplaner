@@ -107,6 +107,19 @@ describe("validateCountryData", () => {
     expect(validateCountryData(change(mutate)).map((i) => i.path)).toContain(path);
   });
 
+  it("reports a duplicate local rule ID once and keeps the first definition", () => {
+    const input = change((d) => {
+      d.set("localRules.1", {
+        id: "special",
+        regions: ["B"],
+        nameKey: "localRule.XX.other",
+        explanationKey: "localRule.XX.other.help",
+        sources: ["law"],
+      });
+    });
+    expect(validateCountryData(input).map((i) => i.path)).toEqual(["localRules[1].id"]);
+  });
+
   it("never throws on odd input", () => {
     const odd = [undefined, {}, { holidays: [null, 3, []], regions: {}, sources: [] }, { workWeek: null, weekend: "x" }];
     for (const input of odd) expect(() => validateCountryData(input)).not.toThrow();

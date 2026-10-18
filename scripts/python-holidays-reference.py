@@ -66,4 +66,5 @@ def main():
         out.write(json.dumps(document, indent=1, sort_keys=True, ensure_ascii=False) + "\n")
 
 
-main()
+if __name__ == "__main__":
+    main()

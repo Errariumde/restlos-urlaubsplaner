@@ -5,8 +5,8 @@ import { beforeAll, expect, it } from "vitest";
 import { countries } from "../../src/data/holidays/index";
 import { dayFromYmd } from "../../src/engine/days";
 import { holidaysBetween } from "../../src/engine/holidays/holidays";
-import { diffHolidays, explain } from "./compare";
-import type { Difference, ReferenceHoliday } from "./compare";
+import { comparisonOf, diffHolidays, explain } from "./compare";
+import type { Comparison, ReferenceHoliday } from "./compare";
 import { KNOWN_DIFFERENCES } from "./known-differences";
 import reference from "./python-holidays-de.json";
 import { FIRST_YEAR, LAST_YEAR, VARIANTS } from "./variants";
@@ -26,15 +26,13 @@ function referenceHolidays(key: string): ReferenceHoliday[] {
   return Object.entries(variant.holidays).flatMap(([name, dates]) => dates.map((date) => ({ date, name })));
 }
 
-const diffs = new Map<string, Difference[]>();
-const sizes = new Map<string, [number, number]>();
+const results = new Map<string, Comparison>();
 
 beforeAll(() => {
   for (const { key, selection } of VARIANTS) {
     const ours = holidaysBetween(de, selection, dayFromYmd(FIRST_YEAR, 1, 1), dayFromYmd(LAST_YEAR, 12, 31));
     const theirs = referenceHolidays(key);
-    sizes.set(key, [ours.length, theirs.length]);
-    diffs.set(key, diffHolidays(key, ours, theirs));
+    results.set(key, { ours: ours.length, theirs: theirs.length, diffs: diffHolidays(key, ours, theirs) });
   }
 }, 120_000);
 
@@ -45,13 +43,14 @@ it("uses the pinned python-holidays version, the full year range and all variant
 });
 
 it.each(VARIANTS.map((v) => v.key))("%s matches python-holidays apart from known differences", (key) => {
-  const [ours, theirs] = sizes.get(key) ?? [0, 0];
+  const { ours, theirs, diffs } = comparisonOf(results, key);
   const minimum = 9 * (LAST_YEAR - FIRST_YEAR + 1);
   expect(ours).toBeGreaterThanOrEqual(minimum);
   expect(theirs).toBeGreaterThanOrEqual(minimum);
-  expect(explain("python-holidays", diffs.get(key) ?? [], KNOWN_DIFFERENCES).unexplained).toEqual([]);
+  expect(explain("python-holidays", diffs, KNOWN_DIFFERENCES).unexplained).toEqual([]);
 });
 
 it("has no unused known differences", () => {
-  expect(explain("python-holidays", [...diffs.values()].flat(), KNOWN_DIFFERENCES).unused).toEqual([]);
+  const diffs = [...results.values()].flatMap((r) => r.diffs);
+  expect(explain("python-holidays", diffs, KNOWN_DIFFERENCES).unused).toEqual([]);
 });

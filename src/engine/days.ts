@@ -25,14 +25,19 @@ export function isLeapYear(year: number): boolean {
   return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
 }
 
-export function daysInMonth(year: number, month: number): number {
+export function assertYear(year: number): void {
   if (!Number.isInteger(year) || year < MIN_YEAR || year > MAX_YEAR) {
     throw new RangeError(`Year out of range: ${String(year)}`);
   }
-  if (!Number.isInteger(month) || month < 1 || month > 12) {
+}
+
+export function daysInMonth(year: number, month: number): number {
+  assertYear(year);
+  const length = Number.isInteger(month) ? MONTH_LENGTHS[month - 1] : undefined;
+  if (length === undefined) {
     throw new RangeError(`Month out of range: ${String(month)}`);
   }
-  return month === 2 && isLeapYear(year) ? 29 : (MONTH_LENGTHS[month - 1] ?? 0);
+  return month === 2 && isLeapYear(year) ? 29 : length;
 }
 
 // Howard Hinnant's days_from_civil: years start on 1 March, 400-year eras.
@@ -82,6 +87,8 @@ export function isoFromDay(day: DayNumber): string {
   return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
 
+// Deliberately no range check: callers need weekdays just outside MIN_YEAR..MAX_YEAR,
+// e.g. "before 1 January" in 1583 or a substitute day after 9999-12-31.
 export function weekdayOf(day: DayNumber): Weekday {
   if (!Number.isInteger(day)) {
     throw new RangeError(`Day number is not an integer: ${String(day)}`);

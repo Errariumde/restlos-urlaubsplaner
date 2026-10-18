@@ -19,6 +19,9 @@ describe("Easter", () => {
 
   it.each([
     [2000, "2000-04-30"], [2023, "2023-04-16"], [2024, "2024-05-05"], [2027, "2027-05-02"], [2100, "2100-05-02"],
+    // Before and after each change of the Julian-Gregorian offset (1700, 1800, 1900); dates from python-dateutil.
+    [1583, "1583-04-10"], [1699, "1699-04-19"], [1700, "1700-04-11"], [1799, "1799-04-28"], [1800, "1800-04-20"],
+    [1899, "1899-04-30"],
   ])("Orthodox Easter %i is %s", (y, iso) => {
     expect(isoFromDay(orthodoxEaster(y))).toBe(iso);
   });

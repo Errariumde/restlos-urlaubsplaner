@@ -6,7 +6,7 @@ import { defineConfig } from "eslint/config";
 import tseslint from "typescript-eslint";
 
 export default defineConfig(
-  { ignores: ["coverage/", "dist/"] },
+  { ignores: ["coverage/", "dist/", ".direnv/", ".superpowers/"] },
   js.configs.recommended,
   tseslint.configs.recommendedTypeChecked,
   { languageOptions: { parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname } } },
