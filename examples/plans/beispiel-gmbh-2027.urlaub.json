@@ -188,7 +188,10 @@
       "visible": true,
       "plan": {
         "id": "7005d0ea-dbdf-48e9-a000-d7a22608ca76",
-        "name": "Beispiel GmbH (ohne Tarifvertrag)",
+        "name": {
+          "de": "Beispiel GmbH (ohne Tarifvertrag, Stand 2026)",
+          "en": "Beispiel GmbH (no collective agreement, as of 2026)"
+        },
         "revision": 9
       },
       "entries": [

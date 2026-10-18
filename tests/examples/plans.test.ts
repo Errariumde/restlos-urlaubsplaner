@@ -97,7 +97,10 @@ describe("example plans: Beispiel GmbH 2027", () => {
       { match: { type: "range", from: once("2027-09-06"), to: once("2027-10-29") }, name: "Release 3" },
     ]);
     const previous = source(file, "previous-year", "otherPlan");
-    expect(previous.plan).toEqual({ id: "7005d0ea-dbdf-48e9-a000-d7a22608ca76", name: "Beispiel GmbH (ohne Tarifvertrag)", revision: 9 });
+    // The fictional 2026 plan was made from the same rule set, so the import took its contract name from there.
+    const { name } = readRuleSet(BEISPIEL_RULES).contract;
+    expect(name).toEqual({ de: "Beispiel GmbH (ohne Tarifvertrag, Stand 2026)", en: "Beispiel GmbH (no collective agreement, as of 2026)" });
+    expect(previous.plan).toEqual({ id: "7005d0ea-dbdf-48e9-a000-d7a22608ca76", name, revision: 9 });
     // Whole days: the other plan charged Mon 4 and Tue 5 Jan 2027 from the start (0) to the end (1) of the working time.
     expect(previous.entries).toEqual([
       { date: dayFromIso("2027-01-04"), from: 0, to: 480, kind: "leave" },
@@ -354,6 +357,7 @@ describe("example plans: Muster AG 2027", () => {
       "2027-07-31@0 2027-08-15@480 4800/7680 listed",
       // The paid closure: listed although it costs nothing.
       "2027-10-15@0 2027-10-17@480 0/1440 listed",
+      // 24 Dec 2027 to 9 Jan 2028: worked out in "the turn of the year 2027/28 is one stretch of 17 days for 8.5 days of leave".
       "2027-12-24@0 2028-01-09@480 4080/8160 listed",
     ]);
   });
