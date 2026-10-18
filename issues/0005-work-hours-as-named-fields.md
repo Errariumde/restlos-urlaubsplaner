@@ -1,10 +1,10 @@
 ---
-status: open
+status: wontfix
 priority: 3
 area: file format
-branch:
+branch: file-format
 created: 2026-10-18
-closed:
+closed: 2026-10-19
 ---
 <!--
 SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
@@ -30,3 +30,5 @@ The plan file sketch in `docs/SPEC.md` writes the working hours for half days as
 ## Notes
 
 Belongs to the file-format branch; the counting model doesn't use working hours (they only matter for half days exported as `.ics` appointments).
+
+Decided on 2026-10-18: the contract has no working hours; partial days go into `.ics` as all-day events. A user-defined conversion of partial days (import and export) is noted in issue 0010.

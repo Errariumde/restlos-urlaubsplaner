@@ -33,3 +33,5 @@ The counting model does not charge mandatory leave on the part of a day that lea
 The other plan's mandatory days are computed from its own contract without its own "Leave from another plan" sources, so two plans that reference each other don't depend on each other recursively. Whether such mutual references should then charge a shared day in neither plan, or need a tie-break, is open.
 
 The `.urlaub.json` part is done (charged spans, design 2026-10-18-file-format); the `.ics` criterion moved to issue 0010. Mutual references charge a shared day once because each plan stores what the other actually charged.
+
+2026-10-19: the first note above is superseded: the import doesn't leave out the other plan's own "Leave from another plan" sources. `importOtherPlan` (`src/engine/file/other-plan.ts`) computes the other plan with all its own stored sources; they are stored entries, so nothing recurses.
