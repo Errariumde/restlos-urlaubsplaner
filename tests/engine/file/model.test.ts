@@ -122,6 +122,11 @@ describe("planInput", () => {
     expect(result.totals.planned).toBeGreaterThan(0);
   });
 
+  it.each(["constructor", "__proto__", "toString"])("refuses the inherited country key %s", (country) => {
+    const odd = { ...file, contract: { ...file.contract, region: { country, state: "BY" } } };
+    expect(() => planInput(odd)).toThrow(RangeError);
+  });
+
   it("refuses a plan without a state", () => {
     const stateless = { ...file, contract: { ...file.contract, region: { country: "DE" } } };
     expect(() => planInput(stateless)).toThrow(RangeError);

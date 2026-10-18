@@ -73,6 +73,7 @@ function counted(rule: FileRule): DayRule {
 /** The counting model's input for a plan file. Throws RangeError for a model `readFile` never produces. */
 export function planInput(file: PlanFile): PlanInput {
   const { region } = file.contract;
+  if (!Object.hasOwn(countries, region.country)) throw new RangeError("Unknown country");
   const country = countries[region.country];
   if (!country) throw new RangeError("Unknown country");
   if (region.state === undefined) throw new RangeError("The region needs a state");
