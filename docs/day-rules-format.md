@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Day rules
 
-Reference for people who write day rules by hand, for example in the `rules` list of a plan file or a rule set. A day rule says that on certain days the required work is lower, is a fixed value, or that part of the day is taken as leave automatically. The TypeScript shape is `DayRule` in `src/engine/counting/types.ts`; `ruleDays` in `src/engine/counting/match.ts` finds the days a rule matches, and `dayRuleWarnings` in `src/engine/counting/warnings.ts` reports likely mistakes. Dates are always written as ISO dates (`"2027-03-13"`) and fields have names; there is no text syntax such as `"12-31"`.
+Reference for people who write day rules by hand, for example in the `rules` list of a plan file or a rule set (the files themselves are described in [Plan files and rule sets](file-format.md); calendar-source entries use the same `match`). A day rule says that on certain days the required work is lower, is a fixed value, or that part of the day is taken as leave automatically. The TypeScript shape is `DayRule` in `src/engine/counting/types.ts`; `ruleDays` in `src/engine/counting/match.ts` finds the days a rule matches, and `dayRuleWarnings` in `src/engine/counting/warnings.ts` reports likely mistakes. Dates are always written as ISO dates (`"2027-03-13"`) and fields have names; there is no text syntax such as `"12-31"`.
 
 ## Top level
 
@@ -16,12 +16,16 @@ Reference for people who write day rules by hand, for example in the `rules` lis
 | `validFrom`, `validUntil` | Optional years, both inclusive. Outside this range the rule produces nothing. For a range, the year in which it starts counts. For a rule that matches one day per year, the year is the rule's year, and its day can fall in the neighbouring calendar year: `{ "type": "weekdayRelative", "weekday": "sat", "relation": "before", "month": 1, "day": 1 }` with `validFrom` and `validUntil` 2028 matches only `2027-12-25`. |
 | `requiredAtMost`, `requiredExactly`, `mandatory` | The effect. Exactly one of the three, see [Effects](#effects). |
 | `part` | Optional `"start"` or `"end"`, see [Part](#part). |
-| `label` | Optional name of the rule, `{ "de": "Silvester", "en": "New Year's Eve" }`. Only shown, never interpreted. |
-| `origin` | Optional ID of the rule set the rule was copied from. Set by the app; "Update rules from rule set" uses it to tell copied rules from your own. Leave it out when writing a rule by hand. |
+| `label` | Optional name of the rule, up to 200 characters: a plain string (`"Silvester"`) or a map from language code to text (`{ "de": "Silvester", "en": "New Year's Eve" }`), see [Texts](file-format.md#texts). Only shown, never interpreted. |
+| `note` | Optional explanation shown with the rule, up to 2000 characters, a plain string or a language map like `label`: for example what the rule's basis says that the rule can't express. Only shown, never interpreted. |
+| `references` | Optional list of keys of the contract's `references` that the rule is based on (`["betrvg"]`), see [References](file-format.md#references). A key the contract doesn't have is dropped when the file is read. |
+| `origin` | Optional ID of the rule set the rule was copied from; exists only in plan files, never in a rule set. Set by the app; "Update rules from rule set" uses it to tell copied rules from your own. Leave it out when writing a rule by hand. |
+
+The app writes the keys in the order given in [Writing](file-format.md#writing). An over-long `label` or `note` makes the whole rule invalid: it is dropped when the file is read.
 
 ## Match
 
-A `match` is either one of the six date rules of the holiday data or a range. The date rules (`fixed`, `easter`, `orthodoxEaster`, `weekdayRelative`, `nthWeekday`, `once`) are written exactly as described in [Date rules](holiday-data-format.md#date-rules) and match one day per year (`once` only in its own year).
+A `match` is either one of the six date rules of the holiday data or a range. The date rules (`fixed`, `easter`, `orthodoxEaster`, `weekdayRelative`, `nthWeekday`, `once`) are written exactly as described in [Date rules](holiday-data-format.md#date-rules) and match one day per year (`once` only in its own year). Only the bound of `offset` differs: in a day rule it may be from −366 to 366.
 
 A range matches several consecutive days:
 
