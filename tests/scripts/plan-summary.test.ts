@@ -39,6 +39,18 @@ describe("formatSummary", () => {
     );
   });
 
+  it("prints the effects requiredExactly and mandatory", () => {
+    const rule = (id: string, effect: Record<string, string>) => ({ id, match: { type: "fixed", month: 12, day: 31 }, ...effect });
+    const contract = { ...BAVARIA_CONTRACT, rules: [rule("a", { requiredExactly: "0" }), rule("b", { mandatory: "1/4" })] };
+    expect(formatSummary(readFile(minimal({ contract })))).toContain("  a: requiredExactly 0\n  b: mandatory 1/4");
+  });
+
+  it("prints a negative remaining allowance and no stretches", () => {
+    const summary = formatSummary(readFile(planFile({ allowance: "0", days: [{ date: "2027-05-07", take: "1" }] })));
+    expect(summary).toContain("Allowance 0, planned 1, remaining -1");
+    expect(formatSummary(readFile(planFile()))).toContain("Stretches: none");
+  });
+
   it("prints a refusal", () => expect(formatSummary(readFile("{"))).toBe("Refused: notJson"));
   it("prints the path of a refusal", () =>
     expect(formatSummary(readFile(minimal({ revision: 0 })))).toBe("Refused: invalidCore at revision"));

@@ -54,8 +54,10 @@ export class Report {
 
 /** Thrown inside readers, caught only by `readFile`. */
 export class Refused extends Error {
-  constructor(readonly refusal: Refusal) {
+  readonly refusal: Refusal;
+  constructor(refusal: Refusal) {
     super(`Refused: ${refusal.code}`);
+    this.refusal = refusal;
     this.name = "Refused";
   }
 }

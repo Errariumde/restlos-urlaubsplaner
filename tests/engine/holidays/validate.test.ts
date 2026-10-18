@@ -7,7 +7,10 @@ import { testCountry, testCountryFriSat } from "./fixture";
 
 // Mutable, untyped copy of the fixture addressed by dotted paths ("holidays.0.date").
 class Doc {
-  constructor(readonly root: Record<string, unknown>) {}
+  readonly root: Record<string, unknown>;
+  constructor(root: Record<string, unknown>) {
+    this.root = root;
+  }
 
   private parent(path: string): { holder: Record<string, unknown>; key: string } {
     const parts = path.split(".");

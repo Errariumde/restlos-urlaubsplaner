@@ -14,7 +14,11 @@ registerHooks({
       try {
         return next(`${specifier}.ts`, context);
       } catch {
-        return next(`${specifier}/index.ts`, context); // a directory import
+        try {
+          return next(`${specifier}/index.ts`, context); // a directory import
+        } catch {
+          throw error;
+        }
       }
     }
   },

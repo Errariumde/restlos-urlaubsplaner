@@ -14,10 +14,15 @@ if (path === undefined) {
   console.error("Usage: npm run plan -- <file>");
   process.exit(1);
 }
-if (statSync(path).size > LIMITS.fileBytes) {
-  console.log("Refused: tooLarge");
+let result;
+try {
+  result =
+    statSync(path).size > LIMITS.fileBytes
+      ? { ok: false, refusal: { code: "tooLarge" } } // the refusal readFile gives for a file above the limit
+      : readFile(readFileSync(path, "utf8"));
+} catch (error) {
+  console.error(`Cannot read ${path}: ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);
 }
-const result = readFile(readFileSync(path, "utf8"));
 console.log(formatSummary(result));
 process.exit(result.ok ? 0 : 1);
