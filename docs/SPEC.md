@@ -344,7 +344,7 @@ JSON with a `schema` version and a `kind` (`"plan"`, `"ruleSet"` or `"settings"`
 - **HTML self-copy** (version 3, after feasibility test): a copy of the app with an embedded rule set and without personal settings; opens directly in "New → From rule set".
 - **No contract data in .ics.** In the PDF only on explicit request, and only the contract part without plan and notes.
 - **Loading:** if the autosave of the same `id` is newer, the app offers to restore it (see File operations); then the revision warning applies. Reading checks the size, parses the JSON, checks `schema` and `kind`, migrates older schema versions and validates every value. Problems are reported as a list; each entry is a code, the path of the affected value and the data the message needs, and the UI writes the sentence. Apply partially or cancel.
-- **Refused** (nothing is loaded): not JSON; too large or over a count limit; unknown or newer schema; unknown `kind`; content that doesn't match its `kind` (a rule set with `plan` or `ruleSet`); an invalid core value: `id`, `revision`, the country, a plan file's state, the work week, the list of day rules, the plan period, the allowance.
+- **Refused** (nothing is loaded): not JSON; too large or over a count limit; unknown or newer schema; unknown `kind` (the device settings `.einstellungen.json` are recognized but not yet supported, see `docs/file-format.md`); content that doesn't match its `kind` (a rule set with `plan` or `ruleSet`); an invalid core value: `id`, `revision`, the country, a plan file's state, the work week, the list of day rules, the plan period, the allowance.
 - **Loaded with a report:** nothing in the file is dropped or changed without an entry in the report.
 
 | Situation | What happens |
@@ -908,12 +908,12 @@ Recommendation: three versions; each is usable on its own. The must lists under 
 - Project name **restlos-urlaubsplaner** (repository and file name of the HTML); short name in the app "restlos", subtitle "Urlaubsplaner für Brückentage und Feiertage" (EN: "vacation planner for bridge days and holidays").
 - Country-neutral core incl. work week per country; data initially only for Germany.
 - Only days, no hours: taken as a share (UI currently full or half, data model and engine down to 1/32), required work with fractions; cost = min(taken, required work).
-- One plan, one allowance; no automatic carry-over; days from sources "Leave from another plan" (.ics or .urlaub.json) are displayed, not counted.
+- One plan, one allowance; no automatic carry-over; days from sources "Leave from another plan" (.ics or .urlaub.json) are displayed here and counted in the other plan, not in this one.
 - License EUPL-1.2 for code and data; templates and examples MIT-0; documentation CC BY 4.0.
 - German and English from version 1, with a fixed glossary.
 - Development language English (code, identifiers, file-format keys, comments, commits, developer documentation including this specification); user-facing texts (UI, help, templates, README, SUPPORT, issue templates) in German and English.
 - Pro HTML with Typst is accepted; no template editor, templates are created with Typst outside the app.
-- No online fetching of holidays, no contract data in .ics, no loading back from .ics except as "Leave from another plan".
+- No online fetching of holidays, no contract data in .ics, no loading back from .ics except as a one-time import into calendar sources (stored as entries; the .ics file is not kept).
 - Svelte 5, TypeScript, Vite with vite-plugin-singlefile, Vitest; ical.js for the import; no component or icon library (Lucide SVGs as files); hardening according to "Measures against supply chain attacks".
 - Option "Align by weekday" in the month columns, stored in the device settings.
 - Public repository on GitHub Free; distribution as a download and via GitHub Pages (installable, offline); everything also buildable locally, CI only mirrors.
