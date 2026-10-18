@@ -11,6 +11,7 @@
   },
   "scripts": {
     "test": "vitest run --dir tests",
+    "plan": "node --experimental-transform-types --import ./scripts/ts-hooks.js scripts/plan.js",
     "lint": "eslint .",
     "typecheck": "tsc",
     "reference:python": "python3 scripts/python-holidays-reference.py tests/reference/python-holidays-de.json",
