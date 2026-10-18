@@ -27,9 +27,9 @@ interface DayRuleBase {
 }
 export type DayRule = DayRuleBase &
   (
-    | { readonly requiredAtMost: Units }
-    | { readonly requiredExactly: Units }
-    | { readonly mandatory: Units }
+    | { readonly requiredAtMost: Units; readonly requiredExactly?: never; readonly mandatory?: never }
+    | { readonly requiredAtMost?: never; readonly requiredExactly: Units; readonly mandatory?: never }
+    | { readonly requiredAtMost?: never; readonly requiredExactly?: never; readonly mandatory: Units }
   );
 
 export interface WorkWeekEntry {

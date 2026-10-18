@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-import { MAX_YEAR, MIN_YEAR, dayFromIso, dayFromYmd, ymdFromDay } from "../days";
+import { MAX_YEAR, MIN_YEAR, clampYear, dayFromIso, dayFromYmd, ymdFromDay } from "../days";
 import { ruleDate } from "../holidays/rules";
 import type { DateRule } from "../holidays/types";
 import { ruleDays } from "./match";
@@ -17,7 +17,6 @@ export interface RuleWarning {
 const NEVER_APPLIES_YEARS = 400;
 const DEFAULT_FIRST_YEAR = 2000;
 
-const clampYear = (year: number): number => Math.min(MAX_YEAR, Math.max(MIN_YEAR, year));
 const isFixedDate = (rule: DateRule): boolean => rule.type === "fixed" || rule.type === "once";
 
 /** Four consecutive start years cover every leap-year position of a range of at most 366 days. */
@@ -52,8 +51,9 @@ function neverApplies(rule: DayRule): boolean {
     for (let y = first; y <= last; y++) years.add(y);
   }
   if (years.size === 0) return true;
-  const first = Math.min(...years);
-  const last = Math.max(...years);
+  // A day of rule year Y may lie in Y − 1 or Y + 1.
+  const first = clampYear(Math.min(...years) - 1);
+  const last = clampYear(Math.max(...years) + 1);
   return ruleDays(rule, dayFromYmd(first, 1, 1), dayFromYmd(last, 12, 31)).length === 0;
 }
 

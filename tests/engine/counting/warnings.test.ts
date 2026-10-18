@@ -51,6 +51,10 @@ describe("dayRuleWarnings", () => {
     expect(codes(r(once("2027-03-13")))).toEqual([]);
     expect(codes(r(fixed(12, 31)))).toEqual([]);
   });
+  it("doesn't report a rule whose only day lies in the year before its valid year", () =>
+    expect(
+      codes(r({ type: "weekdayRelative", weekday: "sat", relation: "before", month: 1, day: 1 }, { validFrom: 2028, validUntil: 2028 })),
+    ).toEqual([]));
   it("reports the rule ID", () =>
     expect(
       dayRuleWarnings({ id: "x", match: once("1999-01-01"), validFrom: 2000, mandatory: 480 }),

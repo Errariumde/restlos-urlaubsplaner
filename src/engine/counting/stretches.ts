@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 import type { DayNumber } from "../days";
+import { UNITS_PER_DAY } from "../weight";
 import type { Units } from "../weight";
 
 /** One day as seen by the stretch search: its free time at both ends and the leave charged inside it. */
@@ -25,8 +26,6 @@ export interface Stretch {
   readonly daysOff: Units;
   readonly listed: boolean; // cost > 0 or a closure day inside
 }
-
-const DAY = 480;
 
 interface Open {
   start: StretchPoint;
@@ -61,7 +60,7 @@ export function findStretches(days: readonly StretchDay[]): Stretch[] {
     if (x.whole) {
       open ??= { start: { day: x.day, offset: 0 }, cost: 0, daysOff: 0, closure: false };
       open.cost += x.costStart + x.costEnd;
-      open.daysOff += DAY;
+      open.daysOff += UNITS_PER_DAY;
       open.closure ||= x.closure;
       continue;
     }
@@ -72,11 +71,11 @@ export function findStretches(days: readonly StretchDay[]): Stretch[] {
       open.closure ||= x.closure;
       close({ day: x.day, offset: x.freeStart });
     } else if (open !== undefined) {
-      close({ day: x.day - 1, offset: DAY });
+      close({ day: x.day - 1, offset: UNITS_PER_DAY });
     }
     if (x.freeEnd > 0) {
       open = {
-        start: { day: x.day, offset: DAY - x.freeEnd },
+        start: { day: x.day, offset: UNITS_PER_DAY - x.freeEnd },
         cost: x.costEnd,
         daysOff: x.freeEnd,
         closure: x.closure,
@@ -84,6 +83,6 @@ export function findStretches(days: readonly StretchDay[]): Stretch[] {
     }
   }
   const last = days[days.length - 1];
-  if (last !== undefined) close({ day: last.day, offset: DAY });
+  if (last !== undefined) close({ day: last.day, offset: UNITS_PER_DAY });
   return stretches;
 }

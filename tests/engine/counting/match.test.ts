@@ -60,6 +60,16 @@ describe("ruleDays", () => {
     expect(days(newYear, "9999-12-01", "9999-12-31")).toEqual([]); // its end would lie in 10000
     expect(days(newYear, "1583-01-01", "1583-01-05")).toEqual([]);
   });
+  it("finds occurrences whose date lies in the neighbouring calendar year", () => {
+    const satBeforeNewYear: DayMatch = { type: "weekdayRelative", weekday: "sat", relation: "before", month: 1, day: 1 };
+    expect(days(satBeforeNewYear, "2027-01-01", "2027-12-31")).toEqual(["2027-12-25"]);
+    expect(days({ type: "weekdayRelative", weekday: "mon", relation: "after", month: 12, day: 31 }, "2027-01-01", "2027-12-31")).toEqual(["2027-01-04"]);
+    expect(days({ type: "range", from: { type: "weekdayRelative", weekday: "fri", relation: "before", month: 1, day: 1 }, days: 3 }, "2027-01-01", "2027-12-31")).toEqual(["2027-12-31"]);
+  });
+  it("applies validity to the rule's year, not to the year of the day", () =>
+    expect(days({ type: "weekdayRelative", weekday: "sat", relation: "before", month: 1, day: 1 }, "2027-01-01", "2027-12-31", { validFrom: 2028, validUntil: 2028 })).toEqual(["2027-12-25"]));
+  it("returns nothing for a day that belongs to a rule year beyond the supported years", () =>
+    expect(days({ type: "weekdayRelative", weekday: "sat", relation: "before", month: 1, day: 1 }, "9999-01-01", "9999-12-31")).toEqual([]));
   it.each([
     [{ type: "range", from: fixed(1, 1), days: 0 }],
     [{ type: "range", from: fixed(1, 1), days: 367 }],

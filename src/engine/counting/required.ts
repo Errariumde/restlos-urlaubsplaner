@@ -68,12 +68,14 @@ export function dayFacts(
   });
   for (const source of sources) {
     if (source.type === "holiday") checkUnits(source.required, "Required work of a source");
-    else if (source.type === "mandatory" || source.type === "otherPlan") checkUnits(source.take, "Take of a source");
+    else if (source.type === "mandatory" || source.type === "otherPlan") checkUnits(source.take, "Take of a source", 1);
   }
   for (const rule of rules) {
-    if ("requiredAtMost" in rule) checkUnits(rule.requiredAtMost, "Required work of a rule");
-    else if ("requiredExactly" in rule) checkUnits(rule.requiredExactly, "Required work of a rule");
-    else checkUnits(rule.mandatory, "Mandatory work of a rule");
+    const effects = [rule.requiredAtMost, rule.requiredExactly, rule.mandatory].filter((value) => value !== undefined);
+    if (effects.length !== 1) throw new RangeError("A day rule needs exactly one effect");
+    if (rule.requiredAtMost !== undefined) checkUnits(rule.requiredAtMost, "Required work of a rule");
+    else if (rule.requiredExactly !== undefined) checkUnits(rule.requiredExactly, "Required work of a rule");
+    else checkUnits(rule.mandatory, "Mandatory leave of a rule", 1);
   }
   const overrideByDay = new Map<DayNumber, RequiredOverride>();
   for (const override of overrides) {
@@ -125,12 +127,12 @@ function layersOf(facts: DayFacts): RequiredLayer[] {
     }
   }
   for (const rule of facts.rules) {
-    if ("requiredAtMost" in rule) {
+    if (rule.requiredAtMost !== undefined) {
       layers.push({ kind: "ruleAtMost", value: rule.requiredAtMost, ruleId: rule.id, ...withPart(rule.part) });
     }
   }
   for (const rule of facts.rules) {
-    if ("requiredExactly" in rule) {
+    if (rule.requiredExactly !== undefined) {
       layers.push({ kind: "ruleExactly", value: rule.requiredExactly, ruleId: rule.id, ...withPart(rule.part) });
     }
   }
@@ -140,7 +142,11 @@ function layersOf(facts: DayFacts): RequiredLayer[] {
   return layers;
 }
 
-/** The required work of a day and the layers it comes from. */
+/**
+ * The required work of a day and the layers it comes from. Where the free time lies when several
+ * layers of the deciding stage give the same lowest value: the first of them with an explicit
+ * `part`, otherwise the first; "end" if none says.
+ */
 export function requiredWork(facts: DayFacts): RequiredWork {
   const layers = layersOf(facts);
   const exactly = layers.filter((layer) => layer.kind === "ruleExactly");

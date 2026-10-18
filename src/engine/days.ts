@@ -12,6 +12,9 @@ export const WEEKDAYS: readonly Weekday[] = ["mon", "tue", "wed", "thu", "fri", 
 export const MIN_YEAR = 1583;
 export const MAX_YEAR = 9999;
 
+/** `year` limited to the supported years. */
+export const clampYear = (year: number): number => Math.min(MAX_YEAR, Math.max(MIN_YEAR, year));
+
 export interface Ymd {
   year: number;
   month: number; // 1-12

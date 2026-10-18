@@ -64,6 +64,25 @@ function measure(list: readonly Interval[], within: Interval = [-Infinity, Infin
   return sum;
 }
 
+/** The part of the work block `[0, r)` a piece covers; null when it covers nothing. */
+function pieceInterval(piece: LeavePiece, r: Units): Interval | null {
+  const length = Math.min(piece.take, r);
+  if (length <= 0) return null;
+  return piece.part === "start" ? [0, length] : [r - length, r];
+}
+
+/** IDs of the other-plan pieces that overlap own leave, each once, in input order. */
+export function overlappingOtherPlanIds(r: Units, pieces: readonly LeavePiece[]): string[] {
+  const own = pieces.flatMap((piece) => (piece.kind === "own" ? [pieceInterval(piece, r)] : [])).filter((x) => x !== null);
+  const ids = new Set<string>();
+  for (const piece of pieces) {
+    if (piece.kind !== "otherPlan" || piece.sourceId === undefined) continue;
+    const span = pieceInterval(piece, r);
+    if (span !== null && measure(own, span) > 0) ids.add(piece.sourceId);
+  }
+  return [...ids];
+}
+
 /**
  * Cost of one day and where its free time lies. Positions are relative to the work block of
  * length `required.value`; `charge` is false for days outside the plan period, where
@@ -81,15 +100,11 @@ export function evaluateLeave(
   let p = 0;
   let q = 0;
   for (const piece of pieces) {
-    const length = Math.min(piece.take, r);
-    if (length <= 0) continue;
-    if (piece.part === "start") {
-      sets[piece.kind].push([0, length]);
-      p = Math.max(p, length);
-    } else {
-      sets[piece.kind].push([r - length, r]);
-      q = Math.max(q, length);
-    }
+    const span = pieceInterval(piece, r);
+    if (span === null) continue;
+    sets[piece.kind].push(span);
+    if (piece.part === "start") p = Math.max(p, span[1]);
+    else q = Math.max(q, r - span[0]);
   }
   const own = union(sets.own);
   const mand = union(sets.mandatory);

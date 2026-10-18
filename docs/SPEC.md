@@ -173,7 +173,7 @@ Cost of a day = min(taken, required work), with taken as a share of the day; the
 | New Year's Eve (half day off by collective agreement) | ½ | full | ½ | full day off |
 | Holiday, weekend | 0 | – | 0 | not selectable as leave |
 
-Where in the day partial leave lies (at the start or the end of the working time, shown as morning or afternoon for half days) doesn't change the cost; it decides whether the day joins a stretch (see Allowance display) and is used for display and .ics.
+Where in the day partial leave lies (at the start or the end of the working time, shown as morning or afternoon for half days) doesn't change the cost of that leave on its own; it decides whether the day joins a stretch (see Allowance display) and whether it overlaps mandatory leave on the same day (see Mandatory leave), and is used for display and .ics.
 
 ### Finer granularity: prepared, not implemented
 

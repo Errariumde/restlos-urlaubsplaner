@@ -49,8 +49,32 @@ describe("computePlan: stretches from the design", () => {
     const sources: SourceDay[] = span("2027-12-27", "2027-12-30").map((x) => ({ type: "paidClosure", day: d(x), sourceId: "closure" }));
     expect(listed(plan({ sources }))).toEqual(["2027-12-25@0 2027-12-30@480 0/2880"]);
   });
+  it("lists a closure made by a rule requiring no work", () => {
+    const closure: DayRule = { id: "closure", match: { type: "range", from: once("2027-12-27"), to: once("2027-12-30") }, requiredAtMost: 0 };
+    const result = plan({ contract: withRules(closure) });
+    expect(listed(result)).toEqual(["2027-12-25@0 2027-12-30@480 0/2880"]);
+    expect(result.totals.planned).toBe(0);
+  });
+  it("doesn't treat a rule on a day without work as a closure", () => {
+    const result = plan({ contract: withRules({ id: "sat", match: once("2027-06-12"), requiredAtMost: 0 }) });
+    expect([listed(result), dayOf(result, "2027-06-12").closure]).toEqual([[], false]);
+  });
+  it("lists each other plan once in a leaveTakenInOtherPlan problem", () => {
+    const sources: SourceDay[] = [
+      { type: "otherPlan", day: d("2027-05-05"), sourceId: "p", take: FULL },
+      { type: "otherPlan", day: d("2027-05-05"), sourceId: "p", take: FULL },
+    ];
+    expect(plan({ sources, leave: [leave("2027-05-05")] }).problems).toEqual([{ code: "leaveTakenInOtherPlan", day: d("2027-05-05"), sourceIds: ["p"] }]);
+  });
+  it("names only the other plans that overlap the own leave", () => {
+    const sources: SourceDay[] = [
+      { type: "otherPlan", day: d("2027-05-05"), sourceId: "morning", take: HALF, part: "start" },
+      { type: "otherPlan", day: d("2027-05-05"), sourceId: "evening", take: HALF, part: "end" },
+    ];
+    expect(plan({ sources, leave: [leave("2027-05-05", HALF, "end")] }).problems).toEqual([{ code: "leaveTakenInOtherPlan", day: d("2027-05-05"), sourceIds: ["evening"] }]);
+  });
   it("doesn't list ordinary weekends and holidays", () => expect(listed(plan({}))).toEqual([]));
-  // Review Focus 1
+  // a period that starts inside a stretch still sees the whole stretch
   it("reaches back before a period that starts inside a stretch and counts only the cost inside it", () => {
     const result = plan({ contract: withRules(closureRule), period: { from: month(2028, 1), to: month(2028, 12) } });
     expect(listed(result)).toEqual(["2027-12-25@0 2028-01-04@480 960/5280"]);
@@ -100,7 +124,7 @@ describe("computePlan: problems", () => {
 });
 
 describe("computePlan: limits", () => {
-  // Review Focus 3
+  // the day window is clamped to the supported years
   it("works at the limits of the supported years", () => {
     expect(isoFromDay(plan({ period: { from: month(9999, 1), to: month(9999, 12) } }).days.at(-1)?.day ?? 0)).toBe("9999-12-31");
     expect(isoFromDay(plan({ period: { from: month(1583, 1), to: month(1583, 12) } }).days[0]?.day ?? 0)).toBe("1583-01-01");
@@ -116,7 +140,7 @@ describe("computePlan: limits", () => {
       expect(result.stretches.reduce((sum, s) => sum + s.cost, 0)).toBe(result.totals.planned);
     }), { numRuns: 50 });
   });
-  // Review Focus 4
+  // speed budget for a realistic plan
   it("computes a 13-month plan with 40 rules and 300 source days quickly", () => {
     const rules: DayRule[] = Array.from({ length: 40 }, (_, i) =>
       i % 2 === 0

@@ -42,12 +42,16 @@ Each value is a share of a day, written as a weight string: `"1"`, `"1/2"`, `"0"
 | Effect | Meaning |
 | --- | --- |
 | `requiredAtMost` | Lowers the required work to at most this value. A day that already needs less is left alone. |
-| `requiredExactly` | Forces the required work to exactly this value, after all lowering effects (public holidays, calendar sources, `requiredAtMost` rules). Only a manual change of a single date comes later. |
+| `requiredExactly` | Forces the required work to exactly this value, after all lowering effects (public holidays, calendar sources, `requiredAtMost` rules). Only a manual change of a single date comes later. If several `requiredExactly` rules match one day with different values, the lower value wins and the day is reported as a problem. |
 | `mandatory` | Mandatory leave: this share of the day is taken automatically and charges the allowance. |
+
+The two required-work effects accept `"0"` (no work on that day). `mandatory` must be above 0, from `"1/480"` to `"1"`.
 
 ## Part
 
-`part` states where the free time lies when the value is below a full day. `"end"` (the default) means the work comes first and the free time is at the end, as on 24 December when the work stops at noon. `"start"` means the free time is at the start of the day. It matters for stretches (which days off form an unbroken block), never for cost.
+`part` states where the free time lies when the value is below a full day. `"end"` (the default) means the work comes first and the free time is at the end, as on 24 December when the work stops at noon. `"start"` means the free time is at the start of the day. It matters for stretches (which days off form an unbroken block), and for cost only where own and mandatory leave overlap on the same part of the day, which counts once.
+
+When several layers give the same lowest required value on a day, the free time lies where the first layer of the deciding stage with an explicit `part` says; if none has one, where the first layer says; if that has no `part` either, at the end.
 
 ## Warnings
 
@@ -55,7 +59,7 @@ Each value is a share of a day, written as a weight string: `"1"`, `"1/2"`, `"0"
 
 | Code | When | What to do |
 | --- | --- | --- |
-| `leapYearLength` | A range with `days` and a `fixed` start whose last day moves between years because of 29 February. Example: `from` 27 February, `days` 4 ends on 2 March in leap years and on 1 March otherwise. | Use `to` instead of `days`, so the end is the same calendar day every year. |
+| `leapYearLength` | A range with `days` and a `fixed` start whose last day moves between years because of 29 February. Example: `from` 27 February, `days` 4 ends on 1 March in leap years and on 2 March otherwise. | Use `to` instead of `days`, so the end is the same calendar day every year. |
 | `mixedRangeEnds` | A range with `to` where exactly one end is a fixed date (`fixed` or `once`) and the other moves (`easter`, `orthodoxEaster`, `weekdayRelative`, `nthWeekday`), in either direction. Example: from Weiberfastnacht (`easter` offset −52) to 1 March. In some years the end can jump into the next year. | Check the dates in the preview for the years that matter, or make both ends move the same way. |
 | `neverApplies` | The rule produces no day in any year of its validity. Example: a `once` date outside `validFrom`/`validUntil`, or `weekdays: ["mon"]` on a range that only ever covers Easter Sunday. | Check the dates in the preview; remove the rule or correct the validity or filter. |
 
@@ -76,7 +80,7 @@ A working Saturday, 13 March 2027, on which a full day is required:
 { "id": "working-saturday", "match": { "type": "once", "date": "2027-03-13" }, "requiredExactly": "1" }
 ```
 
-Company closure from 27 December for 4 days as mandatory leave (`days` with a `fixed` start triggers `leapYearLength` only when the end can cross February, which it cannot here):
+Company closure from 27 December for 4 days as mandatory leave (`days` with a `fixed` start triggers `leapYearLength` only when the range can cover the end of February, which it cannot here):
 
 ```json
 { "id": "closure", "match": { "type": "range", "from": { "type": "fixed", "month": 12, "day": 27 }, "days": 4 }, "mandatory": "1" }

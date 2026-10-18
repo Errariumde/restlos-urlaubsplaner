@@ -5,7 +5,7 @@ import { dayFromYmd, daysInMonth, MAX_YEAR, MIN_YEAR, ymdFromDay } from "../days
 import type { DayNumber } from "../days";
 import { checkUnits, UNITS_PER_DAY } from "../weight";
 import type { Units } from "../weight";
-import { evaluateLeave } from "./leave";
+import { evaluateLeave, overlappingOtherPlanIds } from "./leave";
 import type { DayLeave, LeavePiece } from "./leave";
 import { dayFacts, requiredWork } from "./required";
 import type { DayFacts, RequiredWork } from "./required";
@@ -93,15 +93,13 @@ export function computePlan(input: PlanInput): PlanResult {
     const own = inPeriod ? leaveByDay.get(facts.day) : undefined;
     if (own) pieces.push({ kind: "own", take: own.take, part: own.part ?? "end" });
     for (const rule of facts.rules) {
-      if ("mandatory" in rule) pieces.push({ kind: "mandatory", take: rule.mandatory, part: rule.part ?? "end", ruleId: rule.id });
+      if (rule.mandatory !== undefined) pieces.push({ kind: "mandatory", take: rule.mandatory, part: rule.part ?? "end", ruleId: rule.id });
     }
-    const otherPlanIds: string[] = [];
     for (const source of facts.sources) {
       if (source.type === "mandatory") {
         pieces.push({ kind: "mandatory", take: source.take, part: source.part ?? "end", sourceId: source.sourceId });
       } else if (source.type === "otherPlan") {
         pieces.push({ kind: "otherPlan", take: source.take, part: source.part ?? "end", sourceId: source.sourceId });
-        otherPlanIds.push(source.sourceId);
       }
     }
     const evaluation = evaluateLeave(required, pieces, inPeriod);
@@ -116,7 +114,7 @@ export function computePlan(input: PlanInput): PlanResult {
     if (inPeriod) {
       if (own && required.value === 0) problems.push({ code: "leaveWithoutRequiredWork", day: facts.day });
       if (evaluation.ownCoveredByOtherPlan) {
-        problems.push({ code: "leaveTakenInOtherPlan", day: facts.day, sourceIds: otherPlanIds });
+        problems.push({ code: "leaveTakenInOtherPlan", day: facts.day, sourceIds: overlappingOtherPlanIds(required.value, pieces) });
       }
       if (required.conflictingRules.length > 0) {
         problems.push({ code: "conflictingForcedRules", day: facts.day, ruleIds: required.conflictingRules });

@@ -103,7 +103,7 @@ The result records every contribution (base entry, each lowering layer with its 
 
 ### Positions within a day
 
-A day's working time is normalised to the units 0 … 480. Where the work and the free time lie matters for stretches, never for cost.
+A day's working time is normalised to the units 0 … 480. Where the work and the free time lie matters for stretches, and for cost only where pieces overlap: own and mandatory leave on the same part of the day count once.
 
 - **Required work below a full day** lies in one block. By default the work comes first and the free time is at the end (24 December: work until noon). The layer that decides the final value may state the opposite with `part: "start"` (free time at the start).
 - **Leave pieces** have a share and a `part`, `"start"` or `"end"`. A piece takes its share from the start or from the end of the remaining work block, not of the clock day, so ½ leave on a day with required work ½ frees the whole day, as the spec's cost table requires. A piece of a full day or more covers all work.
@@ -190,7 +190,7 @@ A function from units to the fraction string that files contain: `"0"`, `"1"`, `
 | Required work | the spec's row "minimum of the lowering layers"; 24/31 December on a weekend costs 0; a ½ holiday source on a public holiday stays 0; forced rule beats a holiday; conflicting forced rules; override last; work week with a change; days before the first entry; an all-zero entry |
 | Cost | cost = min(taken, required work) for random multiples of 1/32 (fast-check); mandatory leave, also partial; the cost examples above as a table-driven test, including the maintainer's example (own ½ `start` plus mandatory ½ `end` on a working day: whole day free, cost 1); own and mandatory on the same part (counted once) and on different parts (added); leave from another plan never costs; mandatory leave covered by leave from another plan is not charged, own leave there is charged and reported |
 | Totals | the sum is correct; per calendar year across a year boundary; remaining below 0 |
-| Stretches | the examples above, including 24 December with own ½ `start` and mandatory ½ `end` (Fri 24 Dec to Sun 26 Dec, 1 → 3); 10 units (15 minutes) of remaining work break a stretch; the first and last day partial; a standalone paid closure listed with cost 0; ordinary weekends not listed; extension beyond the plan period; property: the costs of all stretches add up to planned |
+| Stretches | the examples above, including 24 December with own ½ `start` and mandatory ½ `end` (Fri 24 Dec to Sun 26 Dec, 1 → 3); 10 units (10 minutes at an 8-hour day) of remaining work break a stretch; the first and last day partial; a standalone paid closure listed with cost 0; ordinary weekends not listed; extension beyond the plan period; property: the costs of all stretches add up to planned |
 | Positions | the suggestion: free on one side, both sides, neither side; leave that covers all work |
 | Weight writer | round trip with `parseWeight` for every multiple of 1/480 between 0 and 1 |
 

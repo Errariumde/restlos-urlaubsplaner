@@ -1,14 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-import { MAX_YEAR, MIN_YEAR, weekdayOf, ymdFromDay } from "../days";
+import { clampYear, MAX_YEAR, weekdayOf, ymdFromDay } from "../days";
 import type { DayNumber } from "../days";
 import { ruleDate } from "../holidays/rules";
 import type { DayRule } from "./types";
 
 export const MAX_RANGE_DAYS = 366;
-
-const clampYear = (year: number): number => Math.min(MAX_YEAR, Math.max(MIN_YEAR, year));
 
 /**
  * The days a rule matches between `from` and `to` (inclusive), sorted, each once.
@@ -27,8 +25,9 @@ export function ruleDays(
     if (day >= from && day <= to) found.add(day);
   };
 
+  // A rule's date for year Y may lie in Y − 1 or Y + 1, so look one year further on both sides.
   if (match.type !== "range") {
-    for (let year = clampYear(firstYear); year <= clampYear(lastYear); year++) {
+    for (let year = clampYear(firstYear - 1); year <= clampYear(lastYear + 1); year++) {
       if (year < validFrom || year > validUntil) continue;
       const day = ruleDate(match, year);
       if (day !== null) add(day);
@@ -47,7 +46,7 @@ export function ruleDays(
     throw new RangeError("A range's weekdays must not be empty");
   }
 
-  for (let year = clampYear(firstYear - 2); year <= clampYear(lastYear); year++) {
+  for (let year = clampYear(firstYear - 2); year <= clampYear(lastYear + 1); year++) {
     if (year < validFrom || year > validUntil) continue;
     const start = ruleDate(match.from, year);
     if (start === null) continue;

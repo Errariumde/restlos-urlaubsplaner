@@ -92,9 +92,7 @@ const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
  * "0", "1", "1/2", "3/32". Throws RangeError unless units is an integer in 0..UNITS_PER_DAY.
  */
 export function formatWeight(units: Units): string {
-  if (!Number.isInteger(units) || units < 0 || units > UNITS_PER_DAY) {
-    throw new RangeError(`Weight units out of range: ${units}`);
-  }
+  checkUnits(units, "Weight units");
   const divisor = gcd(units, UNITS_PER_DAY);
   const num = units / divisor;
   const den = UNITS_PER_DAY / divisor;

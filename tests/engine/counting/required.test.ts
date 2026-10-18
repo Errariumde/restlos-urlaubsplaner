@@ -144,6 +144,11 @@ describe("dayFacts", () => {
     ],
     [{ overrides: [{ day: d("2027-05-05"), required: 0 }, { day: d("2027-05-05"), required: 480 }] }],
     [{ sources: [{ type: "holiday", day: d("2027-05-05"), sourceId: "x", required: 481 }] }],
+    [rules({ id: "m", match: once("2027-05-05"), mandatory: 0 })],
+    [{ sources: [{ type: "mandatory", day: d("2027-05-05"), sourceId: "x", take: 0 }] }],
+    [{ sources: [{ type: "otherPlan", day: d("2027-05-05"), sourceId: "x", take: 0 }] }],
+    [rules({ id: "none", match: once("2027-05-05") } as unknown as DayRule)],
+    [rules({ id: "two", match: once("2027-05-05"), requiredAtMost: 0, mandatory: FULL } as unknown as DayRule)],
   ] as [Partial<PlanInput>][])("rejects invalid input %#", (changes) =>
     expect(() => dayFacts(baseInput(changes), d("2027-05-01"), d("2027-05-31"))).toThrow(RangeError),
   );
