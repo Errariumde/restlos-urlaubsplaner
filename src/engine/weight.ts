@@ -6,6 +6,13 @@ export const UNITS_PER_DAY = 480;
 /** Integer multiples of 1/480 day. */
 export type Units = number;
 
+/** Throws RangeError unless `value` is a whole number of units from `min` to one day. */
+export function checkUnits(value: number, what: string, min = 0): void {
+  if (!Number.isInteger(value) || value < min || value > UNITS_PER_DAY) {
+    throw new RangeError(`${what} must be a whole number of units from ${min} to ${UNITS_PER_DAY}`);
+  }
+}
+
 export type WeightErrorCode = "syntax" | "range" | "inexact";
 
 export class WeightError extends Error {
@@ -76,4 +83,19 @@ function parseDecimal(text: string, intText: string, fracText: string): Units {
   const scaled = Number(frac) * UNITS_PER_DAY;
   if (scaled % scale !== 0) throw new WeightError("inexact", text);
   return scaled / scale;
+}
+
+// Euclid's algorithm
+const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+
+/**
+ * Writes integer units as the reduced fraction of a day used in files:
+ * "0", "1", "1/2", "3/32". Throws RangeError unless units is an integer in 0..UNITS_PER_DAY.
+ */
+export function formatWeight(units: Units): string {
+  checkUnits(units, "Weight units");
+  const divisor = gcd(units, UNITS_PER_DAY);
+  const num = units / divisor;
+  const den = UNITS_PER_DAY / divisor;
+  return den === 1 ? String(num) : `${num}/${den}`;
 }

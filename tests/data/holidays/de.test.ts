@@ -64,7 +64,7 @@ it("has Corpus Christi in SN and TH only with the switch", () => {
     expect(has(state, 2027, "05-27 corpus-christi-local", { corpusChristi: true })).toBe(true);
   }
 });
-// Review Focus 5: 23 Nov is a Wednesday in 2016, 2022 and 2033
+// Day of Repentance and Prayer when 23 November is itself a Wednesday (2016, 2022, 2033)
 it.each([[2016, "11-16"], [2022, "11-16"], [2027, "11-17"], [2033, "11-16"]])(
   "has the Day of Repentance and Prayer %i on %s in SN", (y, md) => expect(has("SN", y, `${md} repentance-day`)).toBe(true));
 it.each([["BE", "womens-day-be", 2018, 2019], ["MV", "womens-day-mv", 2022, 2023]] as const)(

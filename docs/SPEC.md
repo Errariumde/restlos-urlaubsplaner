@@ -129,7 +129,7 @@ Each imported file becomes a **calendar source**:
 | Paid closure | required work 0, costs nothing |
 | Mandatory leave | day counts as taken, charges the plan's allowance |
 | Info (e.g. school holidays) | none, only a background band |
-| Leave from another plan | none; shows e.g. in January the days already planned in the previous year, they are counted there. The source is an .ics or directly another .urlaub.json file |
+| Leave from another plan | none; shows e.g. in January the days already planned in the previous year, they are counted there (own and mandatory leave of that plan). The source is an .ics or directly another .urlaub.json file |
 
 Conflicts: all sources of a day are displayed (the detail view lists them, the cell shows up to three color dots). The same day with the same name from several sources or the built-in set is shown once and marked as a duplicate.
 
@@ -173,7 +173,7 @@ Cost of a day = min(taken, required work), with taken as a share of the day; the
 | New Year's Eve (half day off by collective agreement) | ½ | full | ½ | full day off |
 | Holiday, weekend | 0 | – | 0 | not selectable as leave |
 
-Whether morning or afternoon is only a note for display and .ics; it doesn't change the cost.
+Where in the day partial leave lies (at the start or the end of the working time, shown as morning or afternoon for half days) doesn't change the cost of that leave on its own; it decides whether the day joins a stretch (see Allowance display) and whether it overlaps mandatory leave on the same day (see Mandatory leave), and is used for display and .ics.
 
 ### Finer granularity: prepared, not implemented
 
@@ -182,7 +182,7 @@ Version 1 offers only **full** and **half** in the UI. Engine, file format and t
 | Area | Requirement from version 1 |
 | --- | --- |
 | Unit | 1 day = 480 integer units (480 = 2⁵ · 3 · 5); thus ½, ⅓, ¼, ⅕, ⅙, ⅛, 1/16 and 1/32 are exact. Never floats, never the assumption "only 0, ½, 1". |
-| Data model | `take` is a share of the day, written as a fraction string (`"1"`, `"1/2"`, later e.g. `"3/32"`), not `"full"`/`"half"`; on reading, decimal strings (`"0.5"`) are accepted too (see Date arithmetic). Morning/afternoon is an optional, separate field `part`. |
+| Data model | `take` is a share of the day, written as a fraction string (`"1"`, `"1/2"`, later e.g. `"3/32"`), not `"full"`/`"half"`; on reading, decimal strings (`"0.5"`) are accepted too (see Date arithmetic). Where in the day partial leave lies is a separate field `part` (`"start"` or `"end"` of the working time), required for partial leave. |
 | Contract | The field `minUnit` (smallest leave unit) already exists, default `"1/2"`; loading checks that all values are multiples of it. Version 1 allows only `"1"` and `"1/2"` in the UI. |
 | Engine | Cost = min(taken, required work) for arbitrary multiples of 1/32; no special cases for ½. |
 | Display | one central formatting function for shares (mixed fractions like "12 ¾" or a decimal number, depending on the setting) that handles every denominator up to 32; the day cell draws its fill proportionally to the share, not just "half" or "full". |
@@ -200,11 +200,11 @@ What is still missing later is only UI: choosing finer steps in the menu, one mo
 3. **Force** (rare, explicitly marked): a rule sets the required work to a fixed value, e.g. working Saturday = 1. Forced rules apply after step 2.
 4. **Manual override** of a single date applies last.
 
-**Mandatory leave** (e.g. company-wide leave 27–30 Dec) is not a required-work value but marks days as taken; they charge the allowance with min(1, required work) and can only be changed via their rule or source. Paid closure, on the other hand, is required work 0.
+**Mandatory leave** (e.g. company-wide leave 27–30 Dec) is not a required-work value but marks days as taken, by a share of the day (a full day or e.g. ½); they charge the allowance with min(share, required work) and can only be changed via their rule or source. If own leave is set on such a day as well, leave on the same part of the day counts once; leave on different parts of the day adds up. Mandatory leave is not charged on the part of a day that leave from another plan already covers, because it was counted there; own leave on such a day is charged and reported. Paid closure, on the other hand, is required work 0.
 
 ### Work week with validity
 
-The work week is a list with start dates, e.g. full-time until 30 June, four days from 1 July. This way a contract with a switch to part-time stays one file. The help explains the two common counting methods for part-time ("day off has required work 0, allowance reduced" vs. "required work ½") and that partial entitlements can be rounded according to § 5 BUrlG (Federal Leave Act); the user enters the allowance themselves.
+The work week is a list with start dates, e.g. full-time until 30 June, four days from 1 July. This way a contract with a switch to part-time stays one file. The first entry also applies before its start date; the rules describe ongoing employment, and there is no separate state for days before or after it. The help explains the two common counting methods for part-time ("day off has required work 0, allowance reduced" vs. "required work ½") and that partial entitlements can be rounded according to § 5 BUrlG (Federal Leave Act); the user enters the allowance themselves.
 
 ### Date arithmetic
 
@@ -276,7 +276,7 @@ JSON with a `schema` version and a `kind` (`"plan"`, `"ruleSet"` or `"settings"`
     "region": { "country": "DE", "state": "BY", "options": { "assumption": true, "augsburg": false } },
     "timeZone": "Europe/Berlin", "minUnit": "1/2", "workHours": { "am": "08:00-12:00", "pm": "13:00-17:00" },
     "week": [ { "from": "2020-01-01", "required": { "mon": "1", "tue": "1", "wed": "1", "thu": "1", "fri": "1", "sat": "0", "sun": "0" } } ],
-    "rules": [ { "id": "new-years-eve", "origin": "a93e…-uuid", "match": { "fixed": "12-31" }, "max": "1/2", "label": { "de": "Silvester", "en": "New Year's Eve" } } ] },
+    "rules": [ { "id": "new-years-eve", "origin": "a93e…-uuid", "match": { "type": "fixed", "month": 12, "day": 31 }, "requiredAtMost": "1/2", "label": { "de": "Silvester", "en": "New Year's Eve" } } ] },
   "sources": [ { "id": "previous-year", "name": "Company X 2026", "type": "otherPlan", "color": { "slot": "accent-3" }, "visible": true,
     "format": "urlaub.json", "content": "{…}" } ],
   "templates": [ { "id": "my-band", "name": "My year band", "api": 1, "typst": ">=0.13", "typ": "…" } ],
@@ -286,6 +286,7 @@ JSON with a `schema` version and a `kind` (`"plan"`, `"ruleSet"` or `"settings"`
 }
 ```
 
+- A day rule's `match` uses the date rules of the holiday data (`docs/holiday-data-format.md`) with named fields instead of a text syntax: full dates as ISO dates, a day without a year as `month` and `day`, offsets as signed integers; a `range` has a start `from` (any date rule) and either an end `to` (any date rule; looked up from the start onwards, so a range can cross New Year) or a length `days`, plus an optional `weekdays` filter. A rule has exactly one effect: `requiredAtMost` (lowering layer), `requiredExactly` (forced, applies after all lowering layers) or `mandatory` (share of the day taken as mandatory leave).
 - Day rules, calendar sources and templates copied from a rule set carry its ID in `origin`; parts added in the plan file have none. "Update rules from rule set" uses this to tell them apart.
 - A rule set (`.regeln.json`) has the same structure with `"kind": "ruleSet"`, without `ruleSet`, `plan` and `origin`, and never with sources of type `otherPlan`.
 - The device settings export (`.einstellungen.json`) has `"kind": "settings"` and contains only the device settings listed above.
@@ -386,7 +387,7 @@ With "From rule set", country, region, local rules and day rules come from the r
 ### Allowance display
 
 - Plan allowance, planned, remaining, progress bar; remaining < 0 clearly marked. No carry-over field.
-- List of **stretches**: leave days → consecutive days off (incl. weekends, holidays and days from "Leave from another plan").
+- List of **stretches**: a stretch is unbroken time off without any work in it (even 15 minutes of work ends it), including weekends, holidays, paid closures and days from "Leave from another plan". Its first and last day may be partial. It shows the cost (the leave charged inside it) and the days off from its start to its end (from noon counts ½ for that day). It is listed when it contains leave that costs something or a paid closure (a paid-closure source or a day rule that frees the whole day), so a paid closure without leave appears with cost 0; it may extend beyond the plan period.
 - **Totals per calendar year** as pure information.
 - Bridge day hints (version 3): working days that yield many days off with little leave; can be turned off.
 
@@ -421,7 +422,7 @@ With "From rule set", country, region, local rules and day rules come from the r
 | Regelwerk | Rule set | `.regeln.json`: contract, calendar sources, templates and optional color scheme without a plan; shared per company or collective agreement |
 | Geräte-Einstellungen | Device settings | language, display options and own color schemes; stored in the browser, exportable as `.einstellungen.json` |
 | Arbeitswoche | Work week | required work per weekday, with validity |
-| Tagesregel | Day rule | own rule that lowers or forces the required work |
+| Tagesregel | Day rule | own rule that lowers or fixes the required work (`requiredAtMost`, `requiredExactly`) or marks mandatory leave (`mandatory`) |
 | Kalenderquelle | Calendar source | imported iCal or .urlaub.json file with name, type, color |
 | Pflichturlaub | Mandatory leave | charges the allowance automatically |
 | Bezahlte Betriebsruhe | Paid closure | required work 0, costs nothing |

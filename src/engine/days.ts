@@ -12,6 +12,9 @@ export const WEEKDAYS: readonly Weekday[] = ["mon", "tue", "wed", "thu", "fri", 
 export const MIN_YEAR = 1583;
 export const MAX_YEAR = 9999;
 
+/** `year` limited to the supported years. */
+export const clampYear = (year: number): number => Math.min(MAX_YEAR, Math.max(MIN_YEAR, year));
+
 export interface Ymd {
   year: number;
   month: number; // 1-12
@@ -53,8 +56,8 @@ export function dayFromYmd(year: number, month: number, day: number): DayNumber 
   return era * 146097 + dayOfEra - 719468;
 }
 
-const MIN_DAY = dayFromYmd(MIN_YEAR, 1, 1);
-const MAX_DAY = dayFromYmd(MAX_YEAR, 12, 31);
+export const MIN_DAY = dayFromYmd(MIN_YEAR, 1, 1);
+export const MAX_DAY = dayFromYmd(MAX_YEAR, 12, 31);
 
 // Howard Hinnant's civil_from_days.
 export function ymdFromDay(day: DayNumber): Ymd {
