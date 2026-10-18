@@ -37,8 +37,9 @@ function limit(count: number, max: number, key: string, path: string): void {
 function readRegion(value: unknown, path: string, report: Report): FileRegion {
   if (!isRecord(value)) throw new Refused({ code: "invalidCore", path });
   const countryPath = child(path, "country");
-  const country = typeof value["country"] === "string" ? countries[value["country"]] : undefined;
-  if (!country || typeof value["country"] !== "string") throw new Refused({ code: "invalidCore", path: countryPath });
+  const countryCode = value["country"];
+  const country = typeof countryCode === "string" && Object.hasOwn(countries, countryCode) ? countries[countryCode] : undefined;
+  if (!country) throw new Refused({ code: "invalidCore", path: countryPath });
   checkKeys(value, ["country", "state", "options"], path, report);
 
   let state: string | undefined;

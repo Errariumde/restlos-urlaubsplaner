@@ -17,6 +17,9 @@ const rule = (extra: Record<string, unknown> = {}) => ({ id: "r1", match: { type
 describe("region", () => {
   it("refuses an unknown country", () =>
     expect(withContract({ region: { country: "XX" } })).toMatchObject({ ok: false, refusal: { code: "invalidCore", path: "contract.region.country" } }));
+  it.each(["constructor", "__proto__", "toString"])("refuses the prototype key %j as country", (country) =>
+    expect(readFile(minimal({ contract: JSON.parse(`{"region":{"country":"${country}","state":"BY"},"week":${JSON.stringify(MINIMAL_CONTRACT.week)},"rules":[]}`) as unknown })))
+      .toMatchObject({ ok: false, refusal: { code: "invalidCore", path: "contract.region.country" } }));
   it("loads a rule set without a state", () => expect(contractOf(withContract({ region: { country: "DE" } })).region).toEqual({ country: "DE" }));
   it("drops an invalid state", () => {
     const result = withContract({ region: { country: "DE", state: "ZZ" } });

@@ -31,7 +31,17 @@ describe("readFile envelope", () => {
   it("reports the old work hours and time zone as unknown fields (0005)", () =>
     expect(readFile(minimal({ contract: { ...MINIMAL_CONTRACT, timeZone: "Europe/Berlin", workHours: { am: "08:00-12:00" } } })))
       .toMatchObject({ ok: true, report: [{ code: "unknownField", path: "contract.timeZone" }, { code: "unknownField", path: "contract.workHours" }] }));
-  it("never throws, whatever the JSON", () => fc.assert(fc.property(fc.json(), (text) => { readFile(text); })));
+  // The catch-all of readFile answers invalidCore without a path; a fuzz input must never reach it.
+  const notCaughtAll = (text: string) => {
+    const result = readFile(text);
+    expect(result.ok === false && result.refusal.code === "invalidCore" && result.refusal.path === undefined).toBe(false);
+  };
+  it("never throws, whatever the JSON", () => fc.assert(fc.property(fc.json(), notCaughtAll)));
   it("never throws for JSON shaped like a file", () =>
-    fc.assert(fc.property(fc.jsonValue(), (value) => { readFile(minimal({ contract: value, sources: value, id: value, revision: value })); })));
+    fc.assert(fc.property(fc.jsonValue(), (value) => { notCaughtAll(minimal({ contract: value })); })));
+  it("never throws for a contract with random parts", () =>
+    fc.assert(fc.property(fc.jsonValue(), fc.jsonValue(), fc.jsonValue(), (region, rules, references) => {
+      notCaughtAll(minimal({ contract: { ...MINIMAL_CONTRACT, region, rules, references } }));
+      notCaughtAll(minimal({ contract: { ...MINIMAL_CONTRACT, rules: [{ id: "x", requiredAtMost: "0", match: rules }], references } }));
+    })));
 });
