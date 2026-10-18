@@ -3,7 +3,7 @@
 
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { formatWeight, parseWeight, WeightError } from "../../src/engine/weight";
+import { formatAmount, formatWeight, parseAmount, parseWeight, WeightError } from "../../src/engine/weight";
 
 // lib has no DOM; performance exists in Node and in Firefox.
 declare const performance: { now(): number };
@@ -87,4 +87,16 @@ describe("formatWeight", () => {
   });
   it.each([-1, 481, 1.5, Number.NaN])(
     "rejects %j", (units) => expect(() => formatWeight(units)).toThrow(RangeError));
+});
+
+describe("parseAmount", () => {
+  it.each([["33", 15_840], ["0", 0], ["12.5", 6000], ["25/2", 6000], ["1/480", 1]])("reads %j", (text, units) =>
+    expect(parseAmount(text)).toBe(units));
+  it.each(["-1", "1,5", "", "1e3", "99999999999999999999", "10001"])("rejects %j", (text) =>
+    expect(() => parseAmount(text)).toThrow(WeightError));
+  it("writes amounts as fractions and round-trips", () => {
+    expect(formatAmount(15_840)).toBe("33");
+    expect(formatAmount(6000)).toBe("25/2");
+    for (const units of [0, 1, 239, 240, 481, 15_840, 4_800_000]) expect(parseAmount(formatAmount(units))).toBe(units);
+  });
 });

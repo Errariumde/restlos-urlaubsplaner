@@ -99,3 +99,48 @@ export function formatWeight(units: Units): string {
   const den = UNITS_PER_DAY / divisor;
   return den === 1 ? String(num) : `${num}/${den}`;
 }
+
+/** Largest allowance `parseAmount` accepts, in days. */
+const MAX_AMOUNT_DAYS = 10_000;
+
+/**
+ * Parses an amount of days like `parseWeight` ("33", "12.5", "25/2" or "1/480"), but without an upper
+ * bound of one day: from 0 to 10,000 days. Integer arithmetic only. Check order: syntax, range, exactness.
+ */
+export function parseAmount(text: string): Units {
+  const fraction = /^(\d+)\/(\d+)$/.exec(text);
+  if (fraction) {
+    const num = stripLeadingZeros(fraction[1] ?? "");
+    const den = stripLeadingZeros(fraction[2] ?? "");
+    if (num.length > MAX_FRACTION_DIGITS || den.length > MAX_FRACTION_DIGITS) throw new WeightError("syntax", text);
+    const n = Number(num);
+    const d = Number(den);
+    if (d === 0) throw new WeightError("syntax", text);
+    const scaled = n * UNITS_PER_DAY;
+    if (scaled > MAX_AMOUNT_DAYS * UNITS_PER_DAY * d) throw new WeightError("range", text);
+    if (scaled % d !== 0) throw new WeightError("inexact", text);
+    return scaled / d;
+  }
+  const decimal = /^(\d+)(?:\.(\d+))?$/.exec(text);
+  if (!decimal) throw new WeightError("syntax", text);
+  const whole = stripLeadingZeros(decimal[1] ?? "");
+  const frac = stripTrailingZeros(decimal[2] ?? "");
+  if (whole.length > MAX_FRACTION_DIGITS) throw new WeightError("syntax", text);
+  const days = Number(whole);
+  if (days > MAX_AMOUNT_DAYS || (days === MAX_AMOUNT_DAYS && frac.length > 0)) throw new WeightError("range", text);
+  if (frac.length === 0) return days * UNITS_PER_DAY;
+  if (frac.length > MAX_EXACT_FRACTION_DIGITS) throw new WeightError("inexact", text);
+  const scale = 10 ** frac.length;
+  const scaled = Number(frac) * UNITS_PER_DAY;
+  if (scaled % scale !== 0) throw new WeightError("inexact", text);
+  return days * UNITS_PER_DAY + scaled / scale;
+}
+
+/** Writes an amount of days (any integer number of units, 0 or more) as a reduced fraction: "33", "25/2". */
+export function formatAmount(units: Units): string {
+  if (!Number.isInteger(units) || units < 0) throw new RangeError("Amount units must be a non-negative integer");
+  const divisor = gcd(units, UNITS_PER_DAY);
+  const num = units / divisor;
+  const den = UNITS_PER_DAY / divisor;
+  return den === 1 ? String(num) : `${num}/${den}`;
+}
