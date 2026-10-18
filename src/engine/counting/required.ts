@@ -71,6 +71,7 @@ export function dayFacts(
   for (const source of sources) {
     if (source.type === "holiday") checkUnits(source.required, "Required work of a source");
     else if (source.type === "mandatory") checkUnits(source.take, "Take of a source", 1);
+    else if (source.type === "needed") checkUnits(source.take, "Take of a needed source", 1);
     else if (source.type === "otherPlan") checkSpan(source.from, source.to, "a source span");
   }
   for (const rule of rules) {

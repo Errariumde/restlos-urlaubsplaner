@@ -8,7 +8,7 @@ import type { PlanResult } from "../../../src/engine/counting/plan";
 import type { Stretch } from "../../../src/engine/counting/stretches";
 import type { DayRule, LeaveDay, Part, PlanInput, PlanPeriod, SourceDay } from "../../../src/engine/counting/types";
 import { isoFromDay } from "../../../src/engine/days";
-import { BAVARIA, baseInput, CHRISTMAS_EVE_RULES, d, FULL, HALF, fixed, once, span } from "./helpers";
+import { BAVARIA, baseInput, CHRISTMAS_EVE_RULES, d, FULL, FULL_TIME, HALF, fixed, once, span } from "./helpers";
 
 // lib has no DOM; performance exists in Node and in Firefox.
 declare const performance: { now(): number };
@@ -21,6 +21,7 @@ const dayOf = (result: PlanResult, iso: string) => {
   return found;
 };
 const leave = (iso: string, take = FULL, part?: Part): LeaveDay => ({ day: d(iso), take, ...(part && { part }) });
+const need = (iso: string, take: number, part?: Part): SourceDay => ({ type: "needed", day: d(iso), sourceId: "kita", take, ...(part && { part }) });
 const plan = (changes: Partial<PlanInput>) => computePlan(baseInput(changes));
 const withRules = (...rules: DayRule[]) => ({ ...BAVARIA, rules });
 const closureRule: DayRule = { id: "closure", match: { type: "range", from: fixed(12, 27), to: fixed(1, 4) }, validFrom: 2027, validUntil: 2027, mandatory: FULL };
@@ -175,4 +176,27 @@ describe("computePlan: limits", () => {
     computePlan(input);
     expect(performance.now() - startedAt).toBeLessThan(200);
   });
+});
+
+describe("time off needed", () => {
+  const tue = "2027-05-04"; // a working Tuesday
+  it("is covered by own leave at the same part", () =>
+    expect(plan({ sources: [need(tue, HALF, "end")], leave: [leave(tue, HALF, "end")] }).problems).toEqual([]));
+  it("is covered by a public holiday", () =>
+    expect(plan({ sources: [need("2027-05-06", FULL)] }).problems).toEqual([])); // Ascension Day
+  it("is covered by a half work-week day", () => {
+    const halfTuesday = { ...BAVARIA, week: [{ from: d("2020-01-01"), required: { ...FULL_TIME, tue: HALF } }] };
+    expect(plan({ contract: halfTuesday, sources: [need(tue, HALF, "end")] }).problems).toEqual([]);
+  });
+  it("is covered by leave from another plan", () =>
+    expect(plan({ sources: [need(tue, HALF, "end"), { type: "otherPlan", day: d(tue), sourceId: "p", from: 240, to: 480, kind: "leave" }] }).problems).toEqual([]));
+  it("is reported when the other half is free", () =>
+    expect(plan({ sources: [need(tue, HALF, "end")], leave: [leave(tue, HALF, "start")] }).problems).toEqual([{ code: "uncoveredNeed", day: d(tue), sourceIds: ["kita"] }]));
+  it("never costs anything", () => {
+    const withNeed = plan({ sources: [need(tue, FULL)] });
+    expect(withNeed.totals).toEqual(plan({}).totals);
+    expect(withNeed.problems).toEqual([{ code: "uncoveredNeed", day: d(tue), sourceIds: ["kita"] }]);
+  });
+  it("is not reported outside the period", () =>
+    expect(plan({ sources: [need("2026-12-15", FULL)] }).problems).toEqual([]));
 });

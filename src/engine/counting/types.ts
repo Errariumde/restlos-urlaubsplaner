@@ -61,6 +61,14 @@ export type SourceDay =
       readonly part?: Part;
     }
   | {
+      /** A day the user must be free (e.g. the Kita closes); never costs, reported when not free. */
+      readonly type: "needed";
+      readonly day: DayNumber;
+      readonly sourceId: string;
+      readonly take: Units; // 1 … 480
+      readonly part?: Part; // default "end"
+    }
+  | {
       /** A span another plan charged on this day; covers leave here but never costs. */
       readonly type: "otherPlan";
       readonly day: DayNumber;

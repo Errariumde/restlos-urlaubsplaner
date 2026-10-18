@@ -175,6 +175,8 @@ describe("dayFacts", () => {
     [{ sources: [{ type: "holiday", day: d("2027-05-05"), sourceId: "x", required: 481 }] }],
     [rules({ id: "m", match: once("2027-05-05"), mandatory: 0 })],
     [{ sources: [{ type: "mandatory", day: d("2027-05-05"), sourceId: "x", take: 0 }] }],
+    [{ sources: [{ type: "needed", day: d("2027-05-05"), sourceId: "x", take: 0 }] }],
+    [{ sources: [{ type: "needed", day: d("2027-05-05"), sourceId: "x", take: 481 }] }],
     [{ sources: [{ type: "otherPlan", day: d("2027-05-05"), sourceId: "x", from: 240, to: 240, kind: "leave" }] }],
     [{ sources: [{ type: "otherPlan", day: d("2027-05-05"), sourceId: "x", from: 240, to: 120, kind: "leave" }] }],
     [{ sources: [{ type: "otherPlan", day: d("2027-05-05"), sourceId: "x", from: -15, to: 240, kind: "leave" }] }],

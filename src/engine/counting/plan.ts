@@ -35,7 +35,8 @@ export type Problem =
   | { readonly code: "leaveOutsidePeriod"; readonly day: DayNumber }
   | { readonly code: "leaveWithoutRequiredWork"; readonly day: DayNumber }
   | { readonly code: "leaveTakenInOtherPlan"; readonly day: DayNumber; readonly sourceIds: readonly string[] }
-  | { readonly code: "conflictingForcedRules"; readonly day: DayNumber; readonly ruleIds: readonly string[] };
+  | { readonly code: "conflictingForcedRules"; readonly day: DayNumber; readonly ruleIds: readonly string[] }
+  | { readonly code: "uncoveredNeed"; readonly day: DayNumber; readonly sourceIds: readonly string[] };
 export interface PlanResult {
   readonly period: { readonly from: DayNumber; readonly to: DayNumber };
   readonly days: readonly DayResult[]; // consecutive: the period ± STRETCH_MARGIN_DAYS, clamped to the supported years
@@ -63,6 +64,7 @@ const PROBLEM_ORDER: Record<Problem["code"], number> = {
   leaveWithoutRequiredWork: 1,
   leaveTakenInOtherPlan: 2,
   conflictingForcedRules: 3,
+  uncoveredNeed: 4,
 };
 
 /** The pieces of leave on a day: own leave, mandatory leave of rules and sources, and leave from other plans. */
@@ -127,6 +129,15 @@ export function computePlan(input: PlanInput): PlanResult {
       }
       if (required.conflictingRules.length > 0) {
         problems.push({ code: "conflictingForcedRules", day: facts.day, ruleIds: required.conflictingRules });
+      }
+      const uncovered = facts.sources.filter(
+        (source) =>
+          source.type === "needed" && (source.part ?? "end") === "end"
+            ? evaluation.freeEnd < source.take
+            : source.type === "needed" && evaluation.freeStart < source.take,
+      );
+      if (!evaluation.whole && uncovered.length > 0) {
+        problems.push({ code: "uncoveredNeed", day: facts.day, sourceIds: [...new Set(uncovered.map((source) => source.sourceId))] });
       }
     }
   }
