@@ -1,0 +1,404 @@
+{
+  "schema": "restlos/1",
+  "kind": "plan",
+  "id": "dacb09ce-a1c4-427c-8633-95857a146af5",
+  "revision": 1,
+  "contract": {
+    "name": {
+      "de": "Muster AG (Testbeispiel)",
+      "en": "Muster AG (test example)"
+    },
+    "description": {
+      "de": "Fiktives Testbeispiel: Die Muster AG gibt es nicht. Das Paar aus den Plänen 2027 und 2028 zeigt möglichst viele Teile des Dateiformats und des Zählmodells: die Stadt Augsburg mit Friedensfest und Mariä Himmelfahrt, eine Arbeitswoche, in der ab 1. September 2027 der Dienstag ein halber Tag ist, Pflichturlaub am Nachmittag des 24. Dezember und in der Betriebsruhe vom 27. Dezember bis 4. Januar, einen Arbeitssamstag, Kalenderquellen jeder Art und im Plan 2028 den Urlaub aus dem Plan 2027. Kein Vorbild für einen echten Arbeitsvertrag.",
+      "en": "A fictional test example: Muster AG doesn't exist. The pair of plans for 2027 and 2028 shows as many parts of the file format and the counting model as it can: the City of Augsburg with its Peace Festival and Assumption Day, a work week in which Tuesday is a half day from 1 September 2027, mandatory leave on the afternoon of 24 December and during the company closure from 27 December to 4 January, a working Saturday, calendar sources of every kind and, in the 2028 plan, the leave from the 2027 plan. Not a model for a real employment contract."
+    },
+    "region": {
+      "country": "DE",
+      "state": "BY",
+      "options": {
+        "assumption": true,
+        "augsburg": true
+      }
+    },
+    "minUnit": "1/2",
+    "week": [
+      {
+        "from": "2027-01-01",
+        "required": {
+          "mon": "1",
+          "tue": "1",
+          "wed": "1",
+          "thu": "1",
+          "fri": "1",
+          "sat": "0",
+          "sun": "0"
+        }
+      },
+      {
+        "from": "2027-09-01",
+        "required": {
+          "mon": "1",
+          "tue": "1/2",
+          "wed": "1",
+          "thu": "1",
+          "fri": "1",
+          "sat": "0",
+          "sun": "0"
+        }
+      }
+    ],
+    "rules": [
+      {
+        "id": "christmas-eve",
+        "label": {
+          "de": "Heiligabend: nachmittags Pflichturlaub",
+          "en": "Christmas Eve: mandatory leave in the afternoon"
+        },
+        "match": {
+          "type": "fixed",
+          "month": 12,
+          "day": 24
+        },
+        "mandatory": "1/2",
+        "part": "end",
+        "note": {
+          "de": "Fiktiv: Die Muster AG schließt am 24. Dezember mittags; der Nachmittag kostet einen halben Urlaubstag.",
+          "en": "Fictional: Muster AG closes at noon on 24 December; the afternoon costs half a day of leave."
+        }
+      },
+      {
+        "id": "new-years-eve",
+        "label": {
+          "de": "Silvester: nachmittags frei",
+          "en": "New Year's Eve: afternoon off"
+        },
+        "match": {
+          "type": "fixed",
+          "month": 12,
+          "day": 31
+        },
+        "requiredAtMost": "1/2",
+        "part": "end",
+        "note": {
+          "de": "Fiktiv: Am 31. Dezember endet die Arbeit mittags. Fällt der Tag in die Betriebsruhe, kostet er deshalb nur einen halben Urlaubstag.",
+          "en": "Fictional: work ends at noon on 31 December. When the day falls in the company closure, it therefore costs only half a day of leave."
+        }
+      },
+      {
+        "id": "company-closure",
+        "label": {
+          "de": "Betriebsruhe 27. Dezember bis 4. Januar",
+          "en": "Company closure 27 December to 4 January"
+        },
+        "match": {
+          "type": "range",
+          "from": {
+            "type": "fixed",
+            "month": 12,
+            "day": 27
+          },
+          "to": {
+            "type": "fixed",
+            "month": 1,
+            "day": 4
+          },
+          "weekdays": [
+            "mon",
+            "tue",
+            "wed",
+            "thu",
+            "fri"
+          ]
+        },
+        "mandatory": "1",
+        "note": {
+          "de": "Fiktiv: Montag bis Freitag als Pflichturlaub. Ein Tag mit weniger Arbeit kostet nur so viel, wie an ihm zu arbeiten wäre.",
+          "en": "Fictional: Monday to Friday as mandatory leave. A day with less work costs only as much as there would be work on it."
+        }
+      },
+      {
+        "id": "working-saturday",
+        "label": {
+          "de": "Arbeitssamstag 20. November 2027",
+          "en": "Working Saturday 20 November 2027"
+        },
+        "match": {
+          "type": "once",
+          "date": "2027-11-20"
+        },
+        "requiredExactly": "1",
+        "note": {
+          "de": "Fiktiv: Umzug in das neue Bürogebäude.",
+          "en": "Fictional: moving into the new office building."
+        }
+      }
+    ]
+  },
+  "sources": [
+    {
+      "id": "company-party",
+      "name": {
+        "de": "Betriebsfeier",
+        "en": "Company party"
+      },
+      "type": "holiday",
+      "color": {
+        "rgb": "#1a7f37"
+      },
+      "visible": true,
+      "entries": [
+        {
+          "date": "2027-07-02",
+          "name": {
+            "de": "Sommerfest der Muster AG",
+            "en": "Muster AG summer party"
+          },
+          "required": "1/2",
+          "part": "end"
+        }
+      ]
+    },
+    {
+      "id": "stocktaking",
+      "name": {
+        "de": "Inventur",
+        "en": "Stocktaking"
+      },
+      "type": "paidClosure",
+      "color": {
+        "slot": "accent-1"
+      },
+      "visible": true,
+      "entries": [
+        {
+          "date": "2027-10-15",
+          "name": {
+            "de": "Inventur: Betrieb geschlossen",
+            "en": "Stocktaking: company closed"
+          }
+        }
+      ]
+    },
+    {
+      "id": "bridge-days",
+      "name": {
+        "de": "Brückentage",
+        "en": "Bridge days"
+      },
+      "type": "mandatory",
+      "color": {
+        "slot": "accent-5"
+      },
+      "visible": true,
+      "entries": [
+        {
+          "date": "2027-05-07",
+          "name": {
+            "de": "Brückentag nach Christi Himmelfahrt",
+            "en": "Bridge day after Ascension Day"
+          },
+          "take": "1"
+        }
+      ]
+    },
+    {
+      "id": "kita",
+      "name": {
+        "de": "Kita",
+        "en": "Daycare"
+      },
+      "type": "needed",
+      "color": {
+        "slot": "accent-4"
+      },
+      "visible": true,
+      "entries": [
+        {
+          "date": "2027-07-02",
+          "name": {
+            "de": "Sommerfest: Abholen um 12 Uhr",
+            "en": "Summer party: pickup at noon"
+          },
+          "take": "1/2",
+          "part": "end"
+        },
+        {
+          "date": "2027-11-12",
+          "name": {
+            "de": "Pädagogischer Tag",
+            "en": "Staff training day"
+          },
+          "take": "1"
+        },
+        {
+          "match": {
+            "type": "range",
+            "from": {
+              "type": "once",
+              "date": "2027-08-02"
+            },
+            "to": {
+              "type": "once",
+              "date": "2027-08-13"
+            }
+          },
+          "name": {
+            "de": "Schließzeit Sommer",
+            "en": "Summer closure"
+          },
+          "take": "1"
+        },
+        {
+          "match": {
+            "type": "range",
+            "from": {
+              "type": "fixed",
+              "month": 9,
+              "day": 1
+            },
+            "to": {
+              "type": "fixed",
+              "month": 8,
+              "day": 31
+            },
+            "weekdays": [
+              "tue"
+            ]
+          },
+          "validFrom": 2027,
+          "validUntil": 2027,
+          "except": [
+            "2027-12-28"
+          ],
+          "name": {
+            "de": "Abholen dienstags",
+            "en": "Tuesday pickup"
+          },
+          "take": "1/2",
+          "part": "end"
+        }
+      ]
+    },
+    {
+      "id": "trade-fair",
+      "name": {
+        "de": "Messe",
+        "en": "Trade fair"
+      },
+      "type": "info",
+      "color": {
+        "slot": "accent-2"
+      },
+      "visible": false,
+      "entries": [
+        {
+          "match": {
+            "type": "range",
+            "from": {
+              "type": "once",
+              "date": "2027-04-13"
+            },
+            "days": 4
+          },
+          "name": {
+            "de": "Fachmesse",
+            "en": "Trade fair"
+          }
+        }
+      ]
+    }
+  ],
+  "templates": [],
+  "theme": null,
+  "plan": {
+    "range": {
+      "from": "2027-01",
+      "to": "2028-01"
+    },
+    "allowance": "30",
+    "days": [
+      {
+        "date": "2027-08-02",
+        "take": "1"
+      },
+      {
+        "date": "2027-08-03",
+        "take": "1"
+      },
+      {
+        "date": "2027-08-04",
+        "take": "1"
+      },
+      {
+        "date": "2027-08-05",
+        "take": "1"
+      },
+      {
+        "date": "2027-08-06",
+        "take": "1"
+      },
+      {
+        "date": "2027-08-09",
+        "take": "1"
+      },
+      {
+        "date": "2027-08-10",
+        "take": "1"
+      },
+      {
+        "date": "2027-08-11",
+        "take": "1"
+      },
+      {
+        "date": "2027-08-12",
+        "take": "1"
+      },
+      {
+        "date": "2027-08-13",
+        "take": "1"
+      },
+      {
+        "date": "2027-12-24",
+        "take": "1/2",
+        "part": "start"
+      },
+      {
+        "date": "2028-01-05",
+        "take": "1"
+      },
+      {
+        "date": "2028-01-07",
+        "take": "1"
+      }
+    ],
+    "overrides": [
+      {
+        "date": "2027-11-11",
+        "required": "1/2",
+        "part": "end"
+      }
+    ],
+    "notes": [
+      {
+        "date": "2027-07-02",
+        "text": "Betriebsfeier ab Mittag; Kita-Sommerfest, Abholen um 12 Uhr"
+      },
+      {
+        "date": "2027-11-11",
+        "text": "Überstunden abbauen: nachmittags zum Martinsumzug der Kita"
+      },
+      {
+        "date": "2027-11-12",
+        "text": "Pädagogischer Tag der Kita: Betreuung noch klären"
+      },
+      {
+        "date": "2027-11-20",
+        "text": "Arbeitssamstag: Umzug ins neue Bürogebäude"
+      },
+      {
+        "date": "2027-12-24",
+        "text": "Vormittags Urlaub, nachmittags Pflichturlaub: der ganze Tag ist frei"
+      }
+    ]
+  }
+}

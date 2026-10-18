@@ -12,6 +12,7 @@ import { parseAmount, parseWeight } from "../../src/engine/weight";
 
 /** Paths are relative to the repository root, where `npm test` runs. */
 export const RULE_SET_DIR = "examples/rules";
+export const PLAN_DIR = "examples/plans";
 
 export const readText = (path: string): string => readFileSync(path, "utf8");
 
@@ -26,6 +27,12 @@ export function readExample(path: string): AnyFile {
 export function readRuleSet(path: string): RuleSetFile {
   const file = readExample(path);
   if (file.kind !== "ruleSet") throw new Error(`${path} is not a rule set`);
+  return file;
+}
+
+export function readPlan(path: string): PlanFile {
+  const file = readExample(path);
+  if (file.kind !== "plan") throw new Error(`${path} is not a plan file`);
   return file;
 }
 
