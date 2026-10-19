@@ -70,6 +70,14 @@ export const at = (path: string, index: number): string => `${path}[${String(ind
 export const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+const PROTOTYPE_KEYS: readonly string[] = ["__proto__", "constructor", "prototype"];
+
+/**
+ * True for a key that must not become a key of an object the reader returns: copying or merging such an
+ * object naively into another could change a prototype (SPEC, Security).
+ */
+export const isPrototypeKey = (key: string): boolean => PROTOTYPE_KEYS.includes(key);
+
 /** Reports `unknownField` for every key of `value` that is not allowed. Never looks inside the values. */
 export function checkKeys(value: Readonly<Record<string, unknown>>, allowed: readonly string[], path: string, report: Report): void {
   for (const key of Object.keys(value)) {

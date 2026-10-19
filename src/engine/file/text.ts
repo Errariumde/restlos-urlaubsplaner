@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 import { textLength } from "./limits";
-import { isRecord, type Report } from "./report";
+import { isPrototypeKey, isRecord, type Report } from "./report";
 import type { Text } from "./types";
 
 const LANGUAGE = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/;
@@ -19,7 +19,7 @@ export function readText(value: unknown, path: string, maxLength: number, report
     return undefined;
   }
   const keys = Object.keys(value);
-  if (keys.length === 0 || !keys.every((key) => LANGUAGE.test(key))) {
+  if (keys.length === 0 || !keys.every((key) => LANGUAGE.test(key) && !isPrototypeKey(key))) {
     report.add("invalidEntry", path);
     return undefined;
   }

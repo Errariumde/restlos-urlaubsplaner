@@ -108,6 +108,15 @@ describe("theme", () => {
     return value;
   };
   it("keeps an object nested 32 levels deep", () => expect(codes(read({ theme: nested(32) }))).toEqual([]));
+  it.each([
+    ['{"colors":{"__proto__":{"polluted":true}}}'],
+    ['{"constructor":{"prototype":{"polluted":true}}}'],
+    ['{"a":[1,{"b":{"prototype":2}}]}'],
+  ])("replaces %s, which holds a prototype key, by null", (json) => {
+    const result = readFile(minimal({ theme: JSON.parse(json) as unknown }));
+    expect(codes(result)).toEqual(["invalidEntry@theme"]);
+    expect(fileOf(result).theme).toBeNull();
+  });
   it.each([["an array", []], ["a string", "dark"], ["a number", 3], ["an object nested 33 levels deep", nested(33)]])("replaces %s by null", (_name, theme) => {
     const result = read({ theme });
     expect(codes(result)).toEqual(["invalidEntry@theme"]);

@@ -31,6 +31,12 @@ describe("region", () => {
     expect(codes(result)).toEqual(["unknownLocalRule@contract.region.options.renamedOption"]);
     expect(contractOf(result).region).toEqual({ country: "DE", state: "BY", options: { assumption: true } });
   });
+  it.each(["__proto__", "constructor", "prototype"])("drops the option %s", (key) => {
+    const options = JSON.parse(`{"${key}":true,"assumption":true}`) as unknown;
+    const result = withContract({ region: { country: "DE", state: "BY", options } });
+    expect(codes(result)).toEqual([`unknownLocalRule@contract.region.options.${key}`]);
+    expect(Object.keys(contractOf(result).region.options ?? {})).toEqual(["assumption"]);
+  });
   it("reports a non-boolean option", () =>
     expect(codes(withContract({ region: { country: "DE", state: "BY", options: { assumption: "yes" } } }))).toEqual(["invalidEntry@contract.region.options.assumption"]));
 });
@@ -141,6 +147,18 @@ describe("references", () => {
     const result = withContract({ references: { ok: good, http: { ...good, url: "http://example.org" }, noDate: { title: "T", version: "1", url: "https://example.org" } } });
     expect(codes(result)).toEqual(["invalidEntry@contract.references.http", "invalidEntry@contract.references.noDate"]);
     expect(Object.keys(contractOf(result).references)).toEqual(["ok"]);
+  });
+  it("drops the keys __proto__, constructor and prototype, and a rule's citation of one", () => {
+    const references = JSON.parse(`{"__proto__":${JSON.stringify(good)},"constructor":${JSON.stringify(good)},"prototype":${JSON.stringify(good)},"ok":${JSON.stringify(good)}}`) as unknown;
+    const result = withContract({ references, rules: [rule({ references: ["constructor", "ok"] })] });
+    expect(codes(result)).toEqual([
+      "invalidEntry@contract.references.__proto__",
+      "invalidEntry@contract.references.constructor",
+      "invalidEntry@contract.references.prototype",
+      "unknownReference@contract.rules[0].references[0]",
+    ]);
+    expect(Object.keys(contractOf(result).references)).toEqual(["ok"]);
+    expect(contractOf(result).rules[0]?.references).toEqual(["ok"]);
   });
 });
 

@@ -15,6 +15,8 @@ describe("readText", () => {
     expect(read(value)).toEqual({ text: value, report: [] }));
   it.each([{}, { DE: "x" }, { de: 1 }, 3])("reports invalidEntry for %j", (value) =>
     expect(read(value)).toEqual({ text: undefined, report: [{ code: "invalidEntry", path: "contract.name" }] }));
+  it.each(["__proto__", "constructor", "prototype"])("treats a language map with the key %s like one with a bad language code", (key) =>
+    expect(read(JSON.parse(`{"de":"x","${key}":"y"}`))).toEqual({ text: undefined, report: [{ code: "invalidEntry", path: "contract.name" }] }));
   it("reports textTooLong above the limit", () =>
     expect(read("x".repeat(201))).toMatchObject({ text: undefined, report: [{ code: "textTooLong", path: "contract.name" }] }));
   it("counts code points, not UTF-16 units (Review Focus 4)", () => expect(read("😀".repeat(200)).report).toEqual([]));

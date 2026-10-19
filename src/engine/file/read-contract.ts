@@ -8,7 +8,7 @@ import { countries } from "../../data/holidays";
 import { UNITS_PER_DAY, parseWeight, type Units } from "../weight";
 import { LIMITS, textLength } from "./limits";
 import { readMatch } from "./read-match";
-import { Refused, Report, at, checkKeys, child, isRecord } from "./report";
+import { Refused, Report, at, checkKeys, child, isPrototypeKey, isRecord } from "./report";
 import { readText } from "./text";
 import type { FileContract, FileRegion, FileRule, Reference } from "./types";
 
@@ -59,7 +59,7 @@ function readRegion(value: unknown, path: string, report: Report): FileRegion {
       const kept: [string, boolean][] = [];
       for (const key of Object.keys(optionsValue)) {
         const optionPath = child(optionsPath, key);
-        const defined = state !== undefined && country.localRules.some((rule) => rule.id === key && rule.regions.includes(state));
+        const defined = state !== undefined && !isPrototypeKey(key) && country.localRules.some((rule) => rule.id === key && rule.regions.includes(state));
         const flag = optionsValue[key];
         if (!defined) report.add("unknownLocalRule", optionPath);
         else if (typeof flag !== "boolean") report.add("invalidEntry", optionPath);
@@ -121,7 +121,7 @@ function readReferences(value: unknown, path: string, report: Report): Record<st
   for (const key of keys) {
     const entryPath = child(path, key);
     const entry = value[key];
-    if (!isId(key) || !isRecord(entry)) {
+    if (!isId(key) || isPrototypeKey(key) || !isRecord(entry)) {
       report.add("invalidEntry", entryPath);
       continue;
     }

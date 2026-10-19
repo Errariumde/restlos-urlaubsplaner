@@ -3,7 +3,7 @@
 
 import { LIMITS, utf8Length } from "./limits";
 import { isId } from "./read-contract";
-import { Refused, Report, at, checkKeys, child, isRecord } from "./report";
+import { Refused, Report, at, checkKeys, child, isPrototypeKey, isRecord } from "./report";
 import { readText } from "./text";
 import type { Template, TemplateImage, Theme } from "./types";
 
@@ -99,26 +99,38 @@ export function readTemplates(value: unknown, path: string, kind: "plan" | "rule
   return templates;
 }
 
-/** True when the value nests at most `MAX_THEME_DEPTH` levels (the theme itself is level 1). Iterative, so depth costs no stack. */
-function withinDepth(root: unknown): boolean {
+/**
+ * True when the value nests at most `MAX_THEME_DEPTH` levels (the theme itself is level 1) and no object in
+ * it has a prototype key. Iterative, so depth costs no stack.
+ */
+function isSafeTheme(root: unknown): boolean {
   let level: unknown[] = [root];
   for (let depth = 1; level.length > 0; depth++) {
     const next: unknown[] = [];
     for (const item of level) {
       if (typeof item !== "object" || item === null) continue;
       if (depth > MAX_THEME_DEPTH) return false;
-      const children: unknown[] = Array.isArray(item) ? (item as unknown[]) : Object.values(item as Record<string, unknown>);
-      for (const entry of children) next.push(entry);
+      if (Array.isArray(item)) {
+        for (const entry of item as unknown[]) next.push(entry);
+        continue;
+      }
+      for (const [key, entry] of Object.entries(item as Record<string, unknown>)) {
+        if (isPrototypeKey(key)) return false;
+        next.push(entry);
+      }
     }
     level = next;
   }
   return true;
 }
 
-/** Reads `theme`: `null` or an object that is stored unchanged. Anything else is reported and read as `null`. */
+/**
+ * Reads `theme`: `null` or an object that is stored unchanged. Anything else, also an object nested too
+ * deeply or holding a prototype key anywhere, is reported and read as `null`.
+ */
 export function readTheme(value: unknown, path: string, report: Report): Theme {
   if (value === undefined || value === null) return null;
-  if (!isRecord(value) || !withinDepth(value)) {
+  if (!isRecord(value) || !isSafeTheme(value)) {
     report.add("invalidEntry", path);
     return null;
   }
