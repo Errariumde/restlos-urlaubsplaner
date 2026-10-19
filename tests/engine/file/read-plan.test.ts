@@ -95,6 +95,21 @@ describe("plan section: days", () => {
     expect(codes(result)).toEqual(["duplicateDate@plan.days[1].date"]);
     expect(load(result).plan.days).toEqual([{ day: d("2027-05-07"), take: 480 }]);
   });
+  it("reads no further into a duplicate: no unknownField or notMultipleOfMinUnit for it", () => {
+    const result = readFile(
+      planFile(
+        { days: [{ date: "2027-05-07", take: "1" }, { date: "2027-05-07", take: "1/4", part: "end", colour: 1 }, { date: "2027-05-10", take: "1" }] },
+        { contract: { ...BAVARIA_CONTRACT, minUnit: "1/2" } },
+      ),
+    );
+    expect(codes(result)).toEqual(["duplicateDate@plan.days[1].date"]);
+    expect(load(result).plan.days.map((day) => day.day)).toEqual([d("2027-05-07"), d("2027-05-10")]);
+  });
+  it("keeps a later entry of a date when the first is invalid", () => {
+    const result = read({ days: [{ date: "2027-05-07", take: "0" }, { date: "2027-05-07", take: "1" }] });
+    expect(codes(result)).toEqual(["invalidEntry@plan.days[0]"]);
+    expect(load(result).plan.days).toEqual([{ day: d("2027-05-07"), take: 480 }]);
+  });
   it("refuses 2001 entries", () => {
     const days = Array.from({ length: 2001 }, (_, i) => ({ date: isoFromDay(d("2027-01-01") + (i % 300)), take: "1" }));
     expect(read({ days })).toMatchObject({ ok: false, refusal: { code: "limitExceeded", path: "plan.days", data: { limit: "planDays" } } });
@@ -183,6 +198,16 @@ describe("plan section: suggested parts", () => {
     expect(load(result).plan.days).toEqual([{ day: d("2027-05-12"), take: 240, part: "end" }]);
   });
   it("gives no suggestion for a full day", () => expect(codes(read({ days: [{ date: "2027-05-12", take: "1" }] }))).toEqual([]));
+  it("reports nothing but duplicateDate for a dropped duplicate of a drafted half day", () => {
+    const result = read({ days: [{ date: "2026-12-30", take: "1/2" }, { date: "2026-12-30", take: "1/2" }] });
+    expect(codes(result)).toEqual(["outsidePeriod@plan.days[0]", "duplicateDate@plan.days[1].date", "partSuggested@plan.days[0]"]);
+    expect(load(result).plan.days).toEqual([{ day: d("2026-12-30"), take: 240, part: "end" }]);
+  });
+  it("reports partSuggested in file order across the period's start", () => {
+    const result = read({ days: [{ date: "2027-05-12", take: "1/2" }, { date: "2026-12-30", take: "1/2" }, { date: "2027-05-10", take: "1/2" }] });
+    expect(codes(result)).toEqual(["outsidePeriod@plan.days[1]", "partSuggested@plan.days[0]", "partSuggested@plan.days[1]", "partSuggested@plan.days[2]"]);
+    expect(result.ok && result.report.slice(1).map((entry) => entry.data?.["part"])).toEqual(["end", "end", "start"]);
+  });
   it("drafts a half day outside the period as end and reports it", () => {
     const result = read({ days: [{ date: "2026-12-30", take: "1/2" }] });
     expect(codes(result)).toEqual(["outsidePeriod@plan.days[0]", "partSuggested@plan.days[0]"]);

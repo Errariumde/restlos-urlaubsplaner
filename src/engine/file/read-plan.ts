@@ -62,7 +62,8 @@ function readList(value: unknown, path: string, max: number, limit: string): rea
 
 /**
  * Reads the entries of one list: `readOne` returns the entry or undefined (it has reported the reason);
- * the first entry of a date wins, a later one is `duplicateDate`; the result is sorted by day.
+ * the first valid entry of a date wins, a later one is `duplicateDate` and isn't read any further; the
+ * result is sorted by day.
  */
 function readEntries<T extends { readonly day: DayNumber }>(
   value: unknown,
@@ -83,12 +84,12 @@ function readEntries<T extends { readonly day: DayNumber }>(
       context.report.add("invalidEntry", entryPath);
       continue;
     }
-    const read = readOne(entry, entryPath, date);
-    if (!read) continue;
     if (seen.has(date)) {
       context.report.add("duplicateDate", child(entryPath, "date"));
       continue;
     }
+    const read = readOne(entry, entryPath, date);
+    if (!read) continue;
     seen.add(date);
     if (date < context.bounds.from || date > context.bounds.to) context.report.add("outsidePeriod", entryPath);
     kept.push(read);
@@ -161,7 +162,7 @@ function readNotes(value: unknown, path: string, context: Context): Note[] {
 
 export interface PlanDraft {
   readonly plan: FilePlan;
-  /** Leave whose part was missing and drafted as "end", with the path of its entry. */
+  /** Leave whose part was missing and drafted as "end", with the path of its entry, in file order. */
   readonly drafted: ReadonlyMap<LeaveDay, string>;
 }
 

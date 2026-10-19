@@ -4,7 +4,7 @@
 import { LIMITS, textLength, utf8Length } from "./limits";
 import { computationWindow, periodBounds } from "../counting/plan";
 import { suggestParts } from "../counting/suggest";
-import type { LeaveDay } from "../counting/types";
+import type { LeaveDay, Part } from "../counting/types";
 import { dayRuleWarningsMemo } from "../counting/warnings";
 import { expandSources, planInput } from "./model";
 import { readPlanDraft } from "./read-plan";
@@ -79,19 +79,18 @@ function readEnvelope(text: string): ReadResult {
   // A day outside the period keeps the drafted "end" (suggestions are only defined inside it) and is reported all the same.
   const bounds = periodBounds(plan.range);
   const inside = (entry: LeaveDay): boolean => entry.day >= bounds.from && entry.day <= bounds.to;
-  const requests = plan.days.filter((entry) => drafted.has(entry) && inside(entry));
+  const requests = [...drafted.keys()].filter(inside);
   const suggestions = suggestParts(
     planInput(draft),
     requests.map((entry) => ({ day: entry.day, take: entry.take })),
   );
+  const suggested = new Map<LeaveDay, Part>(requests.map((entry, index) => [entry, suggestions[index] ?? "end"]));
   const replaced = new Map<LeaveDay, LeaveDay>();
-  requests.forEach((entry, index) => {
-    const part = suggestions[index] ?? "end";
-    replaced.set(entry, { day: entry.day, take: entry.take, part });
-    report.add("partSuggested", drafted.get(entry) ?? "plan.days", { part });
-  });
+  // `drafted` is in file order, and so are the report entries.
   for (const [entry, path] of drafted) {
-    if (!inside(entry)) report.add("partSuggested", path, { part: "end" });
+    const part = suggested.get(entry) ?? "end";
+    if (inside(entry)) replaced.set(entry, { day: entry.day, take: entry.take, part });
+    report.add("partSuggested", path, { part });
   }
   const days = plan.days.map((entry) => replaced.get(entry) ?? entry);
   return { ok: true, file: { ...draft, plan: { ...plan, days } }, report: report.entries };
