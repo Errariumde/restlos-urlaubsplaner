@@ -42,3 +42,4 @@ There are no GitHub workflows yet; `npm run check` runs only locally. Without a 
 
 - The maintainer checks the looked-up action SHAs once and switches on the ruleset in the repository settings after the branch is merged.
 - `templates`, `e2e` and `release` come with the branches that add templates, the UI and the first release.
+- Timing tests: the two 10 MiB "at the limits" tests in `tests/engine/file/read-plan.test.ts` assert `readFile` under 1,000 ms. On an i7-8650U they take 600–730 ms, so a slower runner may fail them. Most of the time is the base cost of reading 85,000–100,000 entries. If they flake, see issue 0015 for the options; don't loosen the bound silently.
