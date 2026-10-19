@@ -168,6 +168,10 @@ describe("importOtherPlan: two plans importing each other (property)", () => {
       if (unit < a || unit >= FULL - b || (unit >= mandatoryFrom && unit < mandatoryTo)) union++;
     }
     expect(costOn(a2, SHARED) + costOn(b1, SHARED)).toBe(union);
+    // B importing A again, now with A2's spans: still every unit once, and B's own leave never clashes.
+    const b3 = importInto(planB, a2);
+    expect(costOn(a2, SHARED) + costOn(b3, SHARED)).toBe(union);
+    expect(computePlan(planInput(b3)).problems.filter((problem) => problem.code === "leaveTakenInOtherPlan")).toEqual([]);
   };
 
   it("charges every unit of the shared day once, with own leave in A at the start and in B at the end", () =>

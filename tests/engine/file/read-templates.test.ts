@@ -28,7 +28,15 @@ describe("templates", () => {
     expect(fileOf(result).templates).toEqual([]);
   });
   it("counts typ in UTF-8 bytes", () => {
+    expect(codes(read({ templates: [template({ typ: "ä".repeat(262_144) })] }))).toEqual([]);
     expect(codes(read({ templates: [template({ typ: "ä".repeat(262_145) })] }))).toEqual(["templateTooLarge@templates[0]"]);
+    expect(codes(read({ templates: [template({ typ: "😀".repeat(131_072) })] }))).toEqual([]);
+    expect(codes(read({ templates: [template({ typ: `${"😀".repeat(131_072)}a` })] }))).toEqual(["templateTooLarge@templates[0]"]);
+  });
+  it("counts an image's name and the Typst versions in characters (code points)", () => {
+    expect(codes(read({ templates: [template({ typst: "😀".repeat(200), images: [{ ...png(30), name: "😀".repeat(200) }] })] }))).toEqual([]);
+    expect(codes(read({ templates: [template({ images: [{ ...png(30), name: "😀".repeat(201) }] })] }))).toEqual(["invalidEntry@templates[0].images[0]"]);
+    expect(codes(read({ templates: [template({ typst: "😀".repeat(201) })] }))).toEqual(["invalidEntry@templates[0].typst"]);
   });
   it("accepts an image of 1 MB and rejects 1 MB + 1 byte decoded", () => {
     expect(codes(read({ templates: [template({ images: [png(1_048_575)] })] }))).toEqual([]);

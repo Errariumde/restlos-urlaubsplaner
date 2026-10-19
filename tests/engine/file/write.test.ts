@@ -335,6 +335,45 @@ describe("prepareSave", () => {
   it("is never done by writeFile", () => {
     expect(JSON.parse(writeFile(MODEL))).toMatchObject({ revision: 3 });
   });
+  it("keeps the largest safe revision instead of raising it beyond (R18)", () => {
+    const saved = prepareSave({ ...MODEL, revision: Number.MAX_SAFE_INTEGER });
+    expect(saved.revision).toBe(Number.MAX_SAFE_INTEGER);
+    expect(readFile(writeFile(saved))).toMatchObject({ ok: true, file: { revision: Number.MAX_SAFE_INTEGER } });
+    expect(prepareSave({ ...MODEL, revision: Number.MAX_SAFE_INTEGER - 1 }).revision).toBe(Number.MAX_SAFE_INTEGER);
+  });
+});
+
+describe("writeFile and sorted lists", () => {
+  // MODEL with more entries, in the order the reader produces.
+  const partner = MODEL.sources[1];
+  if (partner?.type !== "otherPlan") throw new Error("MODEL changed");
+  const sorted: PlanFile = {
+    ...MODEL,
+    sources: [
+      MODEL.sources[0] ?? partner,
+      { ...partner, entries: [...partner.entries, { kind: "leave", from: 240, to: 480, date: d("2027-03-02") }] },
+    ],
+    plan: {
+      ...MODEL.plan,
+      overrides: [...MODEL.plan.overrides, { required: 0, day: d("2027-03-05") }],
+      notes: [...MODEL.plan.notes, { text: "Back home", day: d("2027-03-09") }],
+    },
+  };
+  const reversed = <T>(list: readonly T[]): T[] => [...list].reverse();
+  const unsorted: PlanFile = {
+    ...sorted,
+    sources: sorted.sources.map((source) => ({ ...source, entries: reversed(source.entries) }) as PlanFile["sources"][number]),
+    plan: { ...sorted.plan, days: reversed(sorted.plan.days), overrides: reversed(sorted.plan.overrides), notes: reversed(sorted.plan.notes) },
+  };
+  it("writes days, overrides and notes by date, and source entries as the reader sorts them (R19)", () => {
+    expect(writeFile(unsorted)).toBe(writeFile(sorted));
+    const json = JSON.parse(writeFile(unsorted)) as { plan: { days: { date: string }[] }; sources: { entries: Record<string, unknown>[] }[] };
+    expect(json.plan.days.map((day) => day.date)).toEqual(["2027-03-01", "2027-03-03"]);
+    expect(json.sources[0]?.entries.map((entry) => ("date" in entry ? "date" : "match"))).toEqual(["date", "match"]);
+    expect(json.sources[1]?.entries.map((entry) => `${String(entry["date"])} ${String(entry["from"])}`)).toEqual(["2027-03-01 0", "2027-03-02 1/4", "2027-03-02 1/2"]);
+  });
+  it("reads back what it wrote from an unsorted model as the sorted model", () =>
+    expect(readFile(writeFile(unsorted))).toEqual({ ok: true, file: sorted, report: [] }));
 });
 
 describe("toRuleSet", () => {

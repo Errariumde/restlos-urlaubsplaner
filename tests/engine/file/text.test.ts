@@ -19,7 +19,10 @@ describe("readText", () => {
     expect(read(JSON.parse(`{"de":"x","${key}":"y"}`))).toEqual({ text: undefined, report: [{ code: "invalidEntry", path: "contract.name" }] }));
   it("reports textTooLong above the limit", () =>
     expect(read("x".repeat(201))).toMatchObject({ text: undefined, report: [{ code: "textTooLong", path: "contract.name" }] }));
-  it("counts code points, not UTF-16 units (Review Focus 4)", () => expect(read("😀".repeat(200)).report).toEqual([]));
+  it("counts code points, not UTF-16 units (Review Focus 4)", () => {
+    expect(read("😀".repeat(200)).report).toEqual([]);
+    expect(read("😀".repeat(201))).toEqual({ text: undefined, report: [{ code: "textTooLong", path: "contract.name", data: { limit: 200 } }] });
+  });
   it("checks the length of every language", () =>
     expect(read({ de: "x", en: "y".repeat(201) })).toMatchObject({ report: [{ code: "textTooLong", path: "contract.name", data: { language: "en" } }] }));
 });

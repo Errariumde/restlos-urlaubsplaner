@@ -5,6 +5,7 @@ import type { DayMatch, LeaveDay, PlanPeriod, RangeMatch, RequiredOverride, Work
 import { WEEKDAYS, isoFromDay } from "../days";
 import type { DateRule } from "../holidays/types";
 import { formatAmount, formatSpan, formatWeight } from "../weight";
+import { sortEntries } from "./read-sources";
 import type {
   AnyFile,
   Color,
@@ -159,7 +160,7 @@ function writeSource(source: FileSource, withOrigin: boolean): Json {
     ["color", writeColor(source.color)],
     ["visible", source.visible],
     ["plan", source.type === "otherPlan" ? writePlanRef(source.plan) : undefined],
-    ["entries", source.entries.map((entry) => writeEntry(source, entry))],
+    ["entries", sortEntries<FileSource["entries"][number]>(source.entries).map((entry) => writeEntry(source, entry))],
   ]);
 }
 
@@ -180,13 +181,15 @@ const writeOverride = (override: RequiredOverride): Json =>
   ordered([["date", isoFromDay(override.day)], ["required", formatWeight(override.required)], ["part", override.part]]);
 const writeRangeMonths = (range: PlanPeriod): Json => ({ from: month(range.from), to: month(range.to) });
 
+const byDay = <T extends { readonly day: number }>(list: readonly T[]): T[] => [...list].sort((a, b) => a.day - b.day);
+
 function writePlan(plan: FilePlan): Json {
   return ordered([
     ["range", writeRangeMonths(plan.range)],
     ["allowance", formatAmount(plan.allowance)],
-    ["days", plan.days.map(writeDay)],
-    ["overrides", plan.overrides.map(writeOverride)],
-    ["notes", plan.notes.map((note) => ({ date: isoFromDay(note.day), text: note.text }))],
+    ["days", byDay(plan.days).map(writeDay)],
+    ["overrides", byDay(plan.overrides).map(writeOverride)],
+    ["notes", byDay(plan.notes).map((note) => ({ date: isoFromDay(note.day), text: note.text }))],
   ]);
 }
 
@@ -195,7 +198,8 @@ const isPersonal = (source: FileSource): boolean => source.type === "otherPlan" 
 
 /**
  * Writes a plan file or rule set as JSON text: keys in canonical order, 2-space indentation, one final line break.
- * The model is written as it is (sorted lists are the reader's and the editor's job); `revision` is not touched.
+ * `days`, `overrides` and `notes` are written by date and source entries in the reader's order (`sortEntries`);
+ * everything else is written as it is, and `revision` is not touched.
  */
 export function writeFile(file: AnyFile): string {
   const plan = file.kind === "plan";
@@ -215,9 +219,13 @@ export function writeFile(file: AnyFile): string {
   return `${JSON.stringify(json, null, 2)}\n`;
 }
 
-/** The file for saving: revision + 1; with `newId` ("Save as"), that id and revision 1. */
+/**
+ * The file for saving: revision + 1, but never above Number.MAX_SAFE_INTEGER, the largest revision a reader
+ * accepts; with `newId` ("Save as"), that id and revision 1.
+ */
 export function prepareSave(file: AnyFile, newId?: string): AnyFile {
-  return newId === undefined ? { ...file, revision: file.revision + 1 } : { ...file, id: newId, revision: 1 };
+  if (newId !== undefined) return { ...file, id: newId, revision: 1 };
+  return { ...file, revision: Math.min(file.revision + 1, Number.MAX_SAFE_INTEGER) };
 }
 
 function withoutOrigin<T extends { readonly origin?: string }>(item: T): Omit<T, "origin"> {

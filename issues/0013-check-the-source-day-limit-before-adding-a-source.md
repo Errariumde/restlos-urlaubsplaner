@@ -32,3 +32,5 @@ The reader refuses a plan file whose calendar sources give more than 50,000 days
 ## Notes
 
 Adding entries to an existing source and lengthening the plan period (a longer computation window) can reach the same limits; the same check fits there.
+
+A second route: a rule set is read without the source-day check, because it has no period and so no computation window. A plan made from it with "New → From rule set" can exceed the limit and become unreadable after saving, so the UI must check the new plan there too.

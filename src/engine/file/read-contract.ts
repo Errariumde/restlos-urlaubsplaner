@@ -197,11 +197,12 @@ function readRule(
     }
   }
 
-  // A text over its limit has been reported by readText; the rule goes with it (the design's table).
+  // A text over its limit (or not a text) has been reported by readText; the rule goes with it (the design's
+  // table), which is reported for the rule as well, so that the dropped rule doesn't pass for a dropped text.
   const label = value["label"] === undefined ? undefined : readText(value["label"], child(path, "label"), LIMITS.shortText, report);
-  if (value["label"] !== undefined && label === undefined) return undefined;
+  if (value["label"] !== undefined && label === undefined) return fail("label");
   const note = value["note"] === undefined ? undefined : readText(value["note"], child(path, "note"), LIMITS.longText, report);
-  if (value["note"] !== undefined && note === undefined) return undefined;
+  if (value["note"] !== undefined && note === undefined) return fail("note");
 
   // Rule sets have no `origin`; there it counts as an unknown field.
   checkKeys(value, kind === "plan" ? RULE_KEYS : RULE_KEYS.filter((key) => key !== "origin"), path, report);

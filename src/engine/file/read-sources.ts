@@ -171,11 +171,15 @@ function readEntry(
   return entry;
 }
 
-/** Date entries by date (other-plan entries then by `from`), then match entries in their list order. */
-function sortEntries(entries: readonly ReadEntry[]): ReadEntry[] {
-  const dated = entries.filter((entry) => entry.date !== undefined);
-  const matched = entries.filter((entry) => entry.date === undefined);
-  dated.sort((a, b) => (a.date ?? 0) - (b.date ?? 0) || (a.from ?? 0) - (b.from ?? 0));
+/**
+ * The canonical order of a source's entries, used by the reader and the writer: date entries by date
+ * (other-plan entries then by `from`), then match entries in their list order.
+ */
+export function sortEntries<T extends object>(entries: readonly T[]): T[] {
+  const field = (entry: T, key: "date" | "from"): number | undefined => (key in entry ? ((entry as Record<string, unknown>)[key] as number) : undefined);
+  const dated = entries.filter((entry) => field(entry, "date") !== undefined);
+  const matched = entries.filter((entry) => field(entry, "date") === undefined);
+  dated.sort((a, b) => (field(a, "date") ?? 0) - (field(b, "date") ?? 0) || (field(a, "from") ?? 0) - (field(b, "from") ?? 0));
   return [...dated, ...matched];
 }
 

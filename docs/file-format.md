@@ -23,11 +23,12 @@ The app recognizes a file by `schema` and `kind`, not by its name.
 
 ## Values
 
-- **Weights** are shares of a day, written as strings: `"1"`, `"1/2"`, `"0"`, `"3/32"`. Readers accept fractions and decimal strings with a decimal point (`"0.5"`); the app writes reduced fractions. A weight lies between 0 and 1 and must be exact in 1/480 day: `"1/7"` and `"0.3"` are invalid.
+- **Weights** are shares of a day, written as strings: `"1"`, `"1/2"`, `"0"`, `"3/32"`. Readers accept fractions and decimal strings with a decimal point (`"0.5"`); the app writes reduced fractions. A weight lies between 0 and 1 and must be exact in 1/480 day: `"1/7"` and `"0.33"` are invalid (`"0.3"` is 144/480 and valid).
 - **Amounts** (only `plan.allowance`) are written like weights but go from 0 to 10,000 days: `"30"`, `"30.5"`, `"61/2"`.
 - **Dates** are ISO dates (`"2027-05-07"`), **months** are `"YYYY-MM"`, **years** are whole numbers; all lie between 1583 and 9999.
 - **IDs** are non-empty strings of at most 200 characters (`"christmas-eve"`). Rule, source and template IDs are unique within their list.
 - **Characters** are counted as Unicode code points.
+- **Keys** a file chooses itself (reference keys, language codes, option names, keys inside `theme`) are never `__proto__`, `constructor` or `prototype`; an entry with such a key is invalid.
 
 ### Texts
 
@@ -48,7 +49,7 @@ Keys in the order the app writes them:
 | `schema` | `"restlos/1"`. |
 | `kind` | `"plan"` or `"ruleSet"`. |
 | `id` | The file's identity, an ID. The app creates a random UUID version 4 at "New"; "Save as" and "New → Based on the current file" create a new one. |
-| `revision` | Whole number from 1, raised by 1 on every save; a new `id` starts at 1. |
+| `revision` | Whole number from 1, raised by 1 on every save; a new `id` starts at 1. It stays at 9,007,199,254,740,991, the largest whole number a reader accepts, once it gets there. |
 | `ruleSet` | Plan files only, optional: the rule set the plan was created from or last updated from, as a [plan reference](#plan-references). |
 | `contract` | Required, see [Contract](#contract). |
 | `sources` | Calendar sources, see [Calendar sources](#calendar-sources). Missing reads as `[]`. |
@@ -174,7 +175,7 @@ An entry covers one date or the days of a repeating `match`. Keys in the order t
 
 An `otherPlan` entry is always a date entry, written as `date`, `name`, `from`, `to`, `kind`.
 
-Entries are kept in a fixed order: date entries by date (other-plan entries on the same date by `from`), then match entries in their list order. The reader sorts them this way, so files written by hand may list them in any order.
+Entries are kept in a fixed order: date entries by date (other-plan entries on the same date by `from`), then match entries in their list order. The reader and the writer sort them this way, so files written by hand may list them in any order.
 
 To compute a plan, match entries are expanded over the computation window (the plan period and 60 days on either side), without the `except` dates; date entries are taken as they are. All sources of a plan together may give at most 50,000 days.
 
@@ -232,7 +233,7 @@ The reader checks only the shape and the limits; what a template contains is def
 
 ## Color scheme
 
-`theme` is `null` or an object, stored and written back unchanged; it may nest at most 32 levels and counts towards the file size. What a color scheme contains is defined with the color editor.
+`theme` is `null` or an object, stored and written back unchanged; it may nest at most 32 levels, none of its objects may have a key `__proto__`, `constructor` or `prototype`, and it counts towards the file size. What a color scheme contains is defined with the color editor.
 
 ## Plan
 
@@ -295,10 +296,10 @@ A report entry has a `code`, the `path` of the affected value (`"contract.rules[
 | --- | --- | --- |
 | `unknownField` | A key the format doesn't define, including `origin` in a rule set and `validFrom`, `validUntil` or `except` on a date entry | dropped; saving writes only known keys |
 | `invalidEntry` | An invalid entry of a list: rule, reference, source, source entry, `except` date, template, image, leave day, override, note. Also an invalid `ruleSet` reference, a rule set's invalid `state`, invalid `options` or a single option that is not `true` or `false`, a `references` or `theme` value of the wrong kind | that entry dropped, the rest loads; an invalid image drops its template; an invalid `theme` reads as `null`. For rules, source entries, leave days, overrides and notes, `data.field` names the first invalid field (`{ "field": "take" }`) |
-| `duplicateDate` | The same date twice in `days`, `overrides` or `notes` | the first kept, later ones dropped |
+| `duplicateDate` | The same date twice in `days`, `overrides` or `notes` | the first valid one kept, later ones dropped without being read any further |
 | `duplicateId` | The same ID twice among rules, sources or templates | the first kept, later ones dropped |
 | `unknownReference` | A rule cites a key that `contract.references` doesn't have (`data.reference`) | the citation dropped, the rule kept |
-| `textTooLong` | A text over its limit (`data.limit`; `data.language` for a language map) | the entry that holds the text dropped: a rule with an over-long `label` or `note` as a whole, likewise a reference, a source, a source entry, a template, a note, the `ruleSet` reference; an over-long `contract.name` or `description` is left out |
+| `textTooLong` | A text over its limit (`data.limit`; `data.language` for a language map) | the entry that holds the text dropped: a rule with an over-long `label` or `note` as a whole, reported also as `invalidEntry` of the rule with `data.field`; likewise a reference, a source, a source entry, a template, a note, the `ruleSet` reference; an over-long `contract.name` or `description` is left out |
 | `sourceTooLarge` | A source with more than 2000 entries, or one of its entries with more than 400 `except` dates (`data.limit`: `entriesPerSource` or `exceptPerEntry`) | that source dropped |
 | `templateTooLarge` | A `typ` over 512 KB, an image over 1 MB or a template's images over 2 MB together (`data.limit`: `typBytes`, `imageBytes` or `templateImageBytes`) | that template dropped |
 | `unknownLocalRule` | An option the holiday data doesn't define for the selected state, for example after a local rule was renamed or removed, or any option in a rule set without `state` | the option dropped |
@@ -366,9 +367,9 @@ KB and MB are binary: 1 MB is 1,048,576 bytes. Reading and computing any file wi
 | template | `id`, `origin`, `name`, `api`, `typst`, `typ`, `images` (`name`, `type`, `data`) |
 | plan | `range` (`from`, `to`), `allowance`, `days` (`date`, `take`, `part`), `overrides` (`date`, `required`, `part`), `notes` (`date`, `text`) |
 
-Weights are written as reduced fractions (`"1/2"`, never `"0.5"`), the allowance too (`"61/2"` for 30½ days), other-plan spans with a shared denominator. `days`, `overrides` and `notes` are sorted by date and source entries as described under [Entries](#entries). The lists `rules`, `sources`, `entries`, `templates`, `days`, `overrides` and `notes` are always written, also when empty, and so is `theme`; `references` only when it has entries. Reading a file the app wrote gives the same file again; its report then holds only notices that still apply, such as rule warnings or leave outside the period.
+Weights are written as reduced fractions (`"1/2"`, never `"0.5"`), the allowance too (`"61/2"` for 30½ days), other-plan spans with a shared denominator. `days`, `overrides` and `notes` are written sorted by date and source entries as described under [Entries](#entries), whatever the order in the model. The lists `rules`, `sources`, `entries`, `templates`, `days`, `overrides` and `notes` are always written, also when empty, and so is `theme`; `references` only when it has entries. Reading a file the app wrote gives the same file again; its report then holds only notices that still apply, such as rule warnings or leave outside the period.
 
-`writeFile` writes the file as it is. Saving first raises `revision` by 1; "Save as" gives a new `id` and `revision` 1. A rule set is always written without `plan`, `ruleSet`, `origin` and `otherPlan` or `needed` sources.
+`writeFile` writes the model as it is, except that it sorts those lists the way the reader does. Saving first raises `revision` by 1; "Save as" gives a new `id` and `revision` 1. A rule set is always written without `plan`, `ruleSet`, `origin` and `otherPlan` or `needed` sources.
 
 ## Example
 

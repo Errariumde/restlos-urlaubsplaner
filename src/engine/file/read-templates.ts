@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-import { LIMITS, utf8Length } from "./limits";
+import { LIMITS, textLength, utf8Length } from "./limits";
 import { isId } from "./read-contract";
 import { Refused, Report, at, checkKeys, child, isPrototypeKey, isRecord } from "./report";
 import { readText } from "./text";
@@ -21,7 +21,7 @@ function decodedSize(data: string): number | undefined {
 function readImage(value: unknown, path: string, report: Report): { image: TemplateImage; bytes: number } | undefined {
   if (!isRecord(value)) return undefined;
   const { name, type, data } = value;
-  if (typeof name !== "string" || name.length === 0 || name.length > LIMITS.shortText) return undefined;
+  if (typeof name !== "string" || name.length === 0 || textLength(name) > LIMITS.shortText) return undefined;
   const imageType = IMAGE_TYPES.find((candidate) => candidate === type);
   if (imageType === undefined || typeof data !== "string") return undefined;
   const bytes = decodedSize(data);
@@ -47,7 +47,7 @@ function readTemplate(value: unknown, path: string, kind: "plan" | "ruleSet", id
   const { api, typst, typ } = value;
   const origin = kind === "plan" ? value["origin"] : undefined;
   if (typeof api !== "number" || !Number.isSafeInteger(api) || api < 1) return fail("api");
-  if (typeof typst !== "string" || typst.length === 0 || typst.length > LIMITS.shortText) return fail("typst");
+  if (typeof typst !== "string" || typst.length === 0 || textLength(typst) > LIMITS.shortText) return fail("typst");
   if (typeof typ !== "string") return fail("typ");
   if (origin !== undefined && !isId(origin)) return fail("origin");
   if (utf8Length(typ) > LIMITS.typBytes) {

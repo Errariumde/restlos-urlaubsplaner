@@ -162,6 +162,20 @@ describe("references", () => {
   });
 });
 
+describe("over-long rule texts", () => {
+  it.each([
+    ["label", { label: "x".repeat(201) }, 200],
+    ["note", { note: { de: "x", en: "y".repeat(2001) } }, 2000],
+  ])("drops a rule with an over-long %s and reports the rule itself too (R20)", (field, extra, limit) => {
+    const result = withContract({ rules: [rule(extra), rule({ id: "r2" })] });
+    expect(result.ok && result.report).toEqual([
+      { code: "textTooLong", path: `contract.rules[0].${field}`, data: field === "note" ? { limit, language: "en" } : { limit } },
+      { code: "invalidEntry", path: "contract.rules[0]", data: { field } },
+    ]);
+    expect(contractOf(result).rules.map((r) => r.id)).toEqual(["r2"]);
+  });
+});
+
 describe("name and description", () => {
   it("drops a name over 200 characters", () => {
     const result = withContract({ name: "x".repeat(201), description: "d" });
