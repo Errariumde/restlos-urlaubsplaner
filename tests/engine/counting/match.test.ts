@@ -1,10 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
+import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { ruleDays } from "../../../src/engine/counting/match";
+import { ruleDays, ruleHasDay } from "../../../src/engine/counting/match";
 import type { DayMatch, RangeMatch } from "../../../src/engine/counting/types";
+import { MAX_DAY, MIN_DAY } from "../../../src/engine/days";
 import { d, easter, fixed, isoDays, once, span } from "./helpers";
+import { dateRuleArb, dayRuleArb, oracleRuleDays, rangeArb, yearArb } from "./oracle";
 
 const days = (match: DayMatch, from: string, to: string, validity: { validFrom?: number; validUntil?: number } = {}) =>
   isoDays(ruleDays({ match, ...validity }, d(from), d(to)));
@@ -82,4 +85,50 @@ describe("ruleDays", () => {
   );
   it("rejects a malformed range even when the validity makes it empty", () =>
     expect(() => ruleDays({ match: { type: "range", from: fixed(1, 1) }, validFrom: 2030, validUntil: 2029 }, d("2027-01-01"), d("2027-12-31"))).toThrow(RangeError));
+});
+
+describe("ruleDays and ruleHasDay against the per-year computation", () => {
+  // Windows of up to four years anywhere, also against both ends of the supported years.
+  const windowArb = fc
+    .tuple(fc.oneof(fc.integer({ min: MIN_DAY, max: MAX_DAY }), fc.integer({ min: MIN_DAY, max: MIN_DAY + 800 }), fc.integer({ min: MAX_DAY - 800, max: MAX_DAY })), fc.integer({ min: 0, max: 1500 }))
+    .map(([from, length]) => [from, Math.min(from + length, MAX_DAY)] as const);
+  it("matches the same days as computing every year with ruleDate", () =>
+    fc.assert(
+      fc.property(dayRuleArb, windowArb, (rule, [from, to]) => {
+        const expected = oracleRuleDays(rule, from, to);
+        expect(ruleDays(rule, from, to)).toEqual(expected);
+        expect(ruleHasDay(rule, from, to)).toBe(expected.length > 0);
+      }),
+      { numRuns: 500 },
+    ));
+  // Long windows let the walk skip repeated calendar years and take the shortcuts of Easter ranges.
+  const longWindowArb = fc
+    .tuple(fc.oneof(fc.integer({ min: MIN_DAY, max: MAX_DAY }), fc.integer({ min: MIN_DAY, max: MIN_DAY + 800 }), fc.integer({ min: MAX_DAY - 800, max: MAX_DAY })), fc.oneof(fc.integer({ min: 2000, max: 25_000 }), fc.constant(146_097)))
+    .map(([from, length]) => [Math.min(from, MAX_DAY - 2000), Math.min(from + length, MAX_DAY)] as const);
+  const calendarRule = dateRuleArb.filter((rule) => rule.type === "fixed" || rule.type === "weekdayRelative" || rule.type === "nthWeekday");
+  const easterRule = dateRuleArb.filter((rule) => rule.type === "easter" || rule.type === "orthodoxEaster");
+  it.each([
+    ["calendar rules", calendarRule],
+    ["Easter rules", easterRule],
+  ])("finds a day over long windows like the per-year computation, for ranges between %s", (_name, ends) =>
+    fc.assert(
+      fc.property(rangeArb(ends), fc.option(yearArb, { nil: undefined }), longWindowArb, (match, validFrom, [from, to]) => {
+        const rule = validFrom === undefined ? { match } : { match, validFrom };
+        expect(ruleHasDay(rule, from, to)).toBe(oracleRuleDays(rule, from, to).length > 0);
+      }),
+      { numRuns: 300 },
+    ));
+  it("finds a day that only years of one rare kind give, after many years of other kinds", () => {
+    const feb29: RangeMatch = { type: "range", from: { type: "fixed", month: 2, day: 29, nonLeap: "drop" }, days: 1, weekdays: ["mon"] };
+    expect(ruleHasDay({ match: feb29 }, d("2001-01-01"), d("2030-12-31"))).toBe(true); // 2016-02-29
+    expect(ruleHasDay({ match: feb29 }, d("2017-01-01"), d("2043-12-31"))).toBe(false);
+    for (const weekday of ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const) {
+      const match: RangeMatch = { ...feb29, weekdays: [weekday] };
+      for (const [from, to] of [["1583-01-01", "1700-12-31"], ["2001-01-01", "2400-12-31"], ["2017-03-01", "2048-02-28"]] as const) {
+        expect(ruleHasDay({ match }, d(from), d(to))).toBe(oracleRuleDays({ match }, d(from), d(to)).length > 0);
+      }
+    }
+  });
+  it("rejects a malformed range in ruleHasDay too", () =>
+    expect(() => ruleHasDay({ match: { type: "range", from: fixed(1, 1) } }, d("2027-01-01"), d("2027-12-31"))).toThrow(RangeError));
 });

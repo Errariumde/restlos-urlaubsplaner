@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-import { dayRuleWarnings } from "../counting/warnings";
+import { dayRuleWarningsMemo, type RuleWarningCheck } from "../counting/warnings";
 import type { WorkWeekEntry } from "../counting/types";
 import { MAX_YEAR, MIN_YEAR, WEEKDAYS, dayFromIso, type Weekday } from "../days";
 import { countries } from "../../data/holidays";
@@ -157,6 +157,7 @@ function readRule(
   references: Readonly<Record<string, Reference>>,
   kind: "plan" | "ruleSet",
   report: Report,
+  warnings: RuleWarningCheck,
 ): FileRule | undefined {
   const fail = (field?: string): undefined => {
     report.add("invalidEntry", path, field === undefined ? undefined : { field });
@@ -219,18 +220,25 @@ function readRule(
     ...(citations !== undefined ? { references: citations } : {}),
     ...(kind === "plan" && isId(value["origin"]) ? { origin: value["origin"] } : {}),
   };
-  for (const warning of dayRuleWarnings(rule)) report.add("ruleWarning", path, { warning: warning.code });
+  for (const warning of warnings(rule)) report.add("ruleWarning", path, { warning: warning.code });
   return rule;
 }
 
-function readRules(value: unknown, path: string, references: Readonly<Record<string, Reference>>, kind: "plan" | "ruleSet", report: Report): FileRule[] {
+function readRules(
+  value: unknown,
+  path: string,
+  references: Readonly<Record<string, Reference>>,
+  kind: "plan" | "ruleSet",
+  report: Report,
+  warnings: RuleWarningCheck,
+): FileRule[] {
   if (!Array.isArray(value)) throw new Refused({ code: "invalidCore", path });
   limit(value.length, LIMITS.rules, "rules", path);
   const rules: FileRule[] = [];
   const ids = new Set<string>();
   for (let i = 0; i < value.length; i++) {
     const rulePath = at(path, i);
-    const rule = readRule(value[i], rulePath, references, kind, report);
+    const rule = readRule(value[i], rulePath, references, kind, report, warnings);
     if (!rule) continue;
     if (ids.has(rule.id)) {
       report.add("duplicateId", child(rulePath, "id"));
@@ -243,7 +251,13 @@ function readRules(value: unknown, path: string, references: Readonly<Record<str
 }
 
 /** Reads `contract`. Throws `Refused` for core problems and for counts over a limit. */
-export function readContract(value: unknown, path: string, kind: "plan" | "ruleSet", report: Report): FileContract {
+export function readContract(
+  value: unknown,
+  path: string,
+  kind: "plan" | "ruleSet",
+  report: Report,
+  warnings: RuleWarningCheck = dayRuleWarningsMemo(),
+): FileContract {
   if (!isRecord(value)) throw new Refused({ code: "invalidCore", path });
   checkKeys(value, ["name", "description", "references", "region", "minUnit", "week", "rules"], path, report);
   const name = value["name"] === undefined ? undefined : readText(value["name"], child(path, "name"), LIMITS.shortText, report);
@@ -255,7 +269,7 @@ export function readContract(value: unknown, path: string, kind: "plan" | "ruleS
   if (kind === "plan" && region.state === undefined && (countries[region.country]?.regions.length ?? 0) > 0) throw new Refused({ code: "invalidCore", path: child(child(path, "region"), "state") });
   const minUnit = readMinUnit(value["minUnit"], child(path, "minUnit"), report);
   const week = readWeek(value["week"], child(path, "week"), report);
-  const rules = readRules(value["rules"], child(path, "rules"), references, kind, report);
+  const rules = readRules(value["rules"], child(path, "rules"), references, kind, report, warnings);
   return {
     ...(name !== undefined ? { name } : {}),
     ...(description !== undefined ? { description } : {}),

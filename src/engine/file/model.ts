@@ -13,8 +13,9 @@ import { LIMITS } from "./limits";
 function entryDays(entry: FileSource["entries"][number], from: DayNumber, to: DayNumber): DayNumber[] {
   if ("date" in entry) return entry.date >= from && entry.date <= to ? [entry.date] : [];
   const days = ruleDays(entry, from, to);
-  const except = entry.except;
-  return except && except.length > 0 ? days.filter((day) => !except.includes(day)) : days;
+  if (entry.except === undefined || entry.except.length === 0) return days;
+  const except = new Set(entry.except);
+  return days.filter((day) => !except.has(day));
 }
 
 /**

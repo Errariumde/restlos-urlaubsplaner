@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-import { dayRuleWarnings } from "../counting/warnings";
+import { dayRuleWarningsMemo, type RuleWarningCheck } from "../counting/warnings";
 import type { DayMatch, Part } from "../counting/types";
 import { MAX_YEAR, MIN_YEAR, type DayNumber } from "../days";
 import { UNITS_PER_DAY, type Units } from "../weight";
@@ -80,7 +80,14 @@ const FIELDS: Readonly<Record<SourceType, readonly string[]>> = {
 };
 
 /** Reads one entry of a source; reports and returns undefined when it must be dropped. */
-function readEntry(value: unknown, path: string, type: SourceType, sourceId: string, report: Report): ReadEntry | undefined {
+function readEntry(
+  value: unknown,
+  path: string,
+  type: SourceType,
+  sourceId: string,
+  report: Report,
+  warnings: RuleWarningCheck,
+): ReadEntry | undefined {
   const fail = (field?: string): undefined => {
     report.add("invalidEntry", path, field === undefined ? undefined : { field });
     return undefined;
@@ -159,7 +166,7 @@ function readEntry(value: unknown, path: string, type: SourceType, sourceId: str
   };
   if (match) {
     const rule = { id: sourceId, match, ...(isYear(validFrom) ? { validFrom } : {}), ...(isYear(validUntil) ? { validUntil } : {}), requiredAtMost: 0 };
-    for (const warning of dayRuleWarnings(rule)) report.add("ruleWarning", path, { warning: warning.code });
+    for (const warning of warnings(rule)) report.add("ruleWarning", path, { warning: warning.code });
   }
   return entry;
 }
@@ -178,6 +185,7 @@ function readSource(
   kind: "plan" | "ruleSet",
   seen: ReadonlySet<string>,
   report: Report,
+  warnings: RuleWarningCheck,
 ): FileSource | undefined {
   const fail = (field: string): undefined => {
     report.add("invalidEntry", child(path, field));
@@ -227,7 +235,7 @@ function readSource(
 
   const entries: ReadEntry[] = [];
   for (let i = 0; i < list.length; i++) {
-    const entry = readEntry(list[i], at(entriesPath, i), type, id, report);
+    const entry = readEntry(list[i], at(entriesPath, i), type, id, report, warnings);
     if (entry) entries.push(entry);
   }
   checkKeys(value, ["id", "name", "type", "color", "visible", "entries", ...(kind === "plan" ? ["origin"] : []), ...(type === "otherPlan" ? ["plan"] : [])], path, report);
@@ -248,14 +256,20 @@ function readSource(
  * Reads `sources`. A missing list reads as empty; anything but a list, or more than 50 sources, is refused.
  * Invalid sources and entries are dropped one by one with a report entry.
  */
-export function readSources(value: unknown, path: string, kind: "plan" | "ruleSet", report: Report): FileSource[] {
+export function readSources(
+  value: unknown,
+  path: string,
+  kind: "plan" | "ruleSet",
+  report: Report,
+  warnings: RuleWarningCheck = dayRuleWarningsMemo(),
+): FileSource[] {
   if (value === undefined) return [];
   if (!Array.isArray(value)) throw new Refused({ code: "invalidCore", path });
   if (value.length > LIMITS.sources) throw new Refused({ code: "limitExceeded", path, data: { limit: "sources" } });
   const sources: FileSource[] = [];
   const ids = new Set<string>();
   for (let i = 0; i < value.length; i++) {
-    const source = readSource(value[i], at(path, i), kind, ids, report);
+    const source = readSource(value[i], at(path, i), kind, ids, report, warnings);
     if (!source) continue;
     ids.add(source.id);
     sources.push(source);

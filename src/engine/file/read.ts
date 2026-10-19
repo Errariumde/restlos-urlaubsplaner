@@ -5,6 +5,7 @@ import { LIMITS, textLength, utf8Length } from "./limits";
 import { computationWindow, periodBounds } from "../counting/plan";
 import { suggestParts } from "../counting/suggest";
 import type { LeaveDay } from "../counting/types";
+import { dayRuleWarningsMemo } from "../counting/warnings";
 import { expandSources, planInput } from "./model";
 import { readPlanDraft } from "./read-plan";
 import { readPlanRef } from "./read-sources";
@@ -50,9 +51,11 @@ function readEnvelope(text: string): ReadResult {
   if (typeof revision !== "number" || !Number.isSafeInteger(revision) || revision < 1) throw new Refused({ code: "invalidCore", path: "revision" });
 
   const report = new Report();
+  // Rules and source entries with the same match and validity are checked for warnings once.
+  const warnings = dayRuleWarningsMemo();
   checkKeys(json, kind === "plan" ? PLAN_KEYS : RULE_SET_KEYS, "", report);
-  const contract = readContract(json["contract"], "contract", kind, report);
-  const sources = readSources(json["sources"], "sources", kind, report);
+  const contract = readContract(json["contract"], "contract", kind, report, warnings);
+  const sources = readSources(json["sources"], "sources", kind, report, warnings);
   const templates = readTemplates(json["templates"], "templates", kind, report);
   const theme = readTheme(json["theme"], "theme", report);
   if (kind === "ruleSet") {
