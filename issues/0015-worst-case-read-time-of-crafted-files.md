@@ -63,3 +63,29 @@ Options:
    - This kills this family, but not necessarily the next one.
    - The base cost of about 0.4–0.6 s for 85,000–100,000 entries stays, which is not "well under a second" either.
 3. **Reword the promise.** For example: "Realistic files read in milliseconds; a crafted file at the limits takes up to about a second." The code stays as it is.
+
+## Decisions
+
+Agreed with the maintainer on 2026-10-19 and 2026-10-20. The spec texts follow once the open points below are decided.
+
+- Opening runs in two visible steps: reading, then a check that produces the rule hints (`neverApplies`, `leapYearLength`, `mixedRangeEnds`). This replaces options 1–3.
+- No check before saving: a hint depends only on the rule, and the rule dialog checks every edit. The editor for source entries with a `match` does the same (UI branch).
+- The check counts its progress in rules: day rules plus match entries. The worst case may take up to about 2 s, with feedback.
+- The opened file's report is presented with the standard severities Error, Warning and Info.
+- Cancel while reading; Skip and Cancel while checking.
+- The progress bar shows from the start: indeterminate while reading, "rule n of N" while checking. The UI branch handles files that finish at once.
+- Spec changes approved on 2026-10-20:
+  - **2:** "well under a second" is replaced by: reading and checking grow at most linearly, gated by `npm run perf`. The target is 2 s for the worst file in Firefox ESR on the i7-8650U, noted at each release.
+  - **3:** opening and checking run in a Web Worker, with the progress bar from the start, Cancel while reading, and Skip and Cancel while checking. The version-1 feasibility tests get a row for Web Workers from `file://` with the CSP in `<meta>`.
+  - **5:** Valgrind joins the dev shell. `npm run perf` counts instructions with Cachegrind and V8's `--predictable`, with a growth check and a budget check against `perf/baseline.json`. It runs in `npm run check` and in CI. Tests make no wall-clock assertions.
+- Still open:
+  - spec change 1: the read report keeps only what reading did;
+  - spec change 4: a severity per code;
+  - the scenario sizes and the budget tolerance of `npm run perf`.
+
+Measurements behind the decisions (scratch runs, 2026-10-19/20, Node 24.21, Valgrind 3.26):
+
+- Cachegrind repeats: without `--predictable` one read varied by 16 %; with it, by 0.003 %.
+- A planted quadratic bug (the report searching its own list for duplicates) doubled the instruction count already at 1,000 entries, where it costs only 30 ms natively.
+- Linear code grows by 4.1× from 1,000 to 8,000 entries and by 1.95× from 8,000 to 16,000. The bug grows by 23.5× from 1,000 to 8,000 entries.
+- Handing the worst model from a worker to the page: 99 ms on the worker side and 172 ms on the page side by structured clone; 45 ms and 92 ms as a JSON string.
