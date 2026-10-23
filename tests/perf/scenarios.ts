@@ -29,12 +29,18 @@ export interface Scenario {
   readonly run: (input: string) => void; // the measured work
 }
 
-/** The model JSON of reading `text`: what the check and the writer take. Throws if the text is refused. */
-function modelJson(text: string): string {
-  const read = readFile(text);
-  if (!read.ok) throw new Error("perf scenario input is refused");
-  return JSON.stringify(read.file);
+/**
+ * The file read from `text`. Throws if the text is refused: the scenario would then measure only the refusal,
+ * and the gate would pass on work that was never done.
+ */
+function read(text: string): AnyFile {
+  const result = readFile(text);
+  if (!result.ok) throw new Error(`perf scenario input is refused (${result.refusal.code})`);
+  return result.file;
 }
+
+/** The model JSON of reading `text`: what the check and the writer take. Throws if the text is refused. */
+const modelJson = (text: string): string => JSON.stringify(read(text));
 
 const earlyEaster = (n: number): string => entriesPlan(takeEntries(earlyEasterRangesOffWeekday, n));
 const calendarRanges = (n: number): string => entriesPlan(takeEntries(calendarRangesOffWeekday, n));
@@ -45,7 +51,7 @@ export const SCENARIOS: readonly Scenario[] = [
     base: 1000,
     input: earlyEaster,
     run: (text) => {
-      readFile(text);
+      read(text);
     },
   },
   {
@@ -53,7 +59,7 @@ export const SCENARIOS: readonly Scenario[] = [
     base: 1000,
     input: (n) => entriesPlan(takeEntries(easterRangesJustOutOfReach, n)),
     run: (text) => {
-      readFile(text);
+      read(text);
     },
   },
   {
@@ -61,7 +67,7 @@ export const SCENARIOS: readonly Scenario[] = [
     base: 1000,
     input: calendarRanges,
     run: (text) => {
-      readFile(text);
+      read(text);
     },
   },
   {
@@ -69,8 +75,9 @@ export const SCENARIOS: readonly Scenario[] = [
     base: 125,
     input: limitsPlan,
     run: (text) => {
-      const read = readFile(text);
-      if (read.ok && read.file.kind === "plan") computePlan(planInput(read.file));
+      const file = read(text);
+      if (file.kind !== "plan") throw new Error("perf scenario input is not a plan file");
+      computePlan(planInput(file));
     },
   },
   {

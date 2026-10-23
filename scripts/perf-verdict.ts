@@ -23,11 +23,34 @@ export type Finding =
   | { readonly kind: "overBudget"; readonly scenario: string; readonly size: 8 | 16; readonly change: number }
   | { readonly kind: "cheaper"; readonly scenario: string; readonly size: 8 | 16; readonly change: number }
   | { readonly kind: "noBaseline"; readonly scenario: string }
+  | { readonly kind: "baselineOnly"; readonly scenario: string }
+  | { readonly kind: "noScenarios" }
+  | { readonly kind: "duplicateScenario"; readonly scenario: string }
   | { readonly kind: "otherEnvironment"; readonly baseline: { node: string; valgrind: string }; readonly measured: { node: string; valgrind: string } };
 
+/** The findings that are only notices; every other finding fails the gate. */
+const NOTICES: ReadonlySet<Finding["kind"]> = new Set(["cheaper", "noBaseline"]);
+
 /**
- * growth, overBudget and otherEnvironment fail the gate; cheaper and noBaseline are notices.
- * A baseline counted with another Node or Valgrind is not comparable: then only growth is checked.
+ * The problems of the scenario list itself, found before anything is counted: an empty list, and each name
+ * used more than once (perf-run.js finds a scenario by its name, and the baseline is keyed by it).
+ */
+export function checkScenarios(names: readonly string[]): readonly Finding[] {
+  if (names.length === 0) return [{ kind: "noScenarios" }];
+  const seen = new Set<string>();
+  const twice = new Set<string>();
+  for (const name of names) {
+    if (seen.has(name)) twice.add(name);
+    seen.add(name);
+  }
+  return [...twice].map((scenario) => ({ kind: "duplicateScenario", scenario }));
+}
+
+/**
+ * Every finding fails the gate except cheaper and noBaseline, which are notices. A growth or change that isn't
+ * a number within its limit fails too. A baseline counted with another Node or Valgrind is not comparable: then
+ * only growth is checked. A comparable baseline must not hold a scenario that isn't measured (baselineOnly):
+ * a renamed scenario would otherwise escape the budget.
  */
 export function verdict(measured: Counts, baseline: Counts | undefined): { readonly failed: boolean; readonly findings: readonly Finding[] } {
   const findings: Finding[] = [];
@@ -39,9 +62,11 @@ export function verdict(measured: Counts, baseline: Counts | undefined): { reado
       measured: { node: measured.node, valgrind: measured.valgrind },
     });
   }
-  for (const [scenario, work] of Object.entries(measured.work)) {
+  const scenarios = Object.entries(measured.work);
+  if (scenarios.length === 0) findings.push({ kind: "noScenarios" });
+  for (const [scenario, work] of scenarios) {
     const growth = work[1] / work[0];
-    if (growth > GROWTH_LIMIT) findings.push({ kind: "growth", scenario, growth });
+    if (!(growth <= GROWTH_LIMIT)) findings.push({ kind: "growth", scenario, growth });
     if (!comparable) continue;
     const before = baseline?.work[scenario];
     if (before === undefined) {
@@ -51,10 +76,15 @@ export function verdict(measured: Counts, baseline: Counts | undefined): { reado
     const bySize = [[SIZES[0], work[0], before[0]], [SIZES[1], work[1], before[1]]] as const;
     for (const [size, now, was] of bySize) {
       const change = (now - was) / was; // measured / baseline − 1, without rounding the quotient first
-      if (change > BUDGET_TOLERANCE) findings.push({ kind: "overBudget", scenario, size, change });
+      if (!(change <= BUDGET_TOLERANCE)) findings.push({ kind: "overBudget", scenario, size, change });
       else if (change < -BUDGET_TOLERANCE) findings.push({ kind: "cheaper", scenario, size, change });
     }
   }
-  const failed = findings.some((finding) => finding.kind === "growth" || finding.kind === "overBudget" || finding.kind === "otherEnvironment");
+  if (comparable && baseline !== undefined) {
+    for (const scenario of Object.keys(baseline.work)) {
+      if (!Object.hasOwn(measured.work, scenario)) findings.push({ kind: "baselineOnly", scenario });
+    }
+  }
+  const failed = findings.some((finding) => !NOTICES.has(finding.kind));
   return { failed, findings };
 }

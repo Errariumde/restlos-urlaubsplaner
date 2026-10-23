@@ -37,6 +37,7 @@ There are no GitHub workflows yet; `npm run check` runs only locally. Without a 
   - the npm cache with `actions/cache/restore` and `actions/cache/save`, keyed on the hash of `package-lock.json`, saved only on `main`;
   - `reuse` installed with `pip install --require-hashes -r` from a checked-in, hash-pinned requirements file, with its pip cache keyed on that file.
 - The `check` workflow runs the performance gate.
+- CI fails, not skips, when Valgrind is missing: `npm run perf` skips only when `CI` is not set, and fails otherwise (implemented on `file-format`, `scripts/perf.js`). The workflow sets `CI` (GitHub Actions does by default).
 - The Node.js version in CI matches the dev shell (Node 24, npm ≥ 11.10); `.npmrc` (`ignore-scripts`, `min-release-age`) applies unchanged.
 
 ## Notes

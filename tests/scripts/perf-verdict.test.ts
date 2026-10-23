@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 import { describe, expect, it } from "vitest";
-import { verdict, type Counts } from "../../scripts/perf-verdict";
+import { checkScenarios, verdict, type Counts } from "../../scripts/perf-verdict";
 
 const env = { node: "v24.21.0", valgrind: "valgrind-3.26.0" };
 
@@ -52,8 +52,8 @@ describe("verdict", () => {
 
   it("checks only growth for a scenario without a baseline", () => {
     const baseline = counts({ b: [1000, 2000] });
-    expect(verdict(counts({ a: [1000, 1950] }), baseline)).toEqual({ failed: false, findings: [{ kind: "noBaseline", scenario: "a" }] });
-    expect(verdict(counts({ a: [1000, 2300] }), baseline)).toEqual({
+    expect(verdict(counts({ a: [1000, 1950], b: [1000, 2000] }), baseline)).toEqual({ failed: false, findings: [{ kind: "noBaseline", scenario: "a" }] });
+    expect(verdict(counts({ a: [1000, 2300], b: [1000, 2000] }), baseline)).toEqual({
       failed: true,
       findings: [
         { kind: "growth", scenario: "a", growth: 2.3 },
@@ -91,4 +91,44 @@ describe("verdict", () => {
       ],
     });
   });
+
+  describe("fails closed", () => {
+    it.each([
+      ["no work at 8×", [0, 1000], Infinity],
+      ["no work at all", [0, 0], Number.NaN],
+      ["a count that isn't a number", [1000, Number.NaN], Number.NaN],
+    ] as const)("on a growth that isn't a finite number: %s", (_name, work, growth) => {
+      expect(verdict(counts({ a: work }), counts({ a: [1000, 2000] })).findings[0]).toEqual({ kind: "growth", scenario: "a", growth });
+      expect(verdict(counts({ a: work }), counts({ a: [1000, 2000] })).failed).toBe(true);
+    });
+
+    it("on a change against the baseline that isn't a number", () => {
+      expect(verdict(counts({ a: [1000, 2000] }), counts({ a: [1000, Number.NaN] }))).toEqual({
+        failed: true,
+        findings: [{ kind: "overBudget", scenario: "a", size: 16, change: Number.NaN }],
+      });
+    });
+
+    it("on no scenarios at all", () => {
+      expect(verdict(counts({}), undefined)).toEqual({ failed: true, findings: [{ kind: "noScenarios" }] });
+      expect(verdict(counts({}), counts({}))).toEqual({ failed: true, findings: [{ kind: "noScenarios" }] });
+    });
+
+    it("on a baseline entry without a scenario, which a renamed scenario would leave behind", () => {
+      expect(verdict(counts({ b: [1000, 2000] }), counts({ a: [1000, 2000], b: [1000, 2000] }))).toEqual({
+        failed: true,
+        findings: [{ kind: "baselineOnly", scenario: "a" }],
+      });
+    });
+  });
+});
+
+describe("checkScenarios", () => {
+  it("accepts scenarios with distinct names", () => expect(checkScenarios(["a", "b"])).toEqual([]));
+  it("fails an empty list", () => expect(checkScenarios([])).toEqual([{ kind: "noScenarios" }]));
+  it("fails each name used more than once, once", () =>
+    expect(checkScenarios(["a", "b", "a", "c", "a", "b"])).toEqual([
+      { kind: "duplicateScenario", scenario: "a" },
+      { kind: "duplicateScenario", scenario: "b" },
+    ]));
 });

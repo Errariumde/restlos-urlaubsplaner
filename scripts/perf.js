@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 // The performance gate: counts the instructions of every scenario in tests/perf/scenarios.ts with Cachegrind
-// (V8 --predictable) at 8× and 16× its base size, and fails on super-linear growth or on a count more than
-// 5 % over tests/perf/baseline.json (scripts/perf-verdict.ts). Part of npm run check.
+// (V8 --predictable) at 8× and 16× its base size, and fails on super-linear growth, on a count more than
+// 5 % over tests/perf/baseline.json, and on a scenario list or baseline whose names don't match
+// (scripts/perf-verdict.ts). Part of npm run check.
 // Usage: npm run perf                            the gate
 //        npm run perf -- --update                writes tests/perf/baseline.json (lowering or raising a value
 //                                                needs the maintainer's approval); refuses when growth fails
@@ -15,7 +16,7 @@ import { availableParallelism, tmpdir } from "node:os";
 import { join } from "node:path";
 import { earlyEasterRangesOffWeekday, entriesPlan, fillToLimits } from "../tests/engine/file/shapes.ts";
 import { SCENARIOS } from "../tests/perf/scenarios.ts";
-import { BUDGET_TOLERANCE, GROWTH_LIMIT, SIZES, verdict } from "./perf-verdict.ts";
+import { BUDGET_TOLERANCE, GROWTH_LIMIT, SIZES, checkScenarios, verdict } from "./perf-verdict.ts";
 
 const ROOT = join(import.meta.dirname, "..");
 const BASELINE = "tests/perf/baseline.json";
@@ -43,9 +44,14 @@ if (args.length > (update ? 1 : 0)) {
   process.exit(1);
 }
 
-// 1. Without Valgrind (outside the dev shell, or not on Linux) the gate is skipped; CI runs it.
+// 1. Without Valgrind (outside the dev shell, or not on Linux) the gate is skipped locally; in CI (`CI` set) it
+//    fails, so that CI never passes without having run it.
 const version = spawnSync("valgrind", ["--version"], { encoding: "utf8" });
 if (version.error !== undefined) {
+  if (process.env.CI) {
+    console.log("FAIL perf: Valgrind not found, and CI must run the gate (install Valgrind on the runner)");
+    process.exit(1);
+  }
   console.log("perf: skipped, Valgrind not found (the dev shell has it on Linux; CI runs the gate)");
   process.exit(0);
 }
@@ -126,11 +132,26 @@ function sentence(finding) {
       return `${finding.scenario} at ${String(finding.size)}×: ${percent(finding.change)} against the baseline; lower it with \`npm run perf -- --update\` (maintainer's approval).`;
     case "noBaseline":
       return `${finding.scenario} has no baseline yet; add it with \`npm run perf -- --update\` (maintainer's approval).`;
+    case "baselineOnly":
+      return (
+        `FAIL ${finding.scenario}: ${BASELINE} has it, but no scenario has that name, so a renamed scenario would escape the budget. ` +
+        "Run `npm run perf -- --update` and record the maintainer's approval in the commit message."
+      );
+    case "noScenarios":
+      return "FAIL tests/perf/scenarios.ts has no scenarios, so nothing would be measured.";
+    case "duplicateScenario":
+      return `FAIL ${finding.scenario}: more than one scenario has this name; perf-run.js would run the first one for each.`;
   }
 }
 
 async function gate(dir) {
-  // 2. The inputs, built natively.
+  // 2. The scenario list, checked before anything is counted; then the inputs, built natively.
+  const listed = checkScenarios(SCENARIOS.map((scenario) => scenario.name));
+  for (const finding of listed) console.log(sentence(finding));
+  if (listed.length > 0) {
+    console.log("perf: failed");
+    return 1;
+  }
   const jobs = [{ label: "startup", args: [] }];
   SCENARIOS.forEach((scenario, s) => {
     for (const size of SIZES) {
