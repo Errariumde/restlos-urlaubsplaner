@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Plan files and rule sets
 
-Reference for people who write plan files (`.urlaub.json`) and rule sets (`.regeln.json`) by hand, or who want to check what the app wrote. The TypeScript shape of a checked file is `AnyFile` in `src/engine/file/types.ts`. `readFile` in `src/engine/file/read.ts` reads untrusted text and returns either a refusal or the file with a report of everything it dropped, changed or noticed; `writeFile` in `src/engine/file/write.ts` writes a file in the canonical form described here. `npm run plan -- <file>` prints what the engine reads and computes for a plan file or rule set. Day rules have their own reference, [Day rules](day-rules-format.md).
+Reference for people who write plan files (`.urlaub.json`) and rule sets (`.regeln.json`) by hand, or who want to check what the app wrote. The TypeScript shape of a checked file is `AnyFile` in `src/engine/file/types.ts`. `readFile` in `src/engine/file/read.ts` reads untrusted text and returns either a refusal or the file with a report of everything it dropped, changed or noticed; `writeFile` in `src/engine/file/write.ts` writes a file in the canonical form described here. `npm run plan -- <file>` prints what the engine reads and computes for a plan file or rule set. Day rules have their own reference, [Day rules](day-rules-format.md). To write a file by hand, start from the [minimal examples](#minimal-examples).
 
 A file holds only language-neutral values (IDs, ISO dates, weights with a slash or a decimal point) and is self-contained: it never refers to another file. It carries no timestamp, no time zone, no working hours and nothing about the device or the person that saved it.
 
@@ -42,7 +42,7 @@ A language code is two or three lowercase letters, optionally followed by lowerc
 
 ### Required and optional
 
-A part of a file is required when the app can't work with the file or the entry without it and no default would be right for every file. It is optional when its absence has a default that is right for every file, or when only a feature the user may never use needs it. A missing optional part reads as its default and is not reported; a feature that needs it says so when it is used. An optional part that is present must be complete and valid like everything else. The key tables below, and the one in [Day rules](day-rules-format.md#top-level), mark every key as required or optional and give the defaults.
+A part of a file is required when the app can't work with the file or the entry without it and no default would be right for every file. It is optional when its absence has a default that is right for every file, or when only a feature the user may never use needs it. A missing optional part reads as its default and is not reported; a feature that needs it says so when it is used. An optional part that is present must be complete and valid like everything else. The key tables below, and the one in [Day rules](day-rules-format.md#top-level), mark every key as required or optional and give the defaults; [Minimal examples](#minimal-examples) shows two files with only the required keys.
 
 In the tables, *yes* means: missing or invalid refuses the file when the key belongs to the file itself, and drops the part or list entry that holds it otherwise. *No* gives the default. A present optional part that is invalid is dropped alone at the file, contract or plan level; inside a list entry the entry is dropped, except for values that are only shown (a rule's `label`, `note` and `references`, an entry's `name`), which are dropped alone.
 
@@ -158,14 +158,14 @@ A rule set fixes as much of the region as it knows: an agreement valid everywher
 
 | `type` | Meaning | Entry fields | Effect |
 | --- | --- | --- | --- |
-| `holiday` | lowers the required work | `required` (`"0"` … `"1"`, default `"0"`), `part` | lowering layer: the required work is at most `required` |
+| `holiday` | lowers the required work | `required` (`"0"` … `"1"`), `part` | lowering layer: the required work is at most `required` |
 | `paidClosure` | paid closure | – | required work 0 |
-| `mandatory` | mandatory leave | `take` (`"1/480"` … `"1"`, default `"1"`), `part` | that share of the day is taken and charged, like a `mandatory` day rule |
+| `mandatory` | mandatory leave | `take` (`"1/480"` … `"1"`), `part` | that share of the day is taken and charged, like a `mandatory` day rule |
 | `info` | background band, e.g. school holidays | – | none |
-| `needed` | time off needed: the user must be free, e.g. the Kita closes | `take` (`"1/480"` … `"1"`, default `"1"`), `part` | never costs; a problem on every day of the plan period where that much time is not free, see [Time off needed](#time-off-needed) |
+| `needed` | time off needed: the user must be free, e.g. the Kita closes | `take` (`"1/480"` … `"1"`), `part` | never costs; a problem on every day of the plan period where that much time is not free, see [Time off needed](#time-off-needed) |
 | `otherPlan` | leave from another plan | `from`, `to`, `kind` | never costs; see [Leave from another plan](#leave-from-another-plan) |
 
-`part` means the same in leave, overrides, rules and source entries: where in the day the free time lies, `"start"` or `"end"` of the working time. It is optional and defaults to `"end"`. A rule set never contains `otherPlan` or `needed` sources: both are personal.
+`part` means the same in leave, overrides, rules and source entries: where in the day the free time lies, `"start"` or `"end"` of the working time. A rule set never contains `otherPlan` or `needed` sources: both are personal.
 
 ### Entries
 
@@ -432,6 +432,43 @@ KB and MB are binary: 1 MB is 1,048,576 bytes. Reading and computing any file wi
 Weights are written as reduced fractions (`"1/2"`, never `"0.5"`), the allowance too (`"61/2"` for 30½ days), other-plan spans with a shared denominator. `days`, `overrides` and `notes` are written sorted by date and source entries as described under [Entries](#entries), whatever the order in the model. The lists `rules`, `sources`, `entries`, `templates`, `days`, `overrides` and `notes` are always written, also when empty, and so is `theme`; `references` only when it has entries. Reading a file the app wrote gives the same file again; its report then holds only notices that still apply, such as leave outside the period.
 
 `writeFile` writes the model as it is, except that it sorts those lists the way the reader does. Saving first raises `revision` by 1; "Save as" gives a new `id` and `revision` 1. A rule set is always written without `plan`, `ruleSet`, `origin` and `otherPlan` or `needed` sources.
+
+## Minimal examples
+
+The smallest files the app reads, with only the required keys, as a starting point for writing a file by hand; the app fills in the rest when it saves.
+
+```json
+{
+  "schema": "restlos/1",
+  "kind": "plan",
+  "id": "my-plan-2027",
+  "revision": 1,
+  "contract": {
+    "region": { "country": "DE", "state": "BY" },
+    "week": [
+      { "from": "2027-01-01", "required": { "mon": "1", "tue": "1", "wed": "1", "thu": "1", "fri": "1", "sat": "0", "sun": "0" } }
+    ]
+  },
+  "plan": { "range": { "from": "2027-01", "to": "2027-12" }, "allowance": "30" }
+}
+```
+
+```json
+{
+  "schema": "restlos/1",
+  "kind": "ruleSet",
+  "id": "my-rules",
+  "revision": 1,
+  "contract": {
+    "region": { "country": "DE" },
+    "week": [
+      { "from": "2027-01-01", "required": { "mon": "1", "tue": "1", "wed": "1", "thu": "1", "fri": "1", "sat": "0", "sun": "0" } }
+    ]
+  }
+}
+```
+
+Both are in `examples/minimal/`: `minimal.urlaub.json` and `minimal.regeln.json`.
 
 ## Example
 

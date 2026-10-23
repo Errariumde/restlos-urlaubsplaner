@@ -48,6 +48,7 @@ Code:
   - a range with both `to` and `days` drops `days` from the key.
 
   Either say "validated rules only" in the doc comment of the exported `dayRuleWarningsMemo`, or include both in the key.
+- [ ] `scripts/plan-summary.ts:95`: a rule set without rules prints a bare `Rules:` line (seen with `examples/minimal/minimal.regeln.json`); print `Rules: none`, as the other sections do.
 - [ ] `src/engine/counting/match.ts:48-49`: the comment says a range "may start in Y − 1 and end in Y + 1". It can also end in Y + 2, for a `weekdayRelative` "after 12/31" end, which is why the kind skip uses `toYear - 3`. The code is right; fix the comment.
 
 Tests:
