@@ -26,7 +26,7 @@ export type ReportCode = ErrorCode | NoticeCode;
 export type ReportData = Readonly<Record<string, string | number | readonly string[]>>;
 export interface ReportEntry {
   readonly code: ReportCode;
-  /** The key itself, in the text that was read. */
+  /** The key itself, in the text that was read; an empty key is written `""`. */
   readonly path: string;
   /** Set on every Error: the path of what is not loaded because of it; "" is the whole file. */
   readonly dropped?: string;
@@ -60,8 +60,8 @@ export class Report {
   }
 
   /**
-   * True when an Error was added whose `dropped` is exactly `path`. Linear in the report: called on the scratch
-   * report of one entry, or once on the whole report.
+   * True when an Error was added whose `dropped` is exactly `path`. Linear in the report, so it is called once
+   * per list entry, on that entry's scratch report.
    */
   drops(path: string): boolean {
     return this.entries.some((entry) => entry.dropped === path);
@@ -85,8 +85,15 @@ export class Refused extends Error {
   }
 }
 
-/** `child("", "contract")` is "contract"; `child("contract", "rules")` is "contract.rules". */
-export const child = (path: string, key: string): string => (path === "" ? key : `${path}.${key}`);
+/**
+ * `child("", "contract")` is "contract"; `child("contract", "rules")` is "contract.rules". An empty key is
+ * written `""` (two double quotes): `child("contract", "")` is `contract.""`, and a path is never "", which is
+ * the whole file.
+ */
+export const child = (path: string, key: string): string => {
+  const name = key === "" ? '""' : key;
+  return path === "" ? name : `${path}.${name}`;
+};
 /** `at("contract.rules", 2)` is "contract.rules[2]". */
 export const at = (path: string, index: number): string => `${path}[${String(index)}]`;
 

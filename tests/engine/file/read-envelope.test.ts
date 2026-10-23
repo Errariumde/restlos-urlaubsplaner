@@ -47,6 +47,21 @@ describe("readFile: a refused file lists every Error", () => {
   });
 });
 
+describe("readFile: an empty key", () => {
+  // An empty key is written `""` in a path; the path "" alone means the whole file.
+  it.each([
+    ["a plan file", planFile({}, { "": 1 })],
+    ["a rule set", minimal({ "": 1 })],
+  ])('loads %s with a root key ""', (_name, text) => {
+    const result = readFile(text);
+    expect(result.ok && result.report).toEqual([{ code: "unknownField", path: '""', dropped: '""' }]);
+  });
+  it('writes a nested empty key as ""', () => {
+    const result = readFile(minimal({ contract: { ...MINIMAL_CONTRACT, "": 1 } }));
+    expect(result.ok && result.report).toEqual([{ code: "unknownField", path: 'contract.""', dropped: 'contract.""' }]);
+  });
+});
+
 describe("readFile: optional lists", () => {
   const load = (result: ReturnType<typeof readFile>): PlanFile => {
     if (!result.ok || result.file.kind !== "plan") throw new Error("not a loaded plan file");

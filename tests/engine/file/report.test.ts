@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 import { describe, expect, it } from "vitest";
-import { Report } from "../../../src/engine/file/report";
+import { Report, at, child } from "../../../src/engine/file/report";
 
 /** A part with one Error and one Info about the entry `a`. */
 function part(): Report {
@@ -32,4 +32,11 @@ describe("Report", () => {
     expect([report.drops("b"), report.drops("a.x"), report.drops("a"), report.drops("b.take")]).toEqual([true, true, false, false]);
     expect(report.entries[2]).toEqual({ code: "invalidValue", path: "b.take", dropped: "b", data: { limit: 1 } });
   });
+});
+
+describe("paths", () => {
+  it("joins keys with dots and indexes with brackets", () =>
+    expect([child("", "contract"), child("contract", "rules"), at("contract.rules", 2)]).toEqual(["contract", "contract.rules", "contract.rules[2]"]));
+  it('writes an empty key as "", so that it is never the whole file', () =>
+    expect([child("", ""), child("contract", ""), child('""', "x")]).toEqual(['""', 'contract.""', '"".x']));
 });

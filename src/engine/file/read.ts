@@ -63,10 +63,9 @@ function readEnvelope(text: string): ReadResult {
   const sources = readSources(json["sources"], "sources", kind, report, positions);
   const templates = readTemplates(json["templates"], "templates", kind, report, positions);
   const theme = readTheme(json["theme"], "theme", report);
-  // A file is refused when an Error drops the whole file. Every core value that is undefined has such an Error;
-  // testing them as well only tells the compiler.
+  // A file is refused when a core value is undefined; each such value has an Error with `dropped: ""`.
   if (kind === "ruleSet") {
-    if (report.drops("") || id === undefined || revision === undefined || contract === undefined) return refuseCore(report);
+    if (id === undefined || revision === undefined || contract === undefined) return refuseCore(report);
     const file: RuleSetFile = { kind: "ruleSet", id, revision, contract, sources, templates, theme };
     return { ok: true, file, report: report.entries, positions };
   }
@@ -75,7 +74,7 @@ function readEnvelope(text: string): ReadResult {
   if (json["ruleSet"] !== undefined) ruleSet = readPlanRef(json["ruleSet"], "ruleSet", report, "ruleSet");
   const read = readPlanDraft(json["plan"], "plan", minUnit, report, positions);
   // A refused file gets no check of the source days and no part suggestions: both need the loaded file.
-  if (report.drops("") || id === undefined || revision === undefined || contract === undefined || read === undefined) return refuseCore(report);
+  if (id === undefined || revision === undefined || contract === undefined || read === undefined) return refuseCore(report);
   const { plan, drafted } = read;
   const draft: PlanFile = { kind: "plan", id, revision, ...(ruleSet ? { ruleSet } : {}), contract, sources, templates, theme, plan };
 

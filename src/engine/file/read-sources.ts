@@ -56,7 +56,10 @@ export function readPlanRef(value: unknown, path: string, report: Report, droppe
   return undefined;
 }
 
-/** Reads `except`: an invalid date drops only that date. */
+/**
+ * Reads `except`. Every invalid date is reported at its index and drops `dropped`, the entry: without it the
+ * entry would cover a day the file says to skip.
+ */
 function readExcept(value: unknown, path: string, report: Report, dropped: string): DayNumber[] | undefined {
   if (!Array.isArray(value)) {
     report.error("invalidValue", path, dropped);
@@ -65,10 +68,10 @@ function readExcept(value: unknown, path: string, report: Report, dropped: strin
   const days: DayNumber[] = [];
   for (let i = 0; i < value.length; i++) {
     const day = isoDay(value[i]);
-    if (day === undefined) report.error("invalidValue", at(path, i), at(path, i));
+    if (day === undefined) report.error("invalidValue", at(path, i), dropped);
     else days.push(day);
   }
-  return days;
+  return days.length === value.length ? days : undefined;
 }
 
 const FIELDS: Readonly<Record<SourceType, readonly string[]>> = {
@@ -225,7 +228,8 @@ function readSource(
   if (personal) report.error("personalSourceInRuleSet", path, path, { type });
   const color = readColor(value["color"], child(path, "color"), report, path);
   const visible = value["visible"] === undefined ? true : readOptional(value, "visible", parseBoolean, path, report, path);
-  const plan = type === "otherPlan" ? readPlanRef(value["plan"], child(path, "plan"), report, path) : undefined;
+  // A personal source in a rule set is dropped anyway: its `plan` is not checked, and its entries are not read.
+  const plan = type === "otherPlan" && !personal ? readPlanRef(value["plan"], child(path, "plan"), report, path) : undefined;
   const read = readSourceEntries(value, path, personal ? undefined : type, report);
   // Rule sets have no `origin`. `plan` belongs to other-plan sources; for a source without a known type it is not checked.
   const planKeys = type === undefined || type === "otherPlan" ? ["plan"] : [];

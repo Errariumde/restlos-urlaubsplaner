@@ -44,7 +44,7 @@ A language code is two or three lowercase letters, optionally followed by lowerc
 
 A part of a file is required when the app can't work with the file or the entry without it and no default would be right for every file. It is optional when its absence has a default that is right for every file, or when only a feature the user may never use needs it. A missing optional part reads as its default and is not reported; a feature that needs it says so when it is used. An optional part that is present must be complete and valid like everything else. The key tables below, and the one in [Day rules](day-rules-format.md#top-level), mark every key as required or optional and give the defaults; [Minimal examples](#minimal-examples) shows two files with only the required keys.
 
-In the tables, *yes* means: missing or invalid refuses the file when the key belongs to the file itself, and drops the part or list entry that holds it otherwise. *No* gives the default. A present optional part that is invalid is dropped alone at the file, contract or plan level; inside a list entry the entry is dropped, except for values that are only shown (a rule's `label`, `note` and `references`, an entry's `name`), which are dropped alone.
+In the tables, *yes* means: missing or invalid refuses the file when the key belongs to the file itself, and drops the part or list entry that holds it otherwise. *No* gives the default. A present optional part that is invalid is dropped alone at the file, contract or plan level; inside a list entry the entry is dropped, because reading the value as its default would make the entry do something the file doesn't say (an invalid `take`, `validFrom`, `weekdays` item or `except` date), except for values that are only shown (a rule's `label`, `note` and `references`, an entry's `name`), which are dropped alone.
 
 Two special cases: an invalid `contract.minUnit` reads as `"1/2"` and is a Warning (`invalidMinUnit`), not an Error; an option of `contract.region.options` that isn't `true` or `false`, or that the holiday data doesn't define, is dropped alone, so a broken switch doesn't refuse the file.
 
@@ -307,7 +307,7 @@ A rule set alone can't be computed: it has no period. "Save as rule set" writes 
 
 Nothing of a refused file is loaded. Unknown keys are reported but never looked into, so a deeply nested value costs no more than parsing it.
 
-A report entry has a `code`, the `path` of the key itself in the text that was read (`"contract.rules[2].match.month"`, `"plan.days[0].take"`), for an Error `dropped`: what is not loaded because of it (`""` is the whole file, otherwise the path of the dropped part or key), and, for some codes, `data` with what the message needs. The report carries no sentences; the app writes them in the UI language. A refusal has a `code`; a stop also has a `path` and `data` where they apply, while `invalidCore` has neither, because its report says where.
+A report entry has a `code`, the `path` of the key itself in the text that was read (`"contract.rules[2].match.month"`, `"plan.days[0].take"`), for an Error `dropped`: what is not loaded because of it (the empty string `""` is the whole file, otherwise the path of the dropped part or key), and, for some codes, `data` with what the message needs. A key that is the empty string is written in a path as two double-quote characters: an unknown top-level key `""` is reported with `path` and `dropped` both the two characters `""` (so only that key is dropped and the file loads), and an empty key inside `contract` at `contract.""`. The report carries no sentences; the app writes them in the UI language. A refusal has a `code`; a stop also has a `path` and `data` where they apply, while `invalidCore` has neither, because its report says where.
 
 `readFile` also returns `positions`: for every kept rule, source, source entry, template, leave day, override and note, its index in the list in the text that was read. Report entries and hints use paths in that text; `textPath` in `src/engine/file/positions.ts` turns a path in the loaded file into one in the text.
 
@@ -350,7 +350,7 @@ Error means not loaded and lost when saving, Warning loaded but changed or proba
 Every key of an entry is checked, also after a problem, in the order the app writes them (see [Writing](#writing)), then its unknown fields in the file's order. Values that depend on a broken one are skipped, not guessed; this is the complete list:
 
 - the fields of a `match` whose `type` is missing or unknown;
-- the entries and the `plan` of a source whose `type` is missing or unknown, and the entries of a source that is personal in a rule set;
+- the entries and the `plan` of a source whose `type` is missing or unknown, or that is personal in a rule set;
 - the entries of a source over one of its limits (`sourceTooLarge`), which is checked before they are read;
 - the `day` of a date whose `month` is invalid, and `nonLeap` unless the date it belongs to is valid;
 - the order of `validFrom` and `validUntil` unless both are valid years;
@@ -368,7 +368,7 @@ What an Error drops (`dropped`) is the entry that holds the value: a rule, refer
 - a problem in an image drops its template;
 - a problem in the `ruleSet` reference drops `ruleSet`; one in a source's `plan` or `color` drops that source;
 - values that are only shown drop only themselves: an invalid or over-long `label` or `note` of a rule, a rule's `references` that isn't a list, and an invalid or over-long `name` of a source entry;
-- `unknownField` drops only the key itself, `unknownReference` and a citation that isn't a string only that citation, and an invalid `except` date only that date;
+- `unknownField` drops only the key itself, and `unknownReference` and a citation that isn't a string only that citation;
 - `contract.region.options` that isn't a map drops `contract.region.options`; one invalid option, and `unknownLocalRule`, drop only that option;
 - an invalid `state` that isn't required (see [Region](#region)) drops `contract.region.state`;
 - an invalid `theme`, `contract.references`, `contract.name` or `description` drops that key, and `contract.rules`, `sources`, `templates`, `plan.days`, `plan.overrides` or `plan.notes` that isn't a list drops that list;

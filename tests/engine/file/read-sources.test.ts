@@ -242,12 +242,19 @@ describe("invalid entries", () => {
     expect(report.entries).toEqual([{ code: "invalidValue", path: "sources[0].entries[0].take", dropped: "sources[0].entries[0]" }]);
     expect(read?.entries).toEqual([]);
   });
-  it("drops only the invalid except date", () => {
+  it("drops an entry with an invalid except date, which it would otherwise cover", () => {
     const result = entries("info", [{ match: { type: "fixed", month: 1, day: 1 }, except: ["2027-01-01", "2027-13-01", "2028-01-01"] }]);
     expect(result.ok && result.report).toEqual([
-      { code: "invalidValue", path: "sources[0].entries[0].except[1]", dropped: "sources[0].entries[0].except[1]" },
+      { code: "invalidValue", path: "sources[0].entries[0].except[1]", dropped: "sources[0].entries[0]" },
     ]);
-    expect(sourcesOf(result)[0]?.entries[0]).toMatchObject({ except: [day("2027-01-01"), day("2028-01-01")] });
+    expect(sourcesOf(result)[0]?.entries).toEqual([]);
+  });
+  it("drops a mandatory match entry whose except date isn't an ISO date", () => {
+    const result = entries("mandatory", [{ match: { type: "fixed", month: 5, day: 1 }, except: ["2027-5-1"] }]);
+    expect(result.ok && result.report).toEqual([
+      { code: "invalidValue", path: "sources[0].entries[0].except[0]", dropped: "sources[0].entries[0]" },
+    ]);
+    expect(sourcesOf(result)[0]?.entries).toEqual([]);
   });
   it("reports unknown fields of an entry and of a source", () => {
     const result = withSources([source({ extra: 1, entries: [{ date: "2027-01-01", colour: "red" }] })]);
@@ -306,7 +313,7 @@ describe("invalid entries", () => {
       { code: "missingValue", path: `${path}.match`, dropped: path, data: { oneOf: ["to", "days"] } },
       { code: "invalidValue", path: `${path}.match.weekdays[1]`, dropped: path },
       { code: "invalidValue", path: `${path}.validUntil`, dropped: path },
-      { code: "invalidValue", path: `${path}.except[0]`, dropped: `${path}.except[0]` },
+      { code: "invalidValue", path: `${path}.except[0]`, dropped: path },
       { code: "invalidValue", path: `${path}.take`, dropped: path },
       { code: "invalidValue", path: `${path}.part`, dropped: path },
       { code: "unknownField", path: `${path}.colour`, dropped: `${path}.colour` },
@@ -374,6 +381,16 @@ describe("personal sources in a rule set", () => {
     ]);
     expect(codes(result)).toEqual(["personalSourceInRuleSet@sources[0]", "personalSourceInRuleSet@sources[1]"]);
     expect(sourcesOf(result).map((s) => s.id)).toEqual(["c", "d", "e", "f"]);
+  });
+  it.each([
+    ["a broken plan", { id: "p", name: "P", revision: 0 }],
+    ["no plan", undefined],
+  ])("doesn't check the plan of an other-plan source in a rule set: %s", (_name, plan) => {
+    const result = withSources([source({ type: "otherPlan", plan, entries: [{ date: "x" }] })]);
+    expect(result.ok && result.report).toEqual([
+      { code: "personalSourceInRuleSet", path: "sources[0]", dropped: "sources[0]", data: { type: "otherPlan" } },
+    ]);
+    expect(sourcesOf(result)).toEqual([]);
   });
 });
 
