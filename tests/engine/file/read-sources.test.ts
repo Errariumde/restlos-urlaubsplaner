@@ -7,7 +7,7 @@ import { checkRules } from "../../../src/engine/file/check";
 import { readFile } from "../../../src/engine/file/read";
 import { readSources } from "../../../src/engine/file/read-sources";
 import { Report } from "../../../src/engine/file/report";
-import { MINIMAL_CONTRACT, minimal } from "./helpers";
+import { MINIMAL_CONTRACT, core, minimal, refusedWith } from "./helpers";
 
 const withSources = (sources: unknown, extra: Record<string, unknown> = {}) => readFile(minimal({ sources, ...extra }));
 const codes = (result: ReturnType<typeof readFile>) => (result.ok ? result.report.map((e) => `${e.code}@${e.path}`) : [`refused:${result.refusal.code}`]);
@@ -150,8 +150,7 @@ describe("a valid file", () => {
     expect(codes(result)).toEqual([]);
     expect(sourcesOf(result)).toEqual([]);
   });
-  it("refuses sources that are not a list", () =>
-    expect(withSources({})).toMatchObject({ ok: false, refusal: { code: "invalidCore", path: "sources" } }));
+  it("refuses sources that are not a list", () => expect(withSources({})).toEqual(refusedWith(core("invalidValue", "sources"))));
   it("drops a match entry whose validFrom is after validUntil", () => {
     const result = withSources([source({ entries: [{ match: { type: "fixed", month: 12, day: 24 }, validFrom: 2030, validUntil: 2029 }] })]);
     expect(result.ok && result.report).toEqual([{ code: "invalidValue", path: "sources[0].entries[0].validUntil", dropped: "sources[0].entries[0]" }]);

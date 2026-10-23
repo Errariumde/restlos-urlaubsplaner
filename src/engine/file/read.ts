@@ -1,17 +1,18 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-import { LIMITS, textLength, utf8Length } from "./limits";
+import { LIMITS, utf8Length } from "./limits";
 import { computationWindow, periodBounds } from "../counting/plan";
 import { suggestParts } from "../counting/suggest";
 import type { LeaveDay, Part } from "../counting/types";
 import { expandSources, planInput } from "./model";
 import { readPlanDraft } from "./read-plan";
 import { readPlanRef } from "./read-sources";
-import { readContract } from "./read-contract";
+import { parseId, parseRevision, readContract } from "./read-contract";
 import { readSources } from "./read-sources";
 import { readTemplates, readTheme } from "./read-templates";
-import { Refused, Report, checkKeys, isRecord, type ReadResult } from "./report";
+import { Refused, Report, checkKeys, isRecord, readRequired, type ReadResult } from "./report";
+import { SEVERITY } from "./severity";
 import type { PlanFile, RuleSetFile } from "./types";
 
 const RULE_SET_KEYS = ["schema", "kind", "id", "revision", "contract", "sources", "templates", "theme"];
@@ -22,6 +23,14 @@ function checkSchema(value: unknown): void {
   const match = /^restlos\/([1-9]\d*)$/.exec(value);
   if (!match) throw new Refused({ code: "unknownSchema", path: "schema" });
   if (match[1] !== "1") throw new Refused({ code: "newerSchema", path: "schema" });
+}
+
+/**
+ * The refusal of a file whose own parts are missing or invalid: every Error reading found, in reading order.
+ * Warnings and Infos are left out, because they describe values as loaded.
+ */
+function refuseCore(report: Report): ReadResult {
+  return { ok: false, refusal: { code: "invalidCore" }, report: report.entries.filter((entry) => SEVERITY[entry.code] === "error") };
 }
 
 function readEnvelope(text: string): ReadResult {
@@ -44,26 +53,30 @@ function readEnvelope(text: string): ReadResult {
     }
   }
 
-  const id = json["id"];
-  if (typeof id !== "string" || id.length === 0 || textLength(id) > LIMITS.shortText) throw new Refused({ code: "invalidCore", path: "id" });
-  const revision = json["revision"];
-  if (typeof revision !== "number" || !Number.isSafeInteger(revision) || revision < 1) throw new Refused({ code: "invalidCore", path: "revision" });
-
+  // From here on every problem is reported and reading goes on; only a limit still stops it.
   const report = new Report();
   const positions = new Map<string, number>();
+  const id = readRequired(json, "id", parseId, "", report, "");
+  const revision = readRequired(json, "revision", parseRevision, "", report, "");
   checkKeys(json, kind === "plan" ? PLAN_KEYS : RULE_SET_KEYS, "", report);
-  const contract = readContract(json["contract"], "contract", kind, report, positions);
+  const { contract, minUnit } = readContract(json["contract"], "contract", kind, report, positions);
   const sources = readSources(json["sources"], "sources", kind, report, positions);
   const templates = readTemplates(json["templates"], "templates", kind, report, positions);
   const theme = readTheme(json["theme"], "theme", report);
+  // A file is refused when an Error drops the whole file. Every core value that is undefined has such an Error;
+  // testing them as well only tells the compiler.
   if (kind === "ruleSet") {
+    if (report.drops("") || id === undefined || revision === undefined || contract === undefined) return refuseCore(report);
     const file: RuleSetFile = { kind: "ruleSet", id, revision, contract, sources, templates, theme };
     return { ok: true, file, report: report.entries, positions };
   }
 
   let ruleSet: PlanFile["ruleSet"];
   if (json["ruleSet"] !== undefined) ruleSet = readPlanRef(json["ruleSet"], "ruleSet", report, "ruleSet");
-  const { plan, drafted } = readPlanDraft(json["plan"], "plan", contract, report, positions);
+  const read = readPlanDraft(json["plan"], "plan", minUnit, report, positions);
+  // A refused file gets no check of the source days and no part suggestions: both need the loaded file.
+  if (report.drops("") || id === undefined || revision === undefined || contract === undefined || read === undefined) return refuseCore(report);
+  const { plan, drafted } = read;
   const draft: PlanFile = { kind: "plan", id, revision, ...(ruleSet ? { ruleSet } : {}), contract, sources, templates, theme, plan };
 
   // The sources are expanded once over the computation window; more days than the limit are refused.
@@ -94,13 +107,16 @@ function readEnvelope(text: string): ReadResult {
   return { ok: true, file: { ...draft, plan: { ...plan, days } }, report: report.entries, positions };
 }
 
-/** Reads a plan file or rule set from untrusted text. Never throws: every problem is a report entry or a refusal. */
+/**
+ * Reads a plan file or rule set from untrusted text. Never throws: every problem is a report entry or a
+ * refusal. A stop gives its refusal with an empty report.
+ */
 export function readFile(text: string): ReadResult {
   try {
     return readEnvelope(text);
   } catch (error) {
-    if (error instanceof Refused) return { ok: false, refusal: error.refusal };
+    if (error instanceof Refused) return { ok: false, refusal: error.refusal, report: [] };
     // Reading must not throw whatever the input; an unexpected error is a core problem of the file.
-    return { ok: false, refusal: { code: "invalidCore" } };
+    return { ok: false, refusal: { code: "invalidCore" }, report: [] };
   }
 }

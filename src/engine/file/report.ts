@@ -32,14 +32,19 @@ export interface ReportEntry {
   readonly dropped?: string;
   readonly data?: ReportData;
 }
+/** Why a file is not loaded. `invalidCore` has no `path`: its report says where. */
 export interface Refusal {
   readonly code: RefusalCode;
   readonly path?: string;
   readonly data?: ReportData;
 }
+/**
+ * Loaded: the file, its report and `positions`. Refused: a stop with an empty report, or `invalidCore` with
+ * every Error reading found, in reading order.
+ */
 export type ReadResult =
   | { readonly ok: true; readonly file: AnyFile; readonly report: readonly ReportEntry[]; readonly positions: Positions }
-  | { readonly ok: false; readonly refusal: Refusal };
+  | { readonly ok: false; readonly refusal: Refusal; readonly report: readonly ReportEntry[] };
 
 const ERRORS: ReadonlySet<ReportCode> = new Set<ReportCode>(ERROR_CODES);
 
@@ -54,7 +59,10 @@ export class Report {
     this.entries.push(data === undefined ? { code, path } : { code, path, data });
   }
 
-  /** True when an Error was added whose `dropped` is exactly `path`. Called only on the scratch report of one entry. */
+  /**
+   * True when an Error was added whose `dropped` is exactly `path`. Linear in the report: called on the scratch
+   * report of one entry, or once on the whole report.
+   */
   drops(path: string): boolean {
     return this.entries.some((entry) => entry.dropped === path);
   }

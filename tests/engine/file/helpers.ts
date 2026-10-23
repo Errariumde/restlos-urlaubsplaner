@@ -44,3 +44,9 @@ export function planFile(plan: Record<string, unknown> = {}, overrides: Record<s
     ...overrides,
   });
 }
+
+/** A report entry of a core value: an Error that drops the whole file. */
+export const core = (code: "missingValue" | "invalidValue", path: string) => ({ code, path, dropped: "" });
+
+/** The result of a file refused with `invalidCore` and exactly `report`. */
+export const refusedWith = (...report: readonly object[]) => ({ ok: false, refusal: { code: "invalidCore" }, report });

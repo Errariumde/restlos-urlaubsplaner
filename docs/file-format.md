@@ -272,9 +272,15 @@ A rule set alone can't be computed: it has no period. "Save as rule set" writes 
 
 ## Reading
 
-`readFile(text)` checks the size (the UTF-8 length; a leading byte-order mark is skipped), parses the JSON, checks `schema` and `kind`, migrates older schemas (there are none yet) and then validates every value. It returns either a refusal, and nothing is loaded, or the file with a report. Unknown keys are reported but never looked into, so a deeply nested value costs no more than parsing it.
+`readFile(text)` checks the size (the UTF-8 length; a leading byte-order mark is skipped), parses the JSON, checks `schema` and `kind`, migrates older schemas (there are none yet) and then validates every value. It returns one of three outcomes:
 
-A report entry has a `code`, the `path` of the key itself in the text that was read (`"contract.rules[2].match.month"`, `"plan.days[0].take"`), for an Error `dropped`: what is not loaded because of it (`""` is the whole file, otherwise the path of the dropped part or key), and, for some codes, `data` with what the message needs. The report carries no sentences; the app writes them in the UI language. A refusal has a `code`, and a `path` and `data` where they apply.
+- **a stop**: any refusal below other than `invalidCore`, with its code and an empty report. Reading ends at the problem, because nothing reliable can follow;
+- **`invalidCore`** with every Error reading found;
+- **the file** with its report and `positions`.
+
+Nothing of a refused file is loaded. Unknown keys are reported but never looked into, so a deeply nested value costs no more than parsing it.
+
+A report entry has a `code`, the `path` of the key itself in the text that was read (`"contract.rules[2].match.month"`, `"plan.days[0].take"`), for an Error `dropped`: what is not loaded because of it (`""` is the whole file, otherwise the path of the dropped part or key), and, for some codes, `data` with what the message needs. The report carries no sentences; the app writes them in the UI language. A refusal has a `code`; a stop also has a `path` and `data` where they apply, while `invalidCore` has neither, because its report says where.
 
 `readFile` also returns `positions`: for every kept rule, source, source entry, template, leave day, override and note, its index in the list in the text that was read. Report entries and hints use paths in that text; `textPath` in `src/engine/file/positions.ts` turns a path in the loaded file into one in the text.
 
@@ -289,7 +295,7 @@ A report entry has a `code`, the `path` of the key itself in the text that was r
 | `unknownKind` | `kind` is not `"plan"`, `"ruleSet"` or `"settings"`. |
 | `settingsNotSupported` | `kind` is `"settings"`. |
 | `kindMismatch` | A rule set has `plan` or `ruleSet`. |
-| `invalidCore` | A core value is missing or invalid: `id`, `revision`, `contract`, `contract.region` or its `country`, a plan file's `state` where the country's data has regions, `week` or any of its entries, `contract.rules` if it is not a list, `plan`, `plan.range`, `plan.allowance`; or one of the lists `sources`, `templates`, `days`, `overrides` and `notes` is present but not a list. |
+| `invalidCore` | A required part of the file itself is missing or invalid (the Required column says which). The refusal comes with every Error reading found, each at its key; the file's own parts have `dropped: ""`. |
 | `limitExceeded` | A list is longer than its limit, the plan period is longer than 36 months, or the sources of a plan give more than 50,000 days. `data.limit` names the limit: `rules`, `sources`, `templates`, `weekEntries`, `references`, `planDays`, `overrides`, `notes`, `periodMonths` or `sourceDays`. |
 
 ### Loaded with a report
@@ -314,7 +320,19 @@ A report entry has a `code`, the `path` of the key itself in the text that was r
 
 Error means not loaded and lost when saving, Warning loaded but changed or probably wrong, Info loaded unchanged. `SEVERITY` in `src/engine/file/severity.ts` holds the same values.
 
-Every key of an entry is checked, also after a problem, in the order the app writes them (see [Writing](#writing)), then its unknown fields in the file's order. Values that depend on a broken one are skipped, not guessed: the fields of a `match` whose `type` is missing or unknown, the entries of a source whose `type` is missing or unknown or that is personal in a rule set, the `day` of a date whose `month` is invalid, and the order of `validFrom` and `validUntil` unless both are valid years.
+Every key of an entry is checked, also after a problem, in the order the app writes them (see [Writing](#writing)), then its unknown fields in the file's order. Values that depend on a broken one are skipped, not guessed; this is the complete list:
+
+- the fields of a `match` whose `type` is missing or unknown;
+- the entries and the `plan` of a source whose `type` is missing or unknown, and the entries of a source that is personal in a rule set;
+- the `day` of a date whose `month` is invalid, and `nonLeap` unless the date it belongs to is valid;
+- the order of `validFrom` and `validUntil` unless both are valid years;
+- `validFrom`, `validUntil` and `except` of an entry with neither or both of `date` and `match`;
+- the values of a choice (a rule's effect, an entry's `date` or `match`, a range's `to` or `days`, a color's `slot` or `rgb`) when several of its keys are present;
+- `state` and `options` of a `country` that is missing or invalid;
+- everything inside a `contract` or `plan` that isn't an object; without a contract, the plan's lists are checked against the `minUnit` `"1/2"`;
+- the order of a work-week entry's `from` unless the previous entry's `from` is a valid date;
+- `outsidePeriod` when `plan.range` is missing or invalid;
+- in a refused file, the limit of 50,000 source days and the part suggestions (`partSuggested`).
 
 What an Error drops (`dropped`) is the entry that holds the value: a rule, reference, source, source entry, template, leave day, override or note, also for a problem inside its `match` or its texts. The exceptions:
 
@@ -322,11 +340,12 @@ What an Error drops (`dropped`) is the entry that holds the value: a rule, refer
 - a problem in the `ruleSet` reference drops `ruleSet`; one in a source's `plan` or `color` drops that source;
 - `unknownField` drops only the key itself, `unknownReference` only that citation, and an invalid `except` date only that date;
 - `contract.region.options` that isn't a map drops `contract.region.options`; one invalid option, and `unknownLocalRule`, drop only that option;
-- a rule set's invalid `state` drops `contract.region.state`;
+- an invalid `state` that isn't required (see [Region](#region)) drops `contract.region.state`;
 - an invalid `theme`, `contract.references`, `contract.name` or `description` drops that key;
-- `sourceTooLarge` and `personalSourceInRuleSet` drop that source, `templateTooLarge` that template.
+- `sourceTooLarge` and `personalSourceInRuleSet` drop that source, `templateTooLarge` that template;
+- a problem in a required part of the file itself drops the whole file, `""`, and refuses it ([`invalidCore`](#refused)).
 
-An entry that is dropped reports its Errors, not its Warnings and Infos.
+An entry that is dropped, and a refused file, report their Errors, not their Warnings and Infos.
 
 Example: a leave day `{ "date": "2027-06-01", "take": "1/4" }` without other leave around it, in a plan with `minUnit` `"1/2"`, loads with two entries, `notMultipleOfMinUnit` at `plan.days[0].take` and `partSuggested` at `plan.days[0]` with `{ "part": "end" }`.
 

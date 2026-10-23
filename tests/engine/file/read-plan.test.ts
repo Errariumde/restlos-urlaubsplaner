@@ -8,8 +8,9 @@ import { checkRules } from "../../../src/engine/file/check";
 import { planInput } from "../../../src/engine/file/model";
 import { readFile } from "../../../src/engine/file/read";
 import type { PlanFile } from "../../../src/engine/file/types";
-import type { ReadResult } from "../../../src/engine/file/report";
-import { BAVARIA_CONTRACT, planFile } from "./helpers";
+import { readPlanDraft } from "../../../src/engine/file/read-plan";
+import { Report, type ReadResult } from "../../../src/engine/file/report";
+import { BAVARIA_CONTRACT, core, planFile, refusedWith } from "./helpers";
 
 // lib has no DOM; performance exists in Node and in Firefox.
 declare const performance: { now(): number };
@@ -31,26 +32,47 @@ describe("plan section: range and allowance", () => {
     expect(file.plan.allowance).toBe(15_840);
   });
   it.each([
-    ["2027-1", "2027-12"],
-    ["2027-01", "2027-13"],
-    ["2027-12", "2027-01"],
-    [5, "2027-12"],
-  ])("refuses the range %j to %j", (from, to) =>
-    expect(codes(read({ range: { from, to } }))).toEqual(["refused:invalidCore@plan.range"]));
+    ["2027-1", "2027-12", "from"],
+    ["2027-01", "2027-13", "to"],
+    ["2027-12", "2027-01", "to"],
+    [5, "2027-12", "from"],
+  ])("refuses the range %j to %j", (from, to, key) =>
+    expect(read({ range: { from, to } })).toEqual(refusedWith(core("invalidValue", `plan.range.${key}`))));
+  it.each([
+    ["no range", undefined, [core("missingValue", "plan.range")]],
+    ["a range that isn't an object", "2027", [core("invalidValue", "plan.range")]],
+    ["a range without from and to", {}, [core("missingValue", "plan.range.from"), core("missingValue", "plan.range.to")]],
+  ])("refuses %s", (_name, range, report) => expect(read({ range })).toEqual(refusedWith(...report)));
+  it("checks no leave against a broken range", () => {
+    const report = new Report();
+    const days = [{ date: "2020-01-01", take: "1" }];
+    expect(readPlanDraft({ range: { from: "2027-01" }, allowance: "30", days }, "plan", 240, report)).toBeUndefined();
+    expect(report.entries).toEqual([core("missingValue", "plan.range.to")]);
+  });
   it("refuses 37 months", () =>
     expect(read({ range: { from: "2027-01", to: "2030-01" } })).toMatchObject({ ok: false, refusal: { code: "limitExceeded", data: { limit: "periodMonths" } } }));
   it("accepts 36 months", () => expect(read({ range: { from: "2027-01", to: "2029-12" } }).ok).toBe(true));
   it.each(["99999999999999999999", "-1", "x", 30])("refuses the allowance %j", (allowance) =>
-    expect(codes(read({ allowance }))).toEqual(["refused:invalidCore@plan.allowance"]));
+    expect(read({ allowance })).toEqual(refusedWith(core("invalidValue", "plan.allowance"))));
   it("refuses a plan file without plan", () => {
     const json = JSON.parse(planFile()) as Record<string, unknown>;
     delete json["plan"];
-    expect(codes(readFile(JSON.stringify(json)))).toEqual(["refused:invalidCore@plan"]);
+    expect(readFile(JSON.stringify(json))).toEqual(refusedWith(core("missingValue", "plan")));
   });
+  it("refuses a plan file whose plan isn't an object", () =>
+    expect(readFile(planFile({}, { plan: [] }))).toEqual(refusedWith(core("invalidValue", "plan"))));
   it("refuses a plan file without contract.region.state", () =>
-    expect(codes(readFile(planFile({}, { contract: { ...BAVARIA_CONTRACT, region: { country: "DE" } } })))).toEqual([
-      "refused:invalidCore@contract.region.state",
-    ]));
+    expect(readFile(planFile({}, { contract: { ...BAVARIA_CONTRACT, region: { country: "DE" } } }))).toEqual(
+      refusedWith(core("missingValue", "contract.region.state")),
+    ));
+  it("refuses a plan file with an invalid state, with one report entry", () =>
+    expect(readFile(planFile({}, { contract: { ...BAVARIA_CONTRACT, region: { country: "DE", state: "ZZ" } } }))).toEqual(
+      refusedWith(core("invalidValue", "contract.region.state")),
+    ));
+  it("refuses a plan file whose contract isn't an object, and still reads the plan", () =>
+    expect(readFile(planFile({ allowance: "x" }, { contract: "x" }))).toEqual(
+      refusedWith(core("invalidValue", "contract"), core("invalidValue", "plan.allowance")),
+    ));
   it("reports unknown plan fields", () => expect(codes(read({ colour: 1 }))).toEqual(["unknownField@plan.colour"]));
 });
 
@@ -63,7 +85,7 @@ describe("plan section: missing lists", () => {
     expect(load(result).plan).toMatchObject({ days: [], overrides: [], notes: [] });
   });
   it.each(["days", "overrides", "notes"])("refuses %s that is not a list", (key) =>
-    expect(codes(read({ [key]: {} }))).toEqual([`refused:invalidCore@plan.${key}`]));
+    expect(read({ [key]: {} })).toEqual(refusedWith(core("invalidValue", `plan.${key}`))));
 });
 
 describe("plan section: ruleSet", () => {

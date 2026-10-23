@@ -5,7 +5,9 @@ import { describe, expect, it } from "vitest";
 import { dayFromIso } from "../../../src/engine/days";
 import { checkRules } from "../../../src/engine/file/check";
 import { readFile } from "../../../src/engine/file/read";
-import { FULL_TIME_WEEK, MINIMAL_CONTRACT, minimal } from "./helpers";
+import { readContract } from "../../../src/engine/file/read-contract";
+import { Report } from "../../../src/engine/file/report";
+import { BAVARIA_CONTRACT, FULL_TIME_WEEK, MINIMAL_CONTRACT, core, minimal, refusedWith } from "./helpers";
 
 const withContract = (contract: Record<string, unknown>) => readFile(minimal({ contract: { ...MINIMAL_CONTRACT, ...contract } }));
 const codes = (result: ReturnType<typeof readFile>) => (result.ok ? result.report.map((e) => `${e.code}@${e.path}`) : [`refused:${result.refusal.code}`]);
@@ -21,10 +23,15 @@ const rule = (extra: Record<string, unknown> = {}) => ({ id: "r1", match: { type
 
 describe("region", () => {
   it("refuses an unknown country", () =>
-    expect(withContract({ region: { country: "XX" } })).toMatchObject({ ok: false, refusal: { code: "invalidCore", path: "contract.region.country" } }));
+    expect(withContract({ region: { country: "XX" } })).toEqual(refusedWith(core("invalidValue", "contract.region.country"))));
   it.each(["constructor", "__proto__", "toString"])("refuses the prototype key %j as country", (country) =>
     expect(readFile(minimal({ contract: JSON.parse(`{"region":{"country":"${country}","state":"BY"},"week":${JSON.stringify(MINIMAL_CONTRACT.week)},"rules":[]}`) as unknown })))
-      .toMatchObject({ ok: false, refusal: { code: "invalidCore", path: "contract.region.country" } }));
+      .toEqual(refusedWith(core("invalidValue", "contract.region.country"))));
+  it.each([
+    ["no region", undefined, core("missingValue", "contract.region")],
+    ["a region that isn't an object", "DE", core("invalidValue", "contract.region")],
+    ["no country", { state: "BY" }, core("missingValue", "contract.region.country")],
+  ])("refuses %s", (_name, region, entry) => expect(withContract({ region })).toEqual(refusedWith(entry)));
   it("loads a rule set without a state", () => expect(contractOf(withContract({ region: { country: "DE" } })).region).toEqual({ country: "DE" }));
   it("drops an invalid state", () => {
     const result = withContract({ region: { country: "DE", state: "ZZ" } });
@@ -42,6 +49,10 @@ describe("region", () => {
     expect(codes(result)).toEqual([`unknownLocalRule@contract.region.options.${key}`]);
     expect(Object.keys(contractOf(result).region.options ?? {})).toEqual(["assumption"]);
   });
+  it("skips the state and options of an unknown country (Review Focus 2)", () =>
+    expect(withContract({ region: { country: "XX", state: "BY", options: { foo: true } } })).toEqual(
+      refusedWith(core("invalidValue", "contract.region.country")),
+    ));
   it("reports a non-boolean option", () =>
     expect(reportOf(withContract({ region: { country: "DE", state: "BY", options: { assumption: "yes" } } }))).toEqual([
       { code: "invalidValue", path: "contract.region.options.assumption", dropped: "contract.region.options.assumption" },
@@ -50,6 +61,16 @@ describe("region", () => {
 
 describe("minUnit", () => {
   it("defaults to 240 silently", () => expect(contractOf(withContract({})).minUnit).toBe(240));
+  it("gives 240 for the plan when the contract isn't an object, and reads nothing inside", () => {
+    const report = new Report();
+    expect(readContract("x", "contract", "plan", report)).toEqual({ contract: undefined, minUnit: 240 });
+    expect(report.entries).toEqual([core("invalidValue", "contract")]);
+  });
+  it("gives the plan the contract's minUnit when the contract is refused", () => {
+    const report = new Report();
+    expect(readContract({ ...BAVARIA_CONTRACT, week: undefined, minUnit: "1/4" }, "contract", "plan", report)).toEqual({ contract: undefined, minUnit: 120 });
+    expect(report.entries).toEqual([core("missingValue", "contract.week")]);
+  });
   it("reads a fraction", () => expect(contractOf(withContract({ minUnit: "1/4" })).minUnit).toBe(120));
   it.each(["3/8", "0", "x", 5])("reports %j and uses 240", (minUnit) => {
     const result = withContract({ minUnit });
@@ -63,14 +84,40 @@ describe("week", () => {
   it("reads the entries as day numbers and units", () =>
     expect(contractOf(withContract({})).week).toEqual([{ from: dayFromIso("2020-01-01"), required: { mon: 480, tue: 480, wed: 480, thu: 480, fri: 480, sat: 0, sun: 0 } }]));
   it.each([
-    ["empty", []],
-    ["no sunday", [{ ...FULL_TIME_WEEK, required: noSun }]],
-    ["comma", [{ ...FULL_TIME_WEEK, required: { ...FULL_TIME_WEEK.required, mon: "0,5" } }]],
-    ["impossible date", [{ ...FULL_TIME_WEEK, from: "2027-02-29" }]],
-    ["not increasing", [FULL_TIME_WEEK, FULL_TIME_WEEK]],
-    ["not a list", {}],
-  ])("refuses %s", (_name, week) =>
-    expect(withContract({ week })).toMatchObject({ ok: false, refusal: { code: "invalidCore", path: "contract.week" } }));
+    ["empty", [], core("invalidValue", "contract.week")],
+    ["no sunday", [{ ...FULL_TIME_WEEK, required: noSun }], core("missingValue", "contract.week[0].required.sun")],
+    ["comma", [{ ...FULL_TIME_WEEK, required: { ...FULL_TIME_WEEK.required, mon: "0,5" } }], core("invalidValue", "contract.week[0].required.mon")],
+    ["impossible date", [{ ...FULL_TIME_WEEK, from: "2027-02-29" }], core("invalidValue", "contract.week[0].from")],
+    ["not increasing", [FULL_TIME_WEEK, FULL_TIME_WEEK], core("invalidValue", "contract.week[1].from")],
+    ["not a list", {}, core("invalidValue", "contract.week")],
+    ["missing", undefined, core("missingValue", "contract.week")],
+    ["an entry that isn't an object", [FULL_TIME_WEEK, "x"], core("invalidValue", "contract.week[1]")],
+    ["an entry without from", [{ required: FULL_TIME_WEEK.required }], core("missingValue", "contract.week[0].from")],
+    ["required that isn't an object", [{ ...FULL_TIME_WEEK, required: "1" }], core("invalidValue", "contract.week[0].required")],
+  ])("refuses %s", (_name, week, entry) => expect(withContract({ week })).toEqual(refusedWith(entry)));
+  it("checks the order of from only against a valid previous from", () => {
+    const week = [FULL_TIME_WEEK, { ...FULL_TIME_WEEK, from: "x" }, { ...FULL_TIME_WEEK, from: "2019-01-01" }];
+    expect(withContract({ week })).toEqual(refusedWith(core("invalidValue", "contract.week[1].from")));
+  });
+  it("reports the unknown fields of a refused week, which drop only themselves", () => {
+    const week = [{ ...FULL_TIME_WEEK, required: { ...FULL_TIME_WEEK.required, mon: "x", hol: "0" }, note: "n" }];
+    expect(withContract({ week })).toEqual(
+      refusedWith(
+        core("invalidValue", "contract.week[0].required.mon"),
+        { code: "unknownField", path: "contract.week[0].required.hol", dropped: "contract.week[0].required.hol" },
+        { code: "unknownField", path: "contract.week[0].note", dropped: "contract.week[0].note" },
+      ),
+    );
+  });
+  it("reports every invalid work-week entry", () => {
+    const week = [
+      { from: "2020-01-01", required: { ...FULL_TIME_WEEK.required, mon: "x" } },
+      { from: "2019-01-01", required: FULL_TIME_WEEK.required },
+    ];
+    expect(withContract({ week })).toEqual(
+      refusedWith(core("invalidValue", "contract.week[0].required.mon"), core("invalidValue", "contract.week[1].from")),
+    );
+  });
   it("refuses more than 100 entries", () => {
     const week = Array.from({ length: 101 }, (_, i) => ({ ...FULL_TIME_WEEK, from: `${String(2000 + i)}-01-01` }));
     expect(withContract({ week })).toMatchObject({ ok: false, refusal: { code: "limitExceeded", data: { limit: "weekEntries" } } });
@@ -183,6 +230,10 @@ describe("rules", () => {
     ]);
     expect(contractOf(result).rules).toEqual([]);
   });
+  it.each([
+    ["missing", undefined, core("missingValue", "contract.rules")],
+    ["not a list", "x", core("invalidValue", "contract.rules")],
+  ])("refuses rules that are %s", (_name, rules, entry) => expect(withContract({ rules })).toEqual(refusedWith(entry)));
   it("refuses 1001 rules", () =>
     expect(withContract({ rules: Array.from({ length: 1001 }, (_, i) => rule({ id: `r${String(i)}` })) }))
       .toMatchObject({ ok: false, refusal: { code: "limitExceeded", data: { limit: "rules" } } }));

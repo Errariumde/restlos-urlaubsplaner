@@ -52,6 +52,6 @@ describe("formatSummary", () => {
   });
 
   it("prints a refusal", () => expect(formatSummary(readFile("{"))).toBe("Refused: notJson"));
-  it("prints the path of a refusal", () =>
-    expect(formatSummary(readFile(minimal({ revision: 0 })))).toBe("Refused: invalidCore at revision"));
+  it("prints a refused file with its list", () =>
+    expect(formatSummary(readFile(minimal({ revision: 0 })))).toBe("Refused: invalidCore\nReport: invalidValue at revision"));
 });

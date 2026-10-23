@@ -4,7 +4,7 @@
 import type { DayNumber } from "../days";
 import { UNITS_PER_DAY, type Units } from "../weight";
 import { LIMITS } from "./limits";
-import { isoDay, parseId, parsePart, parseYear, positiveWeight, weight } from "./read-contract";
+import { isoDay, parseId, parsePart, parseRevision, parseYear, positiveWeight, weight } from "./read-contract";
 import { readMatch } from "./read-match";
 import { Refused, Report, at, checkKeys, child, isRecord, readChoice, readOptional, readRequired, type Parse } from "./report";
 import { readText } from "./text";
@@ -25,7 +25,6 @@ interface ReadEntry {
 
 const slot: Parse<string> = (value) => (typeof value === "string" && value.length <= LIMITS.shortText && SLOT.test(value) ? value : undefined);
 const rgb: Parse<string> = (value) => (typeof value === "string" && RGB.test(value) ? value : undefined);
-const revision: Parse<number> = (value) => (typeof value === "number" && Number.isSafeInteger(value) && value >= 1 ? value : undefined);
 const spanKind: Parse<"leave" | "mandatory"> = (value) => (value === "leave" || value === "mandatory" ? value : undefined);
 
 /** A source's `color`: exactly one of `slot` and `rgb`. */
@@ -48,9 +47,9 @@ export function readPlanRef(value: unknown, path: string, report: Report, droppe
   else {
     const id = readRequired(value, "id", parseId, path, report, dropped);
     const name = readText(value["name"], child(path, "name"), LIMITS.shortText, report, dropped);
-    const number = readRequired(value, "revision", revision, path, report, dropped);
+    const revision = readRequired(value, "revision", parseRevision, path, report, dropped);
     checkKeys(value, ["id", "name", "revision"], path, report);
-    if (id !== undefined && name !== undefined && number !== undefined) return { id, name, revision: number };
+    if (id !== undefined && name !== undefined && revision !== undefined) return { id, name, revision };
   }
   return undefined;
 }
@@ -241,8 +240,9 @@ function readSource(
 }
 
 /**
- * Reads `sources`. A missing list reads as empty; anything but a list, or more than 50 sources, is refused.
- * Invalid sources and entries are dropped one by one with a report entry.
+ * Reads `sources`. A missing list reads as empty. Anything but a list reads as empty too, and its Error
+ * (`dropped: ""`) refuses the file; more than 50 sources are refused. Invalid sources and entries are dropped
+ * one by one with a report entry.
  */
 export function readSources(
   value: unknown,
@@ -252,7 +252,10 @@ export function readSources(
   positions: Map<string, number> = new Map(),
 ): FileSource[] {
   if (value === undefined) return [];
-  if (!Array.isArray(value)) throw new Refused({ code: "invalidCore", path });
+  if (!Array.isArray(value)) {
+    report.error("invalidValue", path, "");
+    return [];
+  }
   if (value.length > LIMITS.sources) throw new Refused({ code: "limitExceeded", path, data: { limit: "sources" } });
   const sources: FileSource[] = [];
   const ids = new Set<string>();

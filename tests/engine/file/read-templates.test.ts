@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import { readFile } from "../../../src/engine/file/read";
-import { minimal } from "./helpers";
+import { core, minimal, refusedWith } from "./helpers";
 
 const read = (extra: Record<string, unknown>) => readFile(minimal(extra));
 const codes = (result: ReturnType<typeof readFile>) => (result.ok ? result.report.map((e) => `${e.code}@${e.path}`) : [`refused:${result.refusal.code}`]);
@@ -109,7 +109,7 @@ describe("templates", () => {
     const templates = Array.from({ length: 21 }, (_, i) => template({ id: `t${String(i)}` }));
     expect(read({ templates })).toMatchObject({ ok: false, refusal: { code: "limitExceeded", path: "templates", data: { limit: "templates" } } });
   });
-  it("refuses templates that are not a list", () => expect(read({ templates: "x" })).toMatchObject({ ok: false, refusal: { code: "invalidCore", path: "templates" } }));
+  it("refuses templates that are not a list", () => expect(read({ templates: "x" })).toEqual(refusedWith(core("invalidValue", "templates"))));
 });
 
 describe("theme", () => {

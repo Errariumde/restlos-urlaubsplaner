@@ -20,7 +20,10 @@ export const readText = (path: string): string => readFileSync(path, "utf8");
 /** The file at `path`, which must load with an empty report and no hints. */
 export function readExample(path: string): AnyFile {
   const result = readFile(readText(path));
-  if (!result.ok) throw new Error(`${path} was refused: ${result.refusal.code} at ${result.refusal.path ?? "(file)"}`);
+  if (!result.ok) {
+    const where = [result.refusal.path, ...result.report.map((entry) => `${entry.code} at ${entry.path}`)].filter((item) => item !== undefined);
+    throw new Error(`${path} was refused: ${result.refusal.code}${where.length === 0 ? "" : ` (${where.join(", ")})`}`);
+  }
   expect(result.report, path).toEqual([]);
   expect(checkRules(result.file, result.positions), path).toEqual([]);
   return result.file;

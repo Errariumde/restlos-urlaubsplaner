@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 import type { Part, WorkWeekEntry } from "../counting/types";
-import { MAX_YEAR, MIN_YEAR, WEEKDAYS, dayFromIso, type Weekday } from "../days";
+import { MAX_YEAR, MIN_YEAR, WEEKDAYS, dayFromIso, type DayNumber, type Weekday } from "../days";
 import { countries } from "../../data/holidays";
-import { UNITS_PER_DAY, parseWeight, type Units } from "../weight";
+import { UNITS_PER_DAY, parseAmount, parseWeight, type Units } from "../weight";
 import { LIMITS, textLength } from "./limits";
 import { readMatch } from "./read-match";
 import { Refused, Report, at, checkKeys, child, isPrototypeKey, isRecord, readChoice, readOptional, readRequired, type Parse } from "./report";
@@ -28,12 +28,16 @@ function tryParse<T>(parse: (text: string) => T, value: unknown): T | undefined 
 
 export const isoDay = (value: unknown): number | undefined => tryParse(dayFromIso, value);
 export const weight = (value: unknown): Units | undefined => tryParse(parseWeight, value);
+export const amount = (value: unknown): Units | undefined => tryParse(parseAmount, value);
 /** A weight above 0. */
 export const positiveWeight: Parse<Units> = (value) => {
   const units = weight(value);
   return units === 0 ? undefined : units;
 };
 export const parseId: Parse<string> = (value) => (isId(value) ? value : undefined);
+/** A whole number from 1 that is still exact in JavaScript: a `revision`. */
+export const parseRevision: Parse<number> = (value) => (typeof value === "number" && Number.isSafeInteger(value) && value >= 1 ? value : undefined);
+const parseRecord: Parse<Readonly<Record<string, unknown>>> = (value) => (isRecord(value) ? value : undefined);
 export const parseYear: Parse<number> = (value) =>
   typeof value === "number" && Number.isInteger(value) && value >= MIN_YEAR && value <= MAX_YEAR ? value : undefined;
 export const parsePart: Parse<Part> = (value) => (value === "start" || value === "end" ? value : undefined);
@@ -42,22 +46,34 @@ function limit(count: number, max: number, key: string, path: string): void {
   if (count > max) throw new Refused({ code: "limitExceeded", path, data: { limit: key } });
 }
 
-function readRegion(value: unknown, path: string, report: Report): FileRegion {
-  if (!isRecord(value)) throw new Refused({ code: "invalidCore", path });
-  const countryPath = child(path, "country");
-  const countryCode = value["country"];
-  const country = typeof countryCode === "string" && Object.hasOwn(countries, countryCode) ? countries[countryCode] : undefined;
-  if (!country) throw new Refused({ code: "invalidCore", path: countryPath });
-  checkKeys(value, ["country", "state", "options"], path, report);
-
-  const state = readOptional(
+/**
+ * Reads `contract.region`. The region, its `country` and a plan file's `state` where the country's data has
+ * regions belong to the file itself: when one is missing or invalid, that is reported with `dropped: ""` and the
+ * result is undefined. An invalid `country` decides how `state` and `options` are read: they are not checked.
+ */
+function readRegion(value: unknown, path: string, kind: "plan" | "ruleSet", report: Report): FileRegion | undefined {
+  if (!isRecord(value)) {
+    report.error(value === undefined ? "missingValue" : "invalidValue", path, "");
+    return undefined;
+  }
+  const country = readRequired(
     value,
-    "state",
-    (candidate) => (typeof candidate === "string" && country.regions.some((region) => region.id === candidate) ? candidate : undefined),
+    "country",
+    (code) => (typeof code === "string" && Object.hasOwn(countries, code) ? countries[code] : undefined),
     path,
     report,
-    child(path, "state"),
+    "",
   );
+  checkKeys(value, ["country", "state", "options"], path, report);
+  if (country === undefined) return undefined;
+
+  // A plan needs the state wherever the country's data has states; a rule set may leave it to "New → From rule set".
+  const stateRequired = kind === "plan" && country.regions.length > 0;
+  const parseState: Parse<string> = (candidate) =>
+    typeof candidate === "string" && country.regions.some((region) => region.id === candidate) ? candidate : undefined;
+  const state = stateRequired
+    ? readRequired(value, "state", parseState, path, report, "")
+    : readOptional(value, "state", parseState, path, report, child(path, "state"));
 
   let options: Record<string, boolean> | undefined;
   const optionsValue = value["options"];
@@ -78,6 +94,7 @@ function readRegion(value: unknown, path: string, report: Report): FileRegion {
       options = Object.fromEntries(kept);
     }
   }
+  if (stateRequired && state === undefined) return undefined;
   return { country: country.country, ...(state !== undefined ? { state } : {}), ...(options ? { options } : {}) };
 }
 
@@ -91,32 +108,51 @@ function readMinUnit(value: unknown, path: string, report: Report): Units {
   return units;
 }
 
-function readWeek(value: unknown, path: string, report: Report): WorkWeekEntry[] {
-  const core = (): never => {
-    throw new Refused({ code: "invalidCore", path });
-  };
-  if (!Array.isArray(value)) return core();
-  limit(value.length, LIMITS.weekEntries, "weekEntries", path);
-  if (value.length === 0) return core();
-  const week: WorkWeekEntry[] = [];
-  for (let i = 0; i < value.length; i++) {
-    const entry: unknown = value[i];
-    if (!isRecord(entry) || !isRecord(entry["required"])) return core();
-    const from = isoDay(entry["from"]);
-    if (from === undefined) return core();
-    if (week.length > 0 && from <= (week[week.length - 1]?.from ?? from)) return core();
-    const requiredValue = entry["required"];
-    const required = {} as Record<Weekday, Units>;
-    for (const weekday of WEEKDAYS) {
-      const units = weight(requiredValue[weekday]);
-      if (units === undefined) return core();
-      required[weekday] = units;
-    }
-    checkKeys(entry, ["from", "required"], at(path, i), report);
-    checkKeys(requiredValue, WEEKDAYS, child(at(path, i), "required"), report);
-    week.push({ from, required });
+/**
+ * Reads `contract.week`, which belongs to the file itself: every problem of every entry is reported at its key
+ * with `dropped: ""`, and the result is then undefined. An entry's `from` must be after the previous entry's;
+ * that is checked only when both are valid dates.
+ */
+function readWeek(value: unknown, path: string, report: Report): WorkWeekEntry[] | undefined {
+  if (!Array.isArray(value) || value.length === 0) {
+    report.error(value === undefined ? "missingValue" : "invalidValue", path, "");
+    return undefined;
   }
-  return week;
+  limit(value.length, LIMITS.weekEntries, "weekEntries", path);
+  const week: WorkWeekEntry[] = [];
+  let complete = true;
+  let previous: DayNumber | undefined;
+  for (let i = 0; i < value.length; i++) {
+    const entryPath = at(path, i);
+    const entry: unknown = value[i];
+    if (!isRecord(entry)) {
+      report.error("invalidValue", entryPath, "");
+      complete = false;
+      previous = undefined;
+      continue;
+    }
+    const from = readRequired(entry, "from", isoDay, entryPath, report, "");
+    const ordered = from === undefined || previous === undefined || from > previous;
+    if (!ordered) report.error("invalidValue", child(entryPath, "from"), "");
+    previous = from;
+
+    const requiredValue = readRequired(entry, "required", parseRecord, entryPath, report, "");
+    const requiredPath = child(entryPath, "required");
+    const required = {} as Record<Weekday, Units>;
+    let allDays = requiredValue !== undefined;
+    if (requiredValue !== undefined) {
+      for (const weekday of WEEKDAYS) {
+        const units = readRequired(requiredValue, weekday, weight, requiredPath, report, "");
+        if (units === undefined) allDays = false;
+        else required[weekday] = units;
+      }
+      checkKeys(requiredValue, WEEKDAYS, requiredPath, report);
+    }
+    checkKeys(entry, ["from", "required"], entryPath, report);
+    if (from === undefined || !ordered || !allDays) complete = false;
+    else week.push({ from, required });
+  }
+  return complete ? week : undefined;
 }
 
 /** One entry of `contract.references`; every problem drops it. */
@@ -243,7 +279,11 @@ function readRules(
   report: Report,
   positions: Map<string, number>,
 ): FileRule[] {
-  if (!Array.isArray(value)) throw new Refused({ code: "invalidCore", path });
+  if (!Array.isArray(value)) {
+    // `rules` belongs to the file itself: the Error refuses the file, and no rules are read.
+    report.error(value === undefined ? "missingValue" : "invalidValue", path, "");
+    return [];
+  }
   limit(value.length, LIMITS.rules, "rules", path);
   const rules: FileRule[] = [];
   const ids = new Set<string>();
@@ -259,15 +299,28 @@ function readRules(
   return rules;
 }
 
-/** Reads `contract`. Throws `Refused` for core problems and for counts over a limit. */
+/** What `readContract` gives: the contract, and the `minUnit` the plan's lists are read against. */
+export interface ContractRead {
+  /** Undefined when the contract, its region or its work week is missing or invalid (reported with `dropped: ""`). */
+  readonly contract: FileContract | undefined;
+  readonly minUnit: Units;
+}
+
+/**
+ * Reads `contract`. A missing or invalid core value is reported with `dropped: ""`; a contract that isn't an
+ * object is not read any further. Throws `Refused` only for counts over a limit.
+ */
 export function readContract(
   value: unknown,
   path: string,
   kind: "plan" | "ruleSet",
   report: Report,
   positions: Map<string, number> = new Map(),
-): FileContract {
-  if (!isRecord(value)) throw new Refused({ code: "invalidCore", path });
+): ContractRead {
+  if (!isRecord(value)) {
+    report.error(value === undefined ? "missingValue" : "invalidValue", path, "");
+    return { contract: undefined, minUnit: DEFAULT_MIN_UNIT };
+  }
   checkKeys(value, ["name", "description", "references", "region", "minUnit", "week", "rules"], path, report);
   const namePath = child(path, "name");
   const name = value["name"] === undefined ? undefined : readText(value["name"], namePath, LIMITS.shortText, report, namePath);
@@ -275,13 +328,12 @@ export function readContract(
   const description =
     value["description"] === undefined ? undefined : readText(value["description"], descriptionPath, LIMITS.longText, report, descriptionPath);
   const references = readReferences(value["references"], child(path, "references"), report);
-  const region = readRegion(value["region"], child(path, "region"), report);
-  // A plan needs the state wherever the country's data has states; a rule set may leave it to "New → From rule set".
-  if (kind === "plan" && region.state === undefined && (countries[region.country]?.regions.length ?? 0) > 0) throw new Refused({ code: "invalidCore", path: child(child(path, "region"), "state") });
+  const region = readRegion(value["region"], child(path, "region"), kind, report);
   const minUnit = readMinUnit(value["minUnit"], child(path, "minUnit"), report);
   const week = readWeek(value["week"], child(path, "week"), report);
   const rules = readRules(value["rules"], child(path, "rules"), references, kind, report, positions);
-  return {
+  if (region === undefined || week === undefined) return { contract: undefined, minUnit };
+  const contract: FileContract = {
     ...(name !== undefined ? { name } : {}),
     ...(description !== undefined ? { description } : {}),
     references,
@@ -290,4 +342,5 @@ export function readContract(
     week,
     rules,
   };
+  return { contract, minUnit };
 }

@@ -4,11 +4,11 @@
 import { periodBounds } from "../counting/plan";
 import type { LeaveDay, PlanPeriod, RequiredOverride } from "../counting/types";
 import { MAX_YEAR, MIN_YEAR, type DayNumber } from "../days";
-import { UNITS_PER_DAY, parseAmount, type Units } from "../weight";
+import { UNITS_PER_DAY, type Units } from "../weight";
 import { LIMITS, textLength } from "./limits";
-import { isoDay, parsePart, positiveWeight, weight } from "./read-contract";
+import { amount, isoDay, parsePart, positiveWeight, weight } from "./read-contract";
 import { Refused, Report, at, checkKeys, child, isRecord, readOptional, readRequired } from "./report";
-import type { FileContract, FilePlan, Note } from "./types";
+import type { FilePlan, Note } from "./types";
 
 const MONTH = /^(\d{4})-(0[1-9]|1[0-2])$/;
 
@@ -21,32 +21,27 @@ function readMonth(value: unknown): { year: number; month: number } | undefined 
   return year >= MIN_YEAR && year <= MAX_YEAR ? { year, month } : undefined;
 }
 
-function readRange(value: unknown, path: string, report: Report): PlanPeriod {
-  const fail = (): never => {
-    throw new Refused({ code: "invalidCore", path });
-  };
-  if (!isRecord(value)) return fail();
-  const from = readMonth(value["from"]);
-  const to = readMonth(value["to"]);
-  if (!from || !to) return fail();
-  const months = (to.year - from.year) * 12 + (to.month - from.month) + 1;
-  if (months < 1) return fail();
-  if (months > LIMITS.periodMonths) throw new Refused({ code: "limitExceeded", path, data: { limit: "periodMonths" } });
-  checkKeys(value, ["from", "to"], path, report);
-  return { from, to };
-}
-
-function readAllowance(value: unknown, path: string): Units {
-  if (typeof value !== "string") throw new Refused({ code: "invalidCore", path });
-  try {
-    return parseAmount(value);
-  } catch {
-    throw new Refused({ code: "invalidCore", path });
+/**
+ * Reads `plan.range`, which belongs to the file itself: a missing or invalid value is reported with `dropped: ""`
+ * (`to` before `from` at `to`), and the result is then undefined. More than 36 months is refused.
+ */
+function readRange(value: unknown, path: string, report: Report): PlanPeriod | undefined {
+  if (!isRecord(value)) {
+    report.error(value === undefined ? "missingValue" : "invalidValue", path, "");
+    return undefined;
   }
+  const from = readRequired(value, "from", readMonth, path, report, "");
+  const to = readRequired(value, "to", readMonth, path, report, "");
+  const months = from && to ? (to.year - from.year) * 12 + (to.month - from.month) + 1 : undefined;
+  if (months !== undefined && months < 1) report.error("invalidValue", child(path, "to"), "");
+  if (months !== undefined && months > LIMITS.periodMonths) throw new Refused({ code: "limitExceeded", path, data: { limit: "periodMonths" } });
+  checkKeys(value, ["from", "to"], path, report);
+  return from && to && months !== undefined && months >= 1 ? { from, to } : undefined;
 }
 
 interface Context {
-  readonly bounds: { from: DayNumber; to: DayNumber };
+  /** The first and last day of the plan period; undefined when `plan.range` is broken, and nothing is outside it. */
+  readonly bounds: { from: DayNumber; to: DayNumber } | undefined;
   readonly minUnit: Units;
   readonly report: Report;
   /** Leave drafted with the part "end" because the file gave none → the path of its entry. */
@@ -55,9 +50,16 @@ interface Context {
   readonly positions: Map<string, number>;
 }
 
-/** The array at `path`, or a refusal when it is missing, not a list or longer than `max`. */
-function readList(value: unknown, path: string, max: number, limit: string): readonly unknown[] {
-  if (!Array.isArray(value)) throw new Refused({ code: "invalidCore", path });
+/**
+ * The array at `path`; a missing list is empty. One that isn't a list belongs to the file itself: the Error
+ * (`dropped: ""`) refuses the file, and it reads as empty. A list longer than `max` is refused.
+ */
+function readList(value: unknown, path: string, max: number, limit: string, report: Report): readonly unknown[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) {
+    report.error("invalidValue", path, "");
+    return [];
+  }
   if (value.length > max) throw new Refused({ code: "limitExceeded", path, data: { limit } });
   return value as unknown[];
 }
@@ -76,7 +78,7 @@ function readEntries<T extends { readonly day: DayNumber }>(
   context: Context,
   readOne: (entry: Readonly<Record<string, unknown>>, entryPath: string, day: DayNumber | undefined, report: Report) => T | undefined,
 ): T[] {
-  const list = value === undefined ? [] : readList(value, path, max, limit); // a missing list is empty
+  const list = readList(value, path, max, limit, context.report);
   const kept: { readonly read: T; readonly index: number }[] = [];
   const seen = new Set<DayNumber>();
   for (let i = 0; i < list.length; i++) {
@@ -92,7 +94,8 @@ function readEntries<T extends { readonly day: DayNumber }>(
       context.report.error("duplicateDate", child(entryPath, "date"), entryPath);
       continue;
     }
-    if (day !== undefined && (day < context.bounds.from || day > context.bounds.to)) scratch.notice("outsidePeriod", entryPath);
+    const { bounds } = context;
+    if (day !== undefined && bounds !== undefined && (day < bounds.from || day > bounds.to)) scratch.notice("outsidePeriod", entryPath);
     const read = readOne(entry, entryPath, day, scratch);
     context.report.merge(scratch, read !== undefined);
     if (!read) continue;
@@ -150,23 +153,24 @@ export interface PlanDraft {
   readonly drafted: ReadonlyMap<LeaveDay, string>;
 }
 
-/** Reads `plan` like `readPlanSection`, and says which partial leave lacked a `part`. */
-export function readPlanDraft(value: unknown, path: string, contract: FileContract, report: Report, positions: Map<string, number> = new Map()): PlanDraft {
-  if (!isRecord(value)) throw new Refused({ code: "invalidCore", path });
+/**
+ * Reads `plan`, with the lists' weights checked against `minUnit`, and says which partial leave lacked a `part`.
+ * Undefined when `plan`, its `range` or its `allowance` is missing or invalid (reported with `dropped: ""`); a plan
+ * that isn't an object is not read any further. Throws `Refused` only for counts over a limit.
+ */
+export function readPlanDraft(value: unknown, path: string, minUnit: Units, report: Report, positions: Map<string, number> = new Map()): PlanDraft | undefined {
+  if (!isRecord(value)) {
+    report.error(value === undefined ? "missingValue" : "invalidValue", path, "");
+    return undefined;
+  }
   checkKeys(value, ["range", "allowance", "days", "overrides", "notes"], path, report);
   const range = readRange(value["range"], child(path, "range"), report);
-  const allowance = readAllowance(value["allowance"], child(path, "allowance"));
-  const context: Context = { bounds: periodBounds(range), minUnit: contract.minUnit, report, drafted: new Map(), positions };
+  const allowance = readRequired(value, "allowance", amount, path, report, "");
+  const bounds = range === undefined ? undefined : periodBounds(range);
+  const context: Context = { bounds, minUnit, report, drafted: new Map(), positions };
   const days = readDays(value["days"], child(path, "days"), context);
   const overrides = readOverrides(value["overrides"], child(path, "overrides"), context);
   const notes = readNotes(value["notes"], child(path, "notes"), context);
+  if (range === undefined || allowance === undefined) return undefined;
   return { plan: { range, allowance, days, overrides, notes }, drafted: context.drafted };
-}
-
-/**
- * Reads `plan`. Throws `Refused` for core problems and counts over a limit.
- * Partial leave without `part` is drafted as "end"; `readFile` replaces those parts with suggestions.
- */
-export function readPlanSection(value: unknown, path: string, contract: FileContract, report: Report): FilePlan {
-  return readPlanDraft(value, path, contract, report).plan;
 }

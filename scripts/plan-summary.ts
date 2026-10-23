@@ -6,7 +6,7 @@ import type { Problem } from "../src/engine/counting/plan";
 import type { StretchPoint } from "../src/engine/counting/stretches";
 import { isoFromDay } from "../src/engine/days";
 import { planInput } from "../src/engine/file/model";
-import type { ReadResult, ReportData } from "../src/engine/file/report";
+import type { ReadResult, ReportData, ReportEntry } from "../src/engine/file/report";
 import { textFor } from "../src/engine/file/text";
 import type { FileContract, PlanFile, RuleSetFile, Text } from "../src/engine/file/types";
 import { UNITS_PER_DAY, formatAmount, formatWeight, type Units } from "../src/engine/weight";
@@ -36,6 +36,13 @@ function data(values: ReportData | undefined): string {
   return ` (${Object.entries(values).map(([key, value]) => `${key}=${String(value)}`).join(", ")})`;
 }
 
+/** The report as one line when it has at most one entry, otherwise as a heading and one indented line per entry. */
+function reportSection(report: readonly ReportEntry[]): string {
+  const lines = report.map((entry) => `${entry.code} at ${entry.path}${data(entry.data)}`);
+  if (lines.length === 0) return "Report: none";
+  return lines.length === 1 ? `Report: ${lines[0] ?? ""}` : ["Report:", ...lines.map((line) => `  ${line}`)].join("\n");
+}
+
 function problem(item: Problem): string {
   const ids = "ruleIds" in item ? item.ruleIds : "sourceIds" in item ? item.sourceIds : [];
   return `  ${item.code} ${isoFromDay(item.day)}${ids.length > 0 ? ` (${ids.join(", ")})` : ""}`;
@@ -62,11 +69,12 @@ function rules(contract: FileContract): string[] {
 export function formatSummary(result: ReadResult): string {
   if (!result.ok) {
     const { code, path, data: values } = result.refusal;
-    return `Refused: ${code}${path === undefined ? "" : ` at ${path}`}${data(values)}`;
+    const refusal = `Refused: ${code}${path === undefined ? "" : ` at ${path}`}${data(values)}`;
+    // A stop comes with an empty report and prints only its refusal.
+    return result.report.length === 0 ? refusal : `${refusal}\n${reportSection(result.report)}`;
   }
   const { file, report } = result;
-  const reportLines = report.map((entry) => `${entry.code} at ${entry.path}${data(entry.data)}`);
-  const reportText = reportLines.length === 0 ? "Report: none" : reportLines.length === 1 ? `Report: ${reportLines[0] ?? ""}` : ["Report:", ...reportLines.map((line) => `  ${line}`)].join("\n");
+  const reportText = reportSection(report);
 
   if (file.kind === "ruleSet") {
     return [`${name(file)} — rule set, revision ${String(file.revision)}`, reportText, "Rules:", ...rules(file.contract)].join("\n");

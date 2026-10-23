@@ -18,7 +18,7 @@ let result;
 try {
   result =
     statSync(path).size > LIMITS.fileBytes
-      ? { ok: false, refusal: { code: "tooLarge" } } // the refusal readFile gives for a file above the limit
+      ? { ok: false, refusal: { code: "tooLarge" }, report: [] } // the refusal readFile gives for a file above the limit
       : readFile(readFileSync(path, "utf8"));
 } catch (error) {
   console.error(`Cannot read ${path}: ${error instanceof Error ? error.message : String(error)}`);
