@@ -84,8 +84,6 @@ describe("plan section: missing lists", () => {
     expect(codes(result)).toEqual([]);
     expect(load(result).plan).toMatchObject({ days: [], overrides: [], notes: [] });
   });
-  it.each(["days", "overrides", "notes"])("refuses %s that is not a list", (key) =>
-    expect(read({ [key]: {} })).toEqual(refusedWith(core("invalidValue", `plan.${key}`))));
 });
 
 describe("plan section: ruleSet", () => {

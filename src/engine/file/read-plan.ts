@@ -51,13 +51,13 @@ interface Context {
 }
 
 /**
- * The array at `path`; a missing list is empty. One that isn't a list belongs to the file itself: the Error
- * (`dropped: ""`) refuses the file, and it reads as empty. A list longer than `max` is refused.
+ * The array at `path`; a missing list is empty. One that isn't a list is dropped and reads as empty too. A list
+ * longer than `max` is refused.
  */
 function readList(value: unknown, path: string, max: number, limit: string, report: Report): readonly unknown[] {
   if (value === undefined) return [];
   if (!Array.isArray(value)) {
-    report.error("invalidValue", path, "");
+    report.error("invalidValue", path, path);
     return [];
   }
   if (value.length > max) throw new Refused({ code: "limitExceeded", path, data: { limit } });

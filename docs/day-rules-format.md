@@ -9,19 +9,21 @@ Reference for people who write day rules by hand, for example in the `rules` lis
 
 ## Top level
 
-| Key | Meaning |
-| --- | --- |
-| `id` | Unique rule ID within the file (`"christmas-eve"`). Appears in warnings and in the detail view as the source of a value. |
-| `match` | Which days the rule applies to, see [Match](#match). |
-| `validFrom`, `validUntil` | Optional years, both inclusive. Outside this range the rule produces nothing. For a range, the year in which it starts counts. For a rule that matches one day per year, the year is the rule's year, and its day can fall in the neighbouring calendar year: `{ "type": "weekdayRelative", "weekday": "sat", "relation": "before", "month": 1, "day": 1 }` with `validFrom` and `validUntil` 2028 matches only `2027-12-25`. |
-| `requiredAtMost`, `requiredExactly`, `mandatory` | The effect. Exactly one of the three, see [Effects](#effects). |
-| `part` | Optional `"start"` or `"end"`, see [Part](#part). |
-| `label` | Optional name of the rule, up to 200 characters: a plain string (`"Silvester"`) or a map from language code to text (`{ "de": "Silvester", "en": "New Year's Eve" }`), see [Texts](file-format.md#texts). Only shown, never interpreted. |
-| `note` | Optional explanation shown with the rule, up to 2000 characters, a plain string or a language map like `label`: for example what the rule's basis says that the rule can't express. Only shown, never interpreted. |
-| `references` | Optional list of keys of the contract's `references` that the rule is based on (`["betrvg"]`), see [References](file-format.md#references). A key the contract doesn't have is dropped when the file is read. |
-| `origin` | Optional ID of the rule set the rule was copied from; exists only in plan files, never in a rule set. Set by the app; "Update rules from rule set" uses it to tell copied rules from your own. Leave it out when writing a rule by hand. |
+The Required column means what it means in [Plan files and rule sets](file-format.md#required-and-optional).
 
-The app writes the keys in the order given in [Writing](file-format.md#writing). An over-long `label` or `note` makes the whole rule invalid: it is dropped when the file is read.
+| Key | Required | Meaning |
+| --- | --- | --- |
+| `id` | yes | Unique rule ID within the file (`"christmas-eve"`). Appears in warnings and in the detail view as the source of a value. |
+| `match` | yes | Which days the rule applies to, see [Match](#match). |
+| `validFrom`, `validUntil` | no | Years, both inclusive. Outside this range the rule produces nothing. For a range, the year in which it starts counts. For a rule that matches one day per year, the year is the rule's year, and its day can fall in the neighbouring calendar year: `{ "type": "weekdayRelative", "weekday": "sat", "relation": "before", "month": 1, "day": 1 }` with `validFrom` and `validUntil` 2028 matches only `2027-12-25`. |
+| `requiredAtMost`, `requiredExactly`, `mandatory` | yes, exactly one | The effect, see [Effects](#effects). |
+| `part` | no, `"end"` | `"start"` or `"end"`, see [Part](#part). |
+| `label` | no | Name of the rule, up to 200 characters: a plain string (`"Silvester"`) or a map from language code to text (`{ "de": "Silvester", "en": "New Year's Eve" }`), see [Texts](file-format.md#texts). Only shown, never interpreted. |
+| `note` | no | Explanation shown with the rule, up to 2000 characters, a plain string or a language map like `label`: for example what the rule's basis says that the rule can't express. Only shown, never interpreted. |
+| `references` | no | List of keys of the contract's `references` that the rule is based on (`["betrvg"]`), see [References](file-format.md#references). A key the contract doesn't have is dropped when the file is read. |
+| `origin` | no | ID of the rule set the rule was copied from; exists only in plan files, never in a rule set. Set by the app; "Update rules from rule set" uses it to tell copied rules from your own. Leave it out when writing a rule by hand. |
+
+The app writes the keys in the order given in [Writing](file-format.md#writing). An invalid or over-long `label`, `note` or `references` is dropped when the file is read; the rule is kept.
 
 ## Match
 

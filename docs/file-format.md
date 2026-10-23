@@ -40,63 +40,71 @@ Every free text is either a plain string or a map from language code to string: 
 
 A language code is two or three lowercase letters, optionally followed by lowercase subtags (`pt-br`); any language can be added without a format change. A map has at least one entry and only string values. The app shows the UI language, otherwise `en`, otherwise the first entry; a plain string is shown as it is. Texts typed in the app are plain strings, and the `text` of a plan note is always a plain string.
 
+### Required and optional
+
+A part of a file is required when the app can't work with the file or the entry without it and no default would be right for every file. It is optional when its absence has a default that is right for every file, or when only a feature the user may never use needs it. A missing optional part reads as its default and is not reported; a feature that needs it says so when it is used. An optional part that is present must be complete and valid like everything else. The key tables below, and the one in [Day rules](day-rules-format.md#top-level), mark every key as required or optional and give the defaults.
+
+In the tables, *yes* means: missing or invalid refuses the file when the key belongs to the file itself, and drops the part or list entry that holds it otherwise. *No* gives the default. A present optional part that is invalid is dropped alone at the file, contract or plan level; inside a list entry the entry is dropped, except for values that are only shown (a rule's `label`, `note` and `references`, an entry's `name`), which are dropped alone.
+
+Two special cases: an invalid `contract.minUnit` reads as `"1/2"` and is a Warning (`invalidMinUnit`), not an Error; an option of `contract.region.options` that isn't `true` or `false`, or that the holiday data doesn't define, is dropped alone, so a broken switch doesn't refuse the file.
+
 ## Top level
 
 Keys in the order the app writes them:
 
-| Key | Meaning |
-| --- | --- |
-| `schema` | `"restlos/1"`. |
-| `kind` | `"plan"` or `"ruleSet"`. |
-| `id` | The file's identity, an ID. The app creates a random UUID version 4 at "New"; "Save as" and "New → Based on the current file" create a new one. |
-| `revision` | Whole number from 1, raised by 1 on every save; a new `id` starts at 1. It stays at 9,007,199,254,740,991, the largest whole number a reader accepts, once it gets there. |
-| `ruleSet` | Plan files only, optional: the rule set the plan was created from or last updated from, as a [plan reference](#plan-references). |
-| `contract` | Required, see [Contract](#contract). |
-| `sources` | Calendar sources, see [Calendar sources](#calendar-sources). Missing reads as `[]`. |
-| `templates` | Own PDF templates, see [Templates](#templates). Missing reads as `[]`. |
-| `theme` | A color scheme or `null`, see [Color scheme](#color-scheme). Missing reads as `null`. |
-| `plan` | Plan files only, required, see [Plan](#plan). |
+| Key | Required | Meaning |
+| --- | --- | --- |
+| `schema` | yes; reading stops | `"restlos/1"`. |
+| `kind` | yes; reading stops | `"plan"` or `"ruleSet"`. |
+| `id` | yes | The file's identity, an ID. The app creates a random UUID version 4 at "New"; "Save as" and "New → Based on the current file" create a new one. |
+| `revision` | yes | Whole number from 1, raised by 1 on every save; a new `id` starts at 1. It stays at 9,007,199,254,740,991, the largest whole number a reader accepts, once it gets there. |
+| `ruleSet` | no | Plan files only: the rule set the plan was created from or last updated from, as a [plan reference](#plan-references). |
+| `contract` | yes | See [Contract](#contract). |
+| `sources` | no, `[]` | Calendar sources, see [Calendar sources](#calendar-sources). |
+| `templates` | no, `[]` | Own PDF templates, see [Templates](#templates). |
+| `theme` | no, `null` | A color scheme or `null`, see [Color scheme](#color-scheme). |
+| `plan` | yes in a plan file | Plan files only, see [Plan](#plan). |
 
 ### Plan references
 
 `ruleSet` and the `plan` of an `otherPlan` source name another file without pointing to it:
 
-| Key | Meaning |
-| --- | --- |
-| `id` | That file's `id`. |
-| `name` | A text up to 200 characters, for display: that file's `contract.name`. |
-| `revision` | That file's `revision` when it was read. |
+| Key | Required | Meaning |
+| --- | --- | --- |
+| `id` | yes | That file's `id`. |
+| `name` | yes | A text up to 200 characters, for display: that file's `contract.name`. |
+| `revision` | yes | That file's `revision` when it was read. |
 
 ## Contract
 
-| Key | Meaning |
-| --- | --- |
-| `name` | Optional text up to 200 characters: what the contract is (`"Beispiel GmbH (ohne Tarifvertrag, Stand 2026)"`). |
-| `description` | Optional text up to 2000 characters: who it is for, what it can't express, and what the user must check. |
-| `references` | Optional map from a key (an ID) to a [reference](#references): what the contract is based on. Rules cite the keys. At most 100; left out when empty. |
-| `region` | Required, see [Region](#region). |
-| `minUnit` | Optional weight, the smallest leave unit; default `"1/2"`, see [Smallest leave unit](#smallest-leave-unit). |
-| `week` | Required: the work week with validity, see [Work week](#work-week). |
-| `rules` | Required list of day rules, may be empty, see [Day rules](#day-rules). |
+| Key | Required | Meaning |
+| --- | --- | --- |
+| `name` | no | Text up to 200 characters: what the contract is (`"Beispiel GmbH (ohne Tarifvertrag, Stand 2026)"`). |
+| `description` | no | Text up to 2000 characters: who it is for, what it can't express, and what the user must check. |
+| `references` | no, `{}` | Map from a key (an ID) to a [reference](#references): what the contract is based on. Rules cite the keys. At most 100; left out when empty. |
+| `region` | yes | See [Region](#region). |
+| `minUnit` | no, `"1/2"` | A weight, the smallest leave unit, see [Smallest leave unit](#smallest-leave-unit). |
+| `week` | yes | The work week with validity, see [Work week](#work-week). |
+| `rules` | no, `[]` | List of day rules, see [Day rules](#day-rules). |
 
 `name`, `description` and `references` say what the file is about and what it is based on. Files written by hand may leave them out; the rule sets that come with restlos have all three, and every one of their rules cites a reference (a test enforces it).
 
 ### References
 
-| Key | Meaning |
-| --- | --- |
-| `title` | Text up to 200 characters: what the document is, including the paragraph (`"Betriebsverfassungsgesetz (BetrVG), § 87 Abs. 1 Nr. 5"`). |
-| `version` | Text up to 200 characters: which version of the document was read (`"in der Fassung vom …"`). |
-| `url` | Link starting with `https://`, up to 2000 characters. |
-| `checked` | ISO date on which the link was last opened and read. |
+| Key | Required | Meaning |
+| --- | --- | --- |
+| `title` | yes | Text up to 200 characters: what the document is, including the paragraph (`"Betriebsverfassungsgesetz (BetrVG), § 87 Abs. 1 Nr. 5"`). |
+| `version` | yes | Text up to 200 characters: which version of the document was read (`"in der Fassung vom …"`). |
+| `url` | yes | Link starting with `https://`, up to 2000 characters. |
+| `checked` | yes | ISO date on which the link was last opened and read. |
 
 ### Region
 
-| Key | Meaning |
-| --- | --- |
-| `country` | Required: a country code of the holiday data (`"DE"`). |
-| `state` | A region ID of that country (`"BY"`). Required in a plan file when the country's data has regions; optional in a rule set. |
-| `options` | Optional map from a local-rule ID of the selected `state` to `true` or `false` (`{ "assumption": true, "augsburg": false }`). A missing switch is off. Written with the keys sorted. |
+| Key | Required | Meaning |
+| --- | --- | --- |
+| `country` | yes | A country code of the holiday data (`"DE"`). |
+| `state` | yes in a plan file when the country's data has regions, otherwise no | A region ID of that country (`"BY"`). |
+| `options` | no, `{}` | Map from a local-rule ID of the selected `state` to `true` or `false` (`{ "assumption": true, "augsburg": false }`). A missing switch is off. Written with the keys sorted. |
 
 A rule set fixes as much of the region as it knows: an agreement valid everywhere gives only the country, a company site gives everything; "New → From rule set" asks for the rest. Local rules are described in [Holiday data format](holiday-data-format.md#local-rules).
 
@@ -108,10 +116,10 @@ A rule set fixes as much of the region as it knows: an agreement valid everywher
 
 `week` is a non-empty list of at most 100 entries with strictly increasing `from`:
 
-| Key | Meaning |
-| --- | --- |
-| `from` | ISO date from which the entry applies. The first entry also applies before its date. |
-| `required` | The required work of each weekday as a weight, all seven in the order `mon`, `tue`, `wed`, `thu`, `fri`, `sat`, `sun`. |
+| Key | Required | Meaning |
+| --- | --- | --- |
+| `from` | yes | ISO date from which the entry applies. The first entry also applies before its date. |
+| `required` | yes, with all seven weekdays | The required work of each weekday as a weight, all seven in the order `mon`, `tue`, `wed`, `thu`, `fri`, `sat`, `sun`. |
 
 ```json
 "week": [
@@ -124,27 +132,27 @@ A rule set fixes as much of the region as it knows: an agreement valid everywher
 
 `rules` holds at most 1000 day rules, written as described in [Day rules](day-rules-format.md). The app writes their keys in this order: `id`, `origin`, `label`, `match`, `validFrom`, `validUntil`, the effect (`requiredAtMost`, `requiredExactly` or `mandatory`), `part`, `note`, `references`. Besides the counting model's fields a rule in a file has:
 
-| Key | Meaning |
-| --- | --- |
-| `label` | Optional text up to 200 characters, the rule's name. |
-| `note` | Optional text up to 2000 characters, shown with the rule: for example what its basis says that the rule can't express. |
-| `references` | Optional list of keys of `contract.references` that the rule is based on. |
-| `origin` | Plan files only, optional: the `id` of the rule set the rule was copied from. |
+| Key | Required | Meaning |
+| --- | --- | --- |
+| `label` | no | Text up to 200 characters, the rule's name. |
+| `note` | no | Text up to 2000 characters, shown with the rule: for example what its basis says that the rule can't express. |
+| `references` | no | List of keys of `contract.references` that the rule is based on. |
+| `origin` | no | Plan files only: the `id` of the rule set the rule was copied from. |
 
 ## Calendar sources
 
 `sources` holds at most 50 sources; the list order is the display priority. A source is imported once (from iCal or from another plan file) or created by hand, and is stored only as its entries: no iCal text, no file content.
 
-| Key | Meaning |
-| --- | --- |
-| `id` | Unique source ID. |
-| `origin` | Plan files only, optional: the `id` of the rule set the source was copied from. |
-| `name` | Text up to 200 characters (`"Kita"`). |
-| `type` | One of the types below. |
-| `color` | A slot of the color palette, `{ "slot": "accent-3" }` (lowercase words joined by hyphens), or an own color, `{ "rgb": "#1a7f37" }` (`#` and six hexadecimal digits). |
-| `visible` | `true` or `false`. |
-| `plan` | Type `otherPlan` only: a [plan reference](#plan-references) to the other plan. |
-| `entries` | List of at most 2000 [entries](#entries). |
+| Key | Required | Meaning |
+| --- | --- | --- |
+| `id` | yes | Unique source ID. |
+| `origin` | no | Plan files only: the `id` of the rule set the source was copied from. |
+| `name` | yes | Text up to 200 characters (`"Kita"`). |
+| `type` | yes | One of the types below. |
+| `color` | yes | A slot of the color palette, `{ "slot": "accent-3" }` (lowercase words joined by hyphens), or an own color, `{ "rgb": "#1a7f37" }` (`#` and six hexadecimal digits). |
+| `visible` | no, `true` | `true` or `false`. |
+| `plan` | yes for type `otherPlan` | Type `otherPlan` only: a [plan reference](#plan-references) to the other plan. |
+| `entries` | no, `[]` | List of at most 2000 [entries](#entries). |
 
 ### Types
 
@@ -163,15 +171,15 @@ A rule set fixes as much of the region as it knows: an agreement valid everywher
 
 An entry covers one date or the days of a repeating `match`. Keys in the order the app writes them:
 
-| Key | Meaning |
-| --- | --- |
-| `date` | ISO date: the entry covers this one day. |
-| `match` | A match as in [Day rules](day-rules-format.md#match): the entry covers every day it matches. Exactly one of `date` and `match`. |
-| `validFrom`, `validUntil` | Match entries only: optional years, both inclusive, as for day rules. |
-| `except` | Match entries only: optional list of at most 400 ISO dates that the match skips, such as an exception of an iCal series or a need dismissed for one day. |
-| `name` | Optional text up to 200 characters: the event's title, for display and duplicate detection. |
-| `required` or `take` | The type's share, see [Types](#types). |
-| `part` | Optional, see [Types](#types). |
+| Key | Required | Meaning |
+| --- | --- | --- |
+| `date` | yes, exactly one of `date` and `match` | ISO date: the entry covers this one day. |
+| `match` | yes, exactly one of `date` and `match` | A match as in [Day rules](day-rules-format.md#match): the entry covers every day it matches. |
+| `validFrom`, `validUntil` | no | Match entries only: years, both inclusive, as for day rules. |
+| `except` | no | Match entries only: list of at most 400 ISO dates that the match skips, such as an exception of an iCal series or a need dismissed for one day. |
+| `name` | no | Text up to 200 characters: the event's title, for display and duplicate detection. |
+| `required` or `take` | no, `required` `"0"`, `take` `"1"` | The type's share, see [Types](#types). |
+| `part` | no, `"end"` | See [Types](#types). |
 
 An `otherPlan` entry is always a date entry, written as `date`, `name`, `from`, `to`, `kind`.
 
@@ -197,12 +205,12 @@ A need of `take` at the `"end"` is covered on a day that is entirely free or who
 
 An `otherPlan` source holds the days another plan charged, as spans of its working time:
 
-| Key | Meaning |
-| --- | --- |
-| `date` | The day. |
-| `name` | Optional text up to 200 characters. |
-| `from`, `to` | Weights: shares of a full day measured from the start of the working time, `from` < `to`. `"0"` to `"1/2"` is the morning, `"1/2"` to `"1"` the afternoon, `"0"` to `"1"` the whole day. |
-| `kind` | `"leave"` or `"mandatory"`: what the other plan charged it as, for display only. |
+| Key | Required | Meaning |
+| --- | --- | --- |
+| `date` | yes | The day. |
+| `name` | no | Text up to 200 characters. |
+| `from`, `to` | yes | Weights: shares of a full day measured from the start of the working time, `from` < `to`. `"0"` to `"1/2"` is the morning, `"1/2"` to `"1"` the afternoon, `"0"` to `"1"` the whole day. |
+| `kind` | yes | `"leave"` or `"mandatory"`: what the other plan charged it as, for display only. |
 
 A day can have several entries, one per span. A span can lie in the middle of the working time once steps are finer than ½ (`"1/4"` to `"2/4"`), which a `take` with a `part` can't express. The app writes both ends with their smallest shared denominator (`"1/4"` and `"2/4"`, `"2/8"` and `"3/8"`), so the length can be read off; `"0"` and `"1"` stay as they are. The reader accepts any weights.
 
@@ -219,15 +227,23 @@ Nothing else of the other plan is stored: no notes, contract or allowance. Becau
 
 `templates` holds at most 20 own PDF templates:
 
-| Key | Meaning |
-| --- | --- |
-| `id` | Unique template ID. |
-| `origin` | Plan files only, optional: the `id` of the rule set the template was copied from. |
-| `name` | Text up to 200 characters. |
-| `api` | Whole number from 1: the version of the template data interface. |
-| `typst` | The Typst versions the template needs (`">=0.13"`), up to 200 characters. |
-| `typ` | The template's Typst source, at most 512 KB in UTF-8. |
-| `images` | Optional list of images, each `name` (up to 200 characters), `type` (`"image/png"`, `"image/jpeg"` or `"image/svg+xml"`) and `data` (Base64); at most 1 MB per image and 2 MB per template, decoded. |
+| Key | Required | Meaning |
+| --- | --- | --- |
+| `id` | yes | Unique template ID. |
+| `origin` | no | Plan files only: the `id` of the rule set the template was copied from. |
+| `name` | yes | Text up to 200 characters. |
+| `api` | yes | Whole number from 1: the version of the template data interface. |
+| `typst` | yes | The Typst versions the template needs (`">=0.13"`), up to 200 characters. |
+| `typ` | yes | The template's Typst source, at most 512 KB in UTF-8. |
+| `images` | no, `[]` | List of images; at most 1 MB per image and 2 MB per template, decoded. |
+
+An image of `images` (a problem in it drops its template):
+
+| Key | Required | Meaning |
+| --- | --- | --- |
+| `name` | yes | A string of 1 to 200 characters. |
+| `type` | yes | `"image/png"`, `"image/jpeg"` or `"image/svg+xml"`. |
+| `data` | yes | The image in Base64. |
 
 The reader checks only the shape and the limits; what a template contains is defined with the templates. Images go only to Typst or into an `<img>` element; an SVG is never inserted as markup.
 
@@ -239,15 +255,26 @@ The reader checks only the shape and the limits; what a template contains is def
 
 Plan files only. Keys in the order the app writes them:
 
-| Key | Meaning |
-| --- | --- |
-| `range` | The plan period: `from` and `to` as months, both inclusive, `from` ≤ `to`, at most 36 months (`{ "from": "2027-01", "to": "2028-01" }`). |
-| `allowance` | The allowance as an amount (`"30"`). Remaining days from the previous year are entered here; there is no carry-over. |
-| `days` | Own leave, at most 2000 entries: `date`, `take` (`"1/480"` … `"1"`), `part` (required when `take` is below `"1"`). |
-| `overrides` | Manual changes of the required work on single dates, at most 2000 entries: `date`, `required` (`"0"` … `"1"`), `part` (where the free time lies). |
-| `notes` | Notes, at most 2000 entries: `date`, `text` (a plain string of 1 to 2000 characters). |
+| Key | Required | Meaning |
+| --- | --- | --- |
+| `range` | yes, with `from` and `to` | The plan period: `from` and `to` as months, both inclusive, `from` ≤ `to`, at most 36 months (`{ "from": "2027-01", "to": "2028-01" }`). |
+| `allowance` | yes | The allowance as an amount (`"30"`). Remaining days from the previous year are entered here; there is no carry-over. |
+| `days` | no, `[]` | Own leave, at most 2000 entries. |
+| `overrides` | no, `[]` | Manual changes of the required work on single dates, at most 2000 entries. |
+| `notes` | no, `[]` | Notes, at most 2000 entries. |
 
-Each list has at most one entry per date and is sorted by date; a missing list reads as `[]`. The three lists are independent: removing leave never removes a note. Overrides are personal and therefore in the plan, never in the contract; a company-wide single date is a day rule with a `once` date.
+Each list has at most one entry per date and is sorted by date. The three lists are independent: removing leave never removes a note. Overrides are personal and therefore in the plan, never in the contract; a company-wide single date is a day rule with a `once` date.
+
+| Entry | Key | Required | Meaning |
+| --- | --- | --- | --- |
+| leave day | `date` | yes | ISO date. |
+| leave day | `take` | yes | The leave taken, `"1/480"` … `"1"`. |
+| leave day | `part` | no | Where the leave lies, `"start"` or `"end"`. Partial leave without it is kept with a suggested part and reported (`partSuggested`). |
+| override | `date` | yes | ISO date. |
+| override | `required` | yes | The required work, `"0"` … `"1"`. |
+| override | `part` | no, `"end"` | Where the free time lies. |
+| note | `date` | yes | ISO date. |
+| note | `text` | yes | A plain string of 1 to 2000 characters. |
 
 ```json
 "plan": {
@@ -304,11 +331,11 @@ A report entry has a `code`, the `path` of the key itself in the text that was r
 | --- | --- | --- | --- |
 | `unknownField` | Error | A key the format doesn't define, including `origin` in a rule set and `validFrom`, `validUntil` or `except` on a date entry | dropped; saving writes only known keys |
 | `missingValue` | Error | A required key is absent. Where exactly one of several keys is required (a rule's effect `requiredAtMost`, `requiredExactly` or `mandatory`; an entry's `date` or `match`; a range's `to` or `days`; a color's `slot` or `rgb`) and none is present, the entry stands at the object and `data.oneOf` lists the choices | what `dropped` says, see below |
-| `invalidValue` | Error | A value is present but wrong: its type, range, format or order, a weekday twice in `weekdays`, `to` not after `from` in an other-plan span, `validUntil` before `validFrom`. Also an entry of a list that isn't an object (at the entry), and several keys of one choice (at the object, with `data.oneOf`) | what `dropped` says, see below; an invalid `theme` reads as `null` |
+| `invalidValue` | Error | A value is present but wrong: its type, range, format or order, a weekday twice in `weekdays`, `to` not after `from` in an other-plan span, `validUntil` before `validFrom`. Also an entry of a list that isn't an object (at the entry), and several keys of one choice (at the object, with `data.oneOf`) | what `dropped` says, see below; an invalid `theme` reads as `null`, an optional list that isn't a list as `[]` |
 | `duplicateDate` | Error | The same date twice in `days`, `overrides` or `notes` (at `….date`) | the first valid one kept, later ones dropped without being read any further |
 | `duplicateId` | Error | The same ID twice among rules, sources or templates (at `….id`) | the first kept, later ones dropped without being read any further |
 | `unknownReference` | Error | A rule cites a key that `contract.references` doesn't have (`data.reference`) | the citation dropped, the rule kept |
-| `textTooLong` | Error | A text over its limit (`data.limit`; `data.language` for a language map) | the entry that holds the text dropped: a rule with an over-long `label` or `note` as a whole; likewise a reference, a source, a source entry, a template, a note, the `ruleSet` reference; an over-long `contract.name` or `description` is left out |
+| `textTooLong` | Error | A text over its limit (`data.limit`; `data.language` for a language map) | an optional text that is only shown (a rule's `label` or `note`, an entry's `name`, `contract.name` and `description`) is dropped alone; a required one drops the part that holds it |
 | `sourceTooLarge` | Error | A source with more than 2000 entries, or one of its entries with more than 400 `except` dates (`data.limit`: `entriesPerSource` or `exceptPerEntry`) | that source dropped |
 | `templateTooLarge` | Error | A `typ` over 512 KB, an image over 1 MB or a template's images over 2 MB together (`data.limit`: `typBytes`, `imageBytes` or `templateImageBytes`) | that template dropped |
 | `unknownLocalRule` | Error | An option the holiday data doesn't define for the selected state, for example after a local rule was renamed or removed, or any option in a rule set without `state` | the option dropped |
@@ -324,6 +351,7 @@ Every key of an entry is checked, also after a problem, in the order the app wri
 
 - the fields of a `match` whose `type` is missing or unknown;
 - the entries and the `plan` of a source whose `type` is missing or unknown, and the entries of a source that is personal in a rule set;
+- the entries of a source over one of its limits (`sourceTooLarge`), which is checked before they are read;
 - the `day` of a date whose `month` is invalid, and `nonLeap` unless the date it belongs to is valid;
 - the order of `validFrom` and `validUntil` unless both are valid years;
 - `validFrom`, `validUntil` and `except` of an entry with neither or both of `date` and `match`;
@@ -335,14 +363,15 @@ Every key of an entry is checked, also after a problem, in the order the app wri
 - `outsidePeriod` when `plan.range` is missing or invalid;
 - in a refused file, the limit of 50,000 source days and the part suggestions (`partSuggested`).
 
-What an Error drops (`dropped`) is the entry that holds the value: a rule, reference, source, source entry, template, leave day, override or note, also for a problem inside its `match` or its texts. The exceptions:
+What an Error drops (`dropped`) is the entry that holds the value: a rule, reference, source, source entry, template, leave day, override or note, also for a problem inside its `match` or its required texts. The exceptions:
 
 - a problem in an image drops its template;
 - a problem in the `ruleSet` reference drops `ruleSet`; one in a source's `plan` or `color` drops that source;
-- `unknownField` drops only the key itself, `unknownReference` only that citation, and an invalid `except` date only that date;
+- values that are only shown drop only themselves: an invalid or over-long `label` or `note` of a rule, a rule's `references` that isn't a list, and an invalid or over-long `name` of a source entry;
+- `unknownField` drops only the key itself, `unknownReference` and a citation that isn't a string only that citation, and an invalid `except` date only that date;
 - `contract.region.options` that isn't a map drops `contract.region.options`; one invalid option, and `unknownLocalRule`, drop only that option;
 - an invalid `state` that isn't required (see [Region](#region)) drops `contract.region.state`;
-- an invalid `theme`, `contract.references`, `contract.name` or `description` drops that key;
+- an invalid `theme`, `contract.references`, `contract.name` or `description` drops that key, and `contract.rules`, `sources`, `templates`, `plan.days`, `plan.overrides` or `plan.notes` that isn't a list drops that list;
 - `sourceTooLarge` and `personalSourceInRuleSet` drop that source, `templateTooLarge` that template;
 - a problem in a required part of the file itself drops the whole file, `""`, and refuses it ([`invalidCore`](#refused)).
 
@@ -363,24 +392,6 @@ Hints are not part of the read report. Their paths are positions in the text tha
 
 Progress: `onProgress` is called with `(0, N)` first and then once per rule or match entry. `checkCount(file)` gives N.
 
-### Missing optional parts
-
-A missing optional part is not a repair and gets no report entry. It reads as its default:
-
-| Missing | Reads as |
-| --- | --- |
-| `contract.name`, `contract.description` | no name, no description |
-| `contract.references` | `{}` |
-| `contract.minUnit` | `"1/2"` |
-| `sources`, `templates` | `[]` |
-| `theme` | `null` |
-| `plan.days`, `plan.overrides`, `plan.notes` | `[]` |
-| `required` of a `holiday` entry | `"0"` |
-| `take` of a `mandatory` or `needed` entry | `"1"` |
-| `part` of an override, a rule or a source entry | means `"end"`; written back missing |
-
-`contract.week` and `contract.rules` are required; `rules` may be the empty list.
-
 ## Limits
 
 | What | Limit | Exceeded |
@@ -393,7 +404,7 @@ A missing optional part is not a repair and gets no report entry. It reads as it
 | Plan period | 36 months | refused (`limitExceeded`) |
 | `typ` of one template | 512 KB | that template dropped (`templateTooLarge`) |
 | One image / all images of a template | 1 MB / 2 MB decoded | that template dropped (`templateTooLarge`) |
-| Names, labels, reference titles and versions / descriptions, notes | 200 / 2000 characters | that entry dropped (`textTooLong`) |
+| Names, labels, reference titles and versions / descriptions, notes | 200 / 2000 characters | the text dropped, or the entry when the text is required (`textTooLong`) |
 | IDs and reference keys / URLs | 200 / 2000 characters | invalid: that entry dropped (`invalidValue`), an over-long file `id` refused (`invalidCore`) |
 | Files inside files | none: another plan is stored as entries, never embedded | |
 

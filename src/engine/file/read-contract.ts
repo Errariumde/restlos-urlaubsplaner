@@ -195,24 +195,21 @@ const RULE_KEYS = [
 ];
 const EFFECTS = ["requiredAtMost", "requiredExactly", "mandatory"] as const;
 
-
-/** The citations of a rule: the keys `references` has; an unknown key drops only the citation. */
-function readCitations(
-  value: unknown,
-  path: string,
-  references: Readonly<Record<string, Reference>>,
-  report: Report,
-  dropped: string,
-): string[] | undefined {
+/**
+ * The citations of a rule: the keys `references` (the contract's) has. They are only shown, so a problem drops
+ * only what it is in: a value that isn't a list drops the rule's `references`, and a citation that isn't a
+ * string or that names a key the contract doesn't have drops only that citation.
+ */
+function readCitations(value: unknown, path: string, references: Readonly<Record<string, Reference>>, report: Report): string[] | undefined {
   if (!Array.isArray(value)) {
-    report.error("invalidValue", path, dropped);
+    report.error("invalidValue", path, path);
     return undefined;
   }
   const citations: string[] = [];
   for (let i = 0; i < value.length; i++) {
     const key: unknown = value[i];
     const citationPath = at(path, i);
-    if (typeof key !== "string") report.error("invalidValue", citationPath, dropped);
+    if (typeof key !== "string") report.error("invalidValue", citationPath, citationPath);
     else if (Object.hasOwn(references, key)) citations.push(key);
     else report.error("unknownReference", citationPath, citationPath, { reference: key.slice(0, LIMITS.shortText) });
   }
@@ -222,6 +219,7 @@ function readCitations(
 /**
  * Reads one day rule into `report`, the rule's own scratch report: every key in the writer's order, then
  * the unknown fields. Returns undefined when the rule is dropped. A duplicate `id` is read no further.
+ * `label`, `note` and `references` are only shown: a problem in one of them drops only that key.
  */
 function readRule(
   value: unknown,
@@ -241,8 +239,8 @@ function readRule(
     return undefined;
   }
   const origin = kind === "plan" ? readOptional(value, "origin", parseId, path, report, path) : undefined;
-  // A text that is not valid drops the rule (Task 6 of the plan changes this for the texts that are only shown).
-  const label = value["label"] === undefined ? undefined : readText(value["label"], child(path, "label"), LIMITS.shortText, report, path);
+  const labelPath = child(path, "label");
+  const label = value["label"] === undefined ? undefined : readText(value["label"], labelPath, LIMITS.shortText, report, labelPath);
   const match = readMatch(value["match"], child(path, "match"), report, path);
   const validFrom = readOptional(value, "validFrom", parseYear, path, report, path);
   const validUntil = readOptional(value, "validUntil", parseYear, path, report, path);
@@ -250,9 +248,9 @@ function readRule(
   const effect = readChoice(value, EFFECTS, path, report, path);
   const units = effect === undefined ? undefined : readOptional(value, effect, effect === "mandatory" ? positiveWeight : weight, path, report, path);
   const part = readOptional(value, "part", parsePart, path, report, path);
-  const note = value["note"] === undefined ? undefined : readText(value["note"], child(path, "note"), LIMITS.longText, report, path);
-  const citations =
-    value["references"] === undefined ? undefined : readCitations(value["references"], child(path, "references"), references, report, path);
+  const notePath = child(path, "note");
+  const note = value["note"] === undefined ? undefined : readText(value["note"], notePath, LIMITS.longText, report, notePath);
+  const citations = value["references"] === undefined ? undefined : readCitations(value["references"], child(path, "references"), references, report);
   // Rule sets have no `origin`; there it counts as an unknown field.
   checkKeys(value, kind === "plan" ? RULE_KEYS : RULE_KEYS.filter((key) => key !== "origin"), path, report);
   if (report.drops(path) || id === undefined || match === undefined || effect === undefined || units === undefined) return undefined;
@@ -281,9 +279,10 @@ function readRules(
   report: Report,
   positions: Map<string, number>,
 ): FileRule[] {
+  // `rules` is optional: missing it reads as empty; anything but a list is dropped and reads as empty too.
+  if (value === undefined) return [];
   if (!Array.isArray(value)) {
-    // `rules` belongs to the file itself: the Error refuses the file, and no rules are read.
-    report.error(value === undefined ? "missingValue" : "invalidValue", path, "");
+    report.error("invalidValue", path, path);
     return [];
   }
   limit(value.length, LIMITS.rules, "rules", path);

@@ -242,10 +242,11 @@ describe("rules", () => {
     ]);
     expect(contractOf(result).rules).toEqual([]);
   });
-  it.each([
-    ["missing", undefined, core("missingValue", "contract.rules")],
-    ["not a list", "x", core("invalidValue", "contract.rules")],
-  ])("refuses rules that are %s", (_name, rules, entry) => expect(withContract({ rules })).toEqual(refusedWith(entry)));
+  it("reads a contract without rules", () => {
+    const result = readFile(minimal({ contract: { region: MINIMAL_CONTRACT.region, week: MINIMAL_CONTRACT.week } }));
+    expect(result).toMatchObject({ ok: true, report: [] });
+    expect(contractOf(result).rules).toEqual([]);
+  });
   it("refuses 1001 rules", () =>
     expect(withContract({ rules: Array.from({ length: 1001 }, (_, i) => rule({ id: `r${String(i)}` })) }))
       .toMatchObject({ ok: false, refusal: { code: "limitExceeded", data: { limit: "rules" } } }));
@@ -275,16 +276,42 @@ describe("references", () => {
   });
 });
 
-describe("over-long rule texts", () => {
-  it.each([
-    ["label", { label: "x".repeat(201) }, 200],
-    ["note", { note: { de: "x", en: "y".repeat(2001) } }, 2000],
-  ])("drops a rule with an over-long %s, which dropped says (R20)", (field, extra, limit) => {
-    const result = withContract({ rules: [rule(extra), rule({ id: "r2" })] });
-    expect(result.ok && result.report).toEqual([
-      { code: "textTooLong", path: `contract.rules[0].${field}`, dropped: "contract.rules[0]", data: field === "note" ? { limit, language: "en" } : { limit } },
+describe("rule values that are only shown", () => {
+  const match = { type: "fixed", month: 12, day: 24 };
+  it("keeps a rule whose label is too long, without the label", () => {
+    const result = withContract({ rules: [rule({ label: "x".repeat(201) })] });
+    expect(reportOf(result)).toEqual([
+      { code: "textTooLong", path: "contract.rules[0].label", dropped: "contract.rules[0].label", data: { limit: 200 } },
     ]);
-    expect(contractOf(result).rules.map((r) => r.id)).toEqual(["r2"]);
+    expect(contractOf(result).rules).toEqual([{ id: "r1", match, requiredAtMost: 240 }]);
+  });
+  it("keeps a rule whose note is too long, without the note", () => {
+    const result = withContract({ rules: [rule({ note: { de: "x", en: "y".repeat(2001) } }), rule({ id: "r2", note: "n" })] });
+    expect(reportOf(result)).toEqual([
+      { code: "textTooLong", path: "contract.rules[0].note", dropped: "contract.rules[0].note", data: { limit: 2000, language: "en" } },
+    ]);
+    expect(contractOf(result).rules).toEqual([
+      { id: "r1", match, requiredAtMost: 240 },
+      { id: "r2", match, requiredAtMost: 240, note: "n" },
+    ]);
+  });
+  it.each([
+    ["label", { label: 5 }, "contract.rules[0].label", "contract.rules[0].label", {}],
+    ["note", { note: { EN: "x" } }, "contract.rules[0].note.EN", "contract.rules[0].note", {}],
+    ["references", { references: "x" }, "contract.rules[0].references", "contract.rules[0].references", {}],
+    ["citation", { references: [5] }, "contract.rules[0].references[0]", "contract.rules[0].references[0]", { references: [] }],
+  ])("keeps a rule without the invalid %s", (_name, extra, path, dropped, kept) => {
+    const result = withContract({ rules: [rule(extra)] });
+    expect(reportOf(result)).toEqual([{ code: "invalidValue", path, dropped }]);
+    expect(contractOf(result).rules).toEqual([{ id: "r1", match, requiredAtMost: 240, ...kept }]);
+  });
+  it("still drops a rule whose other values are invalid, and reports its dropped label too", () => {
+    const result = withContract({ rules: [rule({ label: 5, validFrom: 1500 })] });
+    expect(reportOf(result)).toEqual([
+      { code: "invalidValue", path: "contract.rules[0].label", dropped: "contract.rules[0].label" },
+      { code: "invalidValue", path: "contract.rules[0].validFrom", dropped: "contract.rules[0]" },
+    ]);
+    expect(contractOf(result).rules).toEqual([]);
   });
 });
 

@@ -5,6 +5,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { readFile } from "../../../src/engine/file/read";
 import { SEVERITY } from "../../../src/engine/file/severity";
+import type { PlanFile } from "../../../src/engine/file/types";
 import { BAVARIA_CONTRACT, MINIMAL_CONTRACT, core, minimal, planFile, refusedWith } from "./helpers";
 
 const rules = (count: number) =>
@@ -43,6 +44,25 @@ describe("readFile: a refused file lists every Error", () => {
     const result = readFile(text);
     expect(result).toMatchObject({ ok: false, refusal: { code } });
     expect(!result.ok && result.report).toEqual([]);
+  });
+});
+
+describe("readFile: optional lists", () => {
+  const load = (result: ReturnType<typeof readFile>): PlanFile => {
+    if (!result.ok || result.file.kind !== "plan") throw new Error("not a loaded plan file");
+    return result.file;
+  };
+  it.each([
+    ["contract.rules", planFile({}, { contract: { ...BAVARIA_CONTRACT, rules: {} } }), (file: PlanFile) => file.contract.rules],
+    ["sources", planFile({}, { sources: {} }), (file: PlanFile) => file.sources],
+    ["templates", planFile({}, { templates: {} }), (file: PlanFile) => file.templates],
+    ["plan.days", planFile({ days: {} }), (file: PlanFile) => file.plan.days],
+    ["plan.overrides", planFile({ overrides: {} }), (file: PlanFile) => file.plan.overrides],
+    ["plan.notes", planFile({ notes: {} }), (file: PlanFile) => file.plan.notes],
+  ])("drops an optional list that isn't a list: %s (Review Focus 4)", (path, text, list) => {
+    const result = readFile(text);
+    expect(result.ok && result.report).toEqual([{ code: "invalidValue", path, dropped: path }]);
+    expect(list(load(result))).toEqual([]);
   });
 });
 

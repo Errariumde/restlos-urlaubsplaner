@@ -7,7 +7,7 @@ import { checkRules } from "../../../src/engine/file/check";
 import { readFile } from "../../../src/engine/file/read";
 import { readSources } from "../../../src/engine/file/read-sources";
 import { Report } from "../../../src/engine/file/report";
-import { MINIMAL_CONTRACT, core, minimal, refusedWith } from "./helpers";
+import { MINIMAL_CONTRACT, minimal } from "./helpers";
 
 const withSources = (sources: unknown, extra: Record<string, unknown> = {}) => readFile(minimal({ sources, ...extra }));
 const codes = (result: ReturnType<typeof readFile>) => (result.ok ? result.report.map((e) => `${e.code}@${e.path}`) : [`refused:${result.refusal.code}`]);
@@ -150,7 +150,11 @@ describe("a valid file", () => {
     expect(codes(result)).toEqual([]);
     expect(sourcesOf(result)).toEqual([]);
   });
-  it("refuses sources that are not a list", () => expect(withSources({})).toEqual(refusedWith(core("invalidValue", "sources"))));
+  it("reads a source without visible and entries", () => {
+    const result = withSources([{ id: "s1", name: "School", type: "info", color: { slot: "accent-3" } }]);
+    expect(result).toMatchObject({ ok: true, report: [] });
+    expect(sourcesOf(result)).toEqual([{ id: "s1", name: "School", type: "info", color: { slot: "accent-3" }, visible: true, entries: [] }]);
+  });
   it("drops a match entry whose validFrom is after validUntil", () => {
     const result = withSources([source({ entries: [{ match: { type: "fixed", month: 12, day: 24 }, validFrom: 2030, validUntil: 2029 }] })]);
     expect(result.ok && result.report).toEqual([{ code: "invalidValue", path: "sources[0].entries[0].validUntil", dropped: "sources[0].entries[0]" }]);
@@ -249,21 +253,41 @@ describe("invalid entries", () => {
     const result = withSources([source({ extra: 1, entries: [{ date: "2027-01-01", colour: "red" }] })]);
     expect(codes(result)).toEqual(["unknownField@sources[0].entries[0].colour", "unknownField@sources[0].extra"]);
   });
-  it("drops an entry whose name is too long", () => {
+  it("keeps a source entry whose name is too long, without the name", () => {
     const result = withSources([source({ entries: [{ date: "2027-01-01", name: "x".repeat(201) }] })]);
-    expect(codes(result)).toEqual(["textTooLong@sources[0].entries[0].name"]);
-    expect(sourcesOf(result)[0]?.entries).toEqual([]);
+    expect(result.ok && result.report).toEqual([
+      { code: "textTooLong", path: "sources[0].entries[0].name", dropped: "sources[0].entries[0].name", data: { limit: 200 } },
+    ]);
+    expect(sourcesOf(result)[0]?.entries).toEqual([{ date: day("2027-01-01") }]);
   });
   it.each([
-    ["no id", { id: undefined }],
-    ["an empty id", { id: "" }],
-    ["no name", { name: undefined }],
-    ["a bad type", { type: "holidays" }],
-    ["no visible", { visible: undefined }],
-    ["entries not a list", { entries: {} }],
-  ])("drops a source with %s", (_name, extra) => {
+    ["an entry", source({ entries: [{ date: "2027-01-01", name: 5 }] }), { date: day("2027-01-01") }],
+    [
+      "an other-plan entry",
+      source({ type: "otherPlan", plan: { id: "p", name: "P", revision: 1 }, entries: [{ date: "2027-03-01", from: "0", to: "1", kind: "leave", name: {} }] }),
+      { date: day("2027-03-01"), from: 0, to: 480, kind: "leave" },
+    ],
+  ])("keeps %s without its invalid name", (_name, value, entry) => {
+    const report = new Report();
+    const [read] = readSources([value], "sources", "plan", report);
+    expect(report.entries).toEqual([{ code: "invalidValue", path: "sources[0].entries[0].name", dropped: "sources[0].entries[0].name" }]);
+    expect(read?.entries).toEqual([entry]);
+  });
+  it("still drops a source whose name is too long", () => {
+    const result = withSources([source({ name: "x".repeat(201) })]);
+    expect(result.ok && result.report).toEqual([{ code: "textTooLong", path: "sources[0].name", dropped: "sources[0]", data: { limit: 200 } }]);
+    expect(sourcesOf(result)).toEqual([]);
+  });
+  it.each([
+    ["no id", { id: undefined }, "missingValue", "id"],
+    ["an empty id", { id: "" }, "invalidValue", "id"],
+    ["no name", { name: undefined }, "missingValue", "name"],
+    ["a bad type", { type: "holidays" }, "invalidValue", "type"],
+    ["a visible that isn't a boolean", { visible: "yes" }, "invalidValue", "visible"],
+    ["entries not a list", { entries: {} }, "invalidValue", "entries"],
+  ])("drops a source with %s", (_name, extra, code, key) => {
     const result = withSources([source(extra)]);
-    expect(result.ok && result.report).toHaveLength(1);
+    expect(result.ok && result.report).toEqual([{ code, path: `sources[0].${key}`, dropped: "sources[0]" }]);
     expect(sourcesOf(result)).toEqual([]);
   });
   it("reports every problem of an entry in the order of its keys", () => {

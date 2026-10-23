@@ -26,6 +26,8 @@ interface ReadEntry {
 const slot: Parse<string> = (value) => (typeof value === "string" && value.length <= LIMITS.shortText && SLOT.test(value) ? value : undefined);
 const rgb: Parse<string> = (value) => (typeof value === "string" && RGB.test(value) ? value : undefined);
 const spanKind: Parse<"leave" | "mandatory"> = (value) => (value === "leave" || value === "mandatory" ? value : undefined);
+const parseBoolean: Parse<boolean> = (value) => (typeof value === "boolean" ? value : undefined);
+const parseList: Parse<readonly unknown[]> = (value) => (Array.isArray(value) ? (value as unknown[]) : undefined);
 
 /** A source's `color`: exactly one of `slot` and `rgb`. */
 function readColor(value: unknown, path: string, report: Report, dropped: string): Color | undefined {
@@ -81,7 +83,8 @@ const MATCH_KEYS = ["match", "validFrom", "validUntil", "except"];
 
 /**
  * Reads one entry of a source into `report`, the entry's own scratch report: every key in the writer's order,
- * then the unknown fields. Returns undefined when the entry is dropped.
+ * then the unknown fields. Returns undefined when the entry is dropped. `name` is only shown: a problem in it
+ * drops only the name.
  */
 function readEntry(value: unknown, path: string, type: SourceType, report: Report): ReadEntry | undefined {
   if (!isRecord(value)) {
@@ -103,7 +106,8 @@ function readEntry(value: unknown, path: string, type: SourceType, report: Repor
     if (validFrom !== undefined && validUntil !== undefined && validFrom > validUntil) report.error("invalidValue", child(path, "validUntil"), path);
     if (value["except"] !== undefined) except = readExcept(value["except"], child(path, "except"), report, path);
   }
-  const name = value["name"] === undefined ? undefined : readText(value["name"], child(path, "name"), LIMITS.shortText, report, path);
+  const namePath = child(path, "name");
+  const name = value["name"] === undefined ? undefined : readText(value["name"], namePath, LIMITS.shortText, report, namePath);
 
   const extra: Record<string, unknown> = {};
   if (type === "holiday") {
@@ -156,8 +160,9 @@ function sortedOrder(entries: readonly object[]): number[] {
 
 /**
  * The entries of a source in their canonical order, with their indexes in the text. Each entry is read into a
- * scratch report of its own and merged into `report`. Without a `type` (missing, unknown, or a personal source
- * in a rule set) the list is checked but its entries are not read.
+ * scratch report of its own and merged into `report`. Missing `entries` read as empty; anything but a list
+ * drops the source. Without a `type` (missing, unknown, or a personal source in a rule set) the list is checked
+ * but its entries are not read.
  */
 function readSourceEntries(
   value: Readonly<Record<string, unknown>>,
@@ -165,7 +170,7 @@ function readSourceEntries(
   type: SourceType | undefined,
   report: Report,
 ): { readonly entries: readonly ReadEntry[]; readonly entryIndexes: readonly number[] } | undefined {
-  const list = readRequired(value, "entries", (item) => (Array.isArray(item) ? (item as unknown[]) : undefined), path, report, path);
+  const list = value["entries"] === undefined ? [] : readOptional(value, "entries", parseList, path, report, path);
   if (list === undefined) return undefined;
   const tooLarge = (limit: string): undefined => {
     report.error("sourceTooLarge", path, path, { limit });
@@ -194,7 +199,8 @@ function readSourceEntries(
 
 /**
  * Reads one source into `report`, the source's own scratch report: every key in the writer's order, then the
- * unknown fields. Returns undefined when the source is dropped. A duplicate `id` is read no further.
+ * unknown fields. Returns undefined when the source is dropped. A duplicate `id` is read no further. A missing
+ * `visible` reads as `true`.
  */
 function readSource(
   value: unknown,
@@ -218,7 +224,7 @@ function readSource(
   const personal = type !== undefined && kind === "ruleSet" && PERSONAL.includes(type);
   if (personal) report.error("personalSourceInRuleSet", path, path, { type });
   const color = readColor(value["color"], child(path, "color"), report, path);
-  const visible = readRequired(value, "visible", (item) => (typeof item === "boolean" ? item : undefined), path, report, path);
+  const visible = value["visible"] === undefined ? true : readOptional(value, "visible", parseBoolean, path, report, path);
   const plan = type === "otherPlan" ? readPlanRef(value["plan"], child(path, "plan"), report, path) : undefined;
   const read = readSourceEntries(value, path, personal ? undefined : type, report);
   // Rule sets have no `origin`. `plan` belongs to other-plan sources; for a source without a known type it is not checked.
@@ -240,9 +246,8 @@ function readSource(
 }
 
 /**
- * Reads `sources`. A missing list reads as empty. Anything but a list reads as empty too, and its Error
- * (`dropped: ""`) refuses the file; more than 50 sources are refused. Invalid sources and entries are dropped
- * one by one with a report entry.
+ * Reads `sources`. A missing list reads as empty. Anything but a list is dropped and reads as empty too; more
+ * than 50 sources are refused. Invalid sources and entries are dropped one by one with a report entry.
  */
 export function readSources(
   value: unknown,
@@ -253,7 +258,7 @@ export function readSources(
 ): FileSource[] {
   if (value === undefined) return [];
   if (!Array.isArray(value)) {
-    report.error("invalidValue", path, "");
+    report.error("invalidValue", path, path);
     return [];
   }
   if (value.length > LIMITS.sources) throw new Refused({ code: "limitExceeded", path, data: { limit: "sources" } });
