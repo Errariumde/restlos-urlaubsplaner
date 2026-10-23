@@ -2,9 +2,33 @@
   "node": "v24.21.0",
   "valgrind": "valgrind-3.26.0",
   "work": {
+    "check:calendarRangesOffWeekday": [
+      1228177024,
+      1894712025
+    ],
+    "check:earlyEasterRanges": [
+      1647838857,
+      2809694024
+    ],
+    "read:calendarRangesOffWeekday": [
+      970429735,
+      1639545183
+    ],
     "read:earlyEasterRanges": [
-      801026703,
-      1354970288
+      788868812,
+      1317501788
+    ],
+    "read:easterRangesJustOutOfReach": [
+      729643224,
+      1202629316
+    ],
+    "readAndCompute:limitsPlan": [
+      1002599161,
+      1416286669
+    ],
+    "write:limitsPlan": [
+      64732948,
+      98740518
     ]
   }
 }

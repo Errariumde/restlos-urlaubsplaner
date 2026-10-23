@@ -1,10 +1,10 @@
 ---
-status: open
+status: done
 priority: 2
 area: engine (file format)
-branch:
+branch: file-format
 created: 2026-10-19
-closed:
+closed: 2026-10-23
 ---
 <!--
 SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
@@ -46,10 +46,10 @@ Realistic files read in a few milliseconds. Reading can no longer hang: before t
 
 ## Acceptance criteria
 
-- [ ] The maintainer has chosen one of the options below.
-- [ ] A timing test with the shape above (as many distinct entries as the limits allow) reads in under 1,000 ms, or under the bound the chosen option gives.
-- [ ] Design, SPEC and `docs/file-format.md` agree with the code.
-- [ ] `npm run check` passes.
+- [x] The maintainer has chosen: opening runs in two visible steps, reading and checking (see Decisions).
+- [x] `checkRules` produces the hints after reading; `npm run perf` gates reading, checking, computing and writing.
+- [x] Design, SPEC and `docs/file-format.md` agree with the code.
+- [x] `npm run check` passes.
 
 ## Notes
 
@@ -77,7 +77,7 @@ Agreed with the maintainer on 2026-10-19 and 2026-10-20. The spec texts follow o
 - Spec changes approved on 2026-10-20:
   - **2:** "well under a second" is replaced by: reading and checking grow at most linearly, gated by `npm run perf`. The target is 2 s for the worst file in Firefox ESR on the i7-8650U, noted at each release.
   - **3:** opening and checking run in a Web Worker, with the progress bar from the start, Cancel while reading, and Skip and Cancel while checking. The version-1 feasibility tests get a row for Web Workers from `file://` with the CSP in `<meta>`.
-  - **5:** Valgrind joins the dev shell. `npm run perf` counts instructions with Cachegrind and V8's `--predictable`, with a growth check and a budget check against `perf/baseline.json`. It runs in `npm run check` and in CI. Tests make no wall-clock assertions.
+  - **5:** Valgrind joins the dev shell. `npm run perf` counts instructions with Cachegrind and V8's `--predictable`, with a growth check and a budget check against `tests/perf/baseline.json`. It runs in `npm run check` and in CI. Tests make no wall-clock assertions.
 - Approved on 2026-10-20, as proposed:
   - **1:** the read report keeps only what reading did. The check step returns its own list in the same form (code, path, data), with the hint as the code (`neverApplies`, `leapYearLength`, `mixedRangeEnds`). The UI shows both lists together, sorted by severity. Every caller of `readFile` runs the check too: the UI, `npm run plan` and the tests.
   - **4:** each code has a fixed severity.
@@ -87,7 +87,7 @@ Agreed with the maintainer on 2026-10-19 and 2026-10-20. The spec texts follow o
     - **Info** (loaded unchanged): `outsidePeriod`, and `checkSkipped` when the user skips the check.
     - A refused file doesn't open, and one dialog says why. A stop (not JSON, too large, wrong `schema` or `kind`, a limit) gives one message. A missing or invalid required part lists every Error reading found, each with its own message (design of 2026-10-23).
     - The buttons: with at least one Error, "Open without these parts" and "Cancel"; otherwise "OK".
-  - **`npm run perf`:** each scenario runs at 8× and 16× its base size. The growth check allows at most 2.2× the work for the doubled input; linear code measures 1.95×. The budget check allows at most 5 % above `perf/baseline.json`.
+  - **`npm run perf`:** each scenario runs at 8× and 16× its base size. The growth check allows at most 2.2× the work for the doubled input; linear code measures 1.95×. The budget check allows at most 5 % above `tests/perf/baseline.json`.
 
 Measurements behind the decisions (scratch runs, 2026-10-19/20, Node 24.21, Valgrind 3.26):
 
