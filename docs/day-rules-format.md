@@ -31,13 +31,13 @@ A `match` is either one of the six date rules of the holiday data or a range. Th
 
 A range matches several consecutive days:
 
-| Key | Meaning |
-| --- | --- |
-| `type` | `"range"`. |
-| `from` | First day, any date rule. A range never contains another range. |
-| `to` | Last day, any date rule. Exactly one of `to` and `days`. |
-| `days` | Length in days, a whole number from 1 to 366. Exactly one of `to` and `days`. |
-| `weekdays` | Optional non-empty list of `mon` … `sun`. Only these weekdays of the range are matched. |
+| Key | Required | Meaning |
+| --- | --- | --- |
+| `type` | yes | `"range"`. |
+| `from` | yes | First day, any date rule. A range never contains another range. |
+| `to` | yes, exactly one of `to` and `days` | Last day, any date rule. |
+| `days` | yes, exactly one of `to` and `days` | Length in days, a whole number from 1 to 366. |
+| `weekdays` | no | Non-empty list of `mon` … `sun`. Only these weekdays of the range are matched; without it, every day of the range. |
 
 For each year in which `from` gives a day, the range starts on that day. With `days` it covers the start and the following `days − 1` days. With `to` it ends on the first day on or after the start that `to` gives, looked for in the start year and then in the following year. So `27 December to 2 January` crosses New Year without a special case, and a `once` end exists only in its own year. If `to` gives no such day, the range does not occur that year. A day matched twice by the same rule (overlapping occurrences) counts once.
 

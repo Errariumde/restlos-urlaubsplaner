@@ -408,7 +408,7 @@ Progress: `onProgress` is called with `(0, N)` first and then once per rule or m
 | IDs and reference keys / URLs | 200 / 2000 characters | invalid: that entry dropped (`invalidValue`), an over-long file `id` refused (`invalidCore`) |
 | Files inside files | none: another plan is stored as entries, never embedded | |
 
-KB and MB are binary: 1 MB is 1,048,576 bytes. Reading and computing any file within these limits takes well under a second.
+KB and MB are binary: 1 MB is 1,048,576 bytes. How fast reading and checking a file within these limits must be is set in the spec's Limits bullet ([Sharing and validation](SPEC.md#sharing-and-validation)).
 
 ## Writing
 

@@ -63,6 +63,12 @@ Tests:
   - drop the full-day `take` with part `"end"`;
   - let `plainText` exceed 20 characters, so long notes get generated.
 - [ ] `scripts/ts-hooks.js`: the retry chain.
+- [ ] 54 assertions in `tests/engine/file/read-*.test.ts` use `codes()` (`code@path` only), so `dropped` is not pinned for `duplicateDate`, `sourceTooLarge`, `templateTooLarge`, `unknownLocalRule`, `personalSourceInRuleSet`, and for `contract.region.options` or `contract.references` that aren't a map. Assert whole report entries there.
+- [ ] `tests/engine/file/required.test.ts`, which pins every required and optional key, doesn't cover:
+  - the `needed` and `info` entries of its full file with `take` and `part` (optional on a `needed` entry, unknown fields on an `info` entry);
+  - a color with neither `slot` nor `rgb` (`missingValue` at the color with `data.oneOf`);
+  - a rule set's optional `state` (it reads only plan files);
+  - the defaults that missing optional keys read as, checked on the loaded file (`visible` `true`, `entries` `[]`, `required` `"0"`, `take` `"1"`, `minUnit` `"1/2"`, and the like); today it checks only that nothing is reported.
 - [ ] `plan-summary.ts`, the remaining formatter branches:
   - a stretch ending mid-day;
   - mixed numbers such as `10 1/2`;

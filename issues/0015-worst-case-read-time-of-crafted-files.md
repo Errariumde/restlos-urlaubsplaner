@@ -87,7 +87,7 @@ Agreed with the maintainer on 2026-10-19 and 2026-10-20. The spec texts follow o
     - **Info** (loaded unchanged): `outsidePeriod`, and `checkSkipped` when the user skips the check.
     - A refused file doesn't open, and one dialog says why. A stop (not JSON, too large, wrong `schema` or `kind`, a limit) gives one message. A missing or invalid required part lists every Error reading found, each with its own message (design of 2026-10-23).
     - The buttons: with at least one Error, "Open without these parts" and "Cancel"; otherwise "OK".
-  - **`npm run perf`:** each scenario runs at 8× and 16× its base size. The growth check allows at most 2.2× the work for the doubled input; linear code measures 1.95×. The budget check allows at most 5 % above `tests/perf/baseline.json`.
+  - **`npm run perf`:** each scenario runs at 8× and 16× its base size. The growth check allows at most 2.2× the work for the doubled input; linear code measures 1.95× (in the scratch runs below; the gate's scenarios measure 1.4–1.7×, so the check is less sensitive than assumed, see issue 0019). The budget check allows at most 5 % above `tests/perf/baseline.json`.
 
 Measurements behind the decisions (scratch runs, 2026-10-19/20, Node 24.21, Valgrind 3.26):
 

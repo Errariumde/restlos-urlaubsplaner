@@ -219,7 +219,8 @@ function readCitations(value: unknown, path: string, references: Readonly<Record
 /**
  * Reads one day rule into `report`, the rule's own scratch report: every key in the writer's order, then
  * the unknown fields. Returns undefined when the rule is dropped. A duplicate `id` is read no further.
- * `label`, `note` and `references` are only shown: a problem in one of them drops only that key.
+ * `label`, `note` and `references` are only shown: a problem in `label` or `note` drops only that key, and one
+ * in `references` drops the key when it isn't a list, otherwise only that citation.
  */
 function readRule(
   value: unknown,

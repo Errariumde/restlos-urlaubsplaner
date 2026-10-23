@@ -147,8 +147,9 @@ function readRange(value: Readonly<Record<string, unknown>>, path: string, repor
 }
 
 /**
- * A `match`: one of the six date rules or a range. Every problem is reported at the key itself, with
- * `dropped` the path of what is not loaded because of it; the result is then undefined.
+ * A `match`: one of the six date rules or a range. Every problem is reported at the key itself. A missing or
+ * invalid value drops `dropped`, and the result is then undefined; an unknown field drops only itself, and the
+ * match is kept.
  */
 export function readMatch(value: unknown, path: string, report: Report, dropped: string): DayMatch | undefined {
   if (value === undefined) report.error("missingValue", path, dropped);
