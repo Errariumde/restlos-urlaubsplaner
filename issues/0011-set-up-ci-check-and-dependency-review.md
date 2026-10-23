@@ -36,10 +36,14 @@ There are no GitHub workflows yet; `npm run check` runs only locally. Without a 
 - Caching as in the spec:
   - the npm cache with `actions/cache/restore` and `actions/cache/save`, keyed on the hash of `package-lock.json`, saved only on `main`;
   - `reuse` installed with `pip install --require-hashes -r` from a checked-in, hash-pinned requirements file, with its pip cache keyed on that file.
+- The `check` workflow runs the performance gate.
 - The Node.js version in CI matches the dev shell (Node 24, npm ≥ 11.10); `.npmrc` (`ignore-scripts`, `min-release-age`) applies unchanged.
 
 ## Notes
 
 - The maintainer checks the looked-up action SHAs once and switches on the ruleset in the repository settings after the branch is merged.
 - `templates`, `e2e` and `release` come with the branches that add templates, the UI and the first release.
-- Timing tests: the two 10 MiB "at the limits" tests in `tests/engine/file/read-plan.test.ts` assert `readFile` under 1,000 ms. On an i7-8650U they take 600–730 ms, so a slower runner may fail them. Most of the time is the base cost of reading 85,000–100,000 entries. If they flake, see issue 0015 for the options; don't loosen the bound silently.
+- Performance gate (issue 0015): `npm run check` runs `npm run perf`, which needs Valgrind. Proposal for this branch, to be confirmed by the maintainer:
+  - Install Valgrind on the runner from Ubuntu's archive (a package, not an action).
+  - Measure the pull request and its merge base in the same job. The runner's Node build and Valgrind differ from the dev shell's, so absolute counts won't match `tests/perf/baseline.json`.
+  - Allowed per scenario: the ratio of the PR's baseline to the base's baseline (1.0 if unchanged), plus 5 %.

@@ -12,6 +12,7 @@ Instructions for AI coding agents (Claude Code, Codex, Cursor, Copilot, …) wor
 restlos is an offline vacation planner delivered as a single HTML file (plus a GitHub Pages web app). German and English UI. Hobby project, open source.
 
 - **Full specification:** `docs/SPEC.md`. It is authoritative. If code and spec disagree, or the spec is unclear, ask instead of guessing. Do not silently deviate from it.
+- **File format:** `docs/file-format.md` and `docs/day-rules-format.md` are part of the specification: they mark every key as required or optional and list every code, severity and limit. `docs/SPEC.md` states the principles.
 - **AI tooling rationale:** `docs/ai-tooling.md`.
 
 ## Language conventions
@@ -36,6 +37,7 @@ restlos is an offline vacation planner delivered as a single HTML file (plus a G
 ## Hard rules
 
 - **Counting model:** 1 day = 480 integer units. No floats for day fractions, no assumption "only 0, ½, 1". Cost per day = min(taken, required). Required work = minimum of all lowering layers, then forced rules, then manual override. UI v1 offers only full and half days, but data model and engine must work down to 1/32.
+- **Performance:** no wall-clock assertions in tests. `npm run perf` (part of `npm run check`) is the gate: it counts instructions with Cachegrind and fails when a scenario grows faster than its input or costs more than 5 % over `tests/perf/baseline.json`. Engine code that processes input of variable size gets a scenario in `tests/perf/scenarios.ts` in the same commit. Never raise the baseline without the maintainer's approval; `npm run perf -- --update` writes it.
 - **Dates:** the engine uses integer day numbers, never JavaScript `Date` (enforced by ESLint).
 - **File formats:** plan file `.urlaub.json` = copy of a rule set + exactly one plan; rule set `.regeln.json` = the same without a plan (never with "leave from another plan" or "time off needed" sources); device settings export `.einstellungen.json`. No references between files; a `kind` field identifies the file. Language-neutral values (IDs, ISO dates, decimal point). Weights such as `take` are written as fraction strings (`"1/2"`); decimal strings (`"0.5"`) are accepted on read.
 - **i18n:** ICU MessageFormat catalogs (de, en); no string concatenation of sentences.
@@ -49,7 +51,7 @@ restlos is an offline vacation planner delivered as a single HTML file (plus a G
 ## Environment
 
 - Work inside the Nix dev shell (`nix develop`, or direnv with `use flake`). It provides Node.js, Typst, REUSE, language servers, Firefox ESR and Playwright browsers.
-- Commands: `npm ci`, `npm test`, `npm run lint`, `npm run typecheck`, `npm run check` (all of these plus `reuse lint`). `npm run build` and `npm run test:e2e` follow with the UI. `npm run reference:python` regenerates the python-holidays reference after rule changes. `npm run plan -- <file>` prints what the engine reads and computes for a plan file or rule set.
+- Commands: `npm ci`, `npm test`, `npm run lint`, `npm run typecheck`, `npm run check` (all of these plus `reuse lint`). `npm run build` and `npm run test:e2e` follow with the UI. `npm run reference:python` regenerates the python-holidays reference after rule changes. `npm run plan -- <file>` prints what the engine reads and computes for a plan file or rule set. `npm run perf` runs the performance gate (Valgrind from the dev shell).
 
 ## Repository-specific procedures
 

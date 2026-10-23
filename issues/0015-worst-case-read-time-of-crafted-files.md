@@ -82,9 +82,10 @@ Agreed with the maintainer on 2026-10-19 and 2026-10-20. The spec texts follow o
   - **1:** the read report keeps only what reading did. The check step returns its own list in the same form (code, path, data), with the hint as the code (`neverApplies`, `leapYearLength`, `mixedRangeEnds`). The UI shows both lists together, sorted by severity. Every caller of `readFile` runs the check too: the UI, `npm run plan` and the tests.
   - **4:** each code has a fixed severity.
     - **Error** (not loaded, lost when saving): `invalidEntry`, `duplicateDate`, `duplicateId`, `textTooLong`, `sourceTooLarge`, `templateTooLarge`, `unknownReference`, `unknownLocalRule`, `personalSourceInRuleSet`, `unknownField`.
+    - On 2026-10-23, `invalidEntry` was split into `missingValue` and `invalidValue`.
     - **Warning** (loaded, but changed or probably wrong): `invalidMinUnit`, `partSuggested`, `notMultipleOfMinUnit`, `neverApplies`, `leapYearLength`, `mixedRangeEnds`.
     - **Info** (loaded unchanged): `outsidePeriod`, and `checkSkipped` when the user skips the check.
-    - A refusal is not in the list: the file doesn't open, and one error message says why.
+    - A refused file doesn't open, and one dialog says why. A stop (not JSON, too large, wrong `schema` or `kind`, a limit) gives one message. A missing or invalid required part lists every Error reading found, each with its own message (design of 2026-10-23).
     - The buttons: with at least one Error, "Open without these parts" and "Cancel"; otherwise "OK".
   - **`npm run perf`:** each scenario runs at 8× and 16× its base size. The growth check allows at most 2.2× the work for the doubled input; linear code measures 1.95×. The budget check allows at most 5 % above `perf/baseline.json`.
 

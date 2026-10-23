@@ -188,8 +188,8 @@ Version 1 offers only **full** and **half** in the UI. Engine, file format and t
 | Area | Requirement from version 1 |
 | --- | --- |
 | Unit | 1 day = 480 integer units (480 = 2⁵ · 3 · 5); thus ½, ⅓, ¼, ⅕, ⅙, ⅛, 1/16 and 1/32 are exact. Never floats, never the assumption "only 0, ½, 1". |
-| Data model | `take` is a share of the day, written as a fraction string (`"1"`, `"1/2"`, later e.g. `"3/32"`), not `"full"`/`"half"`; on reading, decimal strings (`"0.5"`) are accepted too (see Date arithmetic). Where in the day partial leave lies is a separate field `part` (`"start"` or `"end"` of the working time), required for partial leave; loading a file without it keeps the leave with a suggested part and reports it. |
-| Contract | The field `minUnit` (smallest leave unit) already exists, default `"1/2"`; loading reports values that are not multiples of it and keeps them (the engine computes them exactly). Version 1 allows only `"1"` and `"1/2"` in the UI. |
+| Data model | `take` is a share of the day, written as a fraction string (`"1"`, `"1/2"`, later e.g. `"3/32"`), not `"full"`/`"half"`; on reading, decimal strings (`"0.5"`) are accepted too (see Date arithmetic). Where in the day partial leave lies is a separate field `part` (`"start"` or `"end"` of the working time); partial leave without it is kept with a suggested part and reported. |
+| Contract | The field `minUnit` (smallest leave unit) already exists; loading reports values that are not multiples of it and keeps them (the engine computes them exactly). Version 1 allows only `"1"` and `"1/2"` in the UI. |
 | Engine | Cost = min(taken, required work) for arbitrary multiples of 1/32; no special cases for ½. |
 | Display | one central formatting function for shares (mixed fractions like "12 ¾" or a decimal number, depending on the setting) that handles every denominator up to 32; the day cell draws its fill proportionally to the share, not just "half" or "full". |
 | Operation | The choices in the day menu are generated from `minUnit` (today: – / ½ / full), not hard-wired. |
@@ -326,61 +326,31 @@ JSON with a `schema` version and a `kind` (`"plan"`, `"ruleSet"` or `"settings"`
 - **Identity:** `id` is a random UUID version 4, created at "New"; "Save as" and "New → Based on the current file" create a new one. `revision` is a whole number from 1, raised by 1 on every save; a new `id` starts at 1. A file contains no timestamp, no time zone, no working hours and nothing else about when, where or by whom it was saved.
 - **Versions:** `schema` is `"restlos/1"`, and every change of the format gets a new schema number. The app reads every schema written by any release of its own major version, migrates older ones on load and always saves its own. A new major version (2.0.0) still reads the last schema of the previous major version and may drop older ones; its release notes say so. Files with a newer schema are refused ("made with a newer version of restlos"); files too old for this version are refused with the way out ("open it once with restlos 1.x and save it"). A minor release that introduces a new schema says in its release notes that older 1.x copies can't open its files. Nothing is promised before 1.0.0: schema 1 may still change without migration.
 - **Texts:** every free text (names, `description`, `label`, `note`, reference titles and versions, template names) is a plain string or a map from language code to text, e.g. `{ "de": "Heiligabend", "en": "Christmas Eve" }`. Any lowercase language code is allowed, so further languages need no format change. The app shows the UI language, otherwise `en`, otherwise the first entry; a plain string as it is. Notes and names typed in the app are plain strings.
-- **What a file is based on:** `contract.name`, `description` and `references` say what the contract is and what it is based on. `references` maps a key to `title`, `version`, `url` and `checked` (the date the link was last opened); a rule cites keys in its `references`. They are optional in files people write themselves; the rule sets that come with restlos have all three, and every one of their rules cites a reference.
-- **Region:** `country` is required and must be known to the holiday data; `state` is required in a plan file wherever the country's data has states; `options` only holds local rules of that state.
+- **What a file is based on:** `contract.name`, `description` and `references` say what the contract is and what it is based on. `references` maps a key to `title`, `version`, `url` and `checked` (the date the link was last opened); a rule cites keys in its `references`. The rule sets that come with restlos have all three, and every one of their rules cites a reference.
+- **Region:** `country` is a country of the holiday data, `state` one of its regions and `options` the local rules of that state; a plan file names the state wherever the country's data has states.
 - A day rule's `match` uses the date rules of the holiday data (`docs/holiday-data-format.md`) with named fields instead of a text syntax: full dates as ISO dates, a day without a year as `month` and `day`, offsets as signed integers; a `range` has a start `from` (any date rule) and either an end `to` (any date rule; looked up from the start onwards, so a range can cross New Year) or a length `days`, plus an optional `weekdays` filter. A rule has exactly one effect: `requiredAtMost` (lowering layer), `requiredExactly` (forced, applies after all lowering layers) or `mandatory` (share of the day taken as mandatory leave). Besides `label`, a rule may have a `note` and `references`. Day rules are described in `docs/day-rules-format.md`.
 - Day rules, calendar sources and templates copied from a rule set carry its ID in `origin`; parts added in the plan file have none. "Update rules from rule set" uses this to tell them apart.
-- **Calendar sources** have `id`, `name`, `type`, `color` (a slot, or an own `rgb` color), `visible` and `entries`; the list order is the display priority. An entry is a `date`, or a `match` in the day-rule format with optional `validFrom`/`validUntil` and `except` (dates the match skips); every entry may have a `name`. Entries of type Holiday carry `required` (default `"0"`), entries of Mandatory leave and Time off needed `take` (default `"1"`), each with an optional `part`.
+- **Calendar sources** have `id`, `name`, `type`, `color` (a slot, or an own `rgb` color), `visible` and `entries`; the list order is the display priority. An entry is a `date`, or a `match` in the day-rule format with optional `validFrom`/`validUntil` and `except` (dates the match skips); every entry may have a `name`. Entries of type Holiday carry `required`, entries of Mandatory leave and Time off needed `take`, each with a `part`.
 - **Leave from another plan** stores only the days that plan charged: `plan` (its `id`, name and `revision`) and, for every charged day, one entry per span of working time with `from` and `to` (shares of a full day measured from the start of the working time, both written with their smallest shared denominator, e.g. `"1/4"` to `"2/4"`) and `kind` (`"leave"` or `"mandatory"`, for display). Nothing else of that plan is stored. Each plan stores what the other actually charged, so a day shared by two plans is charged in exactly one of them, also when they import each other.
 - `part` means the same everywhere (leave, overrides, rules, source entries): where in the day the free time lies, `"start"` or `"end"` of the working time.
 - **Plan:** `range` (months, both inclusive, at most 36), `allowance` (may be far above one day) and three lists with at most one entry per date: `days` (own leave with `take` and `part`), `overrides` (manual changes of the required work with `required` and `part`; they are personal and therefore in the plan, never in the contract) and `notes` (`text` on any date, independent of leave).
 - A rule set (`.regeln.json`) has the same structure with `"kind": "ruleSet"`, without `ruleSet`, `plan` and `origin`, and never with sources of type `otherPlan` or `needed`. Its `contract.region` may leave out `state` and `options`: a rule set fixes as much of the region as it knows (an agreement valid everywhere only the country, a company site everything), and "New → From rule set" asks for the rest.
 - The device settings export (`.einstellungen.json`) has `"kind": "settings"` and contains only the device settings listed above.
-- Files are written canonically: keys in a fixed order, the plan lists and source entries sorted, weights as fraction strings. Every key, check and limit is described in `docs/file-format.md`.
+- Files are written canonically: keys in a fixed order, the plan lists and source entries sorted, weights as fraction strings. `docs/file-format.md`, with `docs/day-rules-format.md` for day rules, is the reference for every key: whether it is required, its default, its checks, its codes and its limits.
 
 ### Sharing and validation
 
 - **Rule set for colleagues:** "Save as rule set" (see File operations): contract, sources, templates and color scheme, no leave days.
 - **HTML self-copy** (version 3, after feasibility test): a copy of the app with an embedded rule set and without personal settings; opens directly in "New → From rule set".
 - **No contract data in .ics.** In the PDF only on explicit request, and only the contract part without plan and notes.
-- **Loading:** if the autosave of the same `id` is newer, the app offers to restore it (see File operations); then the revision warning applies. Reading checks the size, parses the JSON, checks `schema` and `kind`, migrates older schema versions and validates every value. Problems are reported as a list; each entry is a code, the path of the affected value and the data the message needs, and the UI writes the sentence. Apply partially or cancel.
-- **Refused** (nothing is loaded): not JSON; too large or over a count limit; unknown or newer schema; unknown `kind` (the device settings `.einstellungen.json` are recognized but not yet supported, see `docs/file-format.md`); content that doesn't match its `kind` (a rule set with `plan` or `ruleSet`); an invalid core value: `id`, `revision`, the country, a plan file's state, the work week, the list of day rules, the plan period, the allowance.
-- **Loaded with a report:** nothing in the file is dropped or changed without an entry in the report.
-
-| Situation | What happens |
-| --- | --- |
-| Unknown field | dropped; saving writes only known fields |
-| Invalid entry in a list (rule, source, source entry, `except` date, template, image, leave day, override, note, reference) | that entry dropped, the rest loads; an invalid image drops its template |
-| Same date twice in `days`, `overrides` or `notes`; same ID twice among rules, sources or templates | the first kept, later ones dropped |
-| A rule cites an unknown `references` key | the citation dropped |
-| Text over its length limit | the entry that holds it dropped (a rule with an over-long label or note as a whole); an over-long contract name or description left out |
-| A source over its entry limit, a template over its limits | that source or template dropped |
-| Local-rule option the holiday data doesn't define | dropped; a table of renamed options waits until a rename happens |
-| "Leave from another plan" or "Time off needed" source in a rule set | dropped |
-| `minUnit` present but invalid | `"1/2"` used |
-| `take` or `required` not a multiple of `minUnit` | kept; the engine computes it exactly |
-| Partial own leave without `part` | kept; `part` suggested from the neighbouring days, otherwise `"end"` (outside the plan period always `"end"`) |
-| Leave, override or note outside the plan period | kept; the calendar doesn't show it |
-| Day rule or source entry with a rule warning | kept |
-
-Optional parts that are missing (`references`, `minUnit`, `sources`, `templates`, `theme`, the plan's lists) are not repairs and are not reported: they read as their documented defaults (`"1/2"` for `minUnit`, empty lists, no color scheme).
-
-**Limits** (on everything that is read):
-
-| What | Limit | Exceeded |
-| --- | --- | --- |
-| Whole file | 10 MB (UTF-8), checked before parsing | refused |
-| Day rules / sources / templates / work-week entries / references | 1000 / 50 / 20 / 100 / 100 | refused |
-| `days`, `overrides`, `notes` | 2000 each | refused |
-| Entries of one source / `except` dates of one entry | 2000 / 400 | that source dropped |
-| Source days after expanding all entries over the computation window | 50,000 in total | refused |
-| Plan period | 36 months | refused |
-| `typ` of one template | 512 KB | that template dropped |
-| One image / all images of a template | 1 MB / 2 MB decoded | that template dropped |
-| Names, labels, reference titles and versions / descriptions, notes | 200 / 2000 characters | that entry dropped |
-| Files inside files | none: another plan is stored as entries, never embedded | |
-
-Reading never interprets unknown structures (they are only reported), so deeply nested JSON costs no more than parsing it. Reading and computing any file within these limits takes well under a second in the browser.
+- **Loading:** if the autosave of the same `id` is newer, the app offers to restore it (see File operations); then the revision warning applies. Opening runs in two steps in a Web Worker, so the page stays responsive, with a progress bar from the start. **Reading** checks the size, parses the JSON, checks `schema` and `kind`, migrates older schema versions and validates every value; its bar has no measure, and Cancel stops opening. **Checking** then looks at every day rule and every source entry with a `match` for the likely mistakes listed in `docs/day-rules-format.md`, and never changes the file; its bar shows "rule n of N", Skip opens the file without the hints, and Cancel stops opening. Both steps report a list; each entry is a code, the path of the affected value in the file as it was read, and the data the message needs, and the UI writes the sentence. The opened file shows both lists together, sorted by severity; with at least one Error the choice is "Open without these parts" or "Cancel", otherwise "OK".
+- **Required and optional:** a part of a file is required when the app can't work with the file or the entry without it and no default would be right for every file. It is optional when its absence has a default that is right for every file, or when only a feature the user may never use needs it. A missing optional part reads as its default and is not reported; a feature that needs it says so when it is used. An optional part that is present must be complete and valid like everything else. `docs/file-format.md` and `docs/day-rules-format.md` mark every key as required or optional, give the defaults and show two minimal files to start from.
+- **Reading reports everything it can name for certain:** every problem gets its own entry, also several in one list entry, and a missing value is told apart from an invalid one. Where a value decides how others are read (the country, a source's type, a match's type) and is broken, the values that depend on it are skipped, not guessed.
+- **Refused at once** (nothing is loaded, one message says why) when nothing reliable can follow: a file that is too large or not JSON; a missing, unknown or newer `schema` or `kind` (the device settings `.einstellungen.json` are recognized but not yet supported, see `docs/file-format.md`); content that doesn't match its `kind` (a rule set with `plan` or `ruleSet`); a count limit of the file exceeded.
+- **Refused with a list** (nothing is loaded) when a required part of the file itself is missing or invalid, such as the work week or the plan period: one dialog lists every Error reading found, each with its own message, so all of them can be fixed in one go.
+- **Loaded with a report** otherwise: a list entry or an optional part with a missing or invalid value is dropped, and nothing in the file is dropped or changed without an entry in the report.
+- **Severities:** every code has a fixed severity: **Error** (not loaded, lost when saving), **Warning** (loaded, but changed or probably wrong), **Info** (loaded unchanged). Something that is not loaded, a refused file or a dropped entry, reports its Errors only. `docs/file-format.md` lists every code with its severity and what happens.
+- **Limits:** every file, list and text that is read has a size limit (`docs/file-format.md`, Limits). A file over 10 MB, or over a count limit of the file as a whole, is refused; a single source or template over its own limits is dropped. Reading never interprets unknown structures (they are only reported), so deeply nested JSON costs no more than parsing it. Reading and checking grow at most linearly with the file, and the performance gate (`npm run perf`, see Test strategy) enforces it. Target: the largest file within the limits reads and checks in under 2 s together in the Firefox ESR on the reference machine (Intel Core i7-8650U), measured at each release; slower devices take longer and show the progress bar.
 
 ## Operation (UI/UX)
 
@@ -628,6 +598,7 @@ All outputs (UI, .ics, PDF, JSON) read the same computed state; no output recalc
 | --- | --- | --- |
 | Browser storage with `file://` | Do local files share one storage? Does it survive renaming the file? (Firefox, Chromium) | version 1 |
 | CSP and keyboard shortcuts | Do all CSP directives work via `<meta>` in the Firefox ESR? Do Ctrl+S and Ctrl+O reach the page? | version 1 |
+| Web Worker from `file://` | Does a worker built into the HTML file start from `file://` with the CSP from `<meta>` (`worker-src blob:`) in the Firefox ESR, Chromium and Safari? How long does handing a 10 MB file's model to the page take? | version 1 |
 | Calendar import | Behavior of Thunderbird, Google, Outlook on re-import of the same `UID` | version 1 |
 | Typst WASM offline | compressed size, load time, fonts as bytes, compiling from `file://` | version 2 |
 | HTML self-copy | rewrite the app's original bytes unchanged (carry the app source along as `type="text/plain"`) | version 3 |
@@ -643,6 +614,7 @@ All outputs (UI, .ics, PDF, JSON) read the same computed state; no output recalc
 | Date arithmetic | daylight saving time changes; no `Date` in the engine | Vitest, ESLint rule `no-restricted-globals` |
 | iCal | round trip export → ical.js → same days; mandatory fields; UTF-8-safe folding; real example files (Google, Outlook, Thunderbird) | Vitest + ical.js |
 | Files | load(save(x)) = x, migration, `revision` warning | Vitest + fast-check |
+| Performance | no wall-clock assertions in tests; every scenario runs at 8× and 16× its base size and fails when twice the input costs more than 2.2× the work, or when it costs more than 5 % over the checked-in baseline (`tests/perf/baseline.json`); raising the baseline needs the maintainer's approval | `npm run perf`: Cachegrind instruction counts with V8 `--predictable`, part of `npm run check` and CI |
 | Multilingual support, colors | missing/unused keys, pseudo-localization, contrast of the schemes | small check scripts |
 | Types and style | TypeScript, Svelte components, lint | `tsc`, svelte-check, ESLint |
 | PDF/Typst | every template × DE/EN with example data, pinned Typst version | Typst CLI |
@@ -721,7 +693,7 @@ In the HTML's `<meta>` tag (GitHub Pages cannot set custom HTTP headers):
 
 Recommendation: everything runs locally with one command; GitHub Actions only runs the same commands, as rarely as possible, with a cache for all downloads and minimal permissions. This way neither the npm registry nor any other server is hit again on every run, and the project stays buildable without GitHub.
 
-**Local (NixOS):** a Nix flake with a dev environment (Node.js LTS with npm ≥ 11.10, Typst, Python for the python-holidays reference, Playwright browsers, Firefox ESR for the manual test). `nix develop`, then `npm ci`, `npm run check`, `npm run build`. `npm run plan -- <file>` prints what the engine reads and computes for a plan file or rule set. The flake lock file pins all tools; the README explains the commands for Nix beginners.
+**Local (NixOS):** a Nix flake with a dev environment (Node.js LTS with npm ≥ 11.10, Typst, Python for the python-holidays reference, Playwright browsers, Firefox ESR for the manual test, Valgrind on Linux for the performance gate). `nix develop`, then `npm ci`, `npm run check`, `npm run build`. `npm run plan -- <file>` prints what the engine reads and computes for a plan file or rule set. `npm run perf` runs the performance gate; `npm run check` includes it. The flake lock file pins all tools; the README explains the commands for Nix beginners.
 
 **GitHub Free, public repository:** standard runners are free ([GitHub docs](https://docs.github.com/billing/managing-billing-for-your-products/managing-billing-for-github-actions)), GitHub Pages is available ([GitHub plans](https://docs.github.com/en/get-started/learning-about-github/githubs-plans)). Free doesn't mean unlimited: runs are still kept sparse.
 
@@ -729,7 +701,7 @@ Recommendation: everything runs locally with one command; GitHub Actions only ru
 
 | Workflow | Trigger | Content |
 | --- | --- | --- |
-| `check` | push to `main`, pull requests; only on changes to code, data, lockfile or workflow (path filter) | `npm ci`, lint, REUSE check, type check, Vitest, build, size check |
+| `check` | push to `main`, pull requests; only on changes to code, data, lockfile or workflow (path filter) | `npm ci`, lint, REUSE check, type check, Vitest, performance gate, build, size check |
 | `templates` | only on changes to templates or the Typst version | compile templates × DE/EN with the pinned Typst version |
 | `e2e` | pull requests with the label `e2e`, before every release, otherwise once a week only if there were commits since the last run | Playwright in Firefox, Chromium, WebKit |
 | `release` | manual (tag) | build; create a draft GitHub Release, attach standard and Pro HTML, `SHA256SUMS` and the SPDX bill of materials, then publish it (immutable release); Pages version (web app) on GitHub Pages |
@@ -865,6 +837,7 @@ The repository follows the FSFE's [REUSE specification](https://reuse.software):
 
 - [ ] `check`, `templates` and `e2e` green.
 - [ ] Short manual test: open the standard HTML via `file://` in the current Firefox ESR from the dev shell (`firefox-esr`), load a file, set days, save, export .ics and `.typ`; open the Pages version on a phone.
+- [ ] Largest file: `npm run perf -- --largest-file <path>` writes the worst crafted plan file within the limits; open it in the Firefox ESR on the reference machine and note the times for reading and checking (target: under 2 s together).
 - [ ] Size budget met.
 - [ ] REUSE check green, SPDX bill of materials generated; changelog and version number updated, data status of the holiday rules checked.
 - [ ] Release published by the `release` workflow as an immutable release with `SHA256SUMS`, SPDX bill of materials and build provenance.
