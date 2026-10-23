@@ -16,8 +16,9 @@ describe("formatSummary", () => {
       [
         "Example Ltd — plan 2027-01 to 2027-12, revision 1",
         "Report:",
-        "  unknownField at savedAt",
-        "  partSuggested at plan.days[0] (part=end)",
+        "  error unknownField at savedAt",
+        "  warning partSuggested at plan.days[0] (part=end)",
+        "Hints: none",
         "Allowance 30, planned 1/2, remaining 29 1/2",
         "2027: 1/2",
         "Stretches:",
@@ -35,7 +36,7 @@ describe("formatSummary", () => {
     };
     const result = readFile(minimal({ contract }));
     expect(formatSummary(result)).toBe(
-      ["test-rule-set — rule set, revision 1", "Report: none", "Rules:", "  xmas-eve: requiredAtMost 1/2 — Christmas Eve"].join("\n"),
+      ["test-rule-set — rule set, revision 1", "Report: none", "Hints: none", "Rules:", "  xmas-eve: requiredAtMost 1/2 — Christmas Eve"].join("\n"),
     );
   });
 
@@ -52,6 +53,18 @@ describe("formatSummary", () => {
   });
 
   it("prints a refusal", () => expect(formatSummary(readFile("{"))).toBe("Refused: notJson"));
-  it("prints a refused file with its list", () =>
-    expect(formatSummary(readFile(minimal({ revision: 0 })))).toBe("Refused: invalidCore\nReport: invalidValue at revision"));
+  it("prints a refused file with severities", () =>
+    expect(formatSummary(readFile(minimal({ revision: 0 })))).toBe("Refused: invalidCore\nReport: error invalidValue at revision; drops the file"));
+
+  it("prints the hints with their severity", () => {
+    const rule = { id: "old-closure", match: { type: "once", date: "2019-07-01" }, validFrom: 2020, requiredAtMost: "0" };
+    const summary = formatSummary(readFile(minimal({ contract: { ...BAVARIA_CONTRACT, rules: [rule] } })));
+    expect(summary).toContain("Hints: warning neverApplies at contract.rules[0]");
+  });
+
+  it("prints what an Error drops", () => {
+    const rule = { id: "r", match: { type: "fixed", month: 12, day: 24 }, validFrom: 1500, requiredAtMost: "0" };
+    const summary = formatSummary(readFile(minimal({ contract: { ...BAVARIA_CONTRACT, rules: [rule] } })));
+    expect(summary).toContain("Report: error invalidValue at contract.rules[0].validFrom; drops contract.rules[0]");
+  });
 });

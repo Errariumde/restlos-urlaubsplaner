@@ -6,7 +6,9 @@ import type { Problem } from "../src/engine/counting/plan";
 import type { StretchPoint } from "../src/engine/counting/stretches";
 import { isoFromDay } from "../src/engine/days";
 import { planInput } from "../src/engine/file/model";
-import type { ReadResult, ReportData, ReportEntry } from "../src/engine/file/report";
+import { checkRules } from "../src/engine/file/check";
+import type { ReadResult, ReportData } from "../src/engine/file/report";
+import { SEVERITY, type Code } from "../src/engine/file/severity";
 import { textFor } from "../src/engine/file/text";
 import type { FileContract, PlanFile, RuleSetFile, Text } from "../src/engine/file/types";
 import { UNITS_PER_DAY, formatAmount, formatWeight, type Units } from "../src/engine/weight";
@@ -36,11 +38,24 @@ function data(values: ReportData | undefined): string {
   return ` (${Object.entries(values).map(([key, value]) => `${key}=${String(value)}`).join(", ")})`;
 }
 
-/** The report as one line when it has at most one entry, otherwise as a heading and one indented line per entry. */
-function reportSection(report: readonly ReportEntry[]): string {
-  const lines = report.map((entry) => `${entry.code} at ${entry.path}${data(entry.data)}`);
-  if (lines.length === 0) return "Report: none";
-  return lines.length === 1 ? `Report: ${lines[0] ?? ""}` : ["Report:", ...lines.map((line) => `  ${line}`)].join("\n");
+interface Line {
+  readonly code: Code;
+  readonly path: string;
+  readonly dropped?: string;
+  readonly data?: ReportData;
+}
+
+/** "<severity> <code> at <path>[ (data)][; drops <dropped>]": the suffix only when the dropped part differs from the path. */
+function line(entry: Line): string {
+  const drops = entry.dropped === undefined || entry.dropped === entry.path ? "" : `; drops ${entry.dropped === "" ? "the file" : entry.dropped}`;
+  return `${SEVERITY[entry.code]} ${entry.code} at ${entry.path}${data(entry.data)}${drops}`;
+}
+
+/** Entries as one line when there is at most one, otherwise as a heading and one indented line per entry. */
+function section(title: string, entries: readonly Line[]): string {
+  const lines = entries.map(line);
+  if (lines.length === 0) return `${title}: none`;
+  return lines.length === 1 ? `${title}: ${lines[0] ?? ""}` : [`${title}:`, ...lines.map((text) => `  ${text}`)].join("\n");
 }
 
 function problem(item: Problem): string {
@@ -71,10 +86,10 @@ export function formatSummary(result: ReadResult): string {
     const { code, path, data: values } = result.refusal;
     const refusal = `Refused: ${code}${path === undefined ? "" : ` at ${path}`}${data(values)}`;
     // A stop comes with an empty report and prints only its refusal.
-    return result.report.length === 0 ? refusal : `${refusal}\n${reportSection(result.report)}`;
+    return result.report.length === 0 ? refusal : `${refusal}\n${section("Report", result.report)}`;
   }
-  const { file, report } = result;
-  const reportText = reportSection(report);
+  const { file, report, positions } = result;
+  const reportText = `${section("Report", report)}\n${section("Hints", checkRules(file, positions))}`;
 
   if (file.kind === "ruleSet") {
     return [`${name(file)} — rule set, revision ${String(file.revision)}`, reportText, "Rules:", ...rules(file.contract)].join("\n");
