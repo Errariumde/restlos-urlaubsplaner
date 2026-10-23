@@ -32,7 +32,7 @@ SPDX-License-Identifier = "MIT-0"
 
 # Generated reference data for tests.
 [[annotations]]
-path = ["tests/reference/python-holidays-de.json"]
+path = ["tests/reference/python-holidays-de.json", "tests/perf/baseline.json"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The restlos-urlaubsplaner authors"
 SPDX-License-Identifier = "EUPL-1.2"

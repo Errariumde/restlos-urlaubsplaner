@@ -1,0 +1,10 @@
+{
+  "node": "v24.21.0",
+  "valgrind": "valgrind-3.26.0",
+  "work": {
+    "read:earlyEasterRanges": [
+      801026703,
+      1354970288
+    ]
+  }
+}

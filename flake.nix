@@ -43,6 +43,9 @@
             # Claude Code sandbox (/sandbox) on Linux
             bubblewrap
             socat
+
+            # Performance gate (npm run perf): Cachegrind instruction counts
+            valgrind
           ];
 
           # Playwright uses the browsers from nixpkgs; @playwright/test in

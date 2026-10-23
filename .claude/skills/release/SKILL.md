@@ -22,4 +22,5 @@ SPDX-License-Identifier: CC-BY-4.0
    - `npm run test:e2e` (Playwright: Firefox, Chromium, WebKit – Playwright's own browser builds, not Firefox ESR)
 5. Generate the SBOM: `reuse spdx -o dist/restlos.spdx`.
 6. Open `dist/*.html` from disk (file://) in the current Firefox ESR from the dev shell (`firefox-esr`) and check: open, save, PDF and .ics export, no network requests (devtools).
+6a. Largest file: `npm run perf -- --largest-file /tmp/largest.urlaub.json`; open it in the Firefox ESR from the dev shell and note the times for reading and checking (target: under 2 s together on the i7-8650U).
 7. Show the summary to the user. Tagging, pushing and publishing are done by the maintainer: the release workflow creates a draft release, attaches the HTML files, `SHA256SUMS` and the SBOM, adds provenance and then publishes it. Releases are immutable: once published, a release can't be changed and its tag can't be reused, so a mistake needs a new patch version.
