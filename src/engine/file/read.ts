@@ -62,7 +62,7 @@ function readEnvelope(text: string): ReadResult {
   }
 
   let ruleSet: PlanFile["ruleSet"];
-  if (json["ruleSet"] !== undefined) ruleSet = readPlanRef(json["ruleSet"], "ruleSet", report);
+  if (json["ruleSet"] !== undefined) ruleSet = readPlanRef(json["ruleSet"], "ruleSet", report, "ruleSet");
   const { plan, drafted } = readPlanDraft(json["plan"], "plan", contract, report, positions);
   const draft: PlanFile = { kind: "plan", id, revision, ...(ruleSet ? { ruleSet } : {}), contract, sources, templates, theme, plan };
 
@@ -88,7 +88,7 @@ function readEnvelope(text: string): ReadResult {
   for (const [entry, path] of drafted) {
     const part = suggested.get(entry) ?? "end";
     if (inside(entry)) replaced.set(entry, { day: entry.day, take: entry.take, part });
-    report.add("partSuggested", path, { part });
+    report.notice("partSuggested", path, { part });
   }
   const days = plan.days.map((entry) => replaced.get(entry) ?? entry);
   return { ok: true, file: { ...draft, plan: { ...plan, days } }, report: report.entries, positions };

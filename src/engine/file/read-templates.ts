@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 import { LIMITS, textLength, utf8Length } from "./limits";
-import { isId } from "./read-contract";
-import { Refused, Report, at, checkKeys, child, isPrototypeKey, isRecord } from "./report";
+import { parseId } from "./read-contract";
+import { Refused, Report, at, checkKeys, child, isPrototypeKey, isRecord, readOptional, readRequired, type Parse } from "./report";
 import { readText } from "./text";
 import type { Template, TemplateImage, Theme } from "./types";
 
@@ -18,65 +18,80 @@ function decodedSize(data: string): number | undefined {
   return (data.length / 4) * 3 - padding;
 }
 
-function readImage(value: unknown, path: string, report: Report): { image: TemplateImage; bytes: number } | undefined {
-  if (!isRecord(value)) return undefined;
-  const { name, type, data } = value;
-  if (typeof name !== "string" || name.length === 0 || textLength(name) > LIMITS.shortText) return undefined;
-  const imageType = IMAGE_TYPES.find((candidate) => candidate === type);
-  if (imageType === undefined || typeof data !== "string") return undefined;
-  const bytes = decodedSize(data);
-  if (bytes === undefined) return undefined;
+/** A string of 1 to 200 code points. */
+const shortString: Parse<string> = (value) =>
+  typeof value === "string" && value.length > 0 && textLength(value) <= LIMITS.shortText ? value : undefined;
+const imageType: Parse<TemplateImage["type"]> = (value) => IMAGE_TYPES.find((candidate) => candidate === value);
+const base64: Parse<{ data: string; bytes: number }> = (value) => {
+  if (typeof value !== "string") return undefined;
+  const bytes = decodedSize(value);
+  return bytes === undefined ? undefined : { data: value, bytes };
+};
+
+/** One image of a template; every problem drops the template, `dropped`. */
+function readImage(value: unknown, path: string, report: Report, dropped: string): { image: TemplateImage; bytes: number } | undefined {
+  if (!isRecord(value)) {
+    report.error("invalidValue", path, dropped);
+    return undefined;
+  }
+  const name = readRequired(value, "name", shortString, path, report, dropped);
+  const type = readRequired(value, "type", imageType, path, report, dropped);
+  const data = readRequired(value, "data", base64, path, report, dropped);
   checkKeys(value, ["name", "type", "data"], path, report);
-  return { image: { name, type: imageType, data }, bytes };
+  if (name === undefined || type === undefined || data === undefined) return undefined;
+  return { image: { name, type, data: data.data }, bytes: data.bytes };
 }
 
-function readTemplate(value: unknown, path: string, kind: "plan" | "ruleSet", ids: ReadonlySet<string>, report: Report): Template | undefined {
-  const fail = (field?: string): undefined => {
-    report.add("invalidEntry", field === undefined ? path : child(path, field));
-    return undefined;
-  };
-  if (!isRecord(value)) return fail();
-  const id = value["id"];
-  if (!isId(id)) return fail("id");
-  if (ids.has(id)) {
-    report.add("duplicateId", child(path, "id"));
+/**
+ * The images of a template. Every image is checked; the first size over a limit is reported once, as
+ * `templateTooLarge` of the template.
+ */
+function readImages(value: unknown, path: string, report: Report, templatePath: string): TemplateImage[] | undefined {
+  if (!Array.isArray(value)) {
+    report.error("invalidValue", path, templatePath);
     return undefined;
   }
-  const name = readText(value["name"], child(path, "name"), LIMITS.shortText, report);
-  if (name === undefined) return undefined;
-  const { api, typst, typ } = value;
-  const origin = kind === "plan" ? value["origin"] : undefined;
-  if (typeof api !== "number" || !Number.isSafeInteger(api) || api < 1) return fail("api");
-  if (typeof typst !== "string" || typst.length === 0 || textLength(typst) > LIMITS.shortText) return fail("typst");
-  if (typeof typ !== "string") return fail("typ");
-  if (origin !== undefined && !isId(origin)) return fail("origin");
-  if (utf8Length(typ) > LIMITS.typBytes) {
-    report.add("templateTooLarge", path, { limit: "typBytes" });
-    return undefined;
-  }
-
-  let images: TemplateImage[] | undefined;
-  const imagesValue = value["images"];
-  if (imagesValue !== undefined) {
-    if (!Array.isArray(imagesValue)) return fail("images");
-    images = [];
-    let total = 0;
-    for (let i = 0; i < imagesValue.length; i++) {
-      const read = readImage(imagesValue[i], at(child(path, "images"), i), report);
-      if (!read) {
-        report.add("invalidEntry", at(child(path, "images"), i));
-        return undefined;
-      }
-      total += read.bytes;
-      if (read.bytes > LIMITS.imageBytes || total > LIMITS.templateImageBytes) {
-        report.add("templateTooLarge", path, { limit: read.bytes > LIMITS.imageBytes ? "imageBytes" : "templateImageBytes" });
-        return undefined;
-      }
-      images.push(read.image);
+  const images: TemplateImage[] = [];
+  let total = 0;
+  let tooLarge = false;
+  for (let i = 0; i < value.length; i++) {
+    const read = readImage(value[i], at(path, i), report, templatePath);
+    if (!read) continue;
+    total += read.bytes;
+    if (!tooLarge && (read.bytes > LIMITS.imageBytes || total > LIMITS.templateImageBytes)) {
+      report.error("templateTooLarge", templatePath, templatePath, { limit: read.bytes > LIMITS.imageBytes ? "imageBytes" : "templateImageBytes" });
+      tooLarge = true;
     }
+    images.push(read.image);
   }
+  return images;
+}
+
+/**
+ * Reads one template into `report`, the template's own scratch report: every key in the writer's order, then
+ * the unknown fields. Returns undefined when the template is dropped. A duplicate `id` is read no further.
+ */
+function readTemplate(value: unknown, path: string, kind: "plan" | "ruleSet", ids: ReadonlySet<string>, report: Report): Template | undefined {
+  if (!isRecord(value)) {
+    report.error("invalidValue", path, path);
+    return undefined;
+  }
+  const required = <T>(key: string, parse: Parse<T>): T | undefined => readRequired(value, key, parse, path, report, path);
+  const id = required("id", parseId);
+  if (id !== undefined && ids.has(id)) {
+    report.error("duplicateId", child(path, "id"), path);
+    return undefined;
+  }
+  const origin = kind === "plan" ? readOptional(value, "origin", parseId, path, report, path) : undefined;
+  const name = readText(value["name"], child(path, "name"), LIMITS.shortText, report, path);
+  const api = required("api", (item) => (typeof item === "number" && Number.isSafeInteger(item) && item >= 1 ? item : undefined));
+  const typst = required("typst", shortString);
+  const typ = required("typ", (item) => (typeof item === "string" ? item : undefined));
+  if (typ !== undefined && utf8Length(typ) > LIMITS.typBytes) report.error("templateTooLarge", path, path, { limit: "typBytes" });
+  const images = value["images"] === undefined ? undefined : readImages(value["images"], child(path, "images"), report, path);
   // Rule sets have no `origin`; there it counts as an unknown field.
   checkKeys(value, ["id", "name", "api", "typst", "typ", "images", ...(kind === "plan" ? ["origin"] : [])], path, report);
+  if (report.drops(path) || id === undefined || name === undefined || api === undefined || typst === undefined || typ === undefined) return undefined;
   return { id, name, api, typst, typ, ...(images ? { images } : {}), ...(origin !== undefined ? { origin } : {}) };
 }
 
@@ -91,7 +106,9 @@ export function readTemplates(value: unknown, path: string, kind: "plan" | "rule
   const templates: Template[] = [];
   const ids = new Set<string>();
   for (let i = 0; i < value.length; i++) {
-    const template = readTemplate(value[i], at(path, i), kind, ids, report);
+    const scratch = new Report();
+    const template = readTemplate(value[i], at(path, i), kind, ids, scratch);
+    report.merge(scratch, template !== undefined);
     if (!template) continue;
     ids.add(template.id);
     positions.set(at(path, templates.length), i);
@@ -132,7 +149,7 @@ function isSafeTheme(root: unknown): boolean {
 export function readTheme(value: unknown, path: string, report: Report): Theme {
   if (value === undefined || value === null) return null;
   if (!isRecord(value) || !isSafeTheme(value)) {
-    report.add("invalidEntry", path);
+    report.error("invalidValue", path, path);
     return null;
   }
   return value;

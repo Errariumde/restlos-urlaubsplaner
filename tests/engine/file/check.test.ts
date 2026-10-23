@@ -45,8 +45,10 @@ describe("checkRules", () => {
   it("gives a hint and a report entry about the same rule the same path", () => {
     const result = load(planFile({}, { contract: { ...BAVARIA_CONTRACT, rules: [{ id: 5 }, { ...carnival, colour: "red" }] } }));
     expect(result.report).toEqual([
-      { code: "invalidEntry", path: "contract.rules[0]", data: { field: "id" } },
-      { code: "unknownField", path: "contract.rules[1].colour" },
+      { code: "invalidValue", path: "contract.rules[0].id", dropped: "contract.rules[0]" },
+      { code: "missingValue", path: "contract.rules[0].match", dropped: "contract.rules[0]" },
+      { code: "missingValue", path: "contract.rules[0]", dropped: "contract.rules[0]", data: { oneOf: ["requiredAtMost", "requiredExactly", "mandatory"] } },
+      { code: "unknownField", path: "contract.rules[1].colour", dropped: "contract.rules[1].colour" },
     ]);
     expect(checkRules(result.file, result.positions)).toEqual([{ code: "mixedRangeEnds", path: "contract.rules[1]" }]);
   });

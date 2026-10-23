@@ -5,7 +5,7 @@ import { MAX_RANGE_DAYS } from "../counting/match";
 import type { DayMatch, RangeMatch } from "../counting/types";
 import { WEEKDAYS, dayFromIso, daysInMonth, type Weekday } from "../days";
 import type { DateRule } from "../holidays/types";
-import { at, checkKeys, child, isRecord, type Report } from "./report";
+import { at, checkKeys, child, isRecord, readChoice, readOptional, readRequired, type Parse, type Report } from "./report";
 
 const LEAP_YEAR = 2000;
 const MAX_EASTER_OFFSET = 366;
@@ -15,122 +15,144 @@ const NTH = [1, 2, 3, 4, -1] as const;
 
 const isInt = (value: unknown): value is number => typeof value === "number" && Number.isInteger(value);
 const isWeekday = (value: unknown): value is Weekday => typeof value === "string" && (WEEKDAYS as readonly string[]).includes(value);
-const isOneOf = <T extends string | number>(list: readonly T[], value: unknown): value is T => list.some((item) => item === value);
+const oneOf = <T extends string | number>(list: readonly T[]): Parse<T> => (value) => list.find((item) => item === value);
+const month: Parse<number> = (value) => (isInt(value) && value >= 1 && value <= 12 ? value : undefined);
+const weekday: Parse<Weekday> = (value) => (isWeekday(value) ? value : undefined);
 
-function validMonthDay(month: unknown, day: unknown): month is number {
-  return isInt(month) && isInt(day) && month >= 1 && month <= 12 && day >= 1 && day <= daysInMonth(LEAP_YEAR, month);
-}
-
-function isoDate(value: unknown): boolean {
-  if (typeof value !== "string") return false;
+function isoDate(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
   try {
     dayFromIso(value);
-    return true;
+    return value;
   } catch {
-    return false;
+    return undefined;
   }
 }
 
-/** One of the six date rules; reports `invalidEntry` at the first problem and returns undefined. */
-function readDateRule(value: Readonly<Record<string, unknown>>, path: string, report: Report): DateRule | undefined {
-  const bad = (key?: string): undefined => {
-    report.add("invalidEntry", key === undefined ? path : child(path, key));
-    return undefined;
-  };
-  switch (value["type"]) {
-    case "fixed": {
-      const { month, day, nonLeap } = value;
-      if (!validMonthDay(month, day)) return bad(isInt(month) && month >= 1 && month <= 12 ? "day" : "month");
-      const feb29 = month === 2 && day === 29;
-      if (feb29 !== (nonLeap !== undefined)) return bad("nonLeap");
-      if (feb29 && !isOneOf(NON_LEAP, nonLeap)) return bad("nonLeap");
-      checkKeys(value, ["type", "month", "day", "nonLeap"], path, report);
-      return feb29 && isOneOf(NON_LEAP, nonLeap) ? { type: "fixed", month, day, nonLeap } : { type: "fixed", month, day: day as number };
-    }
-    case "easter":
-    case "orthodoxEaster": {
-      const { offset } = value;
-      if (!isInt(offset) || Math.abs(offset) > MAX_EASTER_OFFSET) return bad("offset");
-      checkKeys(value, ["type", "offset"], path, report);
-      return { type: value["type"], offset };
-    }
-    case "weekdayRelative": {
-      const { weekday, relation, month, day } = value;
-      if (!isWeekday(weekday)) return bad("weekday");
-      if (!isOneOf(RELATIONS, relation)) return bad("relation");
-      if (!validMonthDay(month, day) || (month === 2 && day === 29)) return bad(isInt(month) && month >= 1 && month <= 12 ? "day" : "month");
-      checkKeys(value, ["type", "weekday", "relation", "month", "day"], path, report);
-      return { type: "weekdayRelative", weekday, relation, month, day: day as number };
-    }
-    case "nthWeekday": {
-      const { month, weekday, n } = value;
-      if (!isInt(month) || month < 1 || month > 12) return bad("month");
-      if (!isWeekday(weekday)) return bad("weekday");
-      if (!isOneOf(NTH, n)) return bad("n");
-      checkKeys(value, ["type", "month", "weekday", "n"], path, report);
-      return { type: "nthWeekday", month, weekday, n };
-    }
-    case "once": {
-      if (!isoDate(value["date"])) return bad("date");
-      checkKeys(value, ["type", "date"], path, report);
-      return { type: "once", date: value["date"] as string };
-    }
-    default:
-      return bad("type");
-  }
-}
-
-function readRange(value: Readonly<Record<string, unknown>>, path: string, report: Report): RangeMatch | undefined {
-  const bad = (key: string): undefined => {
-    report.add("invalidEntry", child(path, key));
-    return undefined;
-  };
-  const fromPath = child(path, "from");
-  const from = value["from"];
-  if (!isRecord(from) || from["type"] === "range") return bad("from");
-  const toValue = value["to"];
-  const days = value["days"];
-  if ((toValue === undefined) === (days === undefined)) return bad(toValue === undefined ? "days" : "to");
-  if (days !== undefined && (!isInt(days) || days < 1 || days > MAX_RANGE_DAYS)) return bad("days");
-  const weekdays = value["weekdays"];
-  if (weekdays !== undefined) {
-    if (!Array.isArray(weekdays) || weekdays.length === 0) return bad("weekdays");
-    const seen = new Set<unknown>();
-    for (let i = 0; i < weekdays.length; i++) {
-      const weekday: unknown = weekdays[i];
-      if (!isWeekday(weekday) || seen.has(weekday)) {
-        report.add("invalidEntry", at(child(path, "weekdays"), i));
-        return undefined;
-      }
-      seen.add(weekday);
-    }
-  }
-  checkKeys(value, ["type", "from", "to", "days", "weekdays"], path, report);
-  const fromRule = readDateRule(from, fromPath, report);
-  if (!fromRule) return undefined;
-  let toRule: DateRule | undefined;
-  if (toValue !== undefined) {
-    if (!isRecord(toValue) || toValue["type"] === "range") return bad("to");
-    toRule = readDateRule(toValue, child(path, "to"), report);
-    if (!toRule) return undefined;
-  }
-  return {
-    type: "range",
-    from: fromRule,
-    ...(toRule ? { to: toRule } : {}),
-    ...(isInt(days) ? { days } : {}),
-    ...(weekdays !== undefined ? { weekdays: weekdays as Weekday[] } : {}),
-  };
+/** `month`, then `day` of a date in the year; `day` only when `month` is valid, 29 February only where `feb29` allows it. */
+function readMonthDay(
+  value: Readonly<Record<string, unknown>>,
+  path: string,
+  report: Report,
+  dropped: string,
+  feb29: boolean,
+): { month: number; day: number } | undefined {
+  const monthOfYear = readRequired(value, "month", month, path, report, dropped);
+  if (monthOfYear === undefined) return undefined;
+  const last = monthOfYear === 2 && !feb29 ? 28 : daysInMonth(LEAP_YEAR, monthOfYear);
+  const day = readRequired(value, "day", (item) => (isInt(item) && item >= 1 && item <= last ? item : undefined), path, report, dropped);
+  return day === undefined ? undefined : { month: monthOfYear, day };
 }
 
 /**
- * A `match`: one of the six date rules or a range. On a problem it reports `invalidEntry` at the
- * path of the first offending value (more precisely than `path`) and returns undefined.
+ * One of the six date rules; every field is checked. A missing or unknown `type` is the only report entry,
+ * since the type decides the fields.
  */
-export function readMatch(value: unknown, path: string, report: Report): DayMatch | undefined {
-  if (!isRecord(value)) {
-    report.add("invalidEntry", path);
+function readDateRule(value: Readonly<Record<string, unknown>>, path: string, report: Report, dropped: string): DateRule | undefined {
+  const required = <T>(key: string, parse: Parse<T>): T | undefined => readRequired(value, key, parse, path, report, dropped);
+  const type = value["type"];
+  let rule: DateRule | undefined;
+  let keys: readonly string[];
+  switch (type) {
+    case "fixed": {
+      const date = readMonthDay(value, path, report, dropped, true);
+      // `nonLeap` is required for 29 February and allowed only there, so it is checked only with a valid date.
+      if (date?.month === 2 && date.day === 29) {
+        const nonLeap = required("nonLeap", oneOf(NON_LEAP));
+        if (nonLeap !== undefined) rule = { type, ...date, nonLeap };
+      } else if (date) {
+        if (value["nonLeap"] === undefined) rule = { type, ...date };
+        else report.error("invalidValue", child(path, "nonLeap"), dropped);
+      }
+      keys = ["type", "month", "day", "nonLeap"];
+      break;
+    }
+    case "easter":
+    case "orthodoxEaster": {
+      const offset = required("offset", (item) => (isInt(item) && Math.abs(item) <= MAX_EASTER_OFFSET ? item : undefined));
+      if (offset !== undefined) rule = { type, offset };
+      keys = ["type", "offset"];
+      break;
+    }
+    case "weekdayRelative": {
+      const day = required("weekday", weekday);
+      const relation = required("relation", oneOf(RELATIONS));
+      const date = readMonthDay(value, path, report, dropped, false);
+      if (day !== undefined && relation !== undefined && date) rule = { type, weekday: day, relation, ...date };
+      keys = ["type", "weekday", "relation", "month", "day"];
+      break;
+    }
+    case "nthWeekday": {
+      const monthOfYear = required("month", month);
+      const day = required("weekday", weekday);
+      const n = required("n", oneOf(NTH));
+      if (monthOfYear !== undefined && day !== undefined && n !== undefined) rule = { type, month: monthOfYear, weekday: day, n };
+      keys = ["type", "month", "weekday", "n"];
+      break;
+    }
+    case "once": {
+      const date = required("date", isoDate);
+      if (date !== undefined) rule = { type, date };
+      keys = ["type", "date"];
+      break;
+    }
+    default:
+      report.error(type === undefined ? "missingValue" : "invalidValue", child(path, "type"), dropped);
+      return undefined;
+  }
+  checkKeys(value, keys, path, report);
+  return rule;
+}
+
+/** The `from` or `to` of a range: a date rule, never a range (a `type` "range" there is invalid). */
+function readBound(value: Readonly<Record<string, unknown>>, key: string, path: string, report: Report, dropped: string): DateRule | undefined {
+  const bound = value[key];
+  const boundPath = child(path, key);
+  if (bound === undefined) report.error("missingValue", boundPath, dropped);
+  else if (!isRecord(bound)) report.error("invalidValue", boundPath, dropped);
+  else return readDateRule(bound, boundPath, report, dropped);
+  return undefined;
+}
+
+/** A non-empty list of distinct weekdays; each invalid or repeated one is reported at its index. */
+function readWeekdays(value: unknown, path: string, report: Report, dropped: string): Weekday[] | undefined {
+  if (!Array.isArray(value) || value.length === 0) {
+    report.error("invalidValue", path, dropped);
     return undefined;
   }
-  return value["type"] === "range" ? readRange(value, path, report) : readDateRule(value, path, report);
+  const seen = new Set<Weekday>();
+  let valid = true;
+  for (let i = 0; i < value.length; i++) {
+    const item: unknown = value[i];
+    if (isWeekday(item) && !seen.has(item)) seen.add(item);
+    else {
+      report.error("invalidValue", at(path, i), dropped);
+      valid = false;
+    }
+  }
+  return valid ? [...seen] : undefined;
+}
+
+function readRange(value: Readonly<Record<string, unknown>>, path: string, report: Report, dropped: string): RangeMatch | undefined {
+  const from = readBound(value, "from", path, report, dropped);
+  const end = readChoice(value, ["to", "days"], path, report, dropped);
+  const to = end === "to" ? readBound(value, "to", path, report, dropped) : undefined;
+  const days =
+    end === "days" ? readOptional(value, "days", (item) => (isInt(item) && item >= 1 && item <= MAX_RANGE_DAYS ? item : undefined), path, report, dropped) : undefined;
+  const weekdaysValue = value["weekdays"];
+  const weekdays = weekdaysValue === undefined ? undefined : readWeekdays(weekdaysValue, child(path, "weekdays"), report, dropped);
+  checkKeys(value, ["type", "from", "to", "days", "weekdays"], path, report);
+  if (from === undefined || (to === undefined && days === undefined) || (weekdaysValue !== undefined && weekdays === undefined)) return undefined;
+  return { type: "range", from, ...(to ? { to } : {}), ...(days !== undefined ? { days } : {}), ...(weekdays ? { weekdays } : {}) };
+}
+
+/**
+ * A `match`: one of the six date rules or a range. Every problem is reported at the key itself, with
+ * `dropped` the path of what is not loaded because of it; the result is then undefined.
+ */
+export function readMatch(value: unknown, path: string, report: Report, dropped: string): DayMatch | undefined {
+  if (value === undefined) report.error("missingValue", path, dropped);
+  else if (!isRecord(value)) report.error("invalidValue", path, dropped);
+  else return value["type"] === "range" ? readRange(value, path, report, dropped) : readDateRule(value, path, report, dropped);
+  return undefined;
 }

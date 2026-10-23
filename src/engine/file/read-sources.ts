@@ -1,15 +1,14 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-import type { DayMatch, Part } from "../counting/types";
-import { MAX_YEAR, MIN_YEAR, type DayNumber } from "../days";
+import type { DayNumber } from "../days";
 import { UNITS_PER_DAY, type Units } from "../weight";
 import { LIMITS } from "./limits";
-import { isId, isoDay, weight } from "./read-contract";
+import { isoDay, parseId, parsePart, parseYear, positiveWeight, weight } from "./read-contract";
 import { readMatch } from "./read-match";
-import { Refused, Report, at, checkKeys, child, isRecord } from "./report";
+import { Refused, Report, at, checkKeys, child, isRecord, readChoice, readOptional, readRequired, type Parse } from "./report";
 import { readText } from "./text";
-import type { Color, FileSource, OtherPlanRef, Text } from "./types";
+import type { Color, FileSource, OtherPlanRef } from "./types";
 
 type SourceType = FileSource["type"];
 const TYPES: readonly SourceType[] = ["holiday", "paidClosure", "mandatory", "info", "otherPlan", "needed"];
@@ -24,46 +23,48 @@ interface ReadEntry {
   readonly [key: string]: unknown;
 }
 
-const isYear = (value: unknown): value is number =>
-  typeof value === "number" && Number.isInteger(value) && value >= MIN_YEAR && value <= MAX_YEAR;
+const slot: Parse<string> = (value) => (typeof value === "string" && value.length <= LIMITS.shortText && SLOT.test(value) ? value : undefined);
+const rgb: Parse<string> = (value) => (typeof value === "string" && RGB.test(value) ? value : undefined);
+const revision: Parse<number> = (value) => (typeof value === "number" && Number.isSafeInteger(value) && value >= 1 ? value : undefined);
+const spanKind: Parse<"leave" | "mandatory"> = (value) => (value === "leave" || value === "mandatory" ? value : undefined);
 
-function readColor(value: unknown, path: string, report: Report): Color | undefined {
-  if (isRecord(value)) {
-    const { slot, rgb } = value;
-    if (typeof slot === "string" && rgb === undefined && SLOT.test(slot) && slot.length <= LIMITS.shortText) {
-      checkKeys(value, ["slot"], path, report);
-      return { slot };
-    }
-    if (typeof rgb === "string" && slot === undefined && RGB.test(rgb)) {
-      checkKeys(value, ["rgb"], path, report);
-      return { rgb };
-    }
+/** A source's `color`: exactly one of `slot` and `rgb`. */
+function readColor(value: unknown, path: string, report: Report, dropped: string): Color | undefined {
+  if (value === undefined) report.error("missingValue", path, dropped);
+  else if (!isRecord(value)) report.error("invalidValue", path, dropped);
+  else {
+    const key = readChoice(value, ["slot", "rgb"], path, report, dropped);
+    const color = key === undefined ? undefined : readOptional(value, key, key === "slot" ? slot : rgb, path, report, dropped);
+    checkKeys(value, ["slot", "rgb"], path, report);
+    if (color !== undefined) return key === "slot" ? { slot: color } : { rgb: color };
   }
-  report.add("invalidEntry", path);
   return undefined;
 }
 
-export function readPlanRef(value: unknown, path: string, report: Report): OtherPlanRef | undefined {
-  if (isRecord(value)) {
-    const { id, revision } = value;
-    const name = readText(value["name"], child(path, "name"), LIMITS.shortText, report);
-    if (name !== undefined && isId(id) && typeof revision === "number" && Number.isSafeInteger(revision) && revision >= 1) {
-      checkKeys(value, ["id", "name", "revision"], path, report);
-      return { id, name, revision };
-    }
-    if (name === undefined) return undefined;
+/** A plan reference (`ruleSet`, or the `plan` of an `otherPlan` source); every problem drops `dropped`. */
+export function readPlanRef(value: unknown, path: string, report: Report, dropped: string): OtherPlanRef | undefined {
+  if (value === undefined) report.error("missingValue", path, dropped);
+  else if (!isRecord(value)) report.error("invalidValue", path, dropped);
+  else {
+    const id = readRequired(value, "id", parseId, path, report, dropped);
+    const name = readText(value["name"], child(path, "name"), LIMITS.shortText, report, dropped);
+    const number = readRequired(value, "revision", revision, path, report, dropped);
+    checkKeys(value, ["id", "name", "revision"], path, report);
+    if (id !== undefined && name !== undefined && number !== undefined) return { id, name, revision: number };
   }
-  report.add("invalidEntry", path);
   return undefined;
 }
 
-/** Reads `except`: invalid dates are dropped one by one. */
-function readExcept(value: unknown, path: string, report: Report): DayNumber[] | undefined {
-  if (!Array.isArray(value)) return undefined;
+/** Reads `except`: an invalid date drops only that date. */
+function readExcept(value: unknown, path: string, report: Report, dropped: string): DayNumber[] | undefined {
+  if (!Array.isArray(value)) {
+    report.error("invalidValue", path, dropped);
+    return undefined;
+  }
   const days: DayNumber[] = [];
   for (let i = 0; i < value.length; i++) {
     const day = isoDay(value[i]);
-    if (day === undefined) report.add("invalidEntry", at(path, i));
+    if (day === undefined) report.error("invalidValue", at(path, i), at(path, i));
     else days.push(day);
   }
   return days;
@@ -77,91 +78,60 @@ const FIELDS: Readonly<Record<SourceType, readonly string[]>> = {
   needed: ["take", "part"],
   otherPlan: ["from", "to", "kind"],
 };
+const MATCH_KEYS = ["match", "validFrom", "validUntil", "except"];
 
-/** Reads one entry of a source; reports and returns undefined when it must be dropped. */
-function readEntry(
-  value: unknown,
-  path: string,
-  type: SourceType,
-  report: Report,
-): ReadEntry | undefined {
-  const fail = (field?: string): undefined => {
-    report.add("invalidEntry", path, field === undefined ? undefined : { field });
+/**
+ * Reads one entry of a source into `report`, the entry's own scratch report: every key in the writer's order,
+ * then the unknown fields. Returns undefined when the entry is dropped.
+ */
+function readEntry(value: unknown, path: string, type: SourceType, report: Report): ReadEntry | undefined {
+  if (!isRecord(value)) {
+    report.error("invalidValue", path, path);
     return undefined;
-  };
-  if (!isRecord(value)) return fail();
-  const hasDate = value["date"] !== undefined;
-  const hasMatch = value["match"] !== undefined;
-  if (hasDate === hasMatch) return fail(hasDate ? "match" : "date");
-  if (type === "otherPlan" && hasMatch) return fail("match");
-
-  const matchReport = new Report();
-  let date: DayNumber | undefined;
-  let match: DayMatch | undefined;
-  if (hasDate) {
-    date = isoDay(value["date"]);
-    if (date === undefined) return fail("date");
-  } else {
-    match = readMatch(value["match"], child(path, "match"), matchReport);
-    if (!match) return fail(matchReport.entries[0]?.path.slice(path.length + 1) ?? "match");
   }
-
-  const { validFrom, validUntil } = value;
+  const optional = <T>(key: string, parse: Parse<T>): T | undefined => readOptional(value, key, parse, path, report, path);
+  const required = <T>(key: string, parse: Parse<T>): T | undefined => readRequired(value, key, parse, path, report, path);
+  // An other-plan entry is always a date entry; the others have exactly one of `date` and `match`.
+  const when = type === "otherPlan" ? "date" : readChoice(value, ["date", "match"], path, report, path);
+  const date = when === "date" ? required("date", isoDay) : undefined;
+  const match = when === "match" ? readMatch(value["match"], child(path, "match"), report, path) : undefined;
+  let validFrom: number | undefined;
+  let validUntil: number | undefined;
   let except: DayNumber[] | undefined;
-  if (match) {
-    if (validFrom !== undefined && !isYear(validFrom)) return fail("validFrom");
-    if (validUntil !== undefined && !isYear(validUntil)) return fail("validUntil");
-    if (isYear(validFrom) && isYear(validUntil) && validFrom > validUntil) return fail("validUntil");
-    if (value["except"] !== undefined) {
-      except = readExcept(value["except"], child(path, "except"), report);
-      if (except === undefined) return fail("except");
-    }
+  if (when === "match") {
+    validFrom = optional("validFrom", parseYear);
+    validUntil = optional("validUntil", parseYear);
+    if (validFrom !== undefined && validUntil !== undefined && validFrom > validUntil) report.error("invalidValue", child(path, "validUntil"), path);
+    if (value["except"] !== undefined) except = readExcept(value["except"], child(path, "except"), report, path);
   }
+  const name = value["name"] === undefined ? undefined : readText(value["name"], child(path, "name"), LIMITS.shortText, report, path);
 
   const extra: Record<string, unknown> = {};
   if (type === "holiday") {
-    const required = value["required"] === undefined ? 0 : weight(value["required"]);
-    if (required === undefined) return fail("required");
-    extra["required"] = required;
+    extra["required"] = value["required"] === undefined ? 0 : optional("required", weight);
   } else if (type === "mandatory" || type === "needed") {
-    const take = value["take"] === undefined ? UNITS_PER_DAY : weight(value["take"]);
-    if (take === undefined || take === 0) return fail("take");
-    extra["take"] = take;
+    extra["take"] = value["take"] === undefined ? UNITS_PER_DAY : optional("take", positiveWeight);
   } else if (type === "otherPlan") {
-    const from = weight(value["from"]);
-    const to = weight(value["to"]);
-    if (from === undefined) return fail("from");
-    if (to === undefined || to <= from) return fail("to");
-    const kind = value["kind"];
-    if (kind !== "leave" && kind !== "mandatory") return fail("kind");
-    Object.assign(extra, { from, to, kind });
+    const from = required("from", weight);
+    const to = required("to", weight);
+    if (from !== undefined && to !== undefined && to <= from) report.error("invalidValue", child(path, "to"), path);
+    Object.assign(extra, { from, to, kind: required("kind", spanKind) });
   }
-  if (FIELDS[type].includes("part") && value["part"] !== undefined) {
-    const part = value["part"];
-    if (part !== "start" && part !== "end") return fail("part");
-    extra["part"] = part satisfies Part;
-  }
+  if (FIELDS[type].includes("part") && value["part"] !== undefined) extra["part"] = optional("part", parsePart);
 
-  let name: Text | undefined;
-  if (value["name"] !== undefined) {
-    name = readText(value["name"], child(path, "name"), LIMITS.shortText, report);
-    if (name === undefined) return undefined;
-  }
-
-  const allowed = ["name", ...FIELDS[type], ...(type === "otherPlan" ? ["date"] : match ? ["match", "validFrom", "validUntil", "except"] : ["date"])];
-  checkKeys(value, allowed, path, report);
-  report.entries.push(...matchReport.entries);
-
-  const entry: ReadEntry = {
+  // Without one of `date` and `match`, whether the match fields are allowed is not known: they are not checked.
+  const whenKeys = type === "otherPlan" || when === "date" ? ["date"] : when === "match" ? MATCH_KEYS : ["date", ...MATCH_KEYS];
+  checkKeys(value, [...whenKeys, "name", ...FIELDS[type]], path, report);
+  if (report.drops(path) || (date === undefined && match === undefined)) return undefined;
+  return {
     ...(date !== undefined ? { date } : {}),
     ...(match ? { match } : {}),
-    ...(match && validFrom !== undefined ? { validFrom } : {}),
-    ...(match && validUntil !== undefined ? { validUntil } : {}),
+    ...(validFrom !== undefined ? { validFrom } : {}),
+    ...(validUntil !== undefined ? { validUntil } : {}),
     ...(except ? { except } : {}),
     ...(name !== undefined ? { name } : {}),
     ...extra,
   };
-  return entry;
 }
 
 /**
@@ -185,80 +155,89 @@ function sortedOrder(entries: readonly object[]): number[] {
   return [...dated, ...matched];
 }
 
-function readSource(
-  value: unknown,
+/**
+ * The entries of a source in their canonical order, with their indexes in the text. Each entry is read into a
+ * scratch report of its own and merged into `report`. Without a `type` (missing, unknown, or a personal source
+ * in a rule set) the list is checked but its entries are not read.
+ */
+function readSourceEntries(
+  value: Readonly<Record<string, unknown>>,
   path: string,
-  kind: "plan" | "ruleSet",
-  seen: ReadonlySet<string>,
+  type: SourceType | undefined,
   report: Report,
-): { readonly source: FileSource; readonly entryIndexes: readonly number[] } | undefined {
-  const fail = (field: string): undefined => {
-    report.add("invalidEntry", child(path, field));
+): { readonly entries: readonly ReadEntry[]; readonly entryIndexes: readonly number[] } | undefined {
+  const list = readRequired(value, "entries", (item) => (Array.isArray(item) ? (item as unknown[]) : undefined), path, report, path);
+  if (list === undefined) return undefined;
+  const tooLarge = (limit: string): undefined => {
+    report.error("sourceTooLarge", path, path, { limit });
     return undefined;
   };
-  if (!isRecord(value)) {
-    report.add("invalidEntry", path);
-    return undefined;
-  }
-  const type = TYPES.find((candidate) => candidate === value["type"]);
-  if (type === undefined) return fail("type");
-  if (kind === "ruleSet" && PERSONAL.includes(type)) {
-    report.add("personalSourceInRuleSet", path, { type });
-    return undefined;
-  }
-  const id = value["id"];
-  if (!isId(id)) return fail("id");
-  if (seen.has(id)) {
-    report.add("duplicateId", child(path, "id"));
-    return undefined;
-  }
-  const name = readText(value["name"], child(path, "name"), LIMITS.shortText, report);
-  if (name === undefined) return undefined;
-  const color = readColor(value["color"], child(path, "color"), report);
-  if (!color) return undefined;
-  if (typeof value["visible"] !== "boolean") return fail("visible");
-  const originValue = value["origin"];
-  if (kind === "plan" && originValue !== undefined && !isId(originValue)) return fail("origin");
-  const origin = kind === "plan" && isId(originValue) ? originValue : undefined;
-  let plan: OtherPlanRef | undefined;
-  if (type === "otherPlan") {
-    plan = readPlanRef(value["plan"], child(path, "plan"), report);
-    if (!plan) return undefined;
+  if (list.length > LIMITS.entriesPerSource) return tooLarge("entriesPerSource");
+  if (type === undefined) return undefined;
+  for (const entry of list) {
+    if (isRecord(entry) && Array.isArray(entry["except"]) && entry["except"].length > LIMITS.exceptPerEntry) return tooLarge("exceptPerEntry");
   }
 
   const entriesPath = child(path, "entries");
-  const list = value["entries"];
-  if (!Array.isArray(list)) return fail("entries");
-  const tooLarge = (data: Record<string, number | string>): undefined => {
-    report.add("sourceTooLarge", path, data);
-    return undefined;
-  };
-  if (list.length > LIMITS.entriesPerSource) return tooLarge({ limit: "entriesPerSource" });
-  for (const entry of list as unknown[]) {
-    if (isRecord(entry) && Array.isArray(entry["except"]) && entry["except"].length > LIMITS.exceptPerEntry) return tooLarge({ limit: "exceptPerEntry" });
-  }
-
   const entries: ReadEntry[] = [];
   const textIndexes: number[] = [];
   for (let i = 0; i < list.length; i++) {
-    const entry = readEntry(list[i], at(entriesPath, i), type, report);
+    const scratch = new Report();
+    const entry = readEntry(list[i], at(entriesPath, i), type, scratch);
+    report.merge(scratch, entry !== undefined);
     if (!entry) continue;
     entries.push(entry);
     textIndexes.push(i);
   }
   const order = sortedOrder(entries);
-  checkKeys(value, ["id", "name", "type", "color", "visible", "entries", ...(kind === "plan" ? ["origin"] : []), ...(type === "otherPlan" ? ["plan"] : [])], path, report);
+  return { entries: order.map((index) => entries[index] as ReadEntry), entryIndexes: order.map((index) => textIndexes[index] as number) };
+}
+
+/**
+ * Reads one source into `report`, the source's own scratch report: every key in the writer's order, then the
+ * unknown fields. Returns undefined when the source is dropped. A duplicate `id` is read no further.
+ */
+function readSource(
+  value: unknown,
+  path: string,
+  kind: "plan" | "ruleSet",
+  ids: ReadonlySet<string>,
+  report: Report,
+): { readonly source: FileSource; readonly entryIndexes: readonly number[] } | undefined {
+  if (!isRecord(value)) {
+    report.error("invalidValue", path, path);
+    return undefined;
+  }
+  const id = readRequired(value, "id", parseId, path, report, path);
+  if (id !== undefined && ids.has(id)) {
+    report.error("duplicateId", child(path, "id"), path);
+    return undefined;
+  }
+  const origin = kind === "plan" ? readOptional(value, "origin", parseId, path, report, path) : undefined;
+  const name = readText(value["name"], child(path, "name"), LIMITS.shortText, report, path);
+  const type = readRequired(value, "type", (item) => TYPES.find((candidate) => candidate === item), path, report, path);
+  const personal = type !== undefined && kind === "ruleSet" && PERSONAL.includes(type);
+  if (personal) report.error("personalSourceInRuleSet", path, path, { type });
+  const color = readColor(value["color"], child(path, "color"), report, path);
+  const visible = readRequired(value, "visible", (item) => (typeof item === "boolean" ? item : undefined), path, report, path);
+  const plan = type === "otherPlan" ? readPlanRef(value["plan"], child(path, "plan"), report, path) : undefined;
+  const read = readSourceEntries(value, path, personal ? undefined : type, report);
+  // Rule sets have no `origin`. `plan` belongs to other-plan sources; for a source without a known type it is not checked.
+  const planKeys = type === undefined || type === "otherPlan" ? ["plan"] : [];
+  checkKeys(value, ["id", "name", "type", "color", "visible", "entries", ...(kind === "plan" ? ["origin"] : []), ...planKeys], path, report);
+  if (report.drops(path) || id === undefined || name === undefined || type === undefined || color === undefined || visible === undefined) return undefined;
+  if (!read || (type === "otherPlan" && !plan)) return undefined;
   const source = {
     id,
     name,
     type,
     color,
-    visible: value["visible"],
+    visible,
     ...(origin !== undefined ? { origin } : {}),
     ...(plan ? { plan } : {}),
-    entries: order.map((index) => entries[index] as ReadEntry),
+    entries: read.entries,
   };
-  return { source: source as FileSource, entryIndexes: order.map((index) => textIndexes[index] as number) };
+  return { source: source as FileSource, entryIndexes: read.entryIndexes };
 }
 
 /**
@@ -278,7 +257,9 @@ export function readSources(
   const sources: FileSource[] = [];
   const ids = new Set<string>();
   for (let i = 0; i < value.length; i++) {
-    const read = readSource(value[i], at(path, i), kind, ids, report);
+    const scratch = new Report();
+    const read = readSource(value[i], at(path, i), kind, ids, scratch);
+    report.merge(scratch, read !== undefined);
     if (!read) continue;
     ids.add(read.source.id);
     const sourcePath = at(path, sources.length);

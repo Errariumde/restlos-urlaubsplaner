@@ -274,7 +274,7 @@ A rule set alone can't be computed: it has no period. "Save as rule set" writes 
 
 `readFile(text)` checks the size (the UTF-8 length; a leading byte-order mark is skipped), parses the JSON, checks `schema` and `kind`, migrates older schemas (there are none yet) and then validates every value. It returns either a refusal, and nothing is loaded, or the file with a report. Unknown keys are reported but never looked into, so a deeply nested value costs no more than parsing it.
 
-A report entry has a `code`, the `path` of the affected value (`"contract.rules[2].label"`, `"plan.days[0].take"`) and, for some codes, `data` with what the message needs. The report carries no sentences; the app writes them in the UI language. A refusal has a `code`, and a `path` and `data` where they apply.
+A report entry has a `code`, the `path` of the key itself in the text that was read (`"contract.rules[2].match.month"`, `"plan.days[0].take"`), for an Error `dropped`: what is not loaded because of it (`""` is the whole file, otherwise the path of the dropped part or key), and, for some codes, `data` with what the message needs. The report carries no sentences; the app writes them in the UI language. A refusal has a `code`, and a `path` and `data` where they apply.
 
 `readFile` also returns `positions`: for every kept rule, source, source entry, template, leave day, override and note, its index in the list in the text that was read. Report entries and hints use paths in that text; `textPath` in `src/engine/file/positions.ts` turns a path in the loaded file into one in the text.
 
@@ -294,28 +294,52 @@ A report entry has a `code`, the `path` of the affected value (`"contract.rules[
 
 ### Loaded with a report
 
-| Code | Situation | What happens |
-| --- | --- | --- |
-| `unknownField` | A key the format doesn't define, including `origin` in a rule set and `validFrom`, `validUntil` or `except` on a date entry | dropped; saving writes only known keys |
-| `invalidEntry` | An invalid entry of a list: rule, reference, source, source entry, `except` date, template, image, leave day, override, note. Also an invalid `ruleSet` reference, a rule set's invalid `state`, invalid `options` or a single option that is not `true` or `false`, a `references` or `theme` value of the wrong kind | that entry dropped, the rest loads; an invalid image drops its template; an invalid `theme` reads as `null`. For rules, source entries, leave days, overrides and notes, `data.field` names the first invalid field (`{ "field": "take" }`) |
-| `duplicateDate` | The same date twice in `days`, `overrides` or `notes` | the first valid one kept, later ones dropped without being read any further |
-| `duplicateId` | The same ID twice among rules, sources or templates | the first kept, later ones dropped |
-| `unknownReference` | A rule cites a key that `contract.references` doesn't have (`data.reference`) | the citation dropped, the rule kept |
-| `textTooLong` | A text over its limit (`data.limit`; `data.language` for a language map) | the entry that holds the text dropped: a rule with an over-long `label` or `note` as a whole, reported also as `invalidEntry` of the rule with `data.field`; likewise a reference, a source, a source entry, a template, a note, the `ruleSet` reference; an over-long `contract.name` or `description` is left out |
-| `sourceTooLarge` | A source with more than 2000 entries, or one of its entries with more than 400 `except` dates (`data.limit`: `entriesPerSource` or `exceptPerEntry`) | that source dropped |
-| `templateTooLarge` | A `typ` over 512 KB, an image over 1 MB or a template's images over 2 MB together (`data.limit`: `typBytes`, `imageBytes` or `templateImageBytes`) | that template dropped |
-| `unknownLocalRule` | An option the holiday data doesn't define for the selected state, for example after a local rule was renamed or removed, or any option in a rule set without `state` | the option dropped |
-| `personalSourceInRuleSet` | An `otherPlan` or `needed` source in a rule set (`data.type`) | that source dropped |
-| `invalidMinUnit` | `minUnit` present but invalid | `"1/2"` used |
-| `notMultipleOfMinUnit` | A leave `take` or an override's `required` that is not a multiple of `minUnit` | kept; the engine computes it exactly |
-| `partSuggested` | Partial own leave without `part` (`data.part`) | kept with a part: inside the plan period the one the neighbouring days suggest, computed once for the whole plan, otherwise `"end"`; outside the period always `"end"`, without a computation |
-| `outsidePeriod` | Leave, an override or a note outside the plan period | kept; the calendar doesn't show it |
+| Code | Severity | Situation | What happens |
+| --- | --- | --- | --- |
+| `unknownField` | Error | A key the format doesn't define, including `origin` in a rule set and `validFrom`, `validUntil` or `except` on a date entry | dropped; saving writes only known keys |
+| `missingValue` | Error | A required key is absent. Where exactly one of several keys is required (a rule's effect `requiredAtMost`, `requiredExactly` or `mandatory`; an entry's `date` or `match`; a range's `to` or `days`; a color's `slot` or `rgb`) and none is present, the entry stands at the object and `data.oneOf` lists the choices | what `dropped` says, see below |
+| `invalidValue` | Error | A value is present but wrong: its type, range, format or order, a weekday twice in `weekdays`, `to` not after `from` in an other-plan span, `validUntil` before `validFrom`. Also an entry of a list that isn't an object (at the entry), and several keys of one choice (at the object, with `data.oneOf`) | what `dropped` says, see below; an invalid `theme` reads as `null` |
+| `duplicateDate` | Error | The same date twice in `days`, `overrides` or `notes` (at `….date`) | the first valid one kept, later ones dropped without being read any further |
+| `duplicateId` | Error | The same ID twice among rules, sources or templates (at `….id`) | the first kept, later ones dropped without being read any further |
+| `unknownReference` | Error | A rule cites a key that `contract.references` doesn't have (`data.reference`) | the citation dropped, the rule kept |
+| `textTooLong` | Error | A text over its limit (`data.limit`; `data.language` for a language map) | the entry that holds the text dropped: a rule with an over-long `label` or `note` as a whole; likewise a reference, a source, a source entry, a template, a note, the `ruleSet` reference; an over-long `contract.name` or `description` is left out |
+| `sourceTooLarge` | Error | A source with more than 2000 entries, or one of its entries with more than 400 `except` dates (`data.limit`: `entriesPerSource` or `exceptPerEntry`) | that source dropped |
+| `templateTooLarge` | Error | A `typ` over 512 KB, an image over 1 MB or a template's images over 2 MB together (`data.limit`: `typBytes`, `imageBytes` or `templateImageBytes`) | that template dropped |
+| `unknownLocalRule` | Error | An option the holiday data doesn't define for the selected state, for example after a local rule was renamed or removed, or any option in a rule set without `state` | the option dropped |
+| `personalSourceInRuleSet` | Error | An `otherPlan` or `needed` source in a rule set (`data.type`) | that source dropped |
+| `invalidMinUnit` | Warning | `minUnit` present but invalid | `"1/2"` used |
+| `notMultipleOfMinUnit` | Warning | A leave `take` or an override's `required` that is not a multiple of `minUnit` | kept; the engine computes it exactly |
+| `partSuggested` | Warning | Partial own leave without `part` (`data.part`) | kept with a part: inside the plan period the one the neighbouring days suggest, computed once for the whole plan, otherwise `"end"`; outside the period always `"end"`, without a computation |
+| `outsidePeriod` | Info | Leave, an override or a note outside the plan period | kept; the calendar doesn't show it |
+
+Error means not loaded and lost when saving, Warning loaded but changed or probably wrong, Info loaded unchanged. `SEVERITY` in `src/engine/file/severity.ts` holds the same values.
+
+Every key of an entry is checked, also after a problem, in the order the app writes them (see [Writing](#writing)), then its unknown fields in the file's order. Values that depend on a broken one are skipped, not guessed: the fields of a `match` whose `type` is missing or unknown, the entries of a source whose `type` is missing or unknown or that is personal in a rule set, the `day` of a date whose `month` is invalid, and the order of `validFrom` and `validUntil` unless both are valid years.
+
+What an Error drops (`dropped`) is the entry that holds the value: a rule, reference, source, source entry, template, leave day, override or note, also for a problem inside its `match` or its texts. The exceptions:
+
+- a problem in an image drops its template;
+- a problem in the `ruleSet` reference drops `ruleSet`; one in a source's `plan` or `color` drops that source;
+- `unknownField` drops only the key itself, `unknownReference` only that citation, and an invalid `except` date only that date;
+- `contract.region.options` that isn't a map drops `contract.region.options`; one invalid option, and `unknownLocalRule`, drop only that option;
+- a rule set's invalid `state` drops `contract.region.state`;
+- an invalid `theme`, `contract.references`, `contract.name` or `description` drops that key;
+- `sourceTooLarge` and `personalSourceInRuleSet` drop that source, `templateTooLarge` that template.
+
+An entry that is dropped reports its Errors, not its Warnings and Infos.
 
 Example: a leave day `{ "date": "2027-06-01", "take": "1/4" }` without other leave around it, in a plan with `minUnit` `"1/2"`, loads with two entries, `notMultipleOfMinUnit` at `plan.days[0].take` and `partSuggested` at `plan.days[0]` with `{ "part": "end" }`.
 
 ### Checking
 
-`checkRules(file, positions, onProgress)` runs on a loaded file and never changes it. It checks the contract rules, then each source's match entries, and gives hints with the codes `neverApplies`, `leapYearLength` and `mixedRangeEnds` (see [Day rules](day-rules-format.md#warnings)). Hints are not part of the read report. Their paths are positions in the text that was read, like the paths of the read report (see `positions`), so a hint and a report entry about the same rule have the same path.
+`checkRules(file, positions, onProgress)` runs on a loaded file and never changes it. It checks the contract rules, then each source's match entries, and gives hints:
+
+| Code | Severity | When |
+| --- | --- | --- |
+| `neverApplies`, `leapYearLength`, `mixedRangeEnds` | Warning | a likely mistake in a rule or match entry, see [Day rules](day-rules-format.md#warnings) |
+| `checkSkipped` | Info | added by the app when the user skips the check |
+
+Hints are not part of the read report. Their paths are positions in the text that was read, like the paths of the read report (see `positions`), so a hint and a report entry about the same rule have the same path.
 
 Progress: `onProgress` is called with `(0, N)` first and then once per rule or match entry. `checkCount(file)` gives N.
 
@@ -350,7 +374,7 @@ A missing optional part is not a repair and gets no report entry. It reads as it
 | `typ` of one template | 512 KB | that template dropped (`templateTooLarge`) |
 | One image / all images of a template | 1 MB / 2 MB decoded | that template dropped (`templateTooLarge`) |
 | Names, labels, reference titles and versions / descriptions, notes | 200 / 2000 characters | that entry dropped (`textTooLong`) |
-| IDs and reference keys / URLs | 200 / 2000 characters | invalid: that entry dropped (`invalidEntry`), an over-long file `id` refused (`invalidCore`) |
+| IDs and reference keys / URLs | 200 / 2000 characters | invalid: that entry dropped (`invalidValue`), an over-long file `id` refused (`invalidCore`) |
 | Files inside files | none: another plan is stored as entries, never embedded | |
 
 KB and MB are binary: 1 MB is 1,048,576 bytes. Reading and computing any file within these limits takes well under a second.

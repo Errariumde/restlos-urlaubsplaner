@@ -13,6 +13,10 @@ const contractOf = (result: ReturnType<typeof readFile>) => {
   if (!result.ok) throw new Error("refused: " + result.refusal.code);
   return result.file.contract;
 };
+const reportOf = (result: ReturnType<typeof readFile>) => {
+  if (!result.ok) throw new Error("refused: " + result.refusal.code);
+  return result.report;
+};
 const rule = (extra: Record<string, unknown> = {}) => ({ id: "r1", match: { type: "fixed", month: 12, day: 24 }, requiredAtMost: "1/2", ...extra });
 
 describe("region", () => {
@@ -24,7 +28,7 @@ describe("region", () => {
   it("loads a rule set without a state", () => expect(contractOf(withContract({ region: { country: "DE" } })).region).toEqual({ country: "DE" }));
   it("drops an invalid state", () => {
     const result = withContract({ region: { country: "DE", state: "ZZ" } });
-    expect(codes(result)).toEqual(["invalidEntry@contract.region.state"]);
+    expect(reportOf(result)).toEqual([{ code: "invalidValue", path: "contract.region.state", dropped: "contract.region.state" }]);
     expect(contractOf(result).region).toEqual({ country: "DE" });
   });
   it("drops options the holiday data does not define (0001)", () => {
@@ -39,7 +43,9 @@ describe("region", () => {
     expect(Object.keys(contractOf(result).region.options ?? {})).toEqual(["assumption"]);
   });
   it("reports a non-boolean option", () =>
-    expect(codes(withContract({ region: { country: "DE", state: "BY", options: { assumption: "yes" } } }))).toEqual(["invalidEntry@contract.region.options.assumption"]));
+    expect(reportOf(withContract({ region: { country: "DE", state: "BY", options: { assumption: "yes" } } }))).toEqual([
+      { code: "invalidValue", path: "contract.region.options.assumption", dropped: "contract.region.options.assumption" },
+    ]));
 });
 
 describe("minUnit", () => {
@@ -89,22 +95,33 @@ describe("rules", () => {
     ]);
     expect(contract.references.law).toEqual({ title: "Gesetz", version: "2020", url: "https://example.org/law", checked: dayFromIso("2026-10-18") });
   });
+  const effects = { oneOf: ["requiredAtMost", "requiredExactly", "mandatory"] };
   it.each([
-    ["two effects", rule({ requiredExactly: "0" })],
-    ["mandatory 0", rule({ requiredAtMost: undefined, mandatory: "0" })],
-    ["30 February", rule({ match: { type: "fixed", month: 2, day: 30 } })],
-    ["range without end", rule({ match: { type: "range", from: { type: "fixed", month: 1, day: 1 } } })],
-    ["validFrom 1500", rule({ validFrom: 1500 })],
-    ["29 February without nonLeap", rule({ match: { type: "fixed", month: 2, day: 29 } })],
-    ["easter offset 367", rule({ match: { type: "easter", offset: 367 } })],
-    ["range in range", rule({ match: { type: "range", days: 3, from: { type: "range", days: 2, from: { type: "fixed", month: 1, day: 1 } } } })],
-    ["range days 367", rule({ match: { type: "range", days: 367, from: { type: "fixed", month: 1, day: 1 } } })],
-    ["empty weekdays", rule({ match: { type: "range", days: 3, weekdays: [], from: { type: "fixed", month: 1, day: 1 } } })],
-    ["duplicate weekdays", rule({ match: { type: "range", days: 3, weekdays: ["mon", "mon"], from: { type: "fixed", month: 1, day: 1 } } })],
-    ["no id", rule({ id: "" })],
-  ])("drops an invalid rule: %s", (_name, bad) => {
+    ["two effects", rule({ requiredExactly: "0" }), "invalidValue", "", effects],
+    ["mandatory 0", rule({ requiredAtMost: undefined, mandatory: "0" }), "invalidValue", ".mandatory"],
+    ["30 February", rule({ match: { type: "fixed", month: 2, day: 30 } }), "invalidValue", ".match.day"],
+    ["range without end", rule({ match: { type: "range", from: { type: "fixed", month: 1, day: 1 } } }), "missingValue", ".match", { oneOf: ["to", "days"] }],
+    ["validFrom 1500", rule({ validFrom: 1500 }), "invalidValue", ".validFrom"],
+    ["29 February without nonLeap", rule({ match: { type: "fixed", month: 2, day: 29 } }), "missingValue", ".match.nonLeap"],
+    ["easter offset 367", rule({ match: { type: "easter", offset: 367 } }), "invalidValue", ".match.offset"],
+    [
+      "range in range",
+      rule({ match: { type: "range", days: 3, from: { type: "range", days: 2, from: { type: "fixed", month: 1, day: 1 } } } }),
+      "invalidValue",
+      ".match.from.type",
+    ],
+    ["range days 367", rule({ match: { type: "range", days: 367, from: { type: "fixed", month: 1, day: 1 } } }), "invalidValue", ".match.days"],
+    ["empty weekdays", rule({ match: { type: "range", days: 3, weekdays: [], from: { type: "fixed", month: 1, day: 1 } } }), "invalidValue", ".match.weekdays"],
+    [
+      "duplicate weekdays",
+      rule({ match: { type: "range", days: 3, weekdays: ["mon", "mon"], from: { type: "fixed", month: 1, day: 1 } } }),
+      "invalidValue",
+      ".match.weekdays[1]",
+    ],
+    ["no id", rule({ id: "" }), "invalidValue", ".id"],
+  ])("drops an invalid rule: %s", (_name, bad, code, key, data?: Record<string, unknown>) => {
     const result = withContract({ rules: [rule({ id: "first" }), bad, rule({ id: "last" })] });
-    expect(codes(result)).toEqual(["invalidEntry@contract.rules[1]"]);
+    expect(reportOf(result)).toEqual([{ code, path: `contract.rules[1]${key}`, dropped: "contract.rules[1]", ...(data ? { data } : {}) }]);
     expect(contractOf(result).rules.map((r) => r.id)).toEqual(["first", "last"]);
   });
   it("accepts every date rule and a range with weekdays", () => {
@@ -127,6 +144,10 @@ describe("rules", () => {
     expect(codes(result)).toEqual(["duplicateId@contract.rules[1].id"]);
     expect(contractOf(result).rules).toHaveLength(1);
   });
+  it("reads a rule with a duplicate id no further", () => {
+    const result = withContract({ rules: [rule(), rule({ validFrom: 1500, colour: "red" })] });
+    expect(reportOf(result)).toEqual([{ code: "duplicateId", path: "contract.rules[1].id", dropped: "contract.rules[1]" }]);
+  });
   it("drops a citation of an unknown reference", () => {
     const result = withContract({ rules: [rule({ references: ["nope"] })] });
     expect(codes(result)).toEqual(["unknownReference@contract.rules[0].references[0]"]);
@@ -138,6 +159,30 @@ describe("rules", () => {
     if (result.ok) expect(checkRules(result.file, result.positions)).toEqual([{ code: "neverApplies", path: "contract.rules[0]" }]);
     expect(contractOf(result).rules).toHaveLength(1);
   });
+  it("reports every problem of a rule", () => {
+    const bad = { match: { type: "fixed", month: 13, day: 1 }, validFrom: 1500, requiredAtMost: "1/2", requiredExactly: "0", colour: "red" };
+    const result = withContract({ rules: [bad] });
+    expect(reportOf(result)).toEqual([
+      { code: "missingValue", path: "contract.rules[0].id", dropped: "contract.rules[0]" },
+      { code: "invalidValue", path: "contract.rules[0].match.month", dropped: "contract.rules[0]" },
+      { code: "invalidValue", path: "contract.rules[0].validFrom", dropped: "contract.rules[0]" },
+      { code: "invalidValue", path: "contract.rules[0]", dropped: "contract.rules[0]", data: { oneOf: ["requiredAtMost", "requiredExactly", "mandatory"] } },
+      { code: "unknownField", path: "contract.rules[0].colour", dropped: "contract.rules[0].colour" },
+    ]);
+    expect(contractOf(result).rules).toEqual([]);
+  });
+  it("skips the fields of a match whose type is unknown (Review Focus 2)", () => {
+    const result = withContract({ rules: [rule({ match: { type: "fixd", month: 13, day: 99 } })] });
+    expect(reportOf(result)).toEqual([{ code: "invalidValue", path: "contract.rules[0].match.type", dropped: "contract.rules[0]" }]);
+  });
+  it("keeps the Error of an unknown citation when the rule is dropped", () => {
+    const result = withContract({ rules: [rule({ requiredAtMost: undefined, references: ["nope"] })] });
+    expect(reportOf(result)).toEqual([
+      { code: "missingValue", path: "contract.rules[0]", dropped: "contract.rules[0]", data: { oneOf: ["requiredAtMost", "requiredExactly", "mandatory"] } },
+      { code: "unknownReference", path: "contract.rules[0].references[0]", dropped: "contract.rules[0].references[0]", data: { reference: "nope" } },
+    ]);
+    expect(contractOf(result).rules).toEqual([]);
+  });
   it("refuses 1001 rules", () =>
     expect(withContract({ rules: Array.from({ length: 1001 }, (_, i) => rule({ id: `r${String(i)}` })) }))
       .toMatchObject({ ok: false, refusal: { code: "limitExceeded", data: { limit: "rules" } } }));
@@ -147,17 +192,20 @@ describe("references", () => {
   const good = { title: "T", version: "1", url: "https://example.org", checked: "2026-10-18" };
   it("drops invalid entries", () => {
     const result = withContract({ references: { ok: good, http: { ...good, url: "http://example.org" }, noDate: { title: "T", version: "1", url: "https://example.org" } } });
-    expect(codes(result)).toEqual(["invalidEntry@contract.references.http", "invalidEntry@contract.references.noDate"]);
+    expect(reportOf(result)).toEqual([
+      { code: "invalidValue", path: "contract.references.http.url", dropped: "contract.references.http" },
+      { code: "missingValue", path: "contract.references.noDate.checked", dropped: "contract.references.noDate" },
+    ]);
     expect(Object.keys(contractOf(result).references)).toEqual(["ok"]);
   });
   it("drops the keys __proto__, constructor and prototype, and a rule's citation of one", () => {
     const references = JSON.parse(`{"__proto__":${JSON.stringify(good)},"constructor":${JSON.stringify(good)},"prototype":${JSON.stringify(good)},"ok":${JSON.stringify(good)}}`) as unknown;
     const result = withContract({ references, rules: [rule({ references: ["constructor", "ok"] })] });
-    expect(codes(result)).toEqual([
-      "invalidEntry@contract.references.__proto__",
-      "invalidEntry@contract.references.constructor",
-      "invalidEntry@contract.references.prototype",
-      "unknownReference@contract.rules[0].references[0]",
+    expect(reportOf(result)).toEqual([
+      { code: "invalidValue", path: "contract.references.__proto__", dropped: "contract.references.__proto__" },
+      { code: "invalidValue", path: "contract.references.constructor", dropped: "contract.references.constructor" },
+      { code: "invalidValue", path: "contract.references.prototype", dropped: "contract.references.prototype" },
+      { code: "unknownReference", path: "contract.rules[0].references[0]", dropped: "contract.rules[0].references[0]", data: { reference: "constructor" } },
     ]);
     expect(Object.keys(contractOf(result).references)).toEqual(["ok"]);
     expect(contractOf(result).rules[0]?.references).toEqual(["ok"]);
@@ -168,11 +216,10 @@ describe("over-long rule texts", () => {
   it.each([
     ["label", { label: "x".repeat(201) }, 200],
     ["note", { note: { de: "x", en: "y".repeat(2001) } }, 2000],
-  ])("drops a rule with an over-long %s and reports the rule itself too (R20)", (field, extra, limit) => {
+  ])("drops a rule with an over-long %s, which dropped says (R20)", (field, extra, limit) => {
     const result = withContract({ rules: [rule(extra), rule({ id: "r2" })] });
     expect(result.ok && result.report).toEqual([
-      { code: "textTooLong", path: `contract.rules[0].${field}`, data: field === "note" ? { limit, language: "en" } : { limit } },
-      { code: "invalidEntry", path: "contract.rules[0]", data: { field } },
+      { code: "textTooLong", path: `contract.rules[0].${field}`, dropped: "contract.rules[0]", data: field === "note" ? { limit, language: "en" } : { limit } },
     ]);
     expect(contractOf(result).rules.map((r) => r.id)).toEqual(["r2"]);
   });

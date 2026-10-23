@@ -33,7 +33,6 @@ Code:
 - [ ] `src/engine/counting/types.ts:72`: the doc comment of the `otherPlan` piece says "covers leave here but never costs". Own leave on such a day is still charged. Suggested wording: "Frees the work time it covers and the mandatory leave there; never costs in this plan."
 - [ ] `checkSpan` lives in `leave.ts` and is imported by `required.ts`, which inverts the layering. Move it to a shared place, e.g. next to the weight helpers.
 - [ ] `src/engine/counting/plan.ts:141-145`: the `uncoveredNeed` filter is a nested ternary that is hard to read. Test `source.type === "needed"` first.
-- [ ] When the reader drops a rule, the rule's other report entries (`unknownReference`, `ruleWarning`) stay in the report. Collect per-rule entries in a scratch report and keep only the drop entry.
 - [ ] `parseAmount` (`src/engine/weight.ts`) gives `WeightError` "syntax" instead of "range" for an over-long whole part.
 - [ ] Source entries on the same date keep their input order. `except` is neither sorted nor de-duplicated. The round trip still holds, but two files with the same content can differ in text.
 - [ ] An image with empty `data` is accepted, and duplicate image names within a template aren't checked.
@@ -76,3 +75,4 @@ Tests:
 
 - Week, period, leave and overrides are passed by reference into `PlanInput`. That is fine as long as the engine never mutates them. Keep it in mind if it ever does.
 - A top-level JSON value that isn't an object is refused as `unknownSchema`. The design doesn't say which code to use; this is acceptable.
+- Decided on 2026-10-23 (design `2026-10-23-required-and-optional-parts-design.md`): a dropped entry keeps its Errors and loses its Warnings and Infos.

@@ -11,6 +11,10 @@ const fileOf = (result: ReturnType<typeof readFile>) => {
   if (!result.ok) throw new Error("refused: " + result.refusal.code);
   return result.file;
 };
+const reportOf = (result: ReturnType<typeof readFile>) => {
+  if (!result.ok) throw new Error("refused: " + result.refusal.code);
+  return result.report;
+};
 const template = (extra: Record<string, unknown> = {}) => ({ id: "t1", name: { de: "Kalender", en: "Calendar" }, api: 1, typst: ">=0.13", typ: "#let x = 1", ...extra });
 const png = (bytes: number) => ({ name: "logo.png", type: "image/png", data: "A".repeat((bytes / 3) * 4) });
 
@@ -35,8 +39,12 @@ describe("templates", () => {
   });
   it("counts an image's name and the Typst versions in characters (code points)", () => {
     expect(codes(read({ templates: [template({ typst: "😀".repeat(200), images: [{ ...png(30), name: "😀".repeat(200) }] })] }))).toEqual([]);
-    expect(codes(read({ templates: [template({ images: [{ ...png(30), name: "😀".repeat(201) }] })] }))).toEqual(["invalidEntry@templates[0].images[0]"]);
-    expect(codes(read({ templates: [template({ typst: "😀".repeat(201) })] }))).toEqual(["invalidEntry@templates[0].typst"]);
+    expect(reportOf(read({ templates: [template({ images: [{ ...png(30), name: "😀".repeat(201) }] })] }))).toEqual([
+      { code: "invalidValue", path: "templates[0].images[0].name", dropped: "templates[0]" },
+    ]);
+    expect(reportOf(read({ templates: [template({ typst: "😀".repeat(201) })] }))).toEqual([
+      { code: "invalidValue", path: "templates[0].typst", dropped: "templates[0]" },
+    ]);
   });
   it("accepts an image of 1 MB and rejects 1 MB + 1 byte decoded", () => {
     expect(codes(read({ templates: [template({ images: [png(1_048_575)] })] }))).toEqual([]);
@@ -52,15 +60,20 @@ describe("templates", () => {
     expect(codes(read({ templates: [template({ images: [{ name: "x.png", type: "image/png", data: "QQ==" }] })] }))).toEqual([]);
   });
   it.each([
-    ["an image of type image/gif", { name: "x.gif", type: "image/gif", data: "QQ==" }],
-    ["data that is not Base64", { name: "x.png", type: "image/png", data: "not base64!" }],
-    ["data of a wrong length", { name: "x.png", type: "image/png", data: "QQ=" }],
-    ["data that is not a string", { name: "x.png", type: "image/png", data: 5 }],
-    ["an image without a name", { type: "image/png", data: "QQ==" }],
-  ])("drops the template for %s", (_name, image) => {
+    ["an image of type image/gif", { name: "x.gif", type: "image/gif", data: "QQ==" }, "invalidValue", "type"],
+    ["data that is not Base64", { name: "x.png", type: "image/png", data: "not base64!" }, "invalidValue", "data"],
+    ["data of a wrong length", { name: "x.png", type: "image/png", data: "QQ=" }, "invalidValue", "data"],
+    ["data that is not a string", { name: "x.png", type: "image/png", data: 5 }, "invalidValue", "data"],
+    ["an image without a name", { type: "image/png", data: "QQ==" }, "missingValue", "name"],
+  ])("drops the template for %s", (_name, image, code, key) => {
     const result = read({ templates: [template({ images: [image] }), template({ id: "t2" })] });
-    expect(codes(result)).toEqual(["invalidEntry@templates[0].images[0]"]);
+    expect(reportOf(result)).toEqual([{ code, path: `templates[0].images[0].${key}`, dropped: "templates[0]" }]);
     expect(fileOf(result).templates.map((t) => t.id)).toEqual(["t2"]);
+  });
+  it("drops the template of an image without data", () => {
+    const result = read({ templates: [template({ images: [{ name: "x.png", type: "image/png" }] })] });
+    expect(reportOf(result)).toEqual([{ code: "missingValue", path: "templates[0].images[0].data", dropped: "templates[0]" }]);
+    expect(fileOf(result).templates).toEqual([]);
   });
   it.each([
     ["no id", { id: undefined }],
@@ -122,12 +135,12 @@ describe("theme", () => {
     ['{"a":[1,{"b":{"prototype":2}}]}'],
   ])("replaces %s, which holds a prototype key, by null", (json) => {
     const result = readFile(minimal({ theme: JSON.parse(json) as unknown }));
-    expect(codes(result)).toEqual(["invalidEntry@theme"]);
+    expect(reportOf(result)).toEqual([{ code: "invalidValue", path: "theme", dropped: "theme" }]);
     expect(fileOf(result).theme).toBeNull();
   });
   it.each([["an array", []], ["a string", "dark"], ["a number", 3], ["an object nested 33 levels deep", nested(33)]])("replaces %s by null", (_name, theme) => {
     const result = read({ theme });
-    expect(codes(result)).toEqual(["invalidEntry@theme"]);
+    expect(reportOf(result)).toEqual([{ code: "invalidValue", path: "theme", dropped: "theme" }]);
     expect(fileOf(result).theme).toBeNull();
   });
 });

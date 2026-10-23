@@ -71,7 +71,7 @@ describe("plan section: ruleSet", () => {
     expect(load(readFile(planFile({}, { ruleSet: { id: "a", name: "Set", revision: 3 } }))).ruleSet).toEqual({ id: "a", name: "Set", revision: 3 }));
   it("drops an invalid reference", () => {
     const result = readFile(planFile({}, { ruleSet: { id: "a", name: "Set", revision: 0 } }));
-    expect(codes(result)).toContain("invalidEntry@ruleSet");
+    expect(result.ok && result.report).toEqual([{ code: "invalidValue", path: "ruleSet.revision", dropped: "ruleSet" }]);
     expect(load(result).ruleSet).toBeUndefined();
   });
 });
@@ -79,16 +79,32 @@ describe("plan section: ruleSet", () => {
 describe("plan section: days", () => {
   it("loads a full day", () => expect(load(read({ days: [{ date: "2027-05-07", take: "1" }] })).plan.days).toEqual([{ day: d("2027-05-07"), take: 480 }]));
   it.each([
-    ["0,5", { take: "0,5" }],
-    ["too much", { take: "2" }],
-    ["zero", { take: "0" }],
-    ["impossible date", { date: "2027-02-29" }],
-    ["bad part", { take: "1/2", part: "morning" }],
-    ["not an object", 5],
-  ])("drops a day entry with %s", (_name, change) => {
+    ["0,5", { take: "0,5" }, ".take"],
+    ["too much", { take: "2" }, ".take"],
+    ["zero", { take: "0" }, ".take"],
+    ["impossible date", { date: "2027-02-29" }, ".date"],
+    ["bad part", { take: "1/2", part: "morning" }, ".part"],
+    ["not an object", 5, ""],
+  ])("drops a day entry with %s", (_name, change, key) => {
     const entry = typeof change === "object" ? { date: "2027-05-07", take: "1", ...change } : change;
     const result = read({ days: [entry] });
-    expect(codes(result)).toEqual(["invalidEntry@plan.days[0]"]);
+    expect(result.ok && result.report).toEqual([{ code: "invalidValue", path: `plan.days[0]${key}`, dropped: "plan.days[0]" }]);
+    expect(load(result).plan.days).toEqual([]);
+  });
+  it("reports every problem of a leave day in the order of its keys", () => {
+    const result = read({ days: [{ colour: 1, part: "middle", take: "x" }] });
+    expect(result.ok && result.report).toEqual([
+      { code: "missingValue", path: "plan.days[0].date", dropped: "plan.days[0]" },
+      { code: "invalidValue", path: "plan.days[0].take", dropped: "plan.days[0]" },
+      { code: "invalidValue", path: "plan.days[0].part", dropped: "plan.days[0]" },
+      { code: "unknownField", path: "plan.days[0].colour", dropped: "plan.days[0].colour" },
+    ]);
+  });
+  it("drops a leave day without its Warnings (Review Focus 3)", () => {
+    const result = readFile(
+      planFile({ days: [{ date: "2026-05-01", take: "1/4", part: "middle" }] }, { contract: { ...BAVARIA_CONTRACT, minUnit: "1/2" } }),
+    );
+    expect(result.ok && result.report).toEqual([{ code: "invalidValue", path: "plan.days[0].part", dropped: "plan.days[0]" }]);
     expect(load(result).plan.days).toEqual([]);
   });
   it("keeps the first of two entries for one date", () => {
@@ -108,7 +124,7 @@ describe("plan section: days", () => {
   });
   it("keeps a later entry of a date when the first is invalid", () => {
     const result = read({ days: [{ date: "2027-05-07", take: "0" }, { date: "2027-05-07", take: "1" }] });
-    expect(codes(result)).toEqual(["invalidEntry@plan.days[0]"]);
+    expect(result.ok && result.report).toEqual([{ code: "invalidValue", path: "plan.days[0].take", dropped: "plan.days[0]" }]);
     expect(load(result).plan.days).toEqual([{ day: d("2027-05-07"), take: 480 }]);
   });
   it("refuses 2001 entries", () => {
@@ -129,8 +145,15 @@ describe("plan section: overrides", () => {
       { day: d("2027-05-07"), required: 240, part: "start" },
     ]));
   it("allows required 0", () => expect(load(read({ overrides: [{ date: "2027-05-07", required: "0" }] })).plan.overrides).toEqual([{ day: d("2027-05-07"), required: 0 }]));
-  it.each([{ required: "2" }, { required: "0,5" }, { date: "2027-02-29" }, { part: "morning" }])("drops an override with %j", (change) =>
-    expect(codes(read({ overrides: [{ date: "2027-05-07", required: "1", ...change }] }))).toEqual(["invalidEntry@plan.overrides[0]"]));
+  it.each([
+    [{ required: "2" }, "required"],
+    [{ required: "0,5" }, "required"],
+    [{ date: "2027-02-29" }, "date"],
+    [{ part: "morning" }, "part"],
+  ])("drops an override with %j", (change, key) => {
+    const result = read({ overrides: [{ date: "2027-05-07", required: "1", ...change }] });
+    expect(result.ok && result.report).toEqual([{ code: "invalidValue", path: `plan.overrides[0].${key}`, dropped: "plan.overrides[0]" }]);
+  });
   it("keeps the first for a date", () =>
     expect(codes(read({ overrides: [{ date: "2027-05-07", required: "1" }, { date: "2027-05-07", required: "0" }] }))).toEqual([
       "duplicateDate@plan.overrides[1].date",
@@ -144,7 +167,10 @@ describe("plan section: overrides", () => {
 
 describe("plan section: notes", () => {
   it("loads a note", () => expect(load(read({ notes: [{ date: "2027-05-07", text: "Flights" }] })).plan.notes).toEqual([{ day: d("2027-05-07"), text: "Flights" }]));
-  it("drops a note with an empty text", () => expect(codes(read({ notes: [{ date: "2027-05-07", text: "" }] }))).toEqual(["invalidEntry@plan.notes[0]"]));
+  it("drops a note with an empty text", () => {
+    const result = read({ notes: [{ date: "2027-05-07", text: "" }] });
+    expect(result.ok && result.report).toEqual([{ code: "invalidValue", path: "plan.notes[0].text", dropped: "plan.notes[0]" }]);
+  });
   it("drops a note with 2001 characters", () =>
     expect(codes(read({ notes: [{ date: "2027-05-07", text: "x".repeat(2001) }] }))).toEqual(["textTooLong@plan.notes[0].text"]));
   it("keeps a note with 2000 characters", () => expect(codes(read({ notes: [{ date: "2027-05-07", text: "x".repeat(2000) }] }))).toEqual([]));

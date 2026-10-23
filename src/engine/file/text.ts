@@ -2,41 +2,39 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 import { textLength } from "./limits";
-import { isPrototypeKey, isRecord, type Report } from "./report";
+import { child, isPrototypeKey, isRecord, type Report } from "./report";
 import type { Text } from "./types";
 
 const LANGUAGE = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/;
 
-/** A plain string or a map from language code to string; every string at most `maxLength` code points. */
-export function readText(value: unknown, path: string, maxLength: number, report: Report): Text | undefined {
+/**
+ * A plain string or a map from language code to string; every string at most `maxLength` code points.
+ * Every problem is reported, a key of the map at that key; `dropped` is the path of what is not loaded
+ * when the text is invalid. A missing text is `missingValue`.
+ */
+export function readText(value: unknown, path: string, maxLength: number, report: Report, dropped: string): Text | undefined {
+  if (value === undefined) {
+    report.error("missingValue", path, dropped);
+    return undefined;
+  }
   if (typeof value === "string") {
     if (textLength(value) <= maxLength) return value;
-    report.add("textTooLong", path, { limit: maxLength });
+    report.error("textTooLong", path, dropped, { limit: maxLength });
     return undefined;
   }
-  if (!isRecord(value)) {
-    report.add("invalidEntry", path);
-    return undefined;
-  }
-  const keys = Object.keys(value);
-  if (keys.length === 0 || !keys.every((key) => LANGUAGE.test(key) && !isPrototypeKey(key))) {
-    report.add("invalidEntry", path);
+  const keys = isRecord(value) ? Object.keys(value) : [];
+  if (!isRecord(value) || keys.length === 0) {
+    report.error("invalidValue", path, dropped);
     return undefined;
   }
   const entries: [string, string][] = [];
   for (const key of keys) {
     const item = value[key];
-    if (typeof item !== "string") {
-      report.add("invalidEntry", path);
-      return undefined;
-    }
-    if (textLength(item) > maxLength) {
-      report.add("textTooLong", path, { limit: maxLength, language: key });
-      return undefined;
-    }
-    entries.push([key, item]);
+    if (!LANGUAGE.test(key) || isPrototypeKey(key) || typeof item !== "string") report.error("invalidValue", child(path, key), dropped);
+    else if (textLength(item) > maxLength) report.error("textTooLong", path, dropped, { limit: maxLength, language: key });
+    else entries.push([key, item]);
   }
-  return Object.fromEntries(entries);
+  return entries.length === keys.length ? Object.fromEntries(entries) : undefined;
 }
 
 /** The language, else "en", else the first entry; a plain string as it is. */

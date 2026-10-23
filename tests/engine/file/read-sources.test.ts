@@ -154,7 +154,7 @@ describe("a valid file", () => {
     expect(withSources({})).toMatchObject({ ok: false, refusal: { code: "invalidCore", path: "sources" } }));
   it("drops a match entry whose validFrom is after validUntil", () => {
     const result = withSources([source({ entries: [{ match: { type: "fixed", month: 12, day: 24 }, validFrom: 2030, validUntil: 2029 }] })]);
-    expect(codes(result)).toEqual(["invalidEntry@sources[0].entries[0]"]);
+    expect(result.ok && result.report).toEqual([{ code: "invalidValue", path: "sources[0].entries[0].validUntil", dropped: "sources[0].entries[0]" }]);
   });
   it("reads a range with a leap-year length without a report entry", () => {
     const result = withSources([
@@ -172,45 +172,57 @@ describe("colours", () => {
     const result = withSources([source({ id: "a", color: { slot: "accent-3" } }), source({ id: "b", color: { rgb: "#1a7f37" } })]);
     expect(codes(result)).toEqual([]);
   });
+  const keys = { oneOf: ["slot", "rgb"] };
   it.each([
-    ["a slot with a space", { slot: "Accent 3" }],
-    ["a colour name", { rgb: "green" }],
-    ["both keys", { slot: "accent-3", rgb: "#1a7f37" }],
-    ["no key", {}],
-    ["a string", "accent-3"],
-  ])("drops the source for %s", (_name, color) => {
+    ["a slot with a space", { slot: "Accent 3" }, "invalidValue", ".slot"],
+    ["a colour name", { rgb: "green" }, "invalidValue", ".rgb"],
+    ["both keys", { slot: "accent-3", rgb: "#1a7f37" }, "invalidValue", "", keys],
+    ["no key", {}, "missingValue", "", keys],
+    ["a string", "accent-3", "invalidValue", ""],
+  ])("drops the source for %s", (_name, color, code, key, data?: Record<string, unknown>) => {
     const result = withSources([source({ color })]);
-    expect(codes(result)).toEqual(["invalidEntry@sources[0].color"]);
+    expect(result.ok && result.report).toEqual([{ code, path: `sources[0].color${key}`, dropped: "sources[0]", ...(data ? { data } : {}) }]);
     expect(sourcesOf(result)).toEqual([]);
   });
 });
 
 describe("invalid entries", () => {
   const entries = (type: string, list: unknown[], extra: Record<string, unknown> = {}) => withSources([source({ type, entries: list, ...extra })]);
+  const when = { oneOf: ["date", "match"] };
   it.each([
-    ["both date and match", "info", { date: "2027-01-01", match: { type: "fixed", month: 1, day: 1 } }],
-    ["neither date nor match", "info", {}],
-    ["mandatory with take 0", "mandatory", { date: "2027-01-01", take: "0" }],
-    ["holiday with required 1,5", "holiday", { date: "2027-01-01", required: "1,5" }],
-    ["holiday with required above 1", "holiday", { date: "2027-01-01", required: "2" }],
-    ["mandatory with a bad part", "mandatory", { date: "2027-01-01", part: "middle" }],
-    ["a bad date", "info", { date: "2027-13-01" }],
-    ["a bad match", "info", { match: { type: "fixed", month: 2, day: 30 } }],
-    ["a bad validFrom", "info", { match: { type: "fixed", month: 1, day: 1 }, validFrom: 1500 }],
-    ["a non-object", "info", "2027-01-01"],
-  ])("drops %s", (_name, type, entry) => {
+    ["both date and match", "info", { date: "2027-01-01", match: { type: "fixed", month: 1, day: 1 } }, "invalidValue", "", when],
+    ["neither date nor match", "info", {}, "missingValue", "", when],
+    ["mandatory with take 0", "mandatory", { date: "2027-01-01", take: "0" }, "invalidValue", ".take"],
+    ["holiday with required 1,5", "holiday", { date: "2027-01-01", required: "1,5" }, "invalidValue", ".required"],
+    ["holiday with required above 1", "holiday", { date: "2027-01-01", required: "2" }, "invalidValue", ".required"],
+    ["mandatory with a bad part", "mandatory", { date: "2027-01-01", part: "middle" }, "invalidValue", ".part"],
+    ["a bad date", "info", { date: "2027-13-01" }, "invalidValue", ".date"],
+    ["a bad match", "info", { match: { type: "fixed", month: 2, day: 30 } }, "invalidValue", ".match.day"],
+    ["a bad validFrom", "info", { match: { type: "fixed", month: 1, day: 1 }, validFrom: 1500 }, "invalidValue", ".validFrom"],
+    ["a non-object", "info", "2027-01-01", "invalidValue", ""],
+  ])("drops %s", (_name, type, entry, code, key, data?: Record<string, unknown>) => {
     const result = entries(type, [entry, { date: "2027-02-02" }]);
-    expect(codes(result)).toEqual(["invalidEntry@sources[0].entries[0]"]);
+    expect(result.ok && result.report).toEqual([
+      { code, path: `sources[0].entries[0]${key}`, dropped: "sources[0].entries[0]", ...(data ? { data } : {}) },
+    ]);
     expect(sourcesOf(result)[0]?.entries).toHaveLength(1);
   });
+  const entry0 = "sources[0].entries[0]";
   it.each([
-    ["from after to", { date: "2027-03-01", from: "1/2", to: "1/4", kind: "leave" }],
-    ["from equal to", { date: "2027-03-01", from: "1/2", to: "1/2", kind: "leave" }],
-    ["a weight above 1", { date: "2027-03-01", from: "0", to: "2", kind: "leave" }],
-    ["a match", { match: { type: "fixed", month: 1, day: 1 }, from: "0", to: "1", kind: "leave" }],
-    ["no kind", { date: "2027-03-01", from: "0", to: "1" }],
-    ["a bad kind", { date: "2027-03-01", from: "0", to: "1", kind: "own" }],
-  ])("drops an other-plan entry with %s", (_name, entry) => {
+    ["from after to", { date: "2027-03-01", from: "1/2", to: "1/4", kind: "leave" }, [{ code: "invalidValue", path: `${entry0}.to`, dropped: entry0 }]],
+    ["from equal to", { date: "2027-03-01", from: "1/2", to: "1/2", kind: "leave" }, [{ code: "invalidValue", path: `${entry0}.to`, dropped: entry0 }]],
+    ["a weight above 1", { date: "2027-03-01", from: "0", to: "2", kind: "leave" }, [{ code: "invalidValue", path: `${entry0}.to`, dropped: entry0 }]],
+    [
+      "a match",
+      { match: { type: "fixed", month: 1, day: 1 }, from: "0", to: "1", kind: "leave" },
+      [
+        { code: "missingValue", path: `${entry0}.date`, dropped: entry0 },
+        { code: "unknownField", path: `${entry0}.match`, dropped: `${entry0}.match` },
+      ],
+    ],
+    ["no kind", { date: "2027-03-01", from: "0", to: "1" }, [{ code: "missingValue", path: `${entry0}.kind`, dropped: entry0 }]],
+    ["a bad kind", { date: "2027-03-01", from: "0", to: "1", kind: "own" }, [{ code: "invalidValue", path: `${entry0}.kind`, dropped: entry0 }]],
+  ])("drops an other-plan entry with %s", (_name, entry, expected) => {
     const report = new Report();
     const [read] = readSources(
       [source({ type: "otherPlan", plan: { id: "p", name: "P", revision: 1 }, entries: [entry] })],
@@ -218,18 +230,20 @@ describe("invalid entries", () => {
       "plan",
       report,
     );
-    expect(report.entries.map((e) => `${e.code}@${e.path}`)).toEqual(["invalidEntry@sources[0].entries[0]"]);
+    expect(report.entries).toEqual(expected);
     expect(read?.entries).toEqual([]);
   });
   it("drops a needed entry with take 0 in a plan file", () => {
     const report = new Report();
     const [read] = readSources([source({ type: "needed", entries: [{ date: "2027-01-01", take: "0" }] })], "sources", "plan", report);
-    expect(report.entries.map((e) => `${e.code}@${e.path}`)).toEqual(["invalidEntry@sources[0].entries[0]"]);
+    expect(report.entries).toEqual([{ code: "invalidValue", path: "sources[0].entries[0].take", dropped: "sources[0].entries[0]" }]);
     expect(read?.entries).toEqual([]);
   });
   it("drops only the invalid except date", () => {
     const result = entries("info", [{ match: { type: "fixed", month: 1, day: 1 }, except: ["2027-01-01", "2027-13-01", "2028-01-01"] }]);
-    expect(codes(result)).toEqual(["invalidEntry@sources[0].entries[0].except[1]"]);
+    expect(result.ok && result.report).toEqual([
+      { code: "invalidValue", path: "sources[0].entries[0].except[1]", dropped: "sources[0].entries[0].except[1]" },
+    ]);
     expect(sourcesOf(result)[0]?.entries[0]).toMatchObject({ except: [day("2027-01-01"), day("2028-01-01")] });
   });
   it("reports unknown fields of an entry and of a source", () => {
@@ -253,10 +267,46 @@ describe("invalid entries", () => {
     expect(result.ok && result.report).toHaveLength(1);
     expect(sourcesOf(result)).toEqual([]);
   });
+  it("reports every problem of an entry in the order of its keys", () => {
+    const entry = {
+      colour: 1,
+      part: "middle",
+      take: "0",
+      except: ["x"],
+      validUntil: 2029,
+      validFrom: 2030,
+      match: { type: "range", weekdays: ["mon", "x"], from: { type: "fixed", month: 1, day: 1 } },
+    };
+    const result = withSources([source({ type: "mandatory", entries: [entry] })]);
+    const path = "sources[0].entries[0]";
+    expect(result.ok && result.report).toEqual([
+      { code: "missingValue", path: `${path}.match`, dropped: path, data: { oneOf: ["to", "days"] } },
+      { code: "invalidValue", path: `${path}.match.weekdays[1]`, dropped: path },
+      { code: "invalidValue", path: `${path}.validUntil`, dropped: path },
+      { code: "invalidValue", path: `${path}.except[0]`, dropped: `${path}.except[0]` },
+      { code: "invalidValue", path: `${path}.take`, dropped: path },
+      { code: "invalidValue", path: `${path}.part`, dropped: path },
+      { code: "unknownField", path: `${path}.colour`, dropped: `${path}.colour` },
+    ]);
+    expect(sourcesOf(result)[0]?.entries).toEqual([]);
+  });
+  it("skips the entries of a source with an unknown type (Review Focus 2)", () => {
+    const result = withSources([source({ type: "holidays", entries: [{}, { date: "x" }, 5] })]);
+    expect(result.ok && result.report).toEqual([{ code: "invalidValue", path: "sources[0].type", dropped: "sources[0]" }]);
+    expect(sourcesOf(result)).toEqual([]);
+  });
+  it("reports a missing color and an invalid visible together", () => {
+    const result = withSources([source({ color: undefined, visible: "yes" })]);
+    expect(result.ok && result.report).toEqual([
+      { code: "missingValue", path: "sources[0].color", dropped: "sources[0]" },
+      { code: "invalidValue", path: "sources[0].visible", dropped: "sources[0]" },
+    ]);
+    expect(sourcesOf(result)).toEqual([]);
+  });
   it("drops an other-plan source with a bad plan reference", () => {
     const report = new Report();
     const read = readSources([source({ type: "otherPlan", plan: { id: "p", name: "P", revision: 0 }, entries: [] })], "sources", "plan", report);
-    expect(report.entries.map((e) => `${e.code}@${e.path}`)).toEqual(["invalidEntry@sources[0].plan"]);
+    expect(report.entries).toEqual([{ code: "invalidValue", path: "sources[0].plan.revision", dropped: "sources[0]" }]);
     expect(read).toEqual([]);
   });
 });

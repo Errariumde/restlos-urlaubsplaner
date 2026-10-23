@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 import { periodBounds } from "../counting/plan";
-import type { LeaveDay, Part, PlanPeriod, RequiredOverride } from "../counting/types";
+import type { LeaveDay, PlanPeriod, RequiredOverride } from "../counting/types";
 import { MAX_YEAR, MIN_YEAR, type DayNumber } from "../days";
 import { UNITS_PER_DAY, parseAmount, type Units } from "../weight";
 import { LIMITS, textLength } from "./limits";
-import { isoDay, weight } from "./read-contract";
-import { Refused, Report, at, checkKeys, child, isRecord } from "./report";
+import { isoDay, parsePart, positiveWeight, weight } from "./read-contract";
+import { Refused, Report, at, checkKeys, child, isRecord, readOptional, readRequired } from "./report";
 import type { FileContract, FilePlan, Note } from "./types";
 
 const MONTH = /^(\d{4})-(0[1-9]|1[0-2])$/;
@@ -63,8 +63,9 @@ function readList(value: unknown, path: string, max: number, limit: string): rea
 }
 
 /**
- * Reads the entries of one list: `readOne` returns the entry or undefined (it has reported the reason);
- * the first valid entry of a date wins, a later one is `duplicateDate` and isn't read any further; the
+ * Reads the entries of one list. An entry is read into a scratch report of its own: its `date` first, then
+ * `readOne` reads the other keys and returns the entry, or undefined when it is dropped (with `day` undefined
+ * too). The first kept entry of a date wins; a later one is `duplicateDate` and isn't read any further. The
  * result is sorted by day.
  */
 function readEntries<T extends { readonly day: DayNumber }>(
@@ -73,7 +74,7 @@ function readEntries<T extends { readonly day: DayNumber }>(
   max: number,
   limit: string,
   context: Context,
-  readOne: (entry: Record<string, unknown>, entryPath: string, date: DayNumber) => T | undefined,
+  readOne: (entry: Readonly<Record<string, unknown>>, entryPath: string, day: DayNumber | undefined, report: Report) => T | undefined,
 ): T[] {
   const list = value === undefined ? [] : readList(value, path, max, limit); // a missing list is empty
   const kept: { readonly read: T; readonly index: number }[] = [];
@@ -81,19 +82,21 @@ function readEntries<T extends { readonly day: DayNumber }>(
   for (let i = 0; i < list.length; i++) {
     const entryPath = at(path, i);
     const entry = list[i];
-    const date = isRecord(entry) ? isoDay(entry["date"]) : undefined;
-    if (!isRecord(entry) || date === undefined) {
-      context.report.add("invalidEntry", entryPath);
+    if (!isRecord(entry)) {
+      context.report.error("invalidValue", entryPath, entryPath);
       continue;
     }
-    if (seen.has(date)) {
-      context.report.add("duplicateDate", child(entryPath, "date"));
+    const scratch = new Report();
+    const day = readRequired(entry, "date", isoDay, entryPath, scratch, entryPath);
+    if (day !== undefined && seen.has(day)) {
+      context.report.error("duplicateDate", child(entryPath, "date"), entryPath);
       continue;
     }
-    const read = readOne(entry, entryPath, date);
+    if (day !== undefined && (day < context.bounds.from || day > context.bounds.to)) scratch.notice("outsidePeriod", entryPath);
+    const read = readOne(entry, entryPath, day, scratch);
+    context.report.merge(scratch, read !== undefined);
     if (!read) continue;
-    seen.add(date);
-    if (date < context.bounds.from || date > context.bounds.to) context.report.add("outsidePeriod", entryPath);
+    seen.add(read.day);
     kept.push({ read, index: i });
   }
   kept.sort((a, b) => a.read.day - b.read.day);
@@ -101,29 +104,17 @@ function readEntries<T extends { readonly day: DayNumber }>(
   return kept.map(({ read }) => read);
 }
 
-function readPart(entry: Record<string, unknown>): Part | undefined | null {
-  const part = entry["part"];
-  if (part === undefined) return undefined;
-  return part === "start" || part === "end" ? part : null;
-}
-
-function checkMultiple(units: Units, field: string, entryPath: string, context: Context): void {
-  if (units % context.minUnit !== 0) context.report.add("notMultipleOfMinUnit", child(entryPath, field));
+function checkMultiple(units: Units, field: string, entryPath: string, context: Context, report: Report): void {
+  if (units % context.minUnit !== 0) report.notice("notMultipleOfMinUnit", child(entryPath, field));
 }
 
 function readDays(value: unknown, path: string, context: Context): LeaveDay[] {
-  return readEntries<LeaveDay>(value, path, LIMITS.planDays, "planDays", context, (entry, entryPath) => {
-    const fail = (field: string): undefined => {
-      context.report.add("invalidEntry", entryPath, { field });
-      return undefined;
-    };
-    const take = weight(entry["take"]);
-    if (take === undefined || take < 1) return fail("take");
-    const part = readPart(entry);
-    if (part === null) return fail("part");
-    checkKeys(entry, ["date", "take", "part"], entryPath, context.report);
-    checkMultiple(take, "take", entryPath, context);
-    const day = isoDay(entry["date"]) ?? 0;
+  return readEntries<LeaveDay>(value, path, LIMITS.planDays, "planDays", context, (entry, entryPath, day, report) => {
+    const take = readRequired(entry, "take", positiveWeight, entryPath, report, entryPath);
+    if (take !== undefined) checkMultiple(take, "take", entryPath, context, report);
+    const part = readOptional(entry, "part", parsePart, entryPath, report, entryPath);
+    checkKeys(entry, ["date", "take", "part"], entryPath, report);
+    if (day === undefined || take === undefined || report.drops(entryPath)) return undefined;
     // Partial leave without `part` gets "end" here; `readFile` replaces it by a suggestion.
     if (part !== undefined || take >= UNITS_PER_DAY) return { day, take, ...(part !== undefined ? { part } : {}) };
     const drafted: LeaveDay = { day, take, part: "end" };
@@ -133,34 +124,23 @@ function readDays(value: unknown, path: string, context: Context): LeaveDay[] {
 }
 
 function readOverrides(value: unknown, path: string, context: Context): RequiredOverride[] {
-  return readEntries<RequiredOverride>(value, path, LIMITS.overrides, "overrides", context, (entry, entryPath) => {
-    const fail = (field: string): undefined => {
-      context.report.add("invalidEntry", entryPath, { field });
-      return undefined;
-    };
-    const required = weight(entry["required"]);
-    if (required === undefined) return fail("required");
-    const part = readPart(entry);
-    if (part === null) return fail("part");
-    checkKeys(entry, ["date", "required", "part"], entryPath, context.report);
-    checkMultiple(required, "required", entryPath, context);
-    return { day: isoDay(entry["date"]) ?? 0, required, ...(part !== undefined ? { part } : {}) };
+  return readEntries<RequiredOverride>(value, path, LIMITS.overrides, "overrides", context, (entry, entryPath, day, report) => {
+    const required = readRequired(entry, "required", weight, entryPath, report, entryPath);
+    if (required !== undefined) checkMultiple(required, "required", entryPath, context, report);
+    const part = readOptional(entry, "part", parsePart, entryPath, report, entryPath);
+    checkKeys(entry, ["date", "required", "part"], entryPath, report);
+    if (day === undefined || required === undefined || report.drops(entryPath)) return undefined;
+    return { day, required, ...(part !== undefined ? { part } : {}) };
   });
 }
 
 function readNotes(value: unknown, path: string, context: Context): Note[] {
-  return readEntries<Note>(value, path, LIMITS.notes, "notes", context, (entry, entryPath) => {
-    const text = entry["text"];
-    if (typeof text !== "string" || text.length === 0) {
-      context.report.add("invalidEntry", entryPath, { field: "text" });
-      return undefined;
-    }
-    if (textLength(text) > LIMITS.longText) {
-      context.report.add("textTooLong", child(entryPath, "text"), { limit: LIMITS.longText });
-      return undefined;
-    }
-    checkKeys(entry, ["date", "text"], entryPath, context.report);
-    return { day: isoDay(entry["date"]) ?? 0, text };
+  return readEntries<Note>(value, path, LIMITS.notes, "notes", context, (entry, entryPath, day, report) => {
+    const text = readRequired(entry, "text", (item) => (typeof item === "string" && item.length > 0 ? item : undefined), entryPath, report, entryPath);
+    if (text !== undefined && textLength(text) > LIMITS.longText) report.error("textTooLong", child(entryPath, "text"), entryPath, { limit: LIMITS.longText });
+    checkKeys(entry, ["date", "text"], entryPath, report);
+    if (day === undefined || text === undefined || report.drops(entryPath)) return undefined;
+    return { day, text };
   });
 }
 
