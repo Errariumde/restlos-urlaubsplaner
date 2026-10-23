@@ -40,6 +40,14 @@ describe("formatSummary", () => {
     );
   });
 
+  it("prints a rule set without rules", () =>
+    expect(formatSummary(readFile(minimal()))).toBe(["test-rule-set — rule set, revision 1", "Report: none", "Hints: none", "Rules: none"].join("\n")));
+
+  it('prints a root key "" as ""', () =>
+    expect(formatSummary(readFile(minimal({ "": 1 })))).toBe(
+      ["test-rule-set — rule set, revision 1", 'Report: error unknownField at ""', "Hints: none", "Rules: none"].join("\n"),
+    ));
+
   it("prints the effects requiredExactly and mandatory", () => {
     const rule = (id: string, effect: Record<string, string>) => ({ id, match: { type: "fixed", month: 12, day: 31 }, ...effect });
     const contract = { ...BAVARIA_CONTRACT, rules: [rule("a", { requiredExactly: "0" }), rule("b", { mandatory: "1/4" })] };

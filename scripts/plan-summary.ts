@@ -92,7 +92,8 @@ export function formatSummary(result: ReadResult): string {
   const reportText = `${section("Report", report)}\n${section("Hints", checkRules(file, positions))}`;
 
   if (file.kind === "ruleSet") {
-    return [`${name(file)} — rule set, revision ${String(file.revision)}`, reportText, "Rules:", ...rules(file.contract)].join("\n");
+    const ruleLines = rules(file.contract);
+    return [`${name(file)} — rule set, revision ${String(file.revision)}`, reportText, ruleLines.length === 0 ? "Rules: none" : "Rules:", ...ruleLines].join("\n");
   }
 
   const { range } = file.plan;
