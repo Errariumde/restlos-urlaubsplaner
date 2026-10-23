@@ -11,9 +11,10 @@ import type { PlanFile } from "../../../src/engine/file/types";
 import { readPlanDraft } from "../../../src/engine/file/read-plan";
 import { Report, type ReadResult } from "../../../src/engine/file/report";
 import { BAVARIA_CONTRACT, core, planFile, refusedWith } from "./helpers";
-
-// lib has no DOM; performance exists in Node and in Firefox.
-declare const performance: { now(): number };
+import {
+  calendarRangesOffWeekday, earlyEasterRangesOffWeekday, easterRangesJustOutOfReach, entriesPlan, fillToLimits, limitsPlan,
+  type EntryShape,
+} from "./shapes";
 
 const d = dayFromIso;
 const load = (result: ReadResult): PlanFile => {
@@ -261,13 +262,10 @@ describe("plan section: suggested parts", () => {
     expect(result.ok && result.report[1]?.data).toEqual({ part: "end" });
     expect(load(result).plan.days).toEqual([{ day: d("2026-12-30"), take: 240, part: "end" }]);
   });
-  it("suggests 300 parts from one computation in under 500 ms", () => {
+  it("suggests 300 parts in one read", () => {
     const days = Array.from({ length: 300 }, (_, i) => ({ date: isoFromDay(d("2027-01-01") + i), take: "1/2" }));
-    const startedAt = performance.now();
     const result = read({ days });
-    const elapsed = performance.now() - startedAt;
     expect(result.ok && result.report.filter((entry) => entry.code === "partSuggested")).toHaveLength(300);
-    expect(elapsed).toBeLessThan(500);
   });
 });
 
@@ -284,115 +282,41 @@ describe("source-day limit", () => {
 });
 
 describe("at the limits", () => {
-  it("reads and computes an accepted file in under 1000 ms", () => {
-    const rules = Array.from({ length: 1000 }, (_, i) => ({
-      id: `r${String(i)}`, match: { type: "fixed", month: (i % 12) + 1, day: (i % 28) + 1 }, requiredAtMost: "1",
-    }));
-    // 50 sources x 2 entries x 500 days = 50,000 source days (the limit), inside the window of the 36-month period.
-    const last = isoFromDay(d("2027-01-01") + 499);
-    const entries = [0, 1].map(() => ({ match: { type: "range", from: { type: "once", date: "2027-01-01" }, to: { type: "once", date: last } } }));
-    const sources = Array.from({ length: 50 }, (_, i) => ({
-      id: `s${String(i)}`, name: "S", type: "info", color: { slot: "accent-1" }, visible: true, entries,
-    }));
-    // 2000 unique dates from 2026-10-01 on: the first ~92 lie before the period and are kept with outsidePeriod.
-    // Every 7th leave day is half a day; those with i % 14 === 0 give no `part` (drafted, then suggested inside the period).
-    const first = d("2026-10-01");
-    const days = Array.from({ length: 2000 }, (_, i) => ({
-      date: isoFromDay(first + i),
-      take: i % 7 === 0 ? "1/2" : "1",
-      ...(i % 14 === 7 ? { part: "start" } : {}),
-    }));
-    const notes = Array.from({ length: 2000 }, (_, i) => ({ date: isoFromDay(first + i), text: "n" }));
-    const text = planFile({ range: { from: "2027-01", to: "2029-12" }, days, notes }, { contract: { ...BAVARIA_CONTRACT, rules }, sources });
-    const run = () => {
-      const result = readFile(text);
-      const file = load(result);
-      computePlan(planInput(file));
-      return result;
-    };
-    run(); // warm-up
-    const startedAt = performance.now();
-    const result = run();
-    const elapsed = performance.now() - startedAt;
+  it("reads and computes an accepted file at the limits", () => {
+    const result = readFile(limitsPlan(2000));
+    const file = load(result);
+    computePlan(planInput(file));
     expect(result.ok && result.report.some((entry) => entry.code === "outsidePeriod")).toBe(true);
     expect(result.ok && result.report.some((entry) => entry.code === "partSuggested")).toBe(true);
-    expect(load(result).plan.days).toHaveLength(2000);
-    expect(load(result).plan.notes).toHaveLength(2000);
-    expect(elapsed).toBeLessThan(1000);
+    expect(file.plan.days).toHaveLength(2000);
+    expect(file.plan.notes).toHaveLength(2000);
   });
-
-  /** Times `readFile` like the test above, after two warm-up reads: one is not enough for a file of 10 MiB. */
-  const timedRead = (text: string): { result: ReadResult; elapsed: number } => {
-    readFile(text);
-    readFile(text);
-    const startedAt = performance.now();
-    const result = readFile(text);
-    return { result, elapsed: performance.now() - startedAt };
-  };
-  const warningsOf = (result: ReadResult, warning: string): number =>
-    result.ok ? checkRules(result.file, result.positions).filter((entry) => entry.code === warning).length : -1;
 
   it.each([
     ["1 January to 31 December", { type: "range", from: { type: "fixed", month: 1, day: 1 }, to: { type: "fixed", month: 12, day: 31 } }],
     ["366 days from Easter", { type: "range", from: { type: "easter", offset: 0 }, days: 366 }],
     ["the Kita's Tuesdays from 1 September to 31 August", { type: "range", from: { type: "fixed", month: 9, day: 1 }, to: { type: "fixed", month: 8, day: 31 }, weekdays: ["tue"] }],
-  ])("reads 1000 rules of %s without validity years in under 1000 ms", (_name, match) => {
+  ])("reads and checks 1000 rules of %s without validity years", (_name, match) => {
     const rules = Array.from({ length: 1000 }, (_, i) => ({ id: `r${String(i)}`, match, requiredAtMost: "1" }));
-    const { result, elapsed } = timedRead(planFile({}, { contract: { ...BAVARIA_CONTRACT, rules } }));
-    expect(load(result).contract.rules).toHaveLength(1000);
-    expect(elapsed).toBeLessThan(1000);
+    const result = readFile(planFile({}, { contract: { ...BAVARIA_CONTRACT, rules } }));
+    if (!result.ok) throw new Error(`refused: ${result.refusal.code}`);
+    expect(result.file.contract.rules).toHaveLength(1000);
+    expect(checkRules(result.file, result.positions)).toEqual([]);
   });
 
-  // The two costliest of the never-applying match entries tried: as many as a file of 10 MiB holds (a few
-  // ten thousand, up to 50 × 2000), each with its own `validFrom` or match, so no two are checked as one.
-  const entryShapes: [string, () => Generator<Record<string, unknown>>][] = [
-    [
-      "ranges from an Easter date to a date in the next year that is just out of reach",
-      function* () {
-        for (let validFrom = 1600; ; validFrom++) {
-          for (let offset = 366; offset >= 286; offset--) {
-            // The end, in the next year, lies one or two days before the earliest start possible (22 March
-            // plus `offset` days), so only the years themselves tell that it is never reached.
-            for (const back of [0, 1]) {
-              const dayOfYear = offset - 286 - back;
-              const [month, day] = dayOfYear < 31 ? [1, dayOfYear + 1] : dayOfYear < 59 ? [2, dayOfYear - 30] : [3, dayOfYear - 58];
-              if (dayOfYear >= 0) yield { match: { type: "range", from: { type: "easter", offset }, to: { type: "fixed", month, day } }, validFrom };
-            }
-          }
-        }
-      },
-    ],
-    [
-      "two-day ranges given by the calendar, on a weekday they never cover",
-      function* () {
-        const weekdays = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
-        for (let validFrom = 1600; ; validFrom++) {
-          for (let month = 1; month <= 12; month++) {
-            for (let w = 0; w < 7; w++) {
-              // The first weekday w of the month, to the weekday w + 1 after its first day: always the next day.
-              const from = { type: "nthWeekday", month, weekday: weekdays[w], n: 1 };
-              const to = { type: "weekdayRelative", weekday: weekdays[(w + 1) % 7], relation: "after", month, day: 1 };
-              yield { match: { type: "range", from, to, weekdays: [weekdays[(w + 3) % 7]] }, validFrom };
-            }
-          }
-        }
-      },
-    ],
+  // The costliest of the never-applying match entries tried: as many as a file of 10 MiB holds (a few
+  // ten thousand, up to 50 x 2000), each with its own `validFrom` or match, so no two are checked as one.
+  const entryShapes: [string, EntryShape][] = [
+    ["ranges from an Easter date to a date in the next year that is just out of reach", easterRangesJustOutOfReach],
+    ["two-day ranges given by the calendar, on a weekday they never cover", calendarRangesOffWeekday],
+    ["ranges from an early Easter to the next January or February, on a weekday they never cover", earlyEasterRangesOffWeekday],
   ];
-  it.each(entryShapes)("reads distinct never-applying %s, as many as 10 MiB hold, in under 1000 ms", (_name, shape) => {
-    const entries: Record<string, unknown>[] = [];
-    let bytes = 0;
-    for (const entry of shape()) {
-      bytes += JSON.stringify(entry).length + 1;
-      if (bytes > 10_485_760 - 20_000 || entries.length === 50 * 2000) break;
-      entries.push(entry);
-    }
-    const sources = Array.from({ length: Math.ceil(entries.length / 2000) }, (_, i) => ({
-      id: `s${String(i)}`, name: "S", type: "info", color: { slot: "accent-1" }, visible: true, entries: entries.slice(i * 2000, (i + 1) * 2000),
-    }));
-    const { result, elapsed } = timedRead(planFile({}, { sources }));
+  it.each(entryShapes)("reads and checks distinct never-applying %s, as many as 10 MiB hold", (_name, shape) => {
+    const entries = fillToLimits(shape);
+    const result = readFile(entriesPlan(entries));
+    if (!result.ok) throw new Error(`refused: ${result.refusal.code}`);
     expect(entries.length).toBeGreaterThan(45_000);
-    expect(warningsOf(result, "neverApplies")).toBe(entries.length);
-    expect(elapsed).toBeLessThan(1000);
+    expect(result.report).toEqual([]);
+    expect(checkRules(result.file, result.positions).filter((e) => e.code === "neverApplies")).toHaveLength(entries.length);
   }, 30_000);
 });

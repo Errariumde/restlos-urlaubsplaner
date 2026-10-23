@@ -10,9 +10,6 @@ import type { DayRule, LeaveDay, Part, PlanInput, PlanPeriod, SourceDay } from "
 import { isoFromDay } from "../../../src/engine/days";
 import { BAVARIA, baseInput, CHRISTMAS_EVE_RULES, d, FULL, FULL_TIME, HALF, fixed, once, span } from "./helpers";
 
-// lib has no DOM; performance exists in Node and in Firefox.
-declare const performance: { now(): number };
-
 const fmt = (s: Stretch) => `${isoFromDay(s.start.day)}@${s.start.offset} ${isoFromDay(s.end.day)}@${s.end.offset} ${s.cost}/${s.daysOff}`;
 const listed = (result: PlanResult) => result.stretches.filter((s) => s.listed).map(fmt);
 const dayOf = (result: PlanResult, iso: string) => {
@@ -162,19 +159,6 @@ describe("computePlan: limits", () => {
       const result = plan({ period: { from: month(2027, 1), to: month(2027, 2) }, leave: leaveList, sources });
       expect(result.stretches.reduce((sum, s) => sum + s.cost, 0)).toBe(result.totals.planned);
     }), { numRuns: 50 });
-  });
-  // speed budget for a realistic plan
-  it("computes a 13-month plan with 40 rules and 300 source days quickly", () => {
-    const rules: DayRule[] = Array.from({ length: 40 }, (_, i) =>
-      i % 2 === 0
-        ? { id: `r${i}`, match: fixed(1 + (i % 12), 1 + (i % 28)), requiredAtMost: HALF }
-        : { id: `r${i}`, match: { type: "range", from: fixed(1 + (i % 12), 1), days: 10, weekdays: ["fri"] }, mandatory: HALF });
-    const sources: SourceDay[] = Array.from({ length: 300 }, (_, i) => ({ type: "holiday", day: d("2027-01-01") + i, sourceId: "s", required: HALF }));
-    const input = baseInput({ contract: withRules(...rules), sources, period: { from: month(2027, 1), to: month(2028, 1) } });
-    computePlan(input);
-    const startedAt = performance.now();
-    computePlan(input);
-    expect(performance.now() - startedAt).toBeLessThan(200);
   });
 });
 

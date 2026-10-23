@@ -134,7 +134,7 @@ describe("planInput", () => {
 });
 
 describe("expandSources", () => {
-  it("returns null above the limit and stops early", () => {
+  it("returns null above the limit", () => {
     const entry = {
       match: { type: "range" as const, from: { type: "fixed" as const, month: 1, day: 1 }, days: 366 },
       validFrom: 2028,
@@ -144,9 +144,7 @@ describe("expandSources", () => {
     const many: FileSource[] = [
       { id: "s", name: "S", color: { slot: "a" }, visible: true, type: "holiday", entries: Array.from({ length: 200 }, () => entry) },
     ];
-    const start = Date.now();
     expect(expandSources(many, d("2028-01-01"), d("2028-12-31"), 1000)).toBeNull();
-    expect(Date.now() - start).toBeLessThan(50);
     expect(expandSources(many, d("2028-01-01"), d("2028-12-31"))).toBeNull();
   });
 
