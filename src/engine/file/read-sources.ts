@@ -176,9 +176,18 @@ function readEntry(
  * (other-plan entries then by `from`), then match entries in their list order.
  */
 export function sortEntries<T extends object>(entries: readonly T[]): T[] {
-  const field = (entry: T, key: "date" | "from"): number | undefined => (key in entry ? ((entry as Record<string, unknown>)[key] as number) : undefined);
-  const dated = entries.filter((entry) => field(entry, "date") !== undefined);
-  const matched = entries.filter((entry) => field(entry, "date") === undefined);
+  return sortedOrder(entries).map((index) => entries[index] as T);
+}
+
+/** The indexes of `entries` in the order `sortEntries` gives them. */
+function sortedOrder(entries: readonly object[]): number[] {
+  const field = (index: number, key: "date" | "from"): number | undefined => {
+    const entry = entries[index] as Record<string, unknown>;
+    return key in entry ? (entry[key] as number) : undefined;
+  };
+  const dated: number[] = [];
+  const matched: number[] = [];
+  for (let i = 0; i < entries.length; i++) (field(i, "date") !== undefined ? dated : matched).push(i);
   dated.sort((a, b) => (field(a, "date") ?? 0) - (field(b, "date") ?? 0) || (field(a, "from") ?? 0) - (field(b, "from") ?? 0));
   return [...dated, ...matched];
 }
@@ -190,7 +199,7 @@ function readSource(
   seen: ReadonlySet<string>,
   report: Report,
   warnings: RuleWarningCheck,
-): FileSource | undefined {
+): { readonly source: FileSource; readonly entryIndexes: readonly number[] } | undefined {
   const fail = (field: string): undefined => {
     report.add("invalidEntry", child(path, field));
     return undefined;
@@ -238,10 +247,14 @@ function readSource(
   }
 
   const entries: ReadEntry[] = [];
+  const textIndexes: number[] = [];
   for (let i = 0; i < list.length; i++) {
     const entry = readEntry(list[i], at(entriesPath, i), type, id, report, warnings);
-    if (entry) entries.push(entry);
+    if (!entry) continue;
+    entries.push(entry);
+    textIndexes.push(i);
   }
+  const order = sortedOrder(entries);
   checkKeys(value, ["id", "name", "type", "color", "visible", "entries", ...(kind === "plan" ? ["origin"] : []), ...(type === "otherPlan" ? ["plan"] : [])], path, report);
   const source = {
     id,
@@ -251,9 +264,9 @@ function readSource(
     visible: value["visible"],
     ...(origin !== undefined ? { origin } : {}),
     ...(plan ? { plan } : {}),
-    entries: sortEntries(entries),
+    entries: order.map((index) => entries[index] as ReadEntry),
   };
-  return source as FileSource;
+  return { source: source as FileSource, entryIndexes: order.map((index) => textIndexes[index] as number) };
 }
 
 /**
@@ -266,6 +279,7 @@ export function readSources(
   kind: "plan" | "ruleSet",
   report: Report,
   warnings: RuleWarningCheck = dayRuleWarningsMemo(),
+  positions: Map<string, number> = new Map(),
 ): FileSource[] {
   if (value === undefined) return [];
   if (!Array.isArray(value)) throw new Refused({ code: "invalidCore", path });
@@ -273,10 +287,14 @@ export function readSources(
   const sources: FileSource[] = [];
   const ids = new Set<string>();
   for (let i = 0; i < value.length; i++) {
-    const source = readSource(value[i], at(path, i), kind, ids, report, warnings);
-    if (!source) continue;
-    ids.add(source.id);
-    sources.push(source);
+    const read = readSource(value[i], at(path, i), kind, ids, report, warnings);
+    if (!read) continue;
+    ids.add(read.source.id);
+    const sourcePath = at(path, sources.length);
+    positions.set(sourcePath, i);
+    const entriesPath = child(sourcePath, "entries");
+    read.entryIndexes.forEach((textIndex, loaded) => positions.set(at(entriesPath, loaded), textIndex));
+    sources.push(read.source);
   }
   return sources;
 }

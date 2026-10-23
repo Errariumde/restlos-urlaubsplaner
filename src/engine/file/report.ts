@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 import type { AnyFile } from "./types";
+import type { Positions } from "./positions";
 
 export type RefusalCode =
   | "notJson"
@@ -41,7 +42,7 @@ export interface Refusal {
   readonly data?: ReportData;
 }
 export type ReadResult =
-  | { readonly ok: true; readonly file: AnyFile; readonly report: readonly ReportEntry[] }
+  | { readonly ok: true; readonly file: AnyFile; readonly report: readonly ReportEntry[]; readonly positions: Positions }
   | { readonly ok: false; readonly refusal: Refusal };
 
 export class Report {

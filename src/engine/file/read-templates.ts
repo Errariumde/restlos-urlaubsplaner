@@ -84,7 +84,7 @@ function readTemplate(value: unknown, path: string, kind: "plan" | "ruleSet", id
  * Reads `templates`. A missing list reads as empty; anything but a list, or more than 20 templates, is refused.
  * A template that is invalid or over its limits is dropped with a report entry.
  */
-export function readTemplates(value: unknown, path: string, kind: "plan" | "ruleSet", report: Report): Template[] {
+export function readTemplates(value: unknown, path: string, kind: "plan" | "ruleSet", report: Report, positions: Map<string, number> = new Map()): Template[] {
   if (value === undefined) return [];
   if (!Array.isArray(value)) throw new Refused({ code: "invalidCore", path });
   if (value.length > LIMITS.templates) throw new Refused({ code: "limitExceeded", path, data: { limit: "templates" } });
@@ -94,6 +94,7 @@ export function readTemplates(value: unknown, path: string, kind: "plan" | "rule
     const template = readTemplate(value[i], at(path, i), kind, ids, report);
     if (!template) continue;
     ids.add(template.id);
+    positions.set(at(path, templates.length), i);
     templates.push(template);
   }
   return templates;

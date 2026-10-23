@@ -232,6 +232,7 @@ function readRules(
   kind: "plan" | "ruleSet",
   report: Report,
   warnings: RuleWarningCheck,
+  positions: Map<string, number>,
 ): FileRule[] {
   if (!Array.isArray(value)) throw new Refused({ code: "invalidCore", path });
   limit(value.length, LIMITS.rules, "rules", path);
@@ -246,6 +247,7 @@ function readRules(
       continue;
     }
     ids.add(rule.id);
+    positions.set(at(path, rules.length), i);
     rules.push(rule);
   }
   return rules;
@@ -258,6 +260,7 @@ export function readContract(
   kind: "plan" | "ruleSet",
   report: Report,
   warnings: RuleWarningCheck = dayRuleWarningsMemo(),
+  positions: Map<string, number> = new Map(),
 ): FileContract {
   if (!isRecord(value)) throw new Refused({ code: "invalidCore", path });
   checkKeys(value, ["name", "description", "references", "region", "minUnit", "week", "rules"], path, report);
@@ -270,7 +273,7 @@ export function readContract(
   if (kind === "plan" && region.state === undefined && (countries[region.country]?.regions.length ?? 0) > 0) throw new Refused({ code: "invalidCore", path: child(child(path, "region"), "state") });
   const minUnit = readMinUnit(value["minUnit"], child(path, "minUnit"), report);
   const week = readWeek(value["week"], child(path, "week"), report);
-  const rules = readRules(value["rules"], child(path, "rules"), references, kind, report, warnings);
+  const rules = readRules(value["rules"], child(path, "rules"), references, kind, report, warnings, positions);
   return {
     ...(name !== undefined ? { name } : {}),
     ...(description !== undefined ? { description } : {}),

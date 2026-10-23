@@ -51,6 +51,8 @@ interface Context {
   readonly report: Report;
   /** Leave drafted with the part "end" because the file gave none → the path of its entry. */
   readonly drafted: Map<LeaveDay, string>;
+  /** Loaded path of every kept entry → its index in the text. */
+  readonly positions: Map<string, number>;
 }
 
 /** The array at `path`, or a refusal when it is missing, not a list or longer than `max`. */
@@ -74,7 +76,7 @@ function readEntries<T extends { readonly day: DayNumber }>(
   readOne: (entry: Record<string, unknown>, entryPath: string, date: DayNumber) => T | undefined,
 ): T[] {
   const list = value === undefined ? [] : readList(value, path, max, limit); // a missing list is empty
-  const kept: T[] = [];
+  const kept: { readonly read: T; readonly index: number }[] = [];
   const seen = new Set<DayNumber>();
   for (let i = 0; i < list.length; i++) {
     const entryPath = at(path, i);
@@ -92,9 +94,11 @@ function readEntries<T extends { readonly day: DayNumber }>(
     if (!read) continue;
     seen.add(date);
     if (date < context.bounds.from || date > context.bounds.to) context.report.add("outsidePeriod", entryPath);
-    kept.push(read);
+    kept.push({ read, index: i });
   }
-  return kept.sort((a, b) => a.day - b.day);
+  kept.sort((a, b) => a.read.day - b.read.day);
+  kept.forEach(({ index }, loaded) => context.positions.set(at(path, loaded), index));
+  return kept.map(({ read }) => read);
 }
 
 function readPart(entry: Record<string, unknown>): Part | undefined | null {
@@ -167,12 +171,12 @@ export interface PlanDraft {
 }
 
 /** Reads `plan` like `readPlanSection`, and says which partial leave lacked a `part`. */
-export function readPlanDraft(value: unknown, path: string, contract: FileContract, report: Report): PlanDraft {
+export function readPlanDraft(value: unknown, path: string, contract: FileContract, report: Report, positions: Map<string, number> = new Map()): PlanDraft {
   if (!isRecord(value)) throw new Refused({ code: "invalidCore", path });
   checkKeys(value, ["range", "allowance", "days", "overrides", "notes"], path, report);
   const range = readRange(value["range"], child(path, "range"), report);
   const allowance = readAllowance(value["allowance"], child(path, "allowance"));
-  const context: Context = { bounds: periodBounds(range), minUnit: contract.minUnit, report, drafted: new Map() };
+  const context: Context = { bounds: periodBounds(range), minUnit: contract.minUnit, report, drafted: new Map(), positions };
   const days = readDays(value["days"], child(path, "days"), context);
   const overrides = readOverrides(value["overrides"], child(path, "overrides"), context);
   const notes = readNotes(value["notes"], child(path, "notes"), context);

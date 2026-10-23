@@ -373,7 +373,7 @@ describe("writeFile and sorted lists", () => {
     expect(json.sources[1]?.entries.map((entry) => `${String(entry["date"])} ${String(entry["from"])}`)).toEqual(["2027-03-01 0", "2027-03-02 1/4", "2027-03-02 1/2"]);
   });
   it("reads back what it wrote from an unsorted model as the sorted model", () =>
-    expect(readFile(writeFile(unsorted))).toEqual({ ok: true, file: sorted, report: [] }));
+    expect(readFile(writeFile(unsorted))).toEqual({ ok: true, file: sorted, report: [], positions: expect.any(Map) as unknown }));
 });
 
 describe("toRuleSet", () => {
@@ -389,7 +389,7 @@ describe("toRuleSet", () => {
     expect(text).not.toContain("origin");
     expect(text).not.toContain("otherPlan");
     expect(text).not.toContain('"plan"');
-    expect(readFile(text)).toEqual({ ok: true, file: expect.objectContaining({ kind: "ruleSet", id: "mine" }) as unknown, report: [] });
+    expect(readFile(text)).toEqual({ ok: true, file: expect.objectContaining({ kind: "ruleSet", id: "mine" }) as unknown, report: [], positions: expect.any(Map) as unknown });
   });
   it("drops needed sources and writes no origin whatever the model contains", () => {
     const needed: PlanFile = {
@@ -414,7 +414,7 @@ describe("read(write(x))", () => {
   it("gives the model back with an empty report", () => {
     fc.assert(
       fc.property(fileModel, (file) => {
-        expect(readFile(writeFile(file))).toEqual({ ok: true, file, report: [] });
+        expect(readFile(writeFile(file))).toEqual({ ok: true, file, report: [], positions: expect.any(Map) as unknown });
       }),
       { numRuns: 300 },
     );

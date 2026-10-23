@@ -276,6 +276,8 @@ A rule set alone can't be computed: it has no period. "Save as rule set" writes 
 
 A report entry has a `code`, the `path` of the affected value (`"contract.rules[2].label"`, `"plan.days[0].take"`) and, for some codes, `data` with what the message needs. The report carries no sentences; the app writes them in the UI language. A refusal has a `code`, and a `path` and `data` where they apply.
 
+`readFile` also returns `positions`: for every kept rule, source, source entry, template, leave day, override and note, its index in the list in the text that was read. Report entries and hints use paths in that text; `textPath` in `src/engine/file/positions.ts` turns a path in the loaded file into one in the text.
+
 ### Refused
 
 | Code | When |

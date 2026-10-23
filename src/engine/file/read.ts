@@ -51,21 +51,22 @@ function readEnvelope(text: string): ReadResult {
   if (typeof revision !== "number" || !Number.isSafeInteger(revision) || revision < 1) throw new Refused({ code: "invalidCore", path: "revision" });
 
   const report = new Report();
+  const positions = new Map<string, number>();
   // Rules and source entries with the same match and validity are checked for warnings once.
   const warnings = dayRuleWarningsMemo();
   checkKeys(json, kind === "plan" ? PLAN_KEYS : RULE_SET_KEYS, "", report);
-  const contract = readContract(json["contract"], "contract", kind, report, warnings);
-  const sources = readSources(json["sources"], "sources", kind, report, warnings);
-  const templates = readTemplates(json["templates"], "templates", kind, report);
+  const contract = readContract(json["contract"], "contract", kind, report, warnings, positions);
+  const sources = readSources(json["sources"], "sources", kind, report, warnings, positions);
+  const templates = readTemplates(json["templates"], "templates", kind, report, positions);
   const theme = readTheme(json["theme"], "theme", report);
   if (kind === "ruleSet") {
     const file: RuleSetFile = { kind: "ruleSet", id, revision, contract, sources, templates, theme };
-    return { ok: true, file, report: report.entries };
+    return { ok: true, file, report: report.entries, positions };
   }
 
   let ruleSet: PlanFile["ruleSet"];
   if (json["ruleSet"] !== undefined) ruleSet = readPlanRef(json["ruleSet"], "ruleSet", report);
-  const { plan, drafted } = readPlanDraft(json["plan"], "plan", contract, report);
+  const { plan, drafted } = readPlanDraft(json["plan"], "plan", contract, report, positions);
   const draft: PlanFile = { kind: "plan", id, revision, ...(ruleSet ? { ruleSet } : {}), contract, sources, templates, theme, plan };
 
   // The sources are expanded once over the computation window; more days than the limit are refused.
@@ -73,7 +74,7 @@ function readEnvelope(text: string): ReadResult {
   if (expandSources(sources, window.from, window.to) === null) {
     throw new Refused({ code: "limitExceeded", path: "sources", data: { limit: "sourceDays" } });
   }
-  if (drafted.size === 0) return { ok: true, file: draft, report: report.entries };
+  if (drafted.size === 0) return { ok: true, file: draft, report: report.entries, positions };
 
   // Partial leave without a `part`: one computation answers all days inside the period.
   // A day outside the period keeps the drafted "end" (suggestions are only defined inside it) and is reported all the same.
@@ -93,7 +94,7 @@ function readEnvelope(text: string): ReadResult {
     report.add("partSuggested", path, { part });
   }
   const days = plan.days.map((entry) => replaced.get(entry) ?? entry);
-  return { ok: true, file: { ...draft, plan: { ...plan, days } }, report: report.entries };
+  return { ok: true, file: { ...draft, plan: { ...plan, days } }, report: report.entries, positions };
 }
 
 /** Reads a plan file or rule set from untrusted text. Never throws: every problem is a report entry or a refusal. */
