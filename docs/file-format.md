@@ -329,6 +329,7 @@ Every key of an entry is checked, also after a problem, in the order the app wri
 - `validFrom`, `validUntil` and `except` of an entry with neither or both of `date` and `match`;
 - the values of a choice (a rule's effect, an entry's `date` or `match`, a range's `to` or `days`, a color's `slot` or `rgb`) when several of its keys are present;
 - `state` and `options` of a `country` that is missing or invalid;
+- `options` of a plan file whose required `state` is missing or invalid;
 - everything inside a `contract` or `plan` that isn't an object; without a contract, the plan's lists are checked against the `minUnit` `"1/2"`;
 - the order of a work-week entry's `from` unless the previous entry's `from` is a valid date;
 - `outsidePeriod` when `plan.range` is missing or invalid;

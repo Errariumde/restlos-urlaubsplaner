@@ -7,7 +7,7 @@ import { checkRules } from "../../../src/engine/file/check";
 import { readFile } from "../../../src/engine/file/read";
 import { readContract } from "../../../src/engine/file/read-contract";
 import { Report } from "../../../src/engine/file/report";
-import { BAVARIA_CONTRACT, FULL_TIME_WEEK, MINIMAL_CONTRACT, core, minimal, refusedWith } from "./helpers";
+import { BAVARIA_CONTRACT, FULL_TIME_WEEK, MINIMAL_CONTRACT, core, minimal, planFile, refusedWith } from "./helpers";
 
 const withContract = (contract: Record<string, unknown>) => readFile(minimal({ contract: { ...MINIMAL_CONTRACT, ...contract } }));
 const codes = (result: ReturnType<typeof readFile>) => (result.ok ? result.report.map((e) => `${e.code}@${e.path}`) : [`refused:${result.refusal.code}`]);
@@ -53,6 +53,18 @@ describe("region", () => {
     expect(withContract({ region: { country: "XX", state: "BY", options: { foo: true } } })).toEqual(
       refusedWith(core("invalidValue", "contract.region.country")),
     ));
+  it.each([
+    ["missing", undefined, core("missingValue", "contract.region.state")],
+    ["invalid", "ZZ", core("invalidValue", "contract.region.state")],
+  ])("skips the options of a plan file whose required state is %s", (_name, state, entry) =>
+    expect(readFile(planFile({}, { contract: { ...BAVARIA_CONTRACT, region: { country: "DE", state, options: { assumption: true } } } }))).toEqual(
+      refusedWith(entry),
+    ));
+  it("keeps the follow-ons of a rule set whose optional state is dropped, which loads", () =>
+    expect(reportOf(withContract({ region: { country: "DE", state: "ZZ", options: { assumption: true } } }))).toEqual([
+      { code: "invalidValue", path: "contract.region.state", dropped: "contract.region.state" },
+      { code: "unknownLocalRule", path: "contract.region.options.assumption", dropped: "contract.region.options.assumption" },
+    ]));
   it("reports a non-boolean option", () =>
     expect(reportOf(withContract({ region: { country: "DE", state: "BY", options: { assumption: "yes" } } }))).toEqual([
       { code: "invalidValue", path: "contract.region.options.assumption", dropped: "contract.region.options.assumption" },

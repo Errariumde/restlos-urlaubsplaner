@@ -50,6 +50,7 @@ function limit(count: number, max: number, key: string, path: string): void {
  * Reads `contract.region`. The region, its `country` and a plan file's `state` where the country's data has
  * regions belong to the file itself: when one is missing or invalid, that is reported with `dropped: ""` and the
  * result is undefined. An invalid `country` decides how `state` and `options` are read: they are not checked.
+ * Neither are the `options` of a plan file whose required `state` is missing or invalid.
  */
 function readRegion(value: unknown, path: string, kind: "plan" | "ruleSet", report: Report): FileRegion | undefined {
   if (!isRecord(value)) {
@@ -74,6 +75,8 @@ function readRegion(value: unknown, path: string, kind: "plan" | "ruleSet", repo
   const state = stateRequired
     ? readRequired(value, "state", parseState, path, report, "")
     : readOptional(value, "state", parseState, path, report, child(path, "state"));
+  // The state decides which options exist: without a required one they are not checked.
+  if (stateRequired && state === undefined) return undefined;
 
   let options: Record<string, boolean> | undefined;
   const optionsValue = value["options"];
@@ -94,7 +97,6 @@ function readRegion(value: unknown, path: string, kind: "plan" | "ruleSet", repo
       options = Object.fromEntries(kept);
     }
   }
-  if (stateRequired && state === undefined) return undefined;
   return { country: country.country, ...(state !== undefined ? { state } : {}), ...(options ? { options } : {}) };
 }
 
