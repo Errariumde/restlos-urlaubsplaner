@@ -4,6 +4,7 @@
 import { describe, expect, it } from "vitest";
 import { computePlan } from "../../../src/engine/counting/plan";
 import { dayFromIso, isoFromDay } from "../../../src/engine/days";
+import { checkRules } from "../../../src/engine/file/check";
 import { planInput } from "../../../src/engine/file/model";
 import { readFile } from "../../../src/engine/file/read";
 import type { PlanFile } from "../../../src/engine/file/types";
@@ -283,7 +284,7 @@ describe("at the limits", () => {
     return { result, elapsed: performance.now() - startedAt };
   };
   const warningsOf = (result: ReadResult, warning: string): number =>
-    result.ok ? result.report.filter((entry) => entry.code === "ruleWarning" && entry.data?.["warning"] === warning).length : -1;
+    result.ok ? checkRules(result.file, result.positions).filter((entry) => entry.code === warning).length : -1;
 
   it.each([
     ["1 January to 31 December", { type: "range", from: { type: "fixed", month: 1, day: 1 }, to: { type: "fixed", month: 12, day: 31 } }],

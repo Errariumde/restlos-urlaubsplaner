@@ -3,6 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import { dayFromIso } from "../../../src/engine/days";
+import { checkRules } from "../../../src/engine/file/check";
 import { readFile } from "../../../src/engine/file/read";
 import { FULL_TIME_WEEK, MINIMAL_CONTRACT, minimal } from "./helpers";
 
@@ -118,7 +119,7 @@ describe("rules", () => {
     ];
     const rules = matches.map((match, i) => rule({ id: `m${String(i)}`, match }));
     const result = withContract({ rules });
-    expect(codes(result).filter((c) => !c.startsWith("ruleWarning"))).toEqual([]);
+    expect(codes(result)).toEqual([]);
     expect(contractOf(result).rules).toHaveLength(7);
   });
   it("keeps the first of two rules with the same id", () => {
@@ -131,9 +132,10 @@ describe("rules", () => {
     expect(codes(result)).toEqual(["unknownReference@contract.rules[0].references[0]"]);
     expect(contractOf(result).rules[0]?.references).toEqual([]);
   });
-  it("reports warnings and keeps the rule", () => {
+  it("reads a rule that never applies without a report entry", () => {
     const result = withContract({ rules: [rule({ match: { type: "once", date: "2027-03-13" }, validFrom: 2030 })] });
-    expect(result).toMatchObject({ ok: true, report: [{ code: "ruleWarning", path: "contract.rules[0]", data: { warning: "neverApplies" } }] });
+    expect(result).toMatchObject({ ok: true, report: [] });
+    if (result.ok) expect(checkRules(result.file, result.positions)).toEqual([{ code: "neverApplies", path: "contract.rules[0]" }]);
     expect(contractOf(result).rules).toHaveLength(1);
   });
   it("refuses 1001 rules", () =>

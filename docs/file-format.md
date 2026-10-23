@@ -310,9 +310,14 @@ A report entry has a `code`, the `path` of the affected value (`"contract.rules[
 | `notMultipleOfMinUnit` | A leave `take` or an override's `required` that is not a multiple of `minUnit` | kept; the engine computes it exactly |
 | `partSuggested` | Partial own leave without `part` (`data.part`) | kept with a part: inside the plan period the one the neighbouring days suggest, computed once for the whole plan, otherwise `"end"`; outside the period always `"end"`, without a computation |
 | `outsidePeriod` | Leave, an override or a note outside the plan period | kept; the calendar doesn't show it |
-| `ruleWarning` | A day rule or a match entry with a warning from [Day rules](day-rules-format.md#warnings) (`data.warning`) | kept |
 
 Example: a leave day `{ "date": "2027-06-01", "take": "1/4" }` without other leave around it, in a plan with `minUnit` `"1/2"`, loads with two entries, `notMultipleOfMinUnit` at `plan.days[0].take` and `partSuggested` at `plan.days[0]` with `{ "part": "end" }`.
+
+### Checking
+
+`checkRules(file, positions, onProgress)` runs on a loaded file and never changes it. It checks the contract rules, then each source's match entries, and gives hints with the codes `neverApplies`, `leapYearLength` and `mixedRangeEnds` (see [Day rules](day-rules-format.md#warnings)). Hints are not part of the read report. Their paths are positions in the text that was read, like the paths of the read report (see `positions`), so a hint and a report entry about the same rule have the same path.
+
+Progress: `onProgress` is called with `(0, N)` first and then once per rule or match entry. `checkCount(file)` gives N.
 
 ### Missing optional parts
 
@@ -369,7 +374,7 @@ KB and MB are binary: 1 MB is 1,048,576 bytes. Reading and computing any file wi
 | template | `id`, `origin`, `name`, `api`, `typst`, `typ`, `images` (`name`, `type`, `data`) |
 | plan | `range` (`from`, `to`), `allowance`, `days` (`date`, `take`, `part`), `overrides` (`date`, `required`, `part`), `notes` (`date`, `text`) |
 
-Weights are written as reduced fractions (`"1/2"`, never `"0.5"`), the allowance too (`"61/2"` for 30½ days), other-plan spans with a shared denominator. `days`, `overrides` and `notes` are written sorted by date and source entries as described under [Entries](#entries), whatever the order in the model. The lists `rules`, `sources`, `entries`, `templates`, `days`, `overrides` and `notes` are always written, also when empty, and so is `theme`; `references` only when it has entries. Reading a file the app wrote gives the same file again; its report then holds only notices that still apply, such as rule warnings or leave outside the period.
+Weights are written as reduced fractions (`"1/2"`, never `"0.5"`), the allowance too (`"61/2"` for 30½ days), other-plan spans with a shared denominator. `days`, `overrides` and `notes` are written sorted by date and source entries as described under [Entries](#entries), whatever the order in the model. The lists `rules`, `sources`, `entries`, `templates`, `days`, `overrides` and `notes` are always written, also when empty, and so is `theme`; `references` only when it has entries. Reading a file the app wrote gives the same file again; its report then holds only notices that still apply, such as leave outside the period.
 
 `writeFile` writes the model as it is, except that it sorts those lists the way the reader does. Saving first raises `revision` by 1; "Save as" gives a new `id` and `revision` 1. A rule set is always written without `plan`, `ruleSet`, `origin` and `otherPlan` or `needed` sources.
 

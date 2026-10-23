@@ -3,6 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import { dayFromIso } from "../../../src/engine/days";
+import { checkRules } from "../../../src/engine/file/check";
 import { readFile } from "../../../src/engine/file/read";
 import { readSources } from "../../../src/engine/file/read-sources";
 import { Report } from "../../../src/engine/file/report";
@@ -155,13 +156,14 @@ describe("a valid file", () => {
     const result = withSources([source({ entries: [{ match: { type: "fixed", month: 12, day: 24 }, validFrom: 2030, validUntil: 2029 }] })]);
     expect(codes(result)).toEqual(["invalidEntry@sources[0].entries[0]"]);
   });
-  it("reports ruleWarning for a range with a leap-year length", () => {
+  it("reads a range with a leap-year length without a report entry", () => {
     const result = withSources([
       source({
         entries: [{ match: { type: "range", from: { type: "fixed", month: 2, day: 1 }, days: 30 } }],
       }),
     ]);
-    expect(result.ok && result.report).toEqual([{ code: "ruleWarning", path: "sources[0].entries[0]", data: { warning: "leapYearLength" } }]);
+    expect(result).toMatchObject({ ok: true, report: [] });
+    if (result.ok) expect(checkRules(result.file, result.positions)).toEqual([{ code: "leapYearLength", path: "sources[0].entries[0]" }]);
   });
 });
 

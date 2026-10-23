@@ -28,8 +28,7 @@ export type ReportCode =
   | "invalidMinUnit"
   | "notMultipleOfMinUnit"
   | "partSuggested"
-  | "outsidePeriod"
-  | "ruleWarning";
+  | "outsidePeriod";
 export type ReportData = Readonly<Record<string, string | number>>;
 export interface ReportEntry {
   readonly code: ReportCode;

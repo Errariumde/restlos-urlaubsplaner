@@ -59,7 +59,7 @@ If several layers give the same lowest required work on a day, the first of them
 
 ## Warnings
 
-`dayRuleWarnings(rule)` returns codes with the rule ID; the rule dialog shows them as warnings, not errors. A rule with a warning is still valid.
+`dayRuleWarnings(rule)` returns codes with the rule ID. The rule dialog shows them while a rule is edited; after a file is opened, `checkRules` lists them for every rule and match entry ([Checking](file-format.md#checking)). They are warnings, not errors: a rule with a warning is still valid.
 
 | Code | When | What to do |
 | --- | --- | --- |

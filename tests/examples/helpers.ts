@@ -6,6 +6,7 @@ import { expect } from "vitest";
 import type { Stretch } from "../../src/engine/counting/stretches";
 import type { LeaveDay, Part, YearMonth } from "../../src/engine/counting/types";
 import { WEEKDAYS, dayFromIso, isoFromDay, type Weekday } from "../../src/engine/days";
+import { checkRules } from "../../src/engine/file/check";
 import { readFile } from "../../src/engine/file/read";
 import type { AnyFile, PlanFile, RuleSetFile } from "../../src/engine/file/types";
 import { parseAmount, parseWeight } from "../../src/engine/weight";
@@ -16,11 +17,12 @@ export const PLAN_DIR = "examples/plans";
 
 export const readText = (path: string): string => readFileSync(path, "utf8");
 
-/** The file at `path`, which must load and leave an empty report. */
+/** The file at `path`, which must load with an empty report and no hints. */
 export function readExample(path: string): AnyFile {
   const result = readFile(readText(path));
   if (!result.ok) throw new Error(`${path} was refused: ${result.refusal.code} at ${result.refusal.path ?? "(file)"}`);
   expect(result.report, path).toEqual([]);
+  expect(checkRules(result.file, result.positions), path).toEqual([]);
   return result.file;
 }
 

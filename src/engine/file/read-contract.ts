@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-import { dayRuleWarningsMemo, type RuleWarningCheck } from "../counting/warnings";
 import type { WorkWeekEntry } from "../counting/types";
 import { MAX_YEAR, MIN_YEAR, WEEKDAYS, dayFromIso, type Weekday } from "../days";
 import { countries } from "../../data/holidays";
@@ -157,7 +156,6 @@ function readRule(
   references: Readonly<Record<string, Reference>>,
   kind: "plan" | "ruleSet",
   report: Report,
-  warnings: RuleWarningCheck,
 ): FileRule | undefined {
   const fail = (field?: string): undefined => {
     report.add("invalidEntry", path, field === undefined ? undefined : { field });
@@ -221,7 +219,6 @@ function readRule(
     ...(citations !== undefined ? { references: citations } : {}),
     ...(kind === "plan" && isId(value["origin"]) ? { origin: value["origin"] } : {}),
   };
-  for (const warning of warnings(rule)) report.add("ruleWarning", path, { warning: warning.code });
   return rule;
 }
 
@@ -231,7 +228,6 @@ function readRules(
   references: Readonly<Record<string, Reference>>,
   kind: "plan" | "ruleSet",
   report: Report,
-  warnings: RuleWarningCheck,
   positions: Map<string, number>,
 ): FileRule[] {
   if (!Array.isArray(value)) throw new Refused({ code: "invalidCore", path });
@@ -240,7 +236,7 @@ function readRules(
   const ids = new Set<string>();
   for (let i = 0; i < value.length; i++) {
     const rulePath = at(path, i);
-    const rule = readRule(value[i], rulePath, references, kind, report, warnings);
+    const rule = readRule(value[i], rulePath, references, kind, report);
     if (!rule) continue;
     if (ids.has(rule.id)) {
       report.add("duplicateId", child(rulePath, "id"));
@@ -259,7 +255,6 @@ export function readContract(
   path: string,
   kind: "plan" | "ruleSet",
   report: Report,
-  warnings: RuleWarningCheck = dayRuleWarningsMemo(),
   positions: Map<string, number> = new Map(),
 ): FileContract {
   if (!isRecord(value)) throw new Refused({ code: "invalidCore", path });
@@ -273,7 +268,7 @@ export function readContract(
   if (kind === "plan" && region.state === undefined && (countries[region.country]?.regions.length ?? 0) > 0) throw new Refused({ code: "invalidCore", path: child(child(path, "region"), "state") });
   const minUnit = readMinUnit(value["minUnit"], child(path, "minUnit"), report);
   const week = readWeek(value["week"], child(path, "week"), report);
-  const rules = readRules(value["rules"], child(path, "rules"), references, kind, report, warnings, positions);
+  const rules = readRules(value["rules"], child(path, "rules"), references, kind, report, positions);
   return {
     ...(name !== undefined ? { name } : {}),
     ...(description !== undefined ? { description } : {}),

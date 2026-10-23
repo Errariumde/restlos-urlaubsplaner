@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-import { dayRuleWarningsMemo, type RuleWarningCheck } from "../counting/warnings";
 import type { DayMatch, Part } from "../counting/types";
 import { MAX_YEAR, MIN_YEAR, type DayNumber } from "../days";
 import { UNITS_PER_DAY, type Units } from "../weight";
@@ -84,9 +83,7 @@ function readEntry(
   value: unknown,
   path: string,
   type: SourceType,
-  sourceId: string,
   report: Report,
-  warnings: RuleWarningCheck,
 ): ReadEntry | undefined {
   const fail = (field?: string): undefined => {
     report.add("invalidEntry", path, field === undefined ? undefined : { field });
@@ -164,10 +161,6 @@ function readEntry(
     ...(name !== undefined ? { name } : {}),
     ...extra,
   };
-  if (match) {
-    const rule = { id: sourceId, match, ...(isYear(validFrom) ? { validFrom } : {}), ...(isYear(validUntil) ? { validUntil } : {}), requiredAtMost: 0 };
-    for (const warning of warnings(rule)) report.add("ruleWarning", path, { warning: warning.code });
-  }
   return entry;
 }
 
@@ -198,7 +191,6 @@ function readSource(
   kind: "plan" | "ruleSet",
   seen: ReadonlySet<string>,
   report: Report,
-  warnings: RuleWarningCheck,
 ): { readonly source: FileSource; readonly entryIndexes: readonly number[] } | undefined {
   const fail = (field: string): undefined => {
     report.add("invalidEntry", child(path, field));
@@ -249,7 +241,7 @@ function readSource(
   const entries: ReadEntry[] = [];
   const textIndexes: number[] = [];
   for (let i = 0; i < list.length; i++) {
-    const entry = readEntry(list[i], at(entriesPath, i), type, id, report, warnings);
+    const entry = readEntry(list[i], at(entriesPath, i), type, report);
     if (!entry) continue;
     entries.push(entry);
     textIndexes.push(i);
@@ -278,7 +270,6 @@ export function readSources(
   path: string,
   kind: "plan" | "ruleSet",
   report: Report,
-  warnings: RuleWarningCheck = dayRuleWarningsMemo(),
   positions: Map<string, number> = new Map(),
 ): FileSource[] {
   if (value === undefined) return [];
@@ -287,7 +278,7 @@ export function readSources(
   const sources: FileSource[] = [];
   const ids = new Set<string>();
   for (let i = 0; i < value.length; i++) {
-    const read = readSource(value[i], at(path, i), kind, ids, report, warnings);
+    const read = readSource(value[i], at(path, i), kind, ids, report);
     if (!read) continue;
     ids.add(read.source.id);
     const sourcePath = at(path, sources.length);
