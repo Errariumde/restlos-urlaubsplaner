@@ -85,12 +85,16 @@ jobs:
         if: steps.store.outputs.cache-hit != 'true' || steps.npm.outputs.cache-hit != 'true'
         run: nix develop .#ci --profile "$RUNNER_TEMP/ci-profile" --command true
 
+      # The profile holds the shell's closure. nix develop also fetches
+      # nixpkgs' bashInteractive with its default outputs (out and man), and
+      # the flake's inputs are needed to evaluate it.
       - name: Fill the store cache
         if: steps.store.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           cache="file://$HOME/.cache/restlos/nix-store?compression=zstd"
           nix copy --to "$cache" "$RUNNER_TEMP/ci-profile"
+          nix copy --to "$cache" --inputs-from . nixpkgs#bashInteractive
           nix flake archive --to "$cache"
 
       # nix copy keeps each path's signatures. Every path must carry
