@@ -288,7 +288,7 @@ describe("rule values that are only shown", () => {
   it("keeps a rule whose note is too long, without the note", () => {
     const result = withContract({ rules: [rule({ note: { de: "x", en: "y".repeat(2001) } }), rule({ id: "r2", note: "n" })] });
     expect(reportOf(result)).toEqual([
-      { code: "textTooLong", path: "contract.rules[0].note", dropped: "contract.rules[0].note", data: { limit: 2000, language: "en" } },
+      { code: "textTooLong", path: "contract.rules[0].note.en", dropped: "contract.rules[0].note", data: { limit: 2000 } },
     ]);
     expect(contractOf(result).rules).toEqual([
       { id: "r1", match, requiredAtMost: 240 },

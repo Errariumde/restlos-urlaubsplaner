@@ -335,7 +335,7 @@ A report entry has a `code`, the `path` of the key itself in the text that was r
 | `duplicateDate` | Error | The same date twice in `days`, `overrides` or `notes` (at `….date`) | the first valid one kept, later ones dropped without being read any further |
 | `duplicateId` | Error | The same ID twice among rules, sources or templates (at `….id`) | the first kept, later ones dropped without being read any further |
 | `unknownReference` | Error | A rule cites a key that `contract.references` doesn't have (`data.reference`) | the citation dropped, the rule kept |
-| `textTooLong` | Error | A text over its limit (`data.limit`; `data.language` for a language map) | an optional text that is only shown (a rule's `label` or `note`, an entry's `name`, `contract.name` and `description`) is dropped alone; a required one drops the part that holds it |
+| `textTooLong` | Error | A text over its limit (`data.limit`), in a language map at that language's key | an optional text that is only shown (a rule's `label` or `note`, an entry's `name`, `contract.name` and `description`) is dropped alone; a required one drops the part that holds it |
 | `sourceTooLarge` | Error | A source with more than 2000 entries, or one of its entries with more than 400 `except` dates (`data.limit`: `entriesPerSource` or `exceptPerEntry`) | that source dropped |
 | `templateTooLarge` | Error | A `typ` over 512 KB, an image over 1 MB or a template's images over 2 MB together (`data.limit`: `typBytes`, `imageBytes` or `templateImageBytes`) | that template dropped |
 | `unknownLocalRule` | Error | An option the holiday data doesn't define for the selected state, for example after a local rule was renamed or removed, or any option in a rule set without `state` | the option dropped |

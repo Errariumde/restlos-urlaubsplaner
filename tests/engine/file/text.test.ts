@@ -45,8 +45,14 @@ describe("readText", () => {
     expect(read("😀".repeat(200)).report).toEqual([]);
     expect(read("😀".repeat(201))).toEqual({ text: undefined, report: [{ code: "textTooLong", path: "contract.name", dropped: "contract.name", data: { limit: 200 } }] });
   });
-  it("checks the length of every language", () =>
-    expect(read({ de: "x", en: "y".repeat(201) })).toMatchObject({ report: [{ code: "textTooLong", path: "contract.name", data: { language: "en" } }] }));
+  it("checks the length of every language, each at its key", () =>
+    expect(read({ de: "x".repeat(201), en: "y", fr: "z".repeat(201) })).toEqual({
+      text: undefined,
+      report: [
+        { code: "textTooLong", path: "contract.name.de", dropped: "contract.name", data: { limit: 200 } },
+        { code: "textTooLong", path: "contract.name.fr", dropped: "contract.name", data: { limit: 200 } },
+      ],
+    }));
 });
 
 describe("textFor", () => {

@@ -31,7 +31,7 @@ export function readText(value: unknown, path: string, maxLength: number, report
   for (const key of keys) {
     const item = value[key];
     if (!LANGUAGE.test(key) || isPrototypeKey(key) || typeof item !== "string") report.error("invalidValue", child(path, key), dropped);
-    else if (textLength(item) > maxLength) report.error("textTooLong", path, dropped, { limit: maxLength, language: key });
+    else if (textLength(item) > maxLength) report.error("textTooLong", child(path, key), dropped, { limit: maxLength });
     else entries.push([key, item]);
   }
   return entries.length === keys.length ? Object.fromEntries(entries) : undefined;
