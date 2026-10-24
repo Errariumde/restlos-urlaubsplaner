@@ -84,3 +84,24 @@ Open `http://localhost:8000/` in each browser with its profile variable from Run
 3. **Offline.** Stop the server (Ctrl+C in its terminal), reload the page in the browser, answer `P1-offline` with Yes or No, and copy. Start the server again for the next browser; unregister the worker or use a fresh profile per browser.
 4. **C5 form probe, last.** Start the server again, load the page, wait for `done`, click "Copy results", then click "Run the form probe last (may leave the page)" and copy again if the page is still there (row `C5-form`).
 5. K1 to K4 on localhost are optional: do them only if a difference to `file://` is of interest.
+
+## T3 Worker from `file://` (`worker.html`, `worker-pro.html`)
+
+`npm run feasibility` writes `dist/feasibility/worker.html` (the standard policy) and `worker-pro.html` (the same page with `'wasm-unsafe-eval'`). Each embeds two data blocks: the worker's code, and the model of the largest plan within the limits (about 13.2 MB of JSON: the read result with 73,867 positions and the computed plan with 485 day results). Open each page from disk in every browser (Run block, per-browser profile variable).
+
+At load the page runs by itself: `W-policy`, `W-timer` (the step of the page's clock; Firefox rounds to 1 ms), `W-threads` (`navigator.hardwareConcurrency`), W1 (a classic and a module worker from a `blob:` URL; the time from `new Worker` to the first message, first start and 5 more), W2 (inside each worker: `eval`, `new Function`, `fetch` of a `blob:` URL, `importScripts` of a `blob:` URL in the classic worker only, and WebAssembly; result words as in T2: `allowed`, `blocked` when it failed and a violation was reported in the worker or on the page, `failed-other`) and the setup (the model goes to the worker, which keeps it; not one of the checks). Then the row `done` appears and the status says "ready".
+
+**Click "Copy results" before every reload, navigation or tab close**, and head each pasted block with the browser name and the page (`worker.html` or `worker-pro.html`).
+
+1. Open the page and wait for the status "ready" and the row `done`. W2-*-wasm-compile should be `blocked` on `worker.html` and `allowed` on `worker-pro.html`.
+2. Fill in `W-cpu` with the model name from `lscpu | grep 'Model name'` and press Enter.
+3. Close other busy programs, keep this tab in the foreground and its window visible, click "Run W3 and W4" and don't touch the page until the row `done-run1` appears (half a minute or more; the page freezes briefly during each W4 parse on the page). `done-run1` says whether the tab stayed visible; if it was hidden, click "Run W3 and W4" again: each press is a new run whose rows end in `-run2`, `-run3`, …, and earlier rows stay.
+4. Click "Copy results" and paste.
+
+How to read W3 and W4 (each value is the median of 10 handovers or parses after one warm-up; the details give the maximum and every value):
+
+- `W3a` to `W3d` are the four handovers: (a) the model object posted as is, (b) as JSON text, (c) as UTF-8 bytes in a transferred ArrayBuffer, (d) only what one year of the calendar shows, as a transferred `Int32Array`. In (b) and (c) the page parses the text and turns `positions` into a `Map`, as (a) delivers it.
+- `W3x-usable`: from the page's request to the model usable on the page (the page's clock).
+- `W3x-handler`: the time in the page's message handler, from its first statement (before reading `event.data`) to the end of decoding and parsing.
+- `W3x-gap`: the longest gap between two ticks of a `MessageChannel` ping loop on the page, from the request until 100 ms after usable: how long the page was blocked in total. It includes deserializing `event.data` wherever the browser does it: Firefox does it before calling the handler, so there `W3a-handler` can be near 0 while `W3a-gap` shows the block (the `W3x-handler` details give the time from the last tick to the handler's start). The worker decision rule ("Calls made in this design") is judged on these blocked times in Firefox ESR.
+- `W4-worker` and `W4-page`: `JSON.parse` of the embedded text in the worker (the worker's clock) and on the page (how long the page would freeze without a worker).

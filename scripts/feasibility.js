@@ -7,6 +7,7 @@
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { gzipSync } from "node:zlib";
+import { largestModelJson } from "./feasibility-model.ts";
 import { assemblePage } from "./feasibility-pages.ts";
 
 const ROOT = join(import.meta.dirname, "..");
@@ -24,6 +25,13 @@ function gzipBlock() {
   return { "gz.b64": gzipSync(Buffer.from("restlos feasibility")).toString("base64") };
 }
 
+// The model data block of worker.html (T3), named model.json in data-inline: about 13 MB, built once for both pages.
+let modelJson;
+function modelBlock() {
+  modelJson ??= largestModelJson();
+  return { "model.json": modelJson };
+}
+
 // One entry per page. Later tasks append to this list.
 // - out: path below dist/feasibility/
 // - source: the page's HTML file in feasibility/
@@ -37,6 +45,8 @@ const PAGES = [
   { out: "csp.html", source: "csp.html", variant: "standard", generated: gzipBlock },
   { out: "csp-pro.html", source: "csp.html", variant: "pro", generated: gzipBlock },
   { out: "pages/index.html", source: "csp.html", variant: "pages", generated: gzipBlock },
+  { out: "worker.html", source: "worker.html", variant: "standard", generated: modelBlock },
+  { out: "worker-pro.html", source: "worker.html", variant: "pro", generated: modelBlock },
 ];
 
 // Files that are not assembled pages, written as they are. Later tasks append to this list.
