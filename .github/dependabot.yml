@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 # flake.lock: Dependabot updates nixpkgs within its release branch (nix
-# ecosystem). Moving to the next release is a manual change in flake.nix
-# (npm run nixos-release; .claude/skills/dependency-update/SKILL.md).
+# ecosystem) and, once the next release branch exists, proposes moving
+# flake.nix to it. That pull request is only the notice: the move is made by
+# hand (.claude/skills/dependency-update/SKILL.md, step 8).
 version: 2
 updates:
   - package-ecosystem: npm

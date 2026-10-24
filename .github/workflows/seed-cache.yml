@@ -3,9 +3,10 @@
 
 # The only workflow that writes caches (docs/superpowers/specs/2026-10-24-ci-design.md,
 # decision 5). The seed job restores nothing, takes the Nix tarball, the dev
-# shell and the npm packages fresh from upstream and runs no project code;
-# check.yml only reads what it saves. The weekly run also checks the NixOS
-# release in a read-only job, so a failed scheduled run reports an outdated one.
+# shell and the npm packages fresh from upstream and runs no tests and no npm
+# scripts; check.yml only reads what it saves. The weekly run also checks the
+# NixOS release in a read-only job, so a failed scheduled run reports an
+# outdated one.
 name: seed-cache
 
 on:
@@ -21,7 +22,6 @@ on:
   schedule:
     - cron: "17 4 * * 1"
   workflow_dispatch:
-  workflow_call:
 
 permissions:
   contents: read
