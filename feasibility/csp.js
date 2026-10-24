@@ -14,7 +14,22 @@ const pixelBytes = () => Uint8Array.from(atob(PIXEL_BASE64), (char) => char.char
 
 // ---- violations ----
 
-const violations = window.cspViolations; // filled by csp-early.js since the start of parsing
+// Filled by csp-early.js since the start of parsing. If that script was blocked, collect from here on.
+const violations = window.cspViolations ?? [];
+if (window.cspViolations === undefined) {
+  document.addEventListener("securitypolicyviolation", (event) => {
+    violations.push({
+      effectiveDirective: event.effectiveDirective,
+      violatedDirective: event.violatedDirective,
+      blockedURI: event.blockedURI,
+      sourceFile: event.sourceFile,
+      lineNumber: event.lineNumber,
+      disposition: event.disposition,
+      sample: event.sample,
+    });
+    showViolations();
+  });
+}
 const directiveOf = (v) => v.effectiveDirective || v.violatedDirective.split(" ")[0];
 const describeViolation = (v) => {
   const where = v.sourceFile ? ` at ${v.sourceFile}:${v.lineNumber}` : "";
@@ -315,6 +330,7 @@ function onKey(event) {
   const count = (keyCounts.get(prefix) ?? 0) + 1;
   keyCounts.set(prefix, count);
   event.preventDefault();
+  const activationBefore = userActivation();
   let clicked = "";
   if (letter === "o") {
     try {
@@ -323,11 +339,12 @@ function onKey(event) {
     } catch (error) {
       clicked = `; input.click() threw ${errorText(error)}`;
     }
+    clicked += `; userActivation after click(): ${userActivation()}`;
   }
   record(
     `${prefix}-${count}`,
     "received",
-    `key "${event.key}" code ${event.code} ctrl ${event.ctrlKey} meta ${event.metaKey} shift ${event.shiftKey} alt ${event.altKey} repeat ${event.repeat}; preventDefault() called, defaultPrevented ${event.defaultPrevented}; ${userActivation()}${clicked}`,
+    `key "${event.key}" code ${event.code} ctrl ${event.ctrlKey} meta ${event.metaKey} shift ${event.shiftKey} alt ${event.altKey} repeat ${event.repeat}; cancelable ${event.cancelable}; preventDefault() called, defaultPrevented ${event.defaultPrevented}; userActivation before click(): ${activationBefore}${clicked}`,
   );
   if (k3Started) return; // the K3 rows were offered when K3 started
   if (letter === "s") offerRow("K1-dialog", "Did the browser's own save dialog appear?");
@@ -385,6 +402,22 @@ function wireDrop() {
 
 // ---- P1 Pages policy (http: only) ----
 
+const manifestFetches = []; // times the service worker reported serving manifest.webmanifest
+const manifestFetchDetails = () =>
+  manifestFetches.length === 0
+    ? "the service worker did not report serving manifest.webmanifest (only a load served through the service worker can report it; Firefox desktop does not fetch manifests)"
+    : manifestFetches.map((time, i) => `${i + 1}. ${time}`).join("; ");
+
+// Must be wired at the start of main: the manifest is requested while the page loads, long before p1() runs.
+function wireManifestMessages() {
+  navigator.serviceWorker?.addEventListener("message", (event) => {
+    if (event.data?.type !== "manifest-fetched") return;
+    manifestFetches.push(`${event.data.time} ${event.data.url}`);
+    record("P1-manifest-fetched", `${manifestFetches.length} request(s)`, manifestFetchDetails());
+  });
+  navigator.serviceWorker?.startMessages();
+}
+
 async function p1() {
   record("P1-context", location.protocol, `origin ${location.origin}, isSecureContext ${isSecureContext}, serviceWorker ${"serviceWorker" in navigator ? "present" : "missing"}`);
   observe("P1-offline", "Did the page load with the server stopped?");
@@ -395,7 +428,8 @@ async function p1() {
   await probe("P1-service-worker", async () => {
     const w = await watch(async () => {
       const registration = await navigator.serviceWorker.register("sw.js");
-      await navigator.serviceWorker.ready;
+      const ready = await Promise.race([navigator.serviceWorker.ready, sleep(10000).then(() => null)]);
+      if (ready === null) throw new Error("timeout: navigator.serviceWorker.ready did not resolve within 10 s");
       return `scope ${registration.scope}`;
     });
     const violated = hasDirective(w.seen, "worker-src");
@@ -408,9 +442,11 @@ async function p1() {
     const seen = violations.filter((v) => directiveOf(v) === "manifest-src");
     return {
       result: seen.length === 0 ? "no violation" : "violation",
-      details: `link element ${link ? `present (${link.getAttribute("href")})` : "ABSENT"}; manifest-src violations: ${seen.length}; ${describeAll(seen)}; no violation does not prove the manifest was fetched (Firefox desktop ignores manifests; check Network tools if needed)`,
+      details: `link element ${link ? `present (${link.getAttribute("href")})` : "ABSENT"}; manifest-src violations: ${seen.length}; ${describeAll(seen)}; no violation does not prove the manifest was fetched: Firefox desktop does not fetch manifests at all, and P1-manifest-fetched (only on a load served through the service worker) and P1-manifest-devtools show whether the browser requested it`,
     };
   });
+  record("P1-manifest-fetched", manifestFetches.length === 0 ? "not seen" : `${manifestFetches.length} request(s)`, manifestFetchDetails());
+  observe("P1-manifest-devtools", "Chromium only: DevTools, Application, Manifest (opening it forces the fetch). Does it show the name \"restlos feasibility\" (Yes) or an error / nothing (No)? Firefox desktop does not fetch manifests: answer No.");
   await probe("P1-controller-after", async () => {
     const controller = navigator.serviceWorker?.controller;
     return { result: controller ? "controlled" : "not controlled", details: "after registration; reload once and see P1-controller to confirm the cache serves the page" };
@@ -422,6 +458,7 @@ async function p1() {
 async function main() {
   window.onCspViolation = showViolations;
   showViolations();
+  if (location.protocol === "http:") wireManifestMessages();
   addFormProbe();
   wireKeys();
   wireDrop();
@@ -435,6 +472,7 @@ async function main() {
   await c8();
   if (location.protocol === "http:") await p1();
   showViolations();
+  record("done", "done", `all checks finished at ${new Date().toISOString()}; later rows come only from your actions`);
 }
 
 async function c2Probes() {
@@ -442,4 +480,6 @@ async function c2Probes() {
   await c2("C2-new-function", () => new Function("return 1 + 1")());
 }
 
-void main();
+main().catch((error) => {
+  record("main-error", "error", `${errorText(error)}; the checks after the failing one did not run`);
+});
