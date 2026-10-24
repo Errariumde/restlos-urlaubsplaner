@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 // The performance gate: counts the instructions of every scenario in tests/perf/scenarios.ts with Cachegrind
-// (V8 --predictable) at 8× and 16× its base size, and fails on super-linear growth, on a count more than
-// 5 % over tests/perf/baseline.json, and on a scenario list or baseline whose names don't match
-// (scripts/perf-verdict.ts). Part of npm run check.
+// (V8 --predictable, no garbage collection) at 8× and 16× its base size, and fails on super-linear growth, on a
+// count more than 5 % over tests/perf/baseline.json, on a scenario list or baseline whose names don't match
+// (scripts/perf-verdict.ts), and on a run that collected garbage. Part of npm run check.
 // Usage: npm run perf                            the gate
 //        npm run perf -- --update                writes tests/perf/baseline.json (lowering or raising a value
 //                                                needs the maintainer's approval); refuses when growth fails
@@ -21,7 +21,26 @@ import { BUDGET_TOLERANCE, GROWTH_LIMIT, SIZES, checkScenarios, verdict } from "
 const ROOT = join(import.meta.dirname, "..");
 const BASELINE = "tests/perf/baseline.json";
 const VALGRIND = ["--tool=cachegrind", "--cache-sim=no", "--cachegrind-out-file=/dev/null", "--vgdb=no"];
-const CHILD = ["--predictable", "--import", "./scripts/ts-hooks.js", "scripts/perf-run.js"];
+// V8 settings under which a count depends only on the code and its input (issue 0020):
+// - --predictable: single-threaded, with fixed seeds.
+// - --liftoff-only: Node strips the TypeScript types with WebAssembly; V8 would optimize that code at moments
+//   that depend on timing, which moved the startup count by up to 38 M instructions.
+// - --no-incremental-marking: no collection started by a timed task.
+// - a young generation of 1 GB: no collection at all. When a collection runs depends on how much the startup
+//   allocated, which depends on the length of the checkout's path; it moved the counts by up to 7.5 %.
+// - --trace-gc: V8 reports each collection on stdout, the child prints nothing else, and the gate fails a run
+//   that reported one (tests/scripts/perf-trace-gc.test.ts pins that the report goes to stdout).
+const CHILD = [
+  "--predictable",
+  "--liftoff-only",
+  "--no-incremental-marking",
+  "--min-semi-space-size=1024",
+  "--max-semi-space-size=1024",
+  "--trace-gc",
+  "--import",
+  "./scripts/ts-hooks.js",
+  "scripts/perf-run.js",
+];
 const USAGE = "Usage: npm run perf [-- --update | -- --largest-file <path>]";
 
 const args = process.argv.slice(2);
@@ -63,14 +82,22 @@ const percent = (change) => {
   return `${text.startsWith("-") ? "" : "+"}${text} %`;
 };
 
-/** Runs perf-run.js with `job.args` under Cachegrind: resolves to its instruction count or to its stderr. */
+/**
+ * Runs perf-run.js with `job.args` under Cachegrind: resolves to its instruction count, to its stderr, or to
+ * V8's report of a garbage collection on its stdout (`collected`).
+ */
 function count(job) {
   return new Promise((resolve) => {
     const child = spawn("valgrind", [...VALGRIND, process.execPath, ...CHILD, ...job.args], {
       cwd: ROOT,
-      stdio: ["ignore", "ignore", "pipe"],
+      stdio: ["ignore", "pipe", "pipe"],
     });
+    let stdout = "";
     let stderr = "";
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
     child.stderr.setEncoding("utf8");
     child.stderr.on("data", (chunk) => {
       stderr += chunk;
@@ -80,7 +107,9 @@ function count(job) {
     });
     child.on("close", (status) => {
       const match = /I\s+refs:\s+([\d,]+)/.exec(stderr);
-      resolve(status === 0 && match !== null ? { job, count: Number(match[1].replaceAll(",", "")) } : { job, stderr });
+      if (status !== 0 || match === null) resolve({ job, stderr });
+      else if (stdout.trim() !== "") resolve({ job, collected: stdout });
+      else resolve({ job, count: Number(match[1].replaceAll(",", "")) });
     });
   });
 }
@@ -164,7 +193,15 @@ async function gate(dir) {
   // 3. and 4. The counts: startup and imports alone, then each scenario at each size.
   const results = await countAll(jobs, Math.min(4, availableParallelism()));
   const broken = results.filter((result) => result.count === undefined);
-  for (const { job, stderr } of broken) {
+  for (const { job, stderr, collected } of broken) {
+    if (collected !== undefined) {
+      console.log(
+        `FAIL ${job.label}: the garbage collector ran, so the count would depend on where the repository is checked out. ` +
+          "Enlarge the young generation in scripts/perf.js (--min-semi-space-size, --max-semi-space-size) or shrink the scenario. V8 reported:",
+      );
+      console.log(collected.trimEnd().split("\n").slice(0, 5).join("\n"));
+      continue;
+    }
     console.log(`FAIL ${job.label}: the run failed or printed no instruction count. The last 20 lines of its stderr:`);
     console.log(stderr.trimEnd().split("\n").slice(-20).join("\n"));
   }

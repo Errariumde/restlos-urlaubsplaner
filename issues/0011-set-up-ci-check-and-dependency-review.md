@@ -1,10 +1,10 @@
 ---
-status: next
+status: done
 priority: 1
 area: build, CI
 branch: ci
 created: 2026-10-18
-closed:
+closed: 2026-10-24
 ---
 <!--
 SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
@@ -20,31 +20,30 @@ There are no GitHub workflows yet; `npm run check` runs only locally. Without a 
 ## Context
 
 - `docs/SPEC.md`, "Build and CI (GitHub Free and local)": workflows, caching, workflow security.
+- `docs/superpowers/specs/2026-10-24-ci-design.md`: the design of 2026-10-24, which replaced setup-node, apt and pip with the Nix dev shell.
 - `docs/superpowers/specs/2026-10-17-holiday-engine-design.md`: CI was left out of the engine branches.
-- `.github/dependabot.yml` already watches `npm` and `github-actions`.
 
 ## Acceptance criteria
 
-- `.github/workflows/check.yml`: on push to `main` and on pull requests, only for changes to code, data, lockfile or workflows (path filter); `npm ci`, lint, type check, Vitest and the REUSE check. Build and size check are added later with the UI build.
-- Dependency Review (`actions/dependency-review-action`) on pull requests that change the lockfile.
-- Workflow security as in the spec:
-  - only actions from GitHub itself, each pinned by full commit SHA;
+- [x] `.github/workflows/check.yml`: on push to `main` and on pull requests, always the full check (no path filter); inside `nix develop .#ci`: the NixOS release check, `npm ci`, lint, type check, Vitest, the performance gate and the REUSE check. Build and size check are added later with the UI build.
+- [x] `devShells.ci` in `flake.nix` holds what `check` needs (Node.js 24, Valgrind, REUSE), so CI uses the same tools as the dev shell.
+- [x] Nix is installed single-user from a release tarball checked against a SHA-256 pinned in `.github/actions/nix/action.yml`; its version equals the one the pinned nixpkgs ships, and CI fails with the update steps when they differ.
+- [x] `.github/workflows/seed-cache.yml` is the only workflow that writes caches (Nix tarball, `file://` store cache with cache.nixos.org's signatures, npm cache); every other workflow sets `cache-mode: read` or `none`.
+- [x] `npm run nixos-release` warns from the 1st and fails from the 16th of the last month of the pinned release's support, and for a branch that isn't a release branch.
+- [x] Dependency Review (`actions/dependency-review-action`) on pull requests that change the lockfile.
+- [x] Dependabot updates `flake.lock` monthly (`package-ecosystem: nix`).
+- [x] Workflow security as in the spec:
+  - only actions from GitHub itself, each pinned by full commit SHA, plus the local composite action;
   - `permissions: contents: read` at workflow level;
   - `actions/checkout` with `persist-credentials: false`;
   - no `pull_request_target`, no secrets;
   - `concurrency` with `cancel-in-progress`, short `timeout-minutes`, no retries.
-- Caching as in the spec:
-  - the npm cache with `actions/cache/restore` and `actions/cache/save`, keyed on the hash of `package-lock.json`, saved only on `main`;
-  - `reuse` installed with `pip install --require-hashes -r` from a checked-in, hash-pinned requirements file, with its pip cache keyed on that file.
-- The `check` workflow runs the performance gate.
-- CI fails, not skips, when Valgrind is missing: `npm run perf` skips only when `CI` is not set, and fails otherwise (implemented on `file-format`, `scripts/perf.js`). The workflow sets `CI` (GitHub Actions does by default).
-- The Node.js version in CI matches the dev shell (Node 24, npm ≥ 11.10); `.npmrc` (`ignore-scripts`, `min-release-age`) applies unchanged.
+- [x] CI fails, not skips, when Valgrind is missing: `npm run perf` skips only when `CI` is not set (implemented on `file-format`, `scripts/perf.js`); GitHub Actions sets `CI`.
+- [x] The experiments of the design (E1–E5, P, T) passed on real runners before the branch is finished.
 
 ## Notes
 
 - The maintainer checks the looked-up action SHAs once and switches on the ruleset in the repository settings after the branch is merged.
 - `templates`, `e2e` and `release` come with the branches that add templates, the UI and the first release.
-- Performance gate (issue 0015): `npm run check` runs `npm run perf`, which needs Valgrind. Proposal for this branch, to be confirmed by the maintainer:
-  - Install Valgrind on the runner from Ubuntu's archive (a package, not an action).
-  - Measure the pull request and its merge base in the same job. The runner's Node build and Valgrind differ from the dev shell's, so absolute counts won't match `tests/perf/baseline.json`.
-  - Allowed per scenario: the ratio of the PR's baseline to the base's baseline (1.0 if unchanged), plus 5 %.
+- Decisions of 2026-10-24 (maintainer): the Nix dev shell instead of setup-node, apt and pip; the signature-checked `file://` store cache; Nix follows nixpkgs; Dependabot for `flake.lock`; the NixOS release check with failure from the 16th; `check` always in full. Details and reasons: the design doc.
+- Performance gate in CI: the original proposal (Valgrind from Ubuntu, merge-base comparison) became a decision rule in the design: if the runner's counts are within ±1 % of the checked-in baseline, CI compares with it; otherwise with the merge base, scaled by the ratio of the two baselines, plus 5 %. The runners' counts were within 0.5 % (design doc, Results), so CI compares with the checked-in baseline.

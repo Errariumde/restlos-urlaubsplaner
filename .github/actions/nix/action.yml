@@ -1,0 +1,97 @@
+# SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
+# SPDX-License-Identifier: EUPL-1.2
+
+# Installs Nix single-user from a hash-checked release tarball and, with
+# store-cache, adds the store cache (a file:// binary cache that keeps
+# cache.nixos.org's signatures) as a substituter. Design:
+# docs/superpowers/specs/2026-10-24-ci-design.md. Only reads caches; the
+# seed-cache workflow saves them.
+name: Nix
+description: Install the Nix that the pinned nixpkgs ships, from a hash-checked tarball, with the store cache as substituter.
+inputs:
+  tarball-cache:
+    description: Restore the Nix tarball from the cache ("false" in the seed job, which takes it fresh from releases.nixos.org).
+    default: "true"
+  store-cache:
+    description: Restore the store cache and use it as substituter ("false" in the seed job, which fills it).
+    default: "true"
+runs:
+  using: composite
+  steps:
+    # The one place for the Nix version and its tarball's SHA-256. They must
+    # follow the Nix that flake.lock's nixpkgs ships (the version check below);
+    # updating them: .claude/skills/dependency-update/SKILL.md, step 8.
+    # Also the one place for the cache keys, which seed-cache.yml saves under
+    # and check.yml restores from. Each key covers every file that changes what
+    # the seed puts into that cache, so a change to them is seeded afresh.
+    - name: Pin the Nix version and the cache keys
+      shell: bash
+      run: |
+        version=2.34.9
+        {
+          echo "NIX_VERSION=$version"
+          echo "NIX_TARBALL_SHA256=e8912e087582b3799e0e5a6b06f9d63386c54821f77ad4de3b9b748736ad364e"
+          echo "NIX_TARBALL_CACHE_KEY=nix-installer-$version-x86_64-linux"
+          echo "NIX_STORE_CACHE_KEY=nix-store-${{ hashFiles('flake.lock', 'flake.nix', '.github/actions/nix/action.yml', '.github/workflows/seed-cache.yml') }}"
+          echo "NPM_CACHE_KEY=npm-${{ hashFiles('package-lock.json', '.npmrc') }}"
+        } >> "$GITHUB_ENV"
+
+    - name: Restore the Nix tarball
+      if: inputs.tarball-cache == 'true'
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/restlos/nix-installer
+        key: ${{ env.NIX_TARBALL_CACHE_KEY }}
+
+    - name: Install Nix
+      shell: bash
+      run: |
+        set -euo pipefail
+        dir="$HOME/.cache/restlos/nix-installer"
+        tarball="$dir/nix-$NIX_VERSION-x86_64-linux.tar.xz"
+        if [ ! -f "$tarball" ]; then
+          mkdir -p "$dir"
+          curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
+            --output "$tarball" "https://releases.nixos.org/nix/nix-$NIX_VERSION/nix-$NIX_VERSION-x86_64-linux.tar.xz"
+        fi
+        # Checked before anything is extracted, so a changed tarball stops here.
+        "$GITHUB_ACTION_PATH/verify-tarball.sh" "$tarball"
+        sudo install -d -o "$USER" -g "$(id -gn)" /nix
+        tar -xJf "$tarball" -C "$RUNNER_TEMP"
+        "$RUNNER_TEMP/nix-$NIX_VERSION-x86_64-linux/install" --no-daemon --no-channel-add --no-modify-profile
+        echo "$HOME/.nix-profile/bin" >> "$GITHUB_PATH"
+
+    # Only these settings: require-sigs, trusted-public-keys and
+    # accept-flake-config stay at their defaults, so every path from the store
+    # cache must carry cache.nixos.org's signature. The global flake registry
+    # is off: CI resolves nixpkgs only through flake.lock (--inputs-from .).
+    # nixpkgs marks cheap wrappers such as nodejs_24 as not worth downloading
+    # (allowSubstitutes = false); built here they would carry no signature, so
+    # CI downloads them like any other path.
+    - name: Configure Nix
+      shell: bash
+      env:
+        STORE_CACHE: ${{ inputs.store-cache }}
+      run: |
+        set -euo pipefail
+        mkdir -p "$HOME/.config/nix"
+        {
+          echo "experimental-features = nix-command flakes"
+          echo "flake-registry ="
+          echo "always-allow-substitutes = true"
+        } > "$HOME/.config/nix/nix.conf"
+        if [ "$STORE_CACHE" = "true" ]; then
+          echo "extra-substituters = file://$HOME/.cache/restlos/nix-store?priority=10" >> "$HOME/.config/nix/nix.conf"
+        fi
+
+    - name: Restore the store cache
+      if: inputs.store-cache == 'true'
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/restlos/nix-store
+        key: ${{ env.NIX_STORE_CACHE_KEY }}
+        restore-keys: nix-store-
+
+    - name: Check the Nix version against flake.lock
+      shell: bash
+      run: '"$GITHUB_ACTION_PATH/check-version.sh"'

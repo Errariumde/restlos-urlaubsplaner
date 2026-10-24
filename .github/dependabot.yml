@@ -1,8 +1,10 @@
 # SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 # SPDX-License-Identifier: EUPL-1.2
 
-# flake.lock is not covered: Dependabot has no Nix support. It is updated
-# manually, see .claude/skills/dependency-update/SKILL.md.
+# flake.lock: Dependabot updates nixpkgs within its release branch (nix
+# ecosystem) and, once the next release branch exists, proposes moving
+# flake.nix to it. That pull request is only the notice: the move is made by
+# hand (.claude/skills/dependency-update/SKILL.md, step 8).
 version: 2
 updates:
   - package-ecosystem: npm
@@ -20,7 +22,8 @@ updates:
       npm-all:
         patterns: ["*"]
   - package-ecosystem: github-actions
-    directory: /
+    # "/" covers .github/workflows only; the composite action is listed too.
+    directories: ["/", "/.github/actions/nix"]
     schedule:
       interval: monthly
     cooldown:
@@ -28,3 +31,9 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+  - package-ecosystem: nix
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 14
