@@ -1,0 +1,63 @@
+# SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
+# SPDX-License-Identifier: EUPL-1.2
+
+# The full check on every pull request and every push to main, inside the
+# CI dev shell (docs/superpowers/specs/2026-10-24-ci-design.md). It only
+# reads caches; seed-cache.yml writes them. Without a cache it falls back to
+# cache.nixos.org and the npm registry. The job `check` is the status check
+# the ruleset for main requires.
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    cache-mode: read
+    concurrency:
+      group: check-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/nix
+
+      - name: Check the NixOS release
+        run: nix develop .#ci --command npm run nixos-release
+
+      - name: Restore the npm cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.npm
+          key: ${{ env.NPM_CACHE_KEY }}
+          restore-keys: npm-
+
+      # The perf gate's counts depend on the CPU; the summary keeps them together.
+      - name: Note the runner's CPU
+        run: |
+          cpu="$(lscpu | sed -n 's/^Model name: *//p')"
+          echo "Runner CPU: $cpu, $(nproc) cores" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: npm ci and npm run check
+        run: |
+          set -o pipefail
+          nix develop .#ci --command sh -c 'npm ci --prefer-offline && npm run check' 2>&1 | tee "$RUNNER_TEMP/check.log"
+
+      - name: Perf counts to the summary
+        if: always()
+        run: |
+          {
+            echo '```'
+            grep -E '^(perf:|FAIL)' "$RUNNER_TEMP/check.log" || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

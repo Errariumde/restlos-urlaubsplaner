@@ -1,0 +1,132 @@
+# SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
+# SPDX-License-Identifier: EUPL-1.2
+
+# The only workflow that writes caches (docs/superpowers/specs/2026-10-24-ci-design.md,
+# decision 5). The seed job restores nothing, takes the Nix tarball, the dev
+# shell and the npm packages fresh from upstream and runs no project code;
+# check.yml only reads what it saves. The weekly run also checks the NixOS
+# release in a read-only job, so a failed scheduled run reports an outdated one.
+name: seed-cache
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - flake.nix
+      - flake.lock
+      - package-lock.json
+      - .npmrc
+      - .github/actions/nix/**
+      - .github/workflows/seed-cache.yml
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    cache-mode: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/nix
+      - name: Check the NixOS release
+        run: nix develop .#ci --command npm run nixos-release
+
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    cache-mode: write
+    concurrency:
+      group: seed-cache
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Fresh from releases.nixos.org; also sets the version and the cache keys.
+      - uses: ./.github/actions/nix
+        with:
+          tarball-cache: "false"
+          store-cache: "false"
+
+      # Lookups download nothing; a key that exists is not saved again.
+      - name: Look up the tarball cache
+        id: tarball
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/restlos/nix-installer
+          key: ${{ env.NIX_TARBALL_CACHE_KEY }}
+          lookup-only: true
+      - name: Look up the store cache
+        id: store
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/restlos/nix-store
+          key: ${{ env.NIX_STORE_CACHE_KEY }}
+          lookup-only: true
+      - name: Look up the npm cache
+        id: npm
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.npm
+          key: ${{ env.NPM_CACHE_KEY }}
+          lookup-only: true
+
+      - name: Build the dev shell from cache.nixos.org
+        if: steps.store.outputs.cache-hit != 'true' || steps.npm.outputs.cache-hit != 'true'
+        run: nix develop .#ci --profile "$RUNNER_TEMP/ci-profile" --command true
+
+      - name: Fill the store cache
+        if: steps.store.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          cache="file://$HOME/.cache/restlos/nix-store?compression=zstd"
+          nix copy --to "$cache" "$RUNNER_TEMP/ci-profile"
+          nix flake archive --to "$cache"
+
+      # nix copy keeps each path's signatures. Every path must carry
+      # cache.nixos.org's, except the shell's own -env output (built here, and
+      # rebuilt by every reader) and content-addressed paths (checked by hash).
+      - name: Check the store cache's signatures
+        if: steps.store.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          signed=0 unsigned=0
+          for narinfo in "$HOME"/.cache/restlos/nix-store/*.narinfo; do
+            if grep -q '^Sig: cache.nixos.org-1:' "$narinfo"; then signed=$((signed + 1)); continue; fi
+            if grep -q '^CA: ' "$narinfo" || grep -q '^StorePath: .*-nix-shell-env$' "$narinfo"; then continue; fi
+            echo "::error title=Store cache::$(sed -n 's/^StorePath: //p' "$narinfo") has no cache.nixos.org signature."
+            unsigned=$((unsigned + 1))
+          done
+          echo "Store cache: $signed paths signed by cache.nixos.org-1." >> "$GITHUB_STEP_SUMMARY"
+          [ "$unsigned" -eq 0 ]
+
+      - name: Fill the npm cache
+        if: steps.npm.outputs.cache-hit != 'true'
+        run: nix develop .#ci --command npm ci
+
+      - name: Save the tarball cache
+        if: steps.tarball.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/restlos/nix-installer
+          key: ${{ env.NIX_TARBALL_CACHE_KEY }}
+      - name: Save the store cache
+        if: steps.store.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/restlos/nix-store
+          key: ${{ env.NIX_STORE_CACHE_KEY }}
+      - name: Save the npm cache
+        if: steps.npm.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.npm
+          key: ${{ env.NPM_CACHE_KEY }}
