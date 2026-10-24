@@ -3,7 +3,8 @@
 
 // The model the worker page (T3, feasibility/README.md) embeds: the largest plan file within the limits (the file
 // `npm run perf -- --largest-file` writes), read by the engine, plus what the counting model computes for it (as in
-// the perf scenario readAndCompute). Pure: scripts/feasibility.js writes it into the pages.
+// the perf scenario readAndCompute). Builds the model once and keeps it in this module; no file access:
+// scripts/feasibility.js writes it into the pages.
 import { computePlan, type PlanResult } from "../src/engine/counting/plan";
 import { planInput } from "../src/engine/file/model";
 import { readFile } from "../src/engine/file/read";

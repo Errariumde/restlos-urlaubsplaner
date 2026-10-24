@@ -137,7 +137,8 @@ function startWorker(url, kind) {
     worker.onerror = (event) => {
       clearTimeout(timer);
       worker.terminate();
-      resolve({ ok: false, result: "not started", why: `error event: ${event.message || "(no message)"}` });
+      // A script that fails to load gives a plain error event without a message; the browser logs the reason to the console.
+      resolve({ ok: false, result: "not started", why: `error event: ${event.message || "no message; the reason is in the browser console (README, T3 step 1)"}` });
     };
   });
 }
@@ -383,7 +384,7 @@ async function w3(request, how, k, expected) {
   record(
     id("gap"),
     resultOf("gap"),
-    `${series("gap")}; page clock, the longest gap between two ticks of a MessageChannel ping loop on the page, from the request until ${TAIL_MS} ms after usable: every task that kept the page busy, including deserializing event.data wherever the browser does it, the handler, and garbage collection in that window; ticks per handover: median ${median(ticks)}, min ${Math.min(...ticks)}${stalled > 0 ? `; the ping loop STALLED in ${stalled} handover(s)` : ""}`,
+    `${series("gap")}; page clock, the longest single block of the page: the longest gap between two ticks of a MessageChannel ping loop on the page, from the request until ${TAIL_MS} ms after usable; the block can be deserializing event.data wherever the browser does it, the handler, or garbage collection in that window; ticks per handover: median ${median(ticks)}, min ${Math.min(...ticks)}${stalled > 0 ? `; the ping loop STALLED in ${stalled} handover(s)` : ""}`,
   );
 }
 

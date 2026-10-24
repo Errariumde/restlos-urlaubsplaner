@@ -28,4 +28,8 @@ describe("largestModelJson", () => {
   it("hides no Map or Set in the model, which JSON.stringify would write as {}", () => {
     expect(hiddenCollections(largestModel())).toEqual([]);
   }, 60_000);
+
+  it("survives a JSON round trip unchanged (no NaN, Infinity, typed array or Date that JSON would change)", () => {
+    expect(JSON.parse(largestModelJson())).toEqual(largestModel());
+  }, 60_000);
 });
