@@ -12,11 +12,23 @@
       forAll = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
     in
     {
-      devShells = forAll (pkgs: {
-        default = pkgs.mkShell {
-          packages = with pkgs; [
-            # Build and runtime toolchain
+      devShells = forAll (pkgs:
+        let
+          # What `npm run check` needs; CI uses only these (devShells.ci,
+          # `nix develop .#ci`), the default shell adds the rest.
+          ciPackages = with pkgs; [
             nodejs_24
+            reuse # License compliance
+          ] ++ lib.optionals stdenv.isLinux [
+            valgrind # Performance gate (npm run perf): Cachegrind instruction counts
+          ];
+        in
+        {
+        ci = pkgs.mkShellNoCC { packages = ciPackages; };
+
+        default = pkgs.mkShell {
+          packages = ciPackages ++ (with pkgs; [
+            # Build toolchain
             typst
 
             # Language servers (used by editors and by Claude Code LSP plugins)
@@ -33,9 +45,6 @@
             # Holiday cross-check (test oracle, not shipped)
             (python3.withPackages (ps: [ ps.holidays ]))
 
-            # License compliance
-            reuse
-
             # General tools
             git
             ripgrep
@@ -43,10 +52,7 @@
             # Claude Code sandbox (/sandbox) on Linux
             bubblewrap
             socat
-
-            # Performance gate (npm run perf): Cachegrind instruction counts
-            valgrind
-          ];
+          ]);
 
           # Playwright uses the browsers from nixpkgs; @playwright/test in
           # package.json must have the same version as playwright-driver.
