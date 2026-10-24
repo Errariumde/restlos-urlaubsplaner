@@ -18,7 +18,11 @@ const OUTPUT = join(ROOT, "dist", "feasibility");
 // - variant: the policy ("standard" | "pro" | "pages")
 // - generated: optional () => Record<name, text>; extra files a page can name in data-inline (not read from feasibility/)
 /** @type {{ out: string, source: string, variant: "standard" | "pro" | "pages", generated?: () => Record<string, string> }[]} */
-const PAGES = [];
+const PAGES = [
+  { out: "storage/a/storage.html", source: "storage.html", variant: "standard" },
+  { out: "storage/a/storage-copy.html", source: "storage.html", variant: "standard" },
+  { out: "storage/b/storage.html", source: "storage.html", variant: "standard" },
+];
 
 // Every .js and .json file in feasibility/ can be named in a page's data-inline.
 const sourceFiles = new Map();
