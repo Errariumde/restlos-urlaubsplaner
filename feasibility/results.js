@@ -98,7 +98,7 @@ async function probe(id, fn) {
 const escapeCell = (text) => text.replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
 
 function resultsMarkdown() {
-  const file = decodeURIComponent(location.pathname.split("/").pop() || location.href);
+  const file = decodeURIComponent(location.pathname + location.search + location.hash);
   const lines = [
     `## ${file}`,
     "",
