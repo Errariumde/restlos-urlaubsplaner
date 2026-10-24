@@ -65,6 +65,9 @@ runs:
     # accept-flake-config stay at their defaults, so every path from the store
     # cache must carry cache.nixos.org's signature. The global flake registry
     # is off: CI resolves nixpkgs only through flake.lock (--inputs-from .).
+    # nixpkgs marks cheap wrappers such as nodejs_24 as not worth downloading
+    # (allowSubstitutes = false); built here they would carry no signature, so
+    # CI downloads them like any other path.
     - name: Configure Nix
       shell: bash
       env:
@@ -75,6 +78,7 @@ runs:
         {
           echo "experimental-features = nix-command flakes"
           echo "flake-registry ="
+          echo "always-allow-substitutes = true"
         } > "$HOME/.config/nix/nix.conf"
         if [ "$STORE_CACHE" = "true" ]; then
           echo "extra-substituters = file://$HOME/.cache/restlos/nix-store?priority=10" >> "$HOME/.config/nix/nix.conf"
