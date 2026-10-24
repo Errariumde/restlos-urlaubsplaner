@@ -1,10 +1,10 @@
 ---
-status: open
+status: done
 priority: 2
 area: tests (performance gate)
-branch:
+branch: ci
 created: 2026-10-23
-closed:
+closed: 2026-10-24
 ---
 <!--
 SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
@@ -33,13 +33,29 @@ So a contributor whose clone lives elsewhere, or the maintainer after moving the
 
 ## Acceptance criteria
 
-- [ ] The cause is narrowed down: path length, path text, symlinked `node_modules`, or something else.
-- [ ] The maintainer has chosen how the gate handles it, for example:
+- [x] The cause is narrowed down: path length, path text, symlinked `node_modules`, or something else.
+- [x] The maintainer has chosen how the gate handles it, for example:
   - make the counts independent of the location (if the cause allows it);
   - record what matters in the baseline next to Node and Valgrind, so another location counts as `otherEnvironment`;
   - compare against a base commit measured in the same run instead of a checked-in baseline, as issue 0011 proposes for CI.
-- [ ] The gate, `tests/perf/baseline.json` and the docs (SPEC test strategy, AGENTS.md) follow the choice.
+- [x] The gate, `tests/perf/baseline.json` and the docs (SPEC test strategy, AGENTS.md) follow the choice.
 
 ## Notes
 
-- The baseline was not changed for this issue.
+- The baseline was not changed when this issue was opened.
+
+### Cause (2026-10-24)
+
+Measured with Node v24.21.0 and valgrind-3.26.0 on exported checkouts at paths of 19, 39 (two different texts, and one with the repository's number of components) and 101 characters, with the same input files for every run.
+
+- **The garbage collector.** During startup, Node keeps strings that contain the checkout's path: module URLs, and the cache of path prefixes that resolving a module fills. Their size depends on the path's length and its number of components. The letters don't matter: two 39-character paths with different letters gave identical `--trace-gc` traces. That size shifts the moments at which a scenario's own allocations start a collection. Collection was 13–35 % of every scenario's work, so the work moved by a few percent, by chance, in either direction.
+- The same mechanism would move the counts for any change that makes startup allocate a little more or less, such as one more engine module. It would have hit CI's comparison of a pull request with its merge base too (issue 0011).
+- **Run-to-run noise at the same location** had two more causes. V8 optimizes the WebAssembly code of Node's TypeScript stripper at moments that depend on timing: startup varied by ±0.7 M instructions, and one run in 32 was 38 M lower. V8 also starts incremental marking from a timed task.
+- Not the cause: the symlinked `node_modules` (the measured child imports no package), the missing `.git`, the input files' paths, and the size of the environment.
+
+### Decision and fix
+
+The maintainer chose to measure without garbage collection. `scripts/perf.js` runs the child with `--liftoff-only`, `--no-incremental-marking` and a young generation of 1 GB (`--min-semi-space-size=1024 --max-semi-space-size=1024`), next to `--predictable`. With `--trace-gc` the gate fails a run that reports a collection, so a scenario that outgrows the young generation can't quietly bring the effect back. `tests/scripts/perf-trace-gc.test.ts` pins that V8 reports collections on stdout.
+
+- Result: startup counts agree to within 10,000 instructions. The gate passed at three locations, run at the same time, against the baseline written at the usual checkout. Every scenario was within 0.1 %, except `write:limitsPlan` (56 M instructions at 8×), which was within 1.0 %; the cause of that last half million instructions was not found.
+- The gate no longer counts the collector's work; allocating still costs instructions. All counts dropped by 13–35 %. The maintainer approved the new baseline. Peak memory of a measured run is at most 230 MB (147 MB before).

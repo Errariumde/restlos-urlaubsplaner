@@ -614,7 +614,7 @@ All outputs (UI, .ics, PDF, JSON) read the same computed state; no output recalc
 | Date arithmetic | daylight saving time changes; no `Date` in the engine | Vitest, ESLint rule `no-restricted-globals` |
 | iCal | round trip export → ical.js → same days; mandatory fields; UTF-8-safe folding; real example files (Google, Outlook, Thunderbird) | Vitest + ical.js |
 | Files | load(save(x)) = x, migration, `revision` warning | Vitest + fast-check |
-| Performance | no wall-clock assertions in tests; every scenario runs at 8× and 16× its base size and fails when twice the input costs more than 2.2× the work, or when it costs more than 5 % over the checked-in baseline (`tests/perf/baseline.json`); raising the baseline needs the maintainer's approval | `npm run perf`: Cachegrind instruction counts with V8 `--predictable`, part of `npm run check` and CI |
+| Performance | no wall-clock assertions in tests; every scenario runs at 8× and 16× its base size and fails when twice the input costs more than 2.2× the work, or when it costs more than 5 % over the checked-in baseline (`tests/perf/baseline.json`); raising the baseline needs the maintainer's approval; a measured run that collects garbage fails, because when a collection runs depends on where the repository is checked out | `npm run perf`: Cachegrind instruction counts with V8 `--predictable` and without garbage collection, part of `npm run check` and CI |
 | Multilingual support, colors | missing/unused keys, pseudo-localization, contrast of the schemes | small check scripts |
 | Types and style | TypeScript, Svelte components, lint | `tsc`, svelte-check, ESLint |
 | PDF/Typst | every template × DE/EN with example data, pinned Typst version | Typst CLI |

@@ -37,3 +37,5 @@ Two options; the maintainer decides, because this changes approved parameters:
 
 1. **Larger base sizes,** so that linear code measures close to 2x. This makes the gate slower.
 2. **Measure growth on the increments between 4x, 8x and 16x,** e.g. (work16 - work8) / (work8 - work4), which cancels the fixed cost. Earlier scratch measurements (2026-10-19, with hints in reading) gave increment ratios of about 2.15-2.22 for linear reading; a quadratic step would give about 4. This needs one more run per scenario and a new limit.
+
+- 2026-10-24 (issue 0020): the gate now measures without garbage collection, which moved the growth values closer to 2 but did not solve this issue. Growth in the new baseline: `read:earlyEasterRanges` 1.75, `read:easterRangesJustOutOfReach` 1.73, `read:calendarRangesOffWeekday` 1.72, `readAndCompute:limitsPlan` 1.44, `check:earlyEasterRanges` 1.77, `check:calendarRangesOffWeekday` 1.71, `write:limitsPlan` 1.52. The counts are now repeatable to within 0.1 % (1 % for `write:limitsPlan`), so a limit for the increments of option 2 can be set more tightly than before.
