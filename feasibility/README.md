@@ -107,3 +107,46 @@ How to read W3 and W4 (each value is the median of 10 handovers or parses after 
 - The worker decision rule ("Calls made in this design"): compare the medians of `W3a-gap`, `W3b-gap` and `W3c-gap` (the whole model) in Firefox ESR with 100 ms. `W3d-gap` is the alternative where the page gets only what it shows.
 - Garbage collection: a run creates and drops about 33 full models, 200 ms apart, and collecting them can fall into a later handover's window. A maximum far above the median, or values rising across the runs (the details list them in order), points to garbage collection.
 - `W4-worker` and `W4-page`: `JSON.parse` of the embedded text in the worker (the worker's clock) and on the page (how long the page would freeze without a worker).
+
+## T4 Calendar re-import in Thunderbird (`calendar/`)
+
+`npm run feasibility` writes `dist/feasibility/calendar/plan-v1.ics` and `plan-v2.ics`: a fictional plan exported twice, the second time after some edits. Unchanged days keep their `UID`, a changed day gets a new one. Nothing here touches the network; only the throwaway calendar `restlos-test` is used.
+
+| Event | v1 | v2 |
+| --- | --- | --- |
+| 2027-05-06 holiday "Christi Himmelfahrt" | yes | yes |
+| 2027-05-07 leave, full | yes | deleted |
+| 2027-08-02 leave | full | half day, morning ("Urlaub (½, vormittags)") |
+| 2027-08-03 to 2027-08-05 leave, full, one event per day | yes | yes |
+| 2027-08-06 leave, full | yes | moved to 2027-08-09 |
+| 2027-10-29 leave, full | no | added |
+| 2027-12-23 leave, half day, morning | yes | yes |
+| 2027-12-31 leave, half day, afternoon | yes | yes |
+
+Each file has 9 events (v2 keeps 6 of v1's `UID`s).
+
+**Before.** In the Nextcloud web calendar, create a calendar `restlos-test`. Make sure it shows up in Thunderbird (it appears after a sync if the account syncs all calendars; otherwise add it as a network calendar). Write down the Thunderbird version (Help, About Thunderbird) and the Nextcloud version if you know it.
+
+**Import.** In Thunderbird's menu bar (press Alt if it is hidden) choose Events and Tasks, Import…, pick the file from `dist/feasibility/calendar/`, and choose `restlos-test` as the target; Thunderbird then shows its own import dialog. Don't use File, Open, Calendar File: that opens the file as a separate calendar instead of importing it.
+
+**After each step.** Let Thunderbird synchronize (right-click the calendar, Synchronize). Write down every message or dialog text word for word. Look at May to December 2027 both in Thunderbird and in the Nextcloud web calendar (the server's state).
+
+1. **I1.** Import `plan-v1.ics` into the empty calendar. Record whether all 9 events arrive.
+2. **I2.** Import `plan-v1.ics` again. Record the message, whether anything is duplicated, and whether the import stops at the first existing event.
+3. **I3.** Import `plan-v2.ics` into the same calendar. Record what changed, what was refused, what was added, and whether the deleted day (2027-05-07) stayed.
+4. **I4.** Delete all events of `restlos-test` in Thunderbird (for example in its event list with all events shown: select all, Delete), synchronize, and check that they are in the Nextcloud calendar's trash bin. Then import `plan-v2.ics`. Record whether the calendar matches v2, including the days whose `UID`s are in the trash bin.
+
+**Cleanup.** Delete the calendar `restlos-test` (only that one) and remove it from the trash bin.
+
+What to paste:
+
+```
+Thunderbird: <version>, Nextcloud: <version>
+
+| Id | What happened |
+| --- | --- |
+| I1 | |
+| I2 | |
+| I3 | |
+| I4 | |
+```

@@ -8,6 +8,7 @@ import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "nod
 import { dirname, join } from "node:path";
 import { gzipSync } from "node:zlib";
 import { largestModelJson } from "./feasibility-model.ts";
+import { PLAN_V1, PLAN_V2, planIcs } from "./feasibility-ics.ts";
 import { assemblePage } from "./feasibility-pages.ts";
 
 const ROOT = join(import.meta.dirname, "..");
@@ -61,6 +62,8 @@ const EXTRA_FILES = [
     content: () => JSON.stringify({ name: "restlos feasibility", start_url: ".", display: "standalone" }, null, 2) + "\n",
   },
   { out: "pages/sw.js", content: () => readFileSync(join(SOURCES, "sw.js"), "utf8") },
+  { out: "calendar/plan-v1.ics", content: () => planIcs(PLAN_V1, "20261024T120000Z") },
+  { out: "calendar/plan-v2.ics", content: () => planIcs(PLAN_V2, "20261101T120000Z") },
 ];
 
 // Every .js and .json file in feasibility/ can be named in a page's data-inline.
