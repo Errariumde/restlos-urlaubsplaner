@@ -41,3 +41,46 @@ Later, the maintainer's extended option B: the user decides how partial days are
 - one working-day layout (time blocks) serves both directions and finer steps better than a table per share;
 - it is a device setting for export and an import-dialog setting, never stored in the plan;
 - events that don't fit go to the preview.
+
+### Feasibility branch, 2026-10-24
+
+Source: `docs/superpowers/specs/2026-10-24-feasibility-tests-design.md` on the `feasibility` branch (decisions 5 and 6, "Research", "Review of the `UID` concept"). The "Export" criterion above must follow decision 5 below: the `UID` is not the contract ID with the date.
+
+**Decision 5: the `.ics` `UID`.** It is a one-way hash of the plan's random `id` and everything the exported event says. Colleagues who use the same rule set share the contract ID, so their leave on the same day would collide in a shared calendar, and RFC 7986 asks for `UID`s that identify nothing.
+
+- **What goes in:** the plan's `id`, what the event is (own leave, mandatory leave, a holiday exported along, a source's entry), the source or rule it comes from (by `id`), its date or dates or repeat rule, its share and part, and later option B's times. Never an element's position in the file, which shifts when an earlier entry is added.
+- **What follows:** only an exact copy gives the same `UID`, and an exact copy says nothing new, so the export writes it once. An edit the event doesn't show (a source's colour, a note) keeps the `UID`; any edit it shows (full ↔ half day, another part, a moved day) gives a new one; "Save as" (a new `id`) gives all new ones. An event never changes under its `UID`. The `UID` looks random and shows no date.
+- **The trade-off, accepted:** apps that update events by `UID` (Google's re-import, Nextcloud's coming "replace" import) show a changed day twice, old and new, instead of updating it. The workflows the help recommends (empty and import, subscription) aren't affected.
+- **The hash is the browser's built-in WebCrypto** (`crypto.subtle.digest`, SHA-256; Node has it for the tests), called in the export step, which is asynchronous anyway; the engine supplies only the text to hash. No hash or crypto code of the project's own. The hash isn't a security feature: it only makes the `UID` opaque and repeatable.
+- **Fallback without WebCrypto** (it needs a secure context; feasibility check S1 tests it on `file://`): random `UID`s for that export, from `crypto.getRandomValues`, which works without one. The export dialog then says why and what it means for the user, for example: "This browser doesn't offer the function restlos uses to give calendar events fixed IDs, so this export gets new ones. If you import it into a calendar that still holds an earlier export, every event appears twice: empty the calendar first, or subscribe to the file." (Wording through the catalogs in the UI branch.)
+- The exact form (encoding of the hashed text, UUID layout) is this issue's, with the findings below.
+
+**Decision 6: workflows for the help.** The export's design and the help's calendar workflows belong to this issue. For CalDAV calendars such as Nextcloud the maintainer chose:
+
+1. A separate calendar for restlos, emptied and filled again after a change.
+2. As an option, subscribing to the exported file through a share link of a synced Nextcloud folder. The link is public; the help says so.
+
+**Findings of the `UID` review** (findings 2 to 8; finding 1 led to decision 5):
+
+- **Deleted events may block the same `UID`s.** Nextcloud keeps deleted events in a trash bin, and Google reportedly skips re-imported `UID`s it deleted before. The research found that Nextcloud handles a deleted and re-imported event; Google is documentation only. Feasibility check I4 tests it in the maintainer's setup; if it fails, the help says "delete the calendar, not its events".
+- **The plan's `id` isn't always unique.** A plan file copied in the file manager, or handed to a colleague and saved, keeps its `id`, so two people's leave can share `UID`s in a team calendar. Mitigation: the help says to share rule sets, not plan files (as the spec already does); the bundled examples are saved under a new `id`.
+- **Consecutive plans overlap.** Plan 2027 (January 2027 to January 2028) and plan 2028 both contain the closure around New Year. Fix: a plan's export writes only what this plan charges, never the days of a "Leave from another plan" source, as the counting model does.
+- **The key must be encoded unambiguously and never change.** IDs may contain any character, so fields are joined as a JSON array with a version tag, a `match` gets a fixed form for the key, and test vectors pin the result.
+- **The engine is synchronous, WebCrypto isn't, and WebCrypto needs a secure context.** Decision 5 calls WebCrypto in the export step, with random `UID`s as the fallback.
+- **A repeating entry is written in one form only** (`RRULE` or dates), or its `UID`s change between exports. An event never changes under its `UID`, so a rising `SEQUENCE` isn't needed.
+- **What goes into the hashed text needs a fixed list per kind of event:** a holiday exported along (its rule's `id` and the date), a stretch exported as one event (its dates), a source exported on its own (its own scope, so it can't match the same days in a plan's export), option B's time blocks.
+- The exporter checks that every `UID` in a file is unique, with a property test over random plans (finding 1: the format allows several entries of one source on the same date, for example `examples/plans/muster-ag-2028.urlaub.json` on 2027-12-24).
+
+Fine as designed: several events on one day, since their kind and content differ; colleagues' plans with their own random `id`s; rule `id`s, which "Update rules from rule set" keeps; "Save as", where subscriptions and the empty-and-import workflow come out right and only a re-import over the old events duplicates them (a help note); privacy, since a `UID` reveals nothing the event's date doesn't.
+
+**Calendar research** (24 October 2026; source code, bug trackers, specs and vendor documentation read, nothing run):
+
+- **Thunderbird** never updates an existing event on import. The import refuses an existing `UID`, and according to its code (`CalendarFileImporter.sys.mjs`) it stops at the first refused event. `SEQUENCE` makes no difference. [Bug 325449](https://bugzilla.mozilla.org/show_bug.cgi?id=325449) has been open since 2006.
+- **Nextcloud's web import** refuses existing `UID`s and adds only new ones. A "replace existing events" option (`supersede`) was approved on 2026-10-22 (calendar PR #8483) but isn't released. See also [calendar #1508](https://github.com/nextcloud/calendar/issues/1508).
+- **Nextcloud subscriptions** to a share link (`/download`): read-only, refreshed daily by default. On Android, DAVx5 hands them to ICSx5; in Thunderbird the user adds them by hand. Private addresses are blocked unless `webcalAllowLocalAccess` is set.
+- **Google** updates by `UID` on re-import but doesn't remove deleted days; import limit 1 MB ([Google Calendar import](https://support.google.com/calendar/answer/37118)).
+- **Outlook:** classic Outlook duplicates on import into an existing calendar and opens a file with `X-WR-CALNAME` as a new calendar ([MS-STANOICAL](https://learn.microsoft.com/en-us/openspecs/exchange_standards/ms-stanoical/2637212b-2ddc-4706-8202-c796fb3f748b)). Outlook.com refreshes subscriptions about every 3 hours.
+- **Apple** doesn't update on import.
+- **iTIP** (RFC 5546) only covers mail invitations.
+- **RFC points** ([RFC 7986](https://www.rfc-editor.org/rfc/rfc7986), RFC 5545, RFC 5546): a stable, unique `UID` that identifies nothing; `METHOD:PUBLISH` without `ORGANIZER` and `ATTENDEE`; `NAME` / `X-WR-CALNAME`; `REFRESH-INTERVAL` for subscriptions.
+- **The only workflow that works in every app:** a separate calendar, deleted and imported again after a change.
