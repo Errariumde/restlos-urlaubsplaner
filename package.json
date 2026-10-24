@@ -12,6 +12,7 @@
   "scripts": {
     "test": "vitest run --dir tests",
     "plan": "node --import ./scripts/ts-hooks.js scripts/plan.js",
+    "feasibility": "node --import ./scripts/ts-hooks.js scripts/feasibility.js",
     "perf": "node --import ./scripts/ts-hooks.js scripts/perf.js",
     "nixos-release": "node --import ./scripts/ts-hooks.js scripts/nixos-release.js",
     "lint": "eslint .",
