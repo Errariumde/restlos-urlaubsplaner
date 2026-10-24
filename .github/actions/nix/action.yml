@@ -54,10 +54,7 @@ runs:
             --output "$tarball" "https://releases.nixos.org/nix/nix-$NIX_VERSION/nix-$NIX_VERSION-x86_64-linux.tar.xz"
         fi
         # Checked before anything is extracted, so a changed tarball stops here.
-        if ! echo "$NIX_TARBALL_SHA256  $tarball" | sha256sum --check --quiet -; then
-          echo "::error title=Nix tarball::$tarball doesn't match the SHA-256 pinned in .github/actions/nix/action.yml."
-          exit 1
-        fi
+        "$GITHUB_ACTION_PATH/verify-tarball.sh" "$tarball"
         sudo install -d -o "$USER" -g "$(id -gn)" /nix
         tar -xJf "$tarball" -C "$RUNNER_TEMP"
         "$RUNNER_TEMP/nix-$NIX_VERSION-x86_64-linux/install" --no-daemon --no-channel-add --no-modify-profile
@@ -65,7 +62,8 @@ runs:
 
     # Only these settings: require-sigs, trusted-public-keys and
     # accept-flake-config stay at their defaults, so every path from the store
-    # cache must carry cache.nixos.org's signature.
+    # cache must carry cache.nixos.org's signature. The global flake registry
+    # is off: CI resolves nixpkgs only through flake.lock (--inputs-from .).
     - name: Configure Nix
       shell: bash
       env:
@@ -73,7 +71,10 @@ runs:
       run: |
         set -euo pipefail
         mkdir -p "$HOME/.config/nix"
-        echo "experimental-features = nix-command flakes" > "$HOME/.config/nix/nix.conf"
+        {
+          echo "experimental-features = nix-command flakes"
+          echo "flake-registry ="
+        } > "$HOME/.config/nix/nix.conf"
         if [ "$STORE_CACHE" = "true" ]; then
           echo "extra-substituters = file://$HOME/.cache/restlos/nix-store?priority=10" >> "$HOME/.config/nix/nix.conf"
         fi
@@ -88,12 +89,4 @@ runs:
 
     - name: Check the Nix version against flake.lock
       shell: bash
-      run: |
-        set -euo pipefail
-        installed="$(nix --version | awk '{print $NF}')"
-        expected="$(nix eval --raw --inputs-from . nixpkgs#nix.version)"
-        if [ "$installed" != "$expected" ]; then
-          echo "::error title=Nix version::flake.lock ships Nix $expected, the action installs $installed. Update NIX_VERSION and NIX_TARBALL_SHA256 in .github/actions/nix/action.yml (dependency-update skill, step 8)."
-          exit 1
-        fi
-        echo "Nix $installed, as flake.lock's nixpkgs ships."
+      run: '"$GITHUB_ACTION_PATH/check-version.sh"'

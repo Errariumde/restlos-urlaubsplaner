@@ -1,0 +1,346 @@
+# SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
+# SPDX-License-Identifier: EUPL-1.2
+
+# TEMPORARY: the experiments of docs/superpowers/specs/2026-10-24-ci-design.md,
+# run on real runners before the CI branch is finished; removed in Task 8 of
+# docs/superpowers/plans/2026-10-24-ci.md. Each probe writes
+# "| id | PASS or FAIL | detail |" rows to the run's summary.
+# cache-mode is set per job: a called workflow can't get more cache access
+# than its caller, and the seed job must write.
+name: ci-experiments
+
+on:
+  push:
+    branches: [ci]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  seed:
+    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/seed-cache.yml
+
+  warm-check:
+    needs: seed
+    uses: ./.github/workflows/check.yml
+
+  # E2: a warm run needs neither cache.nixos.org nor releases.nixos.org.
+  probe-offline:
+    needs: seed
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    cache-mode: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Block the NixOS hosts
+        run: |
+          for host in cache.nixos.org releases.nixos.org channels.nixos.org; do
+            printf '0.0.0.0 %s\n:: %s\n' "$host" "$host"
+          done | sudo tee -a /etc/hosts
+      - id: setup
+        continue-on-error: true
+        uses: ./.github/actions/nix
+      - id: develop
+        if: steps.setup.outcome == 'success'
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          nix develop .#ci --command true 2>&1 | tee "$RUNNER_TEMP/develop.log"
+      - name: Report
+        if: always()
+        run: |
+          log="$RUNNER_TEMP/develop.log"; touch "$log"
+          built="$(sed -n "s/^building '\/nix\/store\/[a-z0-9]*-\(.*\)'.*/\1/p" "$log" | paste -sd, -)"
+          https="$(grep -c "from 'https://" "$log" || true)"
+          result=FAIL
+          [ "${{ steps.setup.outcome }}" = success ] && [ "${{ steps.develop.outcome }}" = success ] && [ "$https" = 0 ] && result=PASS
+          {
+            echo "| id | result | detail |"; echo "| --- | --- | --- |"
+            echo "| E2 | $result | setup ${{ steps.setup.outcome }}, nix develop ${{ steps.develop.outcome }}; built: ${built:-nothing}; copied from https: $https |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # E4: the nixpkgs source comes from the store cache, not from GitHub.
+  probe-offline-github:
+    needs: seed
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    cache-mode: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Block the NixOS hosts and GitHub
+        run: |
+          for host in cache.nixos.org releases.nixos.org channels.nixos.org github.com api.github.com codeload.github.com; do
+            printf '0.0.0.0 %s\n:: %s\n' "$host" "$host"
+          done | sudo tee -a /etc/hosts
+      - id: setup
+        continue-on-error: true
+        uses: ./.github/actions/nix
+      - id: develop
+        if: steps.setup.outcome == 'success'
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          nix develop .#ci --command true 2>&1 | tee "$RUNNER_TEMP/develop.log"
+      - name: Report
+        if: always()
+        run: |
+          result=FAIL
+          [ "${{ steps.setup.outcome }}" = success ] && [ "${{ steps.develop.outcome }}" = success ] && result=PASS
+          {
+            echo "| id | result | detail |"; echo "| --- | --- | --- |"
+            echo "| E4 | $result | setup (includes the version check, which evaluates nixpkgs) ${{ steps.setup.outcome }}, nix develop ${{ steps.develop.outcome }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # E3: tampered cache entries and a changed tarball are refused.
+  probe-tamper:
+    needs: seed
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    cache-mode: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/nix
+      - name: Tamper and try
+        run: |
+          set +e -u
+          cache="$HOME/.cache/restlos/nix-store"
+          row() { echo "| $1 | $2 | $3 |" >> "$GITHUB_STEP_SUMMARY"; }
+          { echo "| id | result | detail |"; echo "| --- | --- | --- |"; } >> "$GITHUB_STEP_SUMMARY"
+          field() { sed -n "s/^$1: //p" "$2"; }
+          # The smallest signed path, and the nixpkgs source (content-addressed).
+          signed="$(for f in "$cache"/*.narinfo; do grep -q '^Sig: cache.nixos.org-1:' "$f" && echo "$(field FileSize "$f") $f"; done | sort -n | head -1 | cut -d' ' -f2)"
+          source="$(for f in "$cache"/*.narinfo; do grep -q '^CA: ' "$f" && field StorePath "$f" | grep -q -- '-source$' && echo "$f"; done | head -1)"
+          # Copy the cache, change one byte in the middle of a NAR, recompress, and fix the file hash and size, as an attacker would.
+          flip_nar() { # copy, narinfo name
+            local narinfo="$1/$2" url nar
+            url="$(field URL "$narinfo")"; nar="$1/$url"
+            zstd -q -d "$nar" -o "$nar.raw" && rm "$nar"
+            python3 -c 'import sys; p=sys.argv[1]; b=bytearray(open(p,"rb").read()); b[len(b)//2]^=1; open(p,"wb").write(b)' "$nar.raw"
+            zstd -q "$nar.raw" -o "$nar" && rm "$nar.raw"
+            sed -i -e "s|^FileHash: .*|FileHash: sha256:$(nix-hash --type sha256 --flat --base32 "$nar")|" -e "s|^FileSize: .*|FileSize: $(stat -c %s "$nar")|" "$narinfo"
+          }
+          # Refused means: nix copy fails and the path is not in the fresh store afterwards.
+          try() { # name, copy, narinfo, expect accepted (yes/no)
+            local path out status present
+            path="$(field StorePath "$2/$(basename "$3")")"
+            out="$(nix copy --from "file://$2" --to "$RUNNER_TEMP/store-$1" "$path" 2>&1)"; status=$?
+            nix path-info --store "$RUNNER_TEMP/store-$1" "$path" >/dev/null 2>&1 && present=yes || present=no
+            msg="$(tail -1 <<<"$out" | cut -c1-140)"
+            if [ "$4" = yes ] && [ $status -eq 0 ] && [ $present = yes ]; then
+              row E3 PASS "$1: accepted, as it must be"
+            elif [ "$4" = no ] && [ $status -ne 0 ] && [ $present = no ]; then
+              row E3 PASS "$1: refused: $msg"
+            else
+              row E3 FAIL "$1: exit $status, present $present: $msg"
+            fi
+          }
+          if [ -z "$signed" ] || [ -z "$source" ]; then row E3 FAIL "no signed path ($signed) or no -source path ($source) in the store cache"; exit 0; fi
+          for name in control nar narhash sig source; do cp -r "$cache" "$RUNNER_TEMP/cache-$name"; done
+          n="$(basename "$signed")"; s="$(basename "$source")"
+          flip_nar "$RUNNER_TEMP/cache-nar" "$n"
+          # The first character of the NAR hash changes (0 becomes 1, anything else 0).
+          sed -i -E 's/^(NarHash: sha256:)0/\11/; t; s/^(NarHash: sha256:)./\10/' "$RUNNER_TEMP/cache-narhash/$n"
+          sed -i '/^Sig:/d' "$RUNNER_TEMP/cache-sig/$n"
+          flip_nar "$RUNNER_TEMP/cache-source" "$s"
+          try control "$RUNNER_TEMP/cache-control" "$signed" yes
+          try nar "$RUNNER_TEMP/cache-nar" "$signed" no
+          try narhash "$RUNNER_TEMP/cache-narhash" "$signed" no
+          try sig "$RUNNER_TEMP/cache-sig" "$signed" no
+          try source "$RUNNER_TEMP/cache-source" "$source" no
+          # The tarball: a changed copy must fail the action's own check.
+          tarball="$HOME/.cache/restlos/nix-installer/nix-$NIX_VERSION-x86_64-linux.tar.xz"
+          cp "$tarball" "$RUNNER_TEMP/changed.tar.xz" && printf 'X' >> "$RUNNER_TEMP/changed.tar.xz"
+          if .github/actions/nix/verify-tarball.sh "$RUNNER_TEMP/changed.tar.xz" >/dev/null 2>&1; then
+            row E3 FAIL "changed tarball accepted"
+          elif .github/actions/nix/verify-tarball.sh "$tarball"; then
+            row E3 PASS "tarball: changed copy refused, original accepted"
+          else
+            row E3 FAIL "tarball: the original fails its own check"
+          fi
+
+  # Review Focus 2: a changed dev shell takes what still matches from the old cache entry.
+  probe-changed-shell:
+    needs: seed
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    cache-mode: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Add hello to the CI shell
+        run: |
+          sed -i 's/^\( *\)nodejs_24$/\1nodejs_24\n\1hello/' flake.nix
+          grep -n 'hello' flake.nix
+      - uses: ./.github/actions/nix
+      - id: develop
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          nix develop .#ci --command hello 2>&1 | tee "$RUNNER_TEMP/develop.log"
+      - name: Report
+        if: always()
+        run: |
+          log="$RUNNER_TEMP/develop.log"; touch "$log"
+          https="$(sed -n "s/^copying path '\/nix\/store\/[a-z0-9]*-\([^']*\)' from 'https.*/\1/p" "$log" | paste -sd, -)"
+          filecache="$(grep -c "from 'file://" "$log" || true)"
+          result=FAIL
+          [ "${{ steps.develop.outcome }}" = success ] && grep -q 'Hello, world!' "$log" && result=PASS
+          {
+            echo "| id | result | detail |"; echo "| --- | --- | --- |"
+            echo "| RF2 | $result | nix develop ${{ steps.develop.outcome }}; from the file cache: $filecache paths; from cache.nixos.org: ${https:-none} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Review Focus 3: the version check names what to update.
+  probe-version-guard:
+    needs: seed
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    cache-mode: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/nix
+      - name: Run the check with a Nix that reports another version
+        run: |
+          set +e
+          mkdir -p "$RUNNER_TEMP/fake"
+          # shellcheck disable=SC2016 # the fake nix's own $1 and $@
+          printf '#!/bin/sh\nif [ "$1" = --version ]; then echo "nix (Nix) 2.0.0"; else exec "%s" "$@"; fi\n' "$(command -v nix)" > "$RUNNER_TEMP/fake/nix"
+          chmod +x "$RUNNER_TEMP/fake/nix"
+          out="$(PATH="$RUNNER_TEMP/fake:$PATH" .github/actions/nix/check-version.sh 2>&1)"; status=$?
+          result=FAIL
+          [ $status -ne 0 ] && grep -q 'Update NIX_VERSION and NIX_TARBALL_SHA256' <<<"$out" && result=PASS
+          {
+            echo "| id | result | detail |"; echo "| --- | --- | --- |"
+            echo "| RF3 | $result | exit $status: $(tail -1 <<<"$out" | cut -c1-160) |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # P: the perf gate's counts on runners against the checked-in baseline.
+  perf-sample:
+    needs: seed
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    cache-mode: read
+    strategy:
+      fail-fast: false
+      matrix:
+        sample: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/nix
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.npm
+          key: ${{ env.NPM_CACHE_KEY }}
+          restore-keys: npm-
+      - name: Count
+        run: |
+          set -o pipefail
+          cpu="$(lscpu | sed -n 's/^Model name: *//p')"
+          nix develop .#ci --command sh -c 'npm ci --prefer-offline && npm run perf' 2>&1 | tee "$RUNNER_TEMP/perf.log" || true
+          {
+            echo "P sample ${{ matrix.sample }}: $cpu, $(nproc) cores"
+            echo '```'
+            grep -E '^(perf:|FAIL)' "$RUNNER_TEMP/perf.log" || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # E5 on push: a write job can save, a read job can't.
+  probe-cache-write:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    cache-mode: write
+    steps:
+      - run: mkdir -p ~/probe && date > ~/probe/stamp
+      - continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/probe
+          key: probe-write-${{ github.run_id }}-${{ github.run_attempt }}
+
+  probe-cache-read:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    cache-mode: read
+    steps:
+      - run: mkdir -p ~/probe && date > ~/probe/stamp
+      - id: save
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/probe
+          key: probe-read-${{ github.run_id }}-${{ github.run_attempt }}
+      - run: echo "save step outcome ${{ steps.save.outcome }}" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  probe-cache-lookup:
+    needs: [probe-cache-write, probe-cache-read]
+    if: always() && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    cache-mode: read
+    steps:
+      - id: write
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/probe
+          key: probe-write-${{ github.run_id }}-${{ github.run_attempt }}
+          lookup-only: true
+      - id: read
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/probe
+          key: probe-read-${{ github.run_id }}-${{ github.run_attempt }}
+          lookup-only: true
+      - name: Report
+        run: |
+          w="${{ steps.write.outputs.cache-hit }}"; r="${{ steps.read.outputs.cache-hit }}"
+          result=FAIL; [ "$w" = true ] && [ "$r" != true ] && result=PASS
+          {
+            echo "| id | result | detail |"; echo "| --- | --- | --- |"
+            echo "| E5 push | $result | write job's entry found: ${w:-false}; read job's entry found: ${r:-false} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # E5 on the pull request: a read job's save creates nothing.
+  probe-cache-pr:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    cache-mode: read
+    steps:
+      - run: mkdir -p ~/probe && date > ~/probe/stamp
+      - id: save
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/probe
+          key: probe-pr-${{ github.run_id }}-${{ github.run_attempt }}
+      - id: lookup
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/probe
+          key: probe-pr-${{ github.run_id }}-${{ github.run_attempt }}
+          lookup-only: true
+      - name: Report
+        run: |
+          hit="${{ steps.lookup.outputs.cache-hit }}"
+          result=FAIL; [ "$hit" != true ] && result=PASS
+          {
+            echo "| id | result | detail |"; echo "| --- | --- | --- |"
+            echo "| E5 PR | $result | save step ${{ steps.save.outcome }}; entry found afterwards: ${hit:-false} |"
+          } >> "$GITHUB_STEP_SUMMARY"
