@@ -693,7 +693,7 @@ In the HTML's `<meta>` tag (GitHub Pages cannot set custom HTTP headers):
 
 Recommendation: everything runs locally with one command; GitHub Actions only runs the same commands, as rarely as possible, with a cache for all downloads and minimal permissions. This way neither the npm registry nor any other server is hit again on every run, and the project stays buildable without GitHub.
 
-**Local (NixOS):** a Nix flake with a dev environment (Node.js LTS with npm ≥ 11.10, Typst, Python for the python-holidays reference, Playwright browsers, Firefox ESR for the manual test, Valgrind on Linux for the performance gate). `nix develop`, then `npm ci`, `npm run check`, `npm run build`. `npm run plan -- <file>` prints what the engine reads and computes for a plan file or rule set. `npm run perf` runs the performance gate; `npm run check` includes it. The flake lock file pins all tools; the README explains the commands for Nix beginners.
+**Local (NixOS):** a Nix flake with a dev environment (Node.js LTS with npm ≥ 11.10, Typst, Python for the python-holidays reference, Playwright browsers, Firefox ESR for the manual test, Valgrind on Linux for the performance gate). `nix develop`, then `npm ci`, `npm run check`, `npm run build`. `npm run plan -- <file>` prints what the engine reads and computes for a plan file or rule set. `npm run perf` runs the performance gate; `npm run check` includes it. The flake lock file pins all tools; the README explains the commands for Nix beginners. CI uses a second, smaller shell, `devShells.ci` (`nix develop .#ci`), with only what `check` needs: Node.js, Valgrind and REUSE.
 
 **GitHub Free, public repository:** standard runners are free ([GitHub docs](https://docs.github.com/billing/managing-billing-for-your-products/managing-billing-for-github-actions)), GitHub Pages is available ([GitHub plans](https://docs.github.com/en/get-started/learning-about-github/githubs-plans)). Free doesn't mean unlimited: runs are still kept sparse.
 
@@ -701,30 +701,35 @@ Recommendation: everything runs locally with one command; GitHub Actions only ru
 
 | Workflow | Trigger | Content |
 | --- | --- | --- |
-| `check` | push to `main`, pull requests; only on changes to code, data, lockfile or workflow (path filter) | `npm ci`, lint, REUSE check, type check, Vitest, performance gate, build, size check |
+| `check` | push to `main`, pull requests; always the full check, without a path filter (a required check whose workflow a path filter skipped stays pending and blocks the merge) | inside `nix develop .#ci`: NixOS release check, `npm ci`, lint, REUSE check, type check, Vitest, performance gate, build, size check |
+| `seed-cache` | pushes to `main` that change `flake.nix`, `flake.lock`, `package-lock.json`, `.npmrc` or the Nix action; weekly; by hand | the only workflow that writes caches: the Nix tarball, the Nix store cache and the npm cache, each fetched fresh from upstream; a separate read-only job runs the NixOS release check, so a failed weekly run reports an outdated release |
 | `templates` | only on changes to templates or the Typst version | compile templates × DE/EN with the pinned Typst version |
 | `e2e` | pull requests with the label `e2e`, before every release, otherwise once a week only if there were commits since the last run | Playwright in Firefox, Chromium, WebKit |
 | `release` | manual (tag) | build; create a draft GitHub Release, attach standard and Pro HTML, `SHA256SUMS` and the SPDX bill of materials, then publish it (immutable release); Pages version (web app) on GitHub Pages |
 | Dependency Review | pull requests that change the lockfile | GitHub's own `dependency-review-action` reports new packages and known vulnerabilities |
 
+**NixOS release check:** `npm run nixos-release` reads the release branch from `flake.lock`. NixOS supports a YY.05 release until 31 December and a YY.11 release until 30 June of the next year; its successor comes out about a month earlier. From the 1st of that last month CI warns that the successor is due; from the 16th, or for a branch that isn't a release branch, it fails, so the project moves while the old release is still supported.
+
 ### Consideration for upstream sources (caching)
 
-- **npm packages:** cache via `actions/cache/restore` and `actions/cache/save` (saving only on `main`), the key is the hash of `package-lock.json`. Registry access only happens when the lockfile changes.
+- **Nix:** the release tarball of the pinned Nix version (the one the pinned nixpkgs ships) is cached with the version as key and checked against a SHA-256 pinned in `.github/actions/nix/action.yml` before it is installed. The dev shell comes from a `file://` binary cache kept in GitHub's cache, keyed on `flake.lock`, `flake.nix` and the action. `nix copy` keeps cache.nixos.org's signatures in it, so Nix checks every path against the `cache.nixos.org-1` key as it would on download; the shell's own `-env` output is rebuilt. cache.nixos.org is the fallback on a miss.
+- **npm packages:** `~/.npm` is cached with the hash of `package-lock.json` as key; `check` restores it and runs `npm ci --prefer-offline`, which checks every package against the `integrity` in the lockfile. Registry access only happens when the lockfile changes.
 - **Playwright browsers:** cached with the Playwright version as key; only WebKit system packages are installed if needed.
 - **Typst CLI:** official release binary of a fixed version, checksum checked against a checked-in value, cached with the version as key.
-- **REUSE tool:** `reuse` is installed with `pip install --require-hashes -r` from a checked-in, hash-pinned requirements file; the pip cache is keyed on the hash of that file. Like the Typst CLI, without a third-party action.
+- **REUSE tool:** comes from the dev shell (nixpkgs), like Node.js and Valgrind.
 - **No fetching of external holiday sources in CI:** date-holidays comes from the npm cache, the python-holidays reference is checked in.
-- **Dependabot:** once a month, grouped into one pull request, `cooldown` 14 days; GitHub Actions as a second ecosystem, also monthly. `@playwright/test` is excluded (pinned to nixpkgs, see supply chain).
-- **No pointless runs:** `concurrency` with `cancel-in-progress` cancels outdated runs of the same branch; path filters; no matrix over several Node versions (the app runs in the browser, Node is only for building); short `timeout-minutes`; no automatic retries.
+- **Dependabot:** once a month, grouped into one pull request, `cooldown` 14 days; GitHub Actions as a second ecosystem and Nix (`flake.lock`) as a third, also monthly. Dependabot keeps nixpkgs on its release branch; moving to the next release is a manual change in `flake.nix` (see the NixOS release check). `@playwright/test` is excluded (pinned to nixpkgs, see supply chain).
+- **No pointless runs:** `concurrency` with `cancel-in-progress` cancels outdated runs of the same branch; path filters for `templates` and Dependency Review (not for `check`, see Workflows); no matrix over several Node versions (the app runs in the browser, Node is only for building); short `timeout-minutes`; no automatic retries.
 - **Artifacts:** only the build result of `check`, with 3 days retention; releases live in GitHub Releases.
 
 ### Workflow security
 
-- Only actions from GitHub itself (`actions/checkout`, `actions/setup-node`, `actions/cache`, `actions/upload-artifact`, `actions/dependency-review-action`, `actions/attest-build-provenance`, Pages actions), each pinned by **commit SHA**; Dependabot keeps the SHAs current. The repository settings enforce both: only actions created by GitHub are allowed, and a workflow using an action that isn't pinned to a full-length commit SHA doesn't start. Tools without an official GitHub action (Typst CLI, `reuse`) are installed with checksum or hash pinning (see caching).
+- Only actions from GitHub itself (`actions/checkout`, `actions/cache`, `actions/upload-artifact`, `actions/dependency-review-action`, `actions/attest-build-provenance`, Pages actions), each pinned by **commit SHA**, plus the repository's own composite action `.github/actions/nix`; Dependabot keeps the SHAs current. The repository settings enforce both: only actions created by GitHub are allowed, and a workflow using an action that isn't pinned to a full-length commit SHA doesn't start. Tools without an official GitHub action (Nix, Typst CLI) are installed with checksum pinning (see caching).
 - `permissions: contents: read` as the default at workflow level; only `release` gets `contents: write`, `pages: write`, `id-token: write` and `attestations: write`.
 - `actions/checkout` with `persist-credentials: false`.
 - No `pull_request_target` (for public repositories GitHub blocks it by default from 2 November 2026, [workflow execution protections](https://github.blog/changelog/2026-09-17-workflow-execution-protections-in-github-actions-generally-available/)), no secrets, nothing is published to npm.
-- **Avoid cache poisoning** (the route of the TanStack attack): caches are only written by runs on `main`; pull request runs only read. Pull requests from forks only run after approval (setting "Require approval for all external contributors").
+- **Avoid cache poisoning** (the route of the TanStack attack): caches are written only by the `seed-cache` workflow, which restores nothing, takes everything fresh from upstream and runs no project or pull-request code. Every other workflow sets `cache-mode: read` (Dependency Review: `none`), which GitHub enforces with scoped tokens. Pull requests from forks only run after approval (setting "Require approval for all external contributors").
+- **Nix:** installed single-user (`--no-daemon`) from the hash-checked tarball. `require-sigs` and `trusted-public-keys` stay at their defaults (only `cache.nixos.org-1`); never `trusted=true`, `--no-check-sigs` or `accept-flake-config`. The installed version must equal the one the pinned nixpkgs ships; otherwise the job fails and names the two values to update.
 - Rulesets protect `main` (pull request and green `check` required) and the release tags; details under "Repository settings on GitHub".
 - `npm ci` with `ignore-scripts` and `min-release-age` from the checked-in `.npmrc` applies in CI just as locally.
 
