@@ -26,7 +26,7 @@ SPDX-License-Identifier: CC-BY-4.0
 | --- | --- | --- |
 | now | | review this plan |
 | then | Tasks 1–6: build tool, the four test pages, the `.ics` files, the two issues | |
-| round 1 | | steps Y1–Y5, roughly 1½ hours: run each page in the three browsers, the Thunderbird steps, paste the results |
+| round 1 | | steps Y1–Y5, roughly 2½–3 hours (about 80 blocks to copy; one session per browser, one for Thunderbird): run each page in the three browsers, the Thunderbird steps, paste the results |
 | then | Task 7: results into the design, concept into the spec; Task 8: delete the test code | |
 
 A second round is needed only if a result is unclear or contradicts the research; then I ask for the one check to repeat.
@@ -410,7 +410,7 @@ Expected: PASS
 ### Round 1: your steps
 
 - [ ] **Y1:** `npm run feasibility` in the dev shell.
-- [ ] **Y2:** T1, T2, T3 in Firefox ESR, Firefox and Chromium as `feasibility/README.md` describes; T2b in each with `python3 -m http.server`. Copy each page's results into the chat (several pages per message is fine).
+- [ ] **Y2:** T1, T2, T3 in Firefox ESR, Firefox and Chromium as `feasibility/README.md` describes; T2b in each with `python3 -m http.server`. Together with Y3 about 2½–3 hours: one session per browser and one for Y3; collect the copied blocks in a local text file and paste them into the chat once per browser or once per test.
 - [ ] **Y3:** T4 in Thunderbird and Nextcloud, I1–I4; paste the filled table.
 - [ ] **Y4:** Anything that looked odd, in a sentence.
 - [ ] **Y5:** The CPU model, if no page asked for it.

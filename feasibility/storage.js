@@ -526,6 +526,10 @@ async function main() {
   await probe("S7-available", async () => s7Availability());
   await probe("S7-kept-on-load", keptHandleQuery);
   await probe("S8-drop-zone", async () => setUpDrop());
+  record("done", "done", `the load checks finished at ${now()}; later rows come only from your actions`);
 }
 
-void main();
+main().catch((error) => {
+  record("main-error", "error", `${errorText(error)}; the checks after the failing one did not run`);
+  record("done", "done", `the load checks ended at ${now()} with the error in main-error`);
+});

@@ -4,7 +4,7 @@
 // T2 and T2b (feasibility/README.md): CSP via <meta>, keyboard shortcuts, dropped files, the Pages policy.
 // Follows results.js in the same inline script. Every check runs inside a probe, one after the other, so a violation
 // that arrives shortly after an action can be attributed to it.
-/* global document, navigator, location, window, getComputedStyle, Blob, URL, Image, FontFace, WebAssembly, DecompressionStream, TextDecoder, XMLHttpRequest, fetch, Worker, setTimeout, atob, isSecureContext, Node, Element, record, observe, probe */
+/* global document, navigator, location, window, getComputedStyle, Blob, URL, URLSearchParams, Image, FontFace, WebAssembly, DecompressionStream, TextDecoder, XMLHttpRequest, fetch, Worker, setTimeout, clearTimeout, atob, isSecureContext, Node, Element, record, observe, probe */
 
 const byId = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -44,15 +44,25 @@ function showViolations() {
   record("violations", `${violations.length} violation(s), in order`, text);
 }
 
-/** Runs action, waits for late violation events and returns what happened and which violations came meanwhile. */
-async function watch(action, settleMs = 200) {
+/**
+ * Runs action, waits for late violation events and returns what happened and which violations came meanwhile.
+ * An action that neither returns nor throws within timeoutMs counts as failed, so one hanging check never stops the
+ * others.
+ */
+async function watch(action, settleMs = 200, timeoutMs = 5000) {
   const from = violations.length;
   let outcome;
   let error = null;
+  let timer;
+  const timeout = new Promise((resolve, reject) => {
+    timer = setTimeout(() => reject(new Error(`timeout: no result within ${timeoutMs / 1000} s`)), timeoutMs);
+  });
   try {
-    outcome = await action();
+    outcome = await Promise.race([action(), timeout]);
   } catch (thrown) {
     error = thrown;
+  } finally {
+    clearTimeout(timer);
   }
   await sleep(settleMs);
   return { outcome, error, seen: violations.slice(from) };
@@ -109,6 +119,8 @@ const xhrOf = (url) => () =>
     const request = new XMLHttpRequest();
     request.onload = () => resolve(`status ${request.status}, ${request.responseText.length} characters`);
     request.onerror = () => reject(new Error("XMLHttpRequest error event"));
+    request.onabort = () => reject(new Error("XMLHttpRequest abort event"));
+    request.ontimeout = () => reject(new Error("XMLHttpRequest timeout event"));
     request.open("GET", url);
     request.send();
   });
@@ -204,6 +216,12 @@ async function c5() {
   });
 }
 
+// The form probe submits a GET form to this page itself with this field: a load that has it in its query arrived
+// through the form, so form-action did not block it. (A data: URL target would measure the browser's block of
+// top-level data: navigations instead of form-action.)
+const FORM_FIELD = "form-probe";
+const arrivedByForm = () => new URLSearchParams(location.search).get(FORM_FIELD) === "1";
+
 /** The form probe may leave the page, so it has its own button, placed below the results table (README: after "Copy results"). */
 function addFormProbe() {
   const section = document.createElement("section");
@@ -214,17 +232,22 @@ function addFormProbe() {
   button.textContent = "Run the form probe last (may leave the page)";
   button.addEventListener("click", async () => {
     button.disabled = true;
-    record("C5-form", "started", "if this page navigated away, the form was submitted and the rows are gone");
+    record("C5-form", "started", `if this page reloads with ?${FORM_FIELD}=1, the form was submitted: see the row C5-form-arrived there`);
     const form = document.createElement("form");
-    form.action = "data:text/plain,x";
+    form.action = location.pathname;
     form.method = "get";
+    const field = document.createElement("input");
+    field.type = "hidden";
+    field.name = FORM_FIELD;
+    field.value = "1";
+    form.appendChild(field);
     document.body.appendChild(form);
     const w = await watch(() => form.requestSubmit(), 600);
     const violated = hasDirective(w.seen, "form-action");
     record(
       "C5-form",
       w.error !== null ? "failed-other" : violated ? "blocked" : "allowed",
-      `form-action violation: ${violated ? "yes" : "no"}; ${w.error === null ? "requestSubmit() returned" : errorText(w.error)}; ${describeAll(w.seen)}`,
+      `target ${form.action}; form-action violation: ${violated ? "yes" : "no"}; ${w.error === null ? "requestSubmit() returned" : errorText(w.error)}; ${describeAll(w.seen)}${violated ? "" : `; if the page reloads with ?${FORM_FIELD}=1, see C5-form-arrived there`}`,
     );
   });
   section.append(heading, button);
@@ -426,12 +449,16 @@ async function p1() {
     return { result: controller ? "controlled" : "not controlled", details: controller ? `controller script ${controller.scriptURL}` : "this load was not served through a service worker (expected on the first load)" };
   });
   await probe("P1-service-worker", async () => {
-    const w = await watch(async () => {
-      const registration = await navigator.serviceWorker.register("sw.js");
-      const ready = await Promise.race([navigator.serviceWorker.ready, sleep(10000).then(() => null)]);
-      if (ready === null) throw new Error("timeout: navigator.serviceWorker.ready did not resolve within 10 s");
-      return `scope ${registration.scope}`;
-    });
+    const w = await watch(
+      async () => {
+        const registration = await navigator.serviceWorker.register("sw.js");
+        const ready = await Promise.race([navigator.serviceWorker.ready, sleep(10000).then(() => null)]);
+        if (ready === null) throw new Error("timeout: navigator.serviceWorker.ready did not resolve within 10 s");
+        return `scope ${registration.scope}`;
+      },
+      200,
+      15000,
+    );
     const violated = hasDirective(w.seen, "worker-src");
     if (w.error === null) return { result: "allowed", details: `${String(w.outcome)}; worker-src violation: ${violated ? "yes" : "no"}; ${describeAll(w.seen)}` };
     return { result: violated ? "blocked" : "failed-other", details: `${errorText(w.error)}; worker-src violation: ${violated ? "yes" : "no"}; ${describeAll(w.seen)}` };
@@ -458,6 +485,9 @@ async function p1() {
 async function main() {
   window.onCspViolation = showViolations;
   showViolations();
+  if (arrivedByForm()) {
+    record("C5-form-arrived", "allowed", `the form navigated (this load's query is ${JSON.stringify(location.search)}); form-action did not block it`);
+  }
   if (location.protocol === "http:") wireManifestMessages();
   addFormProbe();
   wireKeys();
@@ -482,4 +512,5 @@ async function c2Probes() {
 
 main().catch((error) => {
   record("main-error", "error", `${errorText(error)}; the checks after the failing one did not run`);
+  record("done", "done", `the automatic checks ended at ${new Date().toISOString()} with the error in main-error`);
 });

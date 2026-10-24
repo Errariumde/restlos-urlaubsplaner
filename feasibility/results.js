@@ -15,8 +15,16 @@ function ensureTable() {
   const button = document.createElement("button");
   button.type = "button";
   button.textContent = "Copy results";
+  // Says whether the copy worked, so a silent clipboard failure can't lead to pasting the previous block.
+  const status = document.createElement("span");
+  status.setAttribute("role", "status");
+  const manual = document.createElement("textarea");
+  manual.readOnly = true;
+  manual.rows = 8;
+  manual.style.width = "100%";
+  manual.hidden = true;
   button.addEventListener("click", () => {
-    copyText(resultsMarkdown());
+    void copyResults(status, manual);
   });
   resultTable = document.createElement("table");
   resultTable.border = "1";
@@ -27,7 +35,7 @@ function ensureTable() {
     head.appendChild(cell);
   }
   resultTable.createTBody();
-  section.append(button, resultTable);
+  section.append(button, " ", status, manual, resultTable);
   document.body.appendChild(section);
   return resultTable;
 }
@@ -103,7 +111,7 @@ function resultsMarkdown() {
     `## ${file}`,
     "",
     `User agent: ${navigator.userAgent}`,
-    `Date: ${new Date().toLocaleString()}`,
+    `Date: ${new Date().toISOString()}`,
     "",
     "| Id | Result | Details |",
     "| --- | --- | --- |",
@@ -114,25 +122,49 @@ function resultsMarkdown() {
   return lines.join("\n");
 }
 
-function copyText(text) {
-  const fallback = () => {
-    const area = document.createElement("textarea");
-    area.value = text;
-    document.body.appendChild(area);
-    area.select();
-    let copied;
+/** Copies text with the Clipboard API, or else with execCommand("copy"); throws when neither worked. */
+async function copyText(text) {
+  let clipboardError = "navigator.clipboard.writeText is missing";
+  if (navigator.clipboard !== undefined && typeof navigator.clipboard.writeText === "function") {
     try {
-      copied = document.execCommand("copy");
-    } catch {
-      copied = false;
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch (error) {
+      clipboardError = `navigator.clipboard.writeText: ${error instanceof Error ? `${error.name}: ${error.message}` : String(error)}`;
     }
-    if (copied) area.remove(); // otherwise the text stays selected for a manual copy
-  };
-  if (navigator.clipboard === undefined || typeof navigator.clipboard.writeText !== "function") {
-    fallback();
-    return;
   }
-  navigator.clipboard.writeText(text).catch(fallback);
+  const area = document.createElement("textarea");
+  area.value = text;
+  document.body.appendChild(area);
+  area.select();
+  let copied;
+  try {
+    copied = document.execCommand("copy");
+  } catch {
+    copied = false;
+  } finally {
+    area.remove();
+  }
+  if (!copied) throw new Error(`${clipboardError}; document.execCommand("copy") failed too`);
+}
+
+/** "Copy results": on success the status names the rows and the time; on failure it shows the error and selects the text for a manual copy. */
+async function copyResults(status, manual) {
+  const text = resultsMarkdown();
+  const rows = resultRows.size;
+  status.textContent = "copying …";
+  try {
+    await copyText(text);
+    manual.hidden = true;
+    manual.value = "";
+    status.textContent = `copied ${rows} rows at ${new Date().toISOString()}`;
+  } catch (error) {
+    status.textContent = `COPY FAILED at ${new Date().toISOString()} (${error instanceof Error ? error.message : String(error)}): the ${rows} rows are selected in the box below, copy them with Ctrl+C`;
+    manual.value = text;
+    manual.hidden = false;
+    manual.focus();
+    manual.select();
+  }
 }
 
 window.record = record;
