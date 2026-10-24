@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # restlos-urlaubsplaner – Specification (single-file HTML)
 
-As of: 2026-10-17
+As of: 2026-10-19
 
 ## Goals and scope
 
@@ -68,7 +68,7 @@ Recommendation: two distribution channels from the same build. A **downloadable 
 **Consequences of `file://` for the design**
 
 - No `fetch()` on local files: holiday data, fonts and WASM are embedded inline. The user's files only come in via the file picker or drag and drop.
-- Saving: in Chrome/Edge the app writes directly back into the opened file via the File System Access API; Firefox and Safari don't have this interface ([web.dev](https://web.dev/articles/files/save-a-file)), there the file is downloaded, with the name of the opened file as suggestion. For Firefox, the help explains the setting "Always ask you where to save files": a save dialog then appears in which the original file can be overwritten, instead of collecting copies like "(1)" in the download folder. On the phone via download or the share menu.
+- Saving: in Chrome/Edge the app writes directly back into the opened file via the File System Access API; Firefox and Safari don't have this interface ([web.dev](https://web.dev/articles/files/save-a-file)), there the file is downloaded, with the name of the opened file and the new revision as suggestion (see File operations). For Firefox, the help explains the setting "Always ask you where to save files": a save dialog then appears in which the original file can be overwritten, instead of collecting copies like "(1)" in the download folder. On the phone via download or the share menu.
 - Browser storage (`localStorage`) is unreliable: depending on the browser, all local HTML files share one storage or each path has its own (feasibility test). Keys with the prefix `urlaubsplaner:v1:`; with empty storage, the app offers to import a `.einstellungen.json`; the plan file is the source of truth. The GitHub Pages version has its own, stable storage (own origin), separate from the downloaded file.
 - No network access at runtime; the service worker of the Pages version only loads the app's own files.
 
@@ -112,13 +112,13 @@ After choosing the federal state, only its local rules appear, phrased as "appli
 
 ### Multiple calendar sources (iCal)
 
-Each imported file becomes a **calendar source**:
+A **calendar source** is a named list of days with a type and a color. It is imported once from an iCal file or another plan file, or created by hand (e.g. the closure days of a Kita from a PDF), and is stored only as its entries: a date, or a repeating `match` in the day-rule format (see Format). No iCal text is kept and no time zone is stored.
 
 | Setting | Values |
 | --- | --- |
 | Name | free, e.g. "Company 2027", "Leave 2026" |
-| Type | Holiday · Paid closure · Mandatory leave · Info · Leave from another plan |
-| Effect | follows from the type (table below); for Holiday additionally required work 0 or ½ per event name |
+| Type | Holiday · Paid closure · Mandatory leave · Info · Leave from another plan · Time off needed |
+| Effect | follows from the type (table below); per entry for Holiday the required work (0 or ½), for Mandatory leave and Time off needed the share of the day, each with its part of the day |
 | Color | reference to a slot of the color palette (e.g. "Accent 3"), optionally an own color |
 | Priority | order via up/down buttons, only for the display order |
 | Visible | on/off |
@@ -129,16 +129,22 @@ Each imported file becomes a **calendar source**:
 | Paid closure | required work 0, costs nothing |
 | Mandatory leave | day counts as taken, charges the plan's allowance |
 | Info (e.g. school holidays) | none, only a background band |
-| Leave from another plan | none; shows e.g. in January the days already planned in the previous year, they are counted there (own and mandatory leave of that plan). The source is an .ics or directly another .urlaub.json file |
+| Leave from another plan | none; shows e.g. in January the days already planned in the previous year, they are counted there (own and mandatory leave of that plan). The source is an .ics or directly another .urlaub.json file; of a .urlaub.json only the days it charged are stored (see Format) |
+| Time off needed | none; the user must be free, e.g. the Kita closes on Tuesday afternoons or on its closure days. Every day of the plan period on which the needed time is not free is reported (see Counting model) |
 
 Conflicts: all sources of a day are displayed (the detail view lists them, the cell shows up to three color dots). The same day with the same name from several sources or the built-in set is shown once and marked as a duplicate.
 
-Import: choose file → preview of all recognized days with a checkbox per entry and a list **"not supported / skipped"** → set name, type, color → apply. **Update** replaces only the content of a source.
+**Import (once):** choose file → preview of all recognized events with a checkbox per entry and a list **"not supported / skipped"** → set name, type, color → apply. Only the chosen events are stored, as entries; the `.ics` file is not kept.
 
+- The user chooses the meaning, as easily as possible: the preview groups events by name (twelve "Schulferien" events or a repeating "Elternabend" are one decision) and offers every type, including Time off needed. Nothing is guessed silently; events that don't fit (e.g. 10:00–14:00, or shorter than `minUnit`) are the user's decision.
+- Defaults without working hours: all-day events become full days; an event that ends by 12:00 suggests "½ start", one that starts at 12:00 or later "½ end"; one that spans noon gets no suggestion.
 - Supported: all-day `VEVENT` (`DTSTART;VALUE=DATE`, `DTEND` exclusive, missing `DTEND` = 1 day), multi-day events, `DURATION`.
-- Recurrences (`RRULE`, `RDATE`, `EXDATE`) are evaluated by ical.js in the visible period ± 1 year; whatever can't be evaluated is skipped and listed.
-- Timed events are converted to the contract's time zone and assigned to the calendar day there; optionally ignored.
-- The file content is saved in the plan file or rule set.
+- Timed events are assigned to their calendar day in a time zone used only during the import: the browser's by default, changeable in the import dialog, never stored.
+- Repeats: simple ones (weekly on weekdays, yearly on a date, with an end) become a `match`; anything else (exceptions, complex rules) is expanded to dates for a period chosen at import, and the preview says so. iCal exceptions (`EXDATE`) become `except` dates of the entry.
+
+**Update source** imports again. Its preview shows the differences with checkboxes, marks entries the user changed and doesn't preselect those for replacement. For a source from another `.urlaub.json` it reports when the newer file has a different `id` or a lower `revision`, and when that plan itself contains an older copy of the current plan ("plan 2028 contains an older copy of this plan; update it there").
+
+**Editing and export:** entries can be removed, added (by clicking days) and changed (share, part of the day); a source can be renamed, change its type and be created without any file. Every source can be exported as `.ics`, so the user doesn't maintain it in several programs: a `match` becomes a repeating event where iCal can express it, otherwise dates for a chosen period.
 
 **School holidays** are not built in, because the dates are set anew every year. They come as a calendar source of type Info. The help names sources, in this order:
 
@@ -182,12 +188,12 @@ Version 1 offers only **full** and **half** in the UI. Engine, file format and t
 | Area | Requirement from version 1 |
 | --- | --- |
 | Unit | 1 day = 480 integer units (480 = 2⁵ · 3 · 5); thus ½, ⅓, ¼, ⅕, ⅙, ⅛, 1/16 and 1/32 are exact. Never floats, never the assumption "only 0, ½, 1". |
-| Data model | `take` is a share of the day, written as a fraction string (`"1"`, `"1/2"`, later e.g. `"3/32"`), not `"full"`/`"half"`; on reading, decimal strings (`"0.5"`) are accepted too (see Date arithmetic). Where in the day partial leave lies is a separate field `part` (`"start"` or `"end"` of the working time), required for partial leave. |
-| Contract | The field `minUnit` (smallest leave unit) already exists, default `"1/2"`; loading checks that all values are multiples of it. Version 1 allows only `"1"` and `"1/2"` in the UI. |
+| Data model | `take` is a share of the day, written as a fraction string (`"1"`, `"1/2"`, later e.g. `"3/32"`), not `"full"`/`"half"`; on reading, decimal strings (`"0.5"`) are accepted too (see Date arithmetic). Where in the day partial leave lies is a separate field `part` (`"start"` or `"end"` of the working time); partial leave without it is kept with a suggested part and reported. |
+| Contract | The field `minUnit` (smallest leave unit) already exists; loading reports values that are not multiples of it and keeps them (the engine computes them exactly). Version 1 allows only `"1"` and `"1/2"` in the UI. |
 | Engine | Cost = min(taken, required work) for arbitrary multiples of 1/32; no special cases for ½. |
 | Display | one central formatting function for shares (mixed fractions like "12 ¾" or a decimal number, depending on the setting) that handles every denominator up to 32; the day cell draws its fill proportionally to the share, not just "half" or "full". |
 | Operation | The choices in the day menu are generated from `minUnit` (today: – / ½ / full), not hard-wired. |
-| .ics | Partial days as an all-day event with the share in the title; as an appointment with times only for ½ with `part`. |
+| .ics | Partial days as all-day events with share and part in the title, plus the machine-readable fields `X-RESTLOS-TAKE`, `X-RESTLOS-PART` and `X-RESTLOS-TYPE`; no working hours, no appointments with times. |
 | Templates | The data interface delivers shares as a number and as a fraction string; built-in templates must not contain fixed "half" assumptions. |
 | Tests | Property tests calculate with random multiples of 1/32, although the UI offers only ½. |
 
@@ -201,6 +207,8 @@ What is still missing later is only UI: choosing finer steps in the menu, one mo
 4. **Manual override** of a single date applies last.
 
 **Mandatory leave** (e.g. company-wide leave 27–30 Dec) is not a required-work value but marks days as taken, by a share of the day (a full day or e.g. ½); they charge the allowance with min(share, required work) and can only be changed via their rule or source. If own leave is set on such a day as well, leave on the same part of the day counts once; leave on different parts of the day adds up. Mandatory leave is not charged on the part of a day that leave from another plan already covers, because it was counted there; own leave on such a day is charged and reported. Paid closure, on the other hand, is required work 0.
+
+**Time off needed** (a source of that type, e.g. the Kita closes on Tuesday afternoons) never costs anything and doesn't change the required work. It is measured on the whole day, not only on its working time: a need of a share at the end of the day is covered when the day is entirely free or its free time at the end is at least that share, at the start the same with the free time at the start, whatever made the time free (own leave, mandatory leave, leave from another plan, a holiday, lowered required work, the work week). Every day of the plan period on which a need is not covered is reported as a problem. Covering it is ordinary own leave; dismissing it for one day adds the date to the entry's exceptions.
 
 ### Work week with validity
 
@@ -226,13 +234,13 @@ The plan file is operated like a document in a normal desktop editor: New, Open,
 
 ### Content of the files
 
-- **Contract:** country/region, local rules, work week with validity, day rules, time zone, working hours for half days, smallest leave unit (`minUnit`).
-- **Calendar sources** incl. file content, name, type and color slot. A rule set never contains sources of type "Leave from another plan" (personal data).
-- **Own PDF templates** (`.typ` text), individually exportable.
+- **Contract:** name, description and references (what the contract is and what it is based on), country/region, local rules, smallest leave unit (`minUnit`), work week with validity, day rules. No time zone and no working hours.
+- **Calendar sources** as entries (dates or repeating matches) with name, type, color slot and visibility; no file content. A rule set never contains sources of type "Leave from another plan" or "Time off needed" (personal data).
+- **Own PDF templates** (`.typ` text, optional images), individually exportable.
 - **Color scheme** (optional), embedded for sharing, e.g. company colors.
 - **Only in the plan file:**
-  - **One plan:** period (start and end month), **one number of available days**, selected days, notes. Someone with a 30-day entitlement and 3 remaining days enters 33; there is no automatic carry-over.
-  - The reference to the rule set it was created from or last updated from (ID, name, date).
+  - **One plan:** period (start and end month), **one number of available days**, own leave days, manual changes of the required work, notes. Someone with a 30-day entitlement and 3 remaining days enters 33; there is no automatic carry-over.
+  - The reference to the rule set it was created from or last updated from (ID, name, revision).
 
 In a plan file every copied part can be changed, e.g. a part-time work week or additional own calendar sources.
 
@@ -240,17 +248,19 @@ In a plan file every copied part can be changed, e.g. a part-time work week or a
 
 | Command | Behavior |
 | --- | --- |
-| **New** | Dialog: "Empty" (initial setup); "From rule set…": choose a `.regeln.json`, the initial setup takes its contract, calendar sources, templates and color scheme and asks only for the personal parts (see First start); if a plan file is open, "Based on the current file": takes over everything except the plan; plan empty, allowance empty, period shifted by one year. The last option offers to include the previous file as a source "Leave from another plan", so that e.g. January days from the previous year are visible. |
+| **New** | Dialog: "Empty" (initial setup); "From rule set…": choose a `.regeln.json`, the initial setup takes its contract, calendar sources, templates and color scheme and asks only for the personal parts (see First start); if a plan file is open, "Based on the current file": takes over everything except the plan; plan empty, allowance empty, period shifted by one year. Every new file gets a new `id`. The last option offers to include the previous file as a source "Leave from another plan", so that e.g. January days from the previous year are visible. |
 | **Open** | file picker, drag and drop or (installed web app in Chrome/Edge) double-click. A plan file opens for planning; a rule set opens for editing: calendar with required work and calendar sources, without plan and allowance. |
-| **Save** | Chrome/Edge: back into the same file; Firefox/Safari: download with the name of the opened file (for the Firefox note see Delivery format) |
-| **Save as** | new file name, suggestion `ContractName_Year.urlaub.json` for a plan file, `ContractName.regeln.json` for a rule set |
-| **Save as rule set** | in a plan file: writes contract, calendar sources (without "Leave from another plan"), templates and color scheme as a new `.regeln.json`; the plan is never included |
+| **Save** | raises `revision` by 1. Chrome/Edge: back into the same file, the name stays; Firefox/Safari: download with the suggestion `Name.revN.urlaub.json` (`N` the new revision, replacing an existing `.revN` in the name; for the Firefox note see Delivery format). The revision inside the file decides; the name is only a hint |
+| **Save as** | new file name and a new `id` (revision 1), suggestion `ContractName_Year.urlaub.json` for a plan file, `ContractName.regeln.json` for a rule set |
+| **Save as rule set** | in a plan file: writes contract, calendar sources (without "Leave from another plan" and "Time off needed"), templates and color scheme as a new `.regeln.json` with a new `id`; the plan is never included |
 | **Update rules from rule set** | in a plan file: choose a `.regeln.json`; a preview lists every difference with a checkbox (like the iCal import). Parts copied from this rule set are updated, added or removed; parts added in the plan file itself are kept. The work week is not preselected, because it is often personal (part-time). The plan is never changed. |
 | **Close** | back to the start screen |
 
 - Exactly one file is open per browser tab; a second file is opened in a second tab.
 - Unsaved changes: the title shows `• filename`. New, Open and Close ask "Save / Don't save / Cancel". When the tab is closed, a web page can only trigger the browser's generic warning dialog, without its own text and only after a user interaction ([beforeunload](https://docs.w3cub.com/dom/window/beforeunload_event)); the autosave catches the rest.
 - **Restore:** autosave in browser storage under `urlaubsplaner:v1:<id>`. The next time the same file is opened and its autosave is newer, the app asks "Restore unsaved changes from …?".
+- **Revision warning:** the browser remembers per `id` the highest revision, the local date of saving it and a fingerprint of its content. Opening an older revision warns that a newer one was saved on that date; opening a file with the same `id` and revision but a different content warns that it is a different file. The file itself carries no date.
+- **Notes and manual changes:** a list shows all notes and all manual changes of the required work of the plan, each to jump to or delete, so they can be cleaned up.
 - There is no list of recently opened files: browsers don't allow access to file paths.
 
 ### What is stored where
@@ -265,38 +275,82 @@ Calendar sources store a **color slot** of the palette (e.g. "Accent 3"), not a 
 
 ### Format
 
-JSON with a `schema` version and a `kind` (`"plan"`, `"ruleSet"` or `"settings"`); the app recognizes a file by its content, not by its extension. All values language-neutral (IDs, ISO dates, decimal point); keys in English according to the glossary. Sketch of a plan file:
+JSON with a `schema` version and a `kind` (`"plan"`, `"ruleSet"` or `"settings"`); the app recognizes a file by its content, not by its extension. All values language-neutral (IDs, ISO dates, decimal point); keys in English according to the glossary. Sketch of a plan file showing every part (illustrative; not one of the example files):
 
 ```json
 {
-  "schema": "urlaubsplaner/1", "kind": "plan",
-  "id": "6f1c…-uuid", "savedAt": "2026-10-17T14:02:00Z", "revision": 12,
-  "ruleSet": { "id": "a93e…-uuid", "name": "Company X", "savedAt": "2026-09-30T08:00:00Z" },
-  "contract": { "name": "Company X",
+  "schema": "restlos/1", "kind": "plan",
+  "id": "6f1c…-uuid", "revision": 7,
+  "ruleSet": { "id": "a93e…-uuid", "name": "Beispiel GmbH (ohne Tarifvertrag)", "revision": 3 },
+  "contract": {
+    "name": "Beispiel GmbH (ohne Tarifvertrag)",
+    "description": { "de": "…", "en": "…" },
+    "references": {
+      "betrvg-87": { "title": "Betriebsverfassungsgesetz, § 87 Abs. 1 Nr. 5", "version": "…", "url": "https://…", "checked": "2026-10-18" } },
     "region": { "country": "DE", "state": "BY", "options": { "assumption": true, "augsburg": false } },
-    "timeZone": "Europe/Berlin", "minUnit": "1/2", "workHours": { "am": "08:00-12:00", "pm": "13:00-17:00" },
+    "minUnit": "1/2",
     "week": [ { "from": "2020-01-01", "required": { "mon": "1", "tue": "1", "wed": "1", "thu": "1", "fri": "1", "sat": "0", "sun": "0" } } ],
-    "rules": [ { "id": "new-years-eve", "origin": "a93e…-uuid", "match": { "type": "fixed", "month": 12, "day": 31 }, "requiredAtMost": "1/2", "label": { "de": "Silvester", "en": "New Year's Eve" } } ] },
-  "sources": [ { "id": "previous-year", "name": "Company X 2026", "type": "otherPlan", "color": { "slot": "accent-3" }, "visible": true,
-    "format": "urlaub.json", "content": "{…}" } ],
-  "templates": [ { "id": "my-band", "name": "My year band", "api": 1, "typst": ">=0.13", "typ": "…" } ],
+    "rules": [ { "id": "new-years-eve", "origin": "a93e…-uuid", "label": { "de": "Silvester", "en": "New Year's Eve" },
+                 "match": { "type": "fixed", "month": 12, "day": 31 }, "requiredAtMost": "1/2",
+                 "note": { "de": "…", "en": "…" }, "references": ["betrvg-87"] } ] },
+  "sources": [
+    { "id": "project", "name": "Projektphase", "type": "info", "color": { "slot": "accent-2" }, "visible": true,
+      "entries": [ { "match": { "type": "range", "from": { "type": "once", "date": "2027-09-06" },
+                                "to": { "type": "once", "date": "2027-10-29" } }, "name": "Release 3" } ] },
+    { "id": "kita", "name": "Kita", "type": "needed", "color": { "slot": "accent-4" }, "visible": true,
+      "entries": [
+        { "date": "2027-11-12", "name": "Pädagogischer Tag" },
+        { "match": { "type": "range", "from": { "type": "fixed", "month": 9, "day": 1 },
+                     "to": { "type": "fixed", "month": 8, "day": 31 }, "weekdays": ["tue"] },
+          "validFrom": 2027, "validUntil": 2027, "except": ["2027-12-28"], "name": "Abholen",
+          "take": "1/2", "part": "end" } ] },
+    { "id": "previous-year", "name": "Urlaub 2026", "type": "otherPlan", "color": { "slot": "accent-3" }, "visible": true,
+      "plan": { "id": "51b0…-uuid", "name": "Beispiel GmbH (ohne Tarifvertrag)", "revision": 9 },
+      "entries": [ { "date": "2027-01-04", "from": "0", "to": "1", "kind": "leave" },
+                   { "date": "2027-01-05", "from": "0", "to": "1/2", "kind": "leave" },
+                   { "date": "2027-01-08", "from": "1/4", "to": "2/4", "kind": "mandatory" } ] } ],
+  "templates": [ { "id": "my-band", "name": "My year band", "api": 1, "typst": ">=0.13", "typ": "…",
+                   "images": [ { "name": "logo.png", "type": "image/png", "data": "iVBOR…" } ] } ],
   "theme": null,
-  "plan": { "range": { "from": "2027-01", "to": "2028-01" }, "allowance": "33",
-    "days": [ { "date": "2027-05-07", "take": "1", "note": "Bridge day" } ] }
+  "plan": {
+    "range": { "from": "2027-01", "to": "2028-01" },
+    "allowance": "30",
+    "days":      [ { "date": "2027-05-07", "take": "1" },
+                   { "date": "2027-12-23", "take": "1/2", "part": "start" } ],
+    "overrides": [ { "date": "2027-11-11", "required": "1/2", "part": "end" } ],
+    "notes":     [ { "date": "2027-05-07", "text": "Brückentag" } ]
+  }
 }
 ```
 
-- A day rule's `match` uses the date rules of the holiday data (`docs/holiday-data-format.md`) with named fields instead of a text syntax: full dates as ISO dates, a day without a year as `month` and `day`, offsets as signed integers; a `range` has a start `from` (any date rule) and either an end `to` (any date rule; looked up from the start onwards, so a range can cross New Year) or a length `days`, plus an optional `weekdays` filter. A rule has exactly one effect: `requiredAtMost` (lowering layer), `requiredExactly` (forced, applies after all lowering layers) or `mandatory` (share of the day taken as mandatory leave).
+- **Identity:** `id` is a random UUID version 4, created at "New"; "Save as" and "New → Based on the current file" create a new one. `revision` is a whole number from 1, raised by 1 on every save; a new `id` starts at 1. A file contains no timestamp, no time zone, no working hours and nothing else about when, where or by whom it was saved.
+- **Versions:** `schema` is `"restlos/1"`, and every change of the format gets a new schema number. The app reads every schema written by any release of its own major version, migrates older ones on load and always saves its own. A new major version (2.0.0) still reads the last schema of the previous major version and may drop older ones; its release notes say so. Files with a newer schema are refused ("made with a newer version of restlos"); files too old for this version are refused with the way out ("open it once with restlos 1.x and save it"). A minor release that introduces a new schema says in its release notes that older 1.x copies can't open its files. Nothing is promised before 1.0.0: schema 1 may still change without migration.
+- **Texts:** every free text (names, `description`, `label`, `note`, reference titles and versions, template names) is a plain string or a map from language code to text, e.g. `{ "de": "Heiligabend", "en": "Christmas Eve" }`. Any lowercase language code is allowed, so further languages need no format change. The app shows the UI language, otherwise `en`, otherwise the first entry; a plain string as it is. Notes and names typed in the app are plain strings.
+- **What a file is based on:** `contract.name`, `description` and `references` say what the contract is and what it is based on. `references` maps a key to `title`, `version`, `url` and `checked` (the date the link was last opened); a rule cites keys in its `references`. The rule sets that come with restlos have all three, and every one of their rules cites a reference.
+- **Region:** `country` is a country of the holiday data, `state` one of its regions and `options` the local rules of that state; a plan file names the state wherever the country's data has states.
+- A day rule's `match` uses the date rules of the holiday data (`docs/holiday-data-format.md`) with named fields instead of a text syntax: full dates as ISO dates, a day without a year as `month` and `day`, offsets as signed integers; a `range` has a start `from` (any date rule) and either an end `to` (any date rule; looked up from the start onwards, so a range can cross New Year) or a length `days`, plus an optional `weekdays` filter. A rule has exactly one effect: `requiredAtMost` (lowering layer), `requiredExactly` (forced, applies after all lowering layers) or `mandatory` (share of the day taken as mandatory leave). Besides `label`, a rule may have a `note` and `references`. Day rules are described in `docs/day-rules-format.md`.
 - Day rules, calendar sources and templates copied from a rule set carry its ID in `origin`; parts added in the plan file have none. "Update rules from rule set" uses this to tell them apart.
-- A rule set (`.regeln.json`) has the same structure with `"kind": "ruleSet"`, without `ruleSet`, `plan` and `origin`, and never with sources of type `otherPlan`.
+- **Calendar sources** have `id`, `name`, `type`, `color` (a slot, or an own `rgb` color), `visible` and `entries`; the list order is the display priority. An entry is a `date`, or a `match` in the day-rule format with optional `validFrom`/`validUntil` and `except` (dates the match skips); every entry may have a `name`. Entries of type Holiday carry `required`, entries of Mandatory leave and Time off needed `take`, each with a `part`.
+- **Leave from another plan** stores only the days that plan charged: `plan` (its `id`, name and `revision`) and, for every charged day, one entry per span of working time with `from` and `to` (shares of a full day measured from the start of the working time, both written with their smallest shared denominator, e.g. `"1/4"` to `"2/4"`) and `kind` (`"leave"` or `"mandatory"`, for display). Nothing else of that plan is stored. Each plan stores what the other actually charged, so a day shared by two plans is charged in exactly one of them, also when they import each other.
+- `part` means the same everywhere (leave, overrides, rules, source entries): where in the day the free time lies, `"start"` or `"end"` of the working time.
+- **Plan:** `range` (months, both inclusive, at most 36), `allowance` (may be far above one day) and three lists with at most one entry per date: `days` (own leave with `take` and `part`), `overrides` (manual changes of the required work with `required` and `part`; they are personal and therefore in the plan, never in the contract) and `notes` (`text` on any date, independent of leave).
+- A rule set (`.regeln.json`) has the same structure with `"kind": "ruleSet"`, without `ruleSet`, `plan` and `origin`, and never with sources of type `otherPlan` or `needed`. Its `contract.region` may leave out `state` and `options`: a rule set fixes as much of the region as it knows (an agreement valid everywhere only the country, a company site everything), and "New → From rule set" asks for the rest.
 - The device settings export (`.einstellungen.json`) has `"kind": "settings"` and contains only the device settings listed above.
+- Files are written canonically: keys in a fixed order, the plan lists and source entries sorted, weights as fraction strings. `docs/file-format.md`, with `docs/day-rules-format.md` for day rules, is the reference for every key: whether it is required, its default, its checks, its codes and its limits.
 
 ### Sharing and validation
 
 - **Rule set for colleagues:** "Save as rule set" (see File operations): contract, sources, templates and color scheme, no leave days.
 - **HTML self-copy** (version 3, after feasibility test): a copy of the app with an embedded rule set and without personal settings; opens directly in "New → From rule set".
 - **No contract data in .ics.** In the PDF only on explicit request, and only the contract part without plan and notes.
-- **Loading:** if the autosave of the same `id` is newer, the app offers to restore it (see File operations). Schema version, `kind`, unknown fields, invalid data and weights are reported as a list; a file whose content doesn't match its `kind` (e.g. a rule set with a plan) is rejected; apply partially or cancel; older schema versions via migration.
+- **Loading:** if the autosave of the same `id` is newer, the app offers to restore it (see File operations); then the revision warning applies. Opening runs in two steps in a Web Worker, so the page stays responsive, with a progress bar from the start. **Reading** checks the size, parses the JSON, checks `schema` and `kind`, migrates older schema versions and validates every value; its bar has no measure, and Cancel stops opening. **Checking** then looks at every day rule and every source entry with a `match` for the likely mistakes listed in `docs/day-rules-format.md`, and never changes the file; its bar shows "rule n of N", Skip opens the file without the hints, and Cancel stops opening. Both steps report a list; each entry is a code, the path of the affected value in the file as it was read, and the data the message needs, and the UI writes the sentence. The opened file shows both lists together, sorted by severity; with at least one Error the choice is "Open without these parts" or "Cancel", otherwise "OK".
+- **Required and optional:** a part of a file is required when the app can't work with the file or the entry without it and no default would be right for every file. It is optional when its absence has a default that is right for every file, or when only a feature the user may never use needs it. A missing optional part reads as its default and is not reported; a feature that needs it says so when it is used. An optional part that is present must be complete and valid like everything else. `docs/file-format.md` and `docs/day-rules-format.md` mark every key as required or optional, give the defaults and show two minimal files to start from.
+- **Reading reports everything it can name for certain:** every problem gets its own entry, also several in one list entry, and a missing value is told apart from an invalid one. Where a value decides how others are read (the country, a source's type, a match's type) and is broken, the values that depend on it are skipped, not guessed.
+- **Refused at once** (nothing is loaded, one message says why) when nothing reliable can follow: a file that is too large or not JSON; a missing, unknown or newer `schema` or `kind` (the device settings `.einstellungen.json` are recognized but not yet supported, see `docs/file-format.md`); content that doesn't match its `kind` (a rule set with `plan` or `ruleSet`); a count limit of the file exceeded.
+- **Refused with a list** (nothing is loaded) when a required part of the file itself is missing or invalid, such as the work week or the plan period: one dialog lists every Error reading found, each with its own message, so all of them can be fixed in one go.
+- **Loaded with a report** otherwise: a list entry or an optional part with a missing or invalid value is dropped, and nothing in the file is dropped or changed without an entry in the report.
+- **Severities:** every code has a fixed severity: **Error** (not loaded, lost when saving), **Warning** (loaded, but changed or probably wrong), **Info** (loaded unchanged). Something that is not loaded, a refused file or a dropped entry, reports its Errors only. `docs/file-format.md` lists every code with its severity and what happens.
+- **Limits:** every file, list and text that is read has a size limit (`docs/file-format.md`, Limits). A file over 10 MB, or over a count limit of the file as a whole, is refused; a single source or template over its own limits is dropped. Reading never interprets unknown structures (they are only reported), so deeply nested JSON costs no more than parsing it. Reading and checking grow at most linearly with the file, and the performance gate (`npm run perf`, see Test strategy) enforces it. Target: the largest file within the limits reads and checks in under 2 s together in the Firefox ESR on the reference machine (Intel Core i7-8650U), measured at each release; slower devices take longer and show the progress bar.
 
 ## Operation (UI/UX)
 
@@ -375,7 +429,7 @@ Minimum size for tap targets on touch devices: 40 × 40 px.
 5. Allowance: one number, hint "Include remaining days from the previous year here".
 6. Local rules of the country; optionally "24 Dec and 31 Dec at most ½" with one click.
 
-With "From rule set", country, region, local rules and day rules come from the rule set and steps 2 and 6 are skipped (only the language is asked); the work week is preset from the rule set and can be adjusted.
+With "From rule set", country, region, local rules and day rules come from the rule set and steps 2 and 6 are skipped (only the language is asked); the work week is preset from the rule set and can be adjusted. A rule set that leaves out the federal state or the local rules asks for them. When the rule sets that come with restlos are offered as templates, each one shows its basis (agreement or law with the paragraph), the version, the date it was checked and the warning that users must check it against their own contract and that there is no guarantee.
 
 ### Calendar interaction
 
@@ -405,7 +459,7 @@ With "From rule set", country, region, local rules and day rules come from the r
 - All texts via message IDs in catalogs (`de.json`, `en.json`) in ICU MessageFormat, including plural rules; no composed sentence parts in code.
 - Dates and month names via `Intl.DateTimeFormat`, numbers via `Intl.NumberFormat`, plurals via `Intl.PluralRules` (also for 1.5 days). Week start from the country data, not from the browser.
 - Language and country are independent. Holiday names are keys with translations; names from iCal and user texts stay unchanged.
-- Files store only IDs and ISO values, never translated texts; own rule names optionally multilingual.
+- Files store only IDs and ISO values, never texts translated by the app; free texts (names, descriptions, rule labels and notes, reference titles) are plain strings or maps from language code to text (see Format).
 - Language switch at runtime without reload; help and built-in PDF templates bilingual.
 - CI checks for missing/unused keys; pseudo-localization reveals truncated layouts.
 
@@ -417,16 +471,17 @@ With "From rule set", country, region, local rules and day rules come from the r
 | Genommen | Taken | share of the day taken off (UI currently: full or half) |
 | Kontingent | Allowance | available leave days of a plan |
 | Plan | Plan | period + allowance + selected days |
-| Vertrag | Contract | rules of the employment: region, local rules, work week, day rules, time zone, working hours |
+| Vertrag | Contract | rules of the employment: region, local rules, work week, day rules, smallest leave unit, with name, description and references; no time zone, no working hours |
 | Plandatei | Plan file | `.urlaub.json`: copy of a rule set plus exactly one plan |
 | Regelwerk | Rule set | `.regeln.json`: contract, calendar sources, templates and optional color scheme without a plan; shared per company or collective agreement |
 | Geräte-Einstellungen | Device settings | language, display options and own color schemes; stored in the browser, exportable as `.einstellungen.json` |
 | Arbeitswoche | Work week | required work per weekday, with validity |
 | Tagesregel | Day rule | own rule that lowers or fixes the required work (`requiredAtMost`, `requiredExactly`) or marks mandatory leave (`mandatory`) |
-| Kalenderquelle | Calendar source | imported iCal or .urlaub.json file with name, type, color |
+| Kalenderquelle | Calendar source | named list of days (dates or repeating matches) with type and color; imported once from iCal or a .urlaub.json file, or created by hand |
 | Pflichturlaub | Mandatory leave | charges the allowance automatically |
 | Bezahlte Betriebsruhe | Paid closure | required work 0, costs nothing |
 | Urlaub aus anderem Plan | Leave from another plan | is displayed, not counted |
+| Freizeit nötig | Time off needed | days or parts of days on which the user must be free (e.g. Kita closure); never costs, reported when not free |
 | Block | Stretch | consecutive days off |
 | Brückentag | Bridge day | working day between a holiday and the weekend |
 | Sonderschalter | Local rule | regional exception, e.g. Augsburger Friedensfest |
@@ -455,7 +510,7 @@ Offline, bilingual, context-sensitive ("?" on every dialog). Chapters: Getting s
 
 New, Save as and Close are only available in the menu: Ctrl+N, Ctrl+T and Ctrl+W are reserved by the browser and don't reach the page ([Mozilla bug 1203059](https://bugzilla.mozilla.org/show_bug.cgi?id=1203059)), and Ctrl+Shift+S opens screenshots in Firefox ([Mozilla help](https://support.mozilla.org/en-US/kb/take-screenshots-firefox)).
 
-**View example:** the start screen opens a built-in, fictional plan file "Beispiel GmbH, Bayern, Vollzeit" (Example Ltd, Bavaria, full-time) with an allowance of 30 days, the day rule "24 Dec/31 Dec at most ½", a calendar source "Betriebsurlaub" (company-wide leave; mandatory leave 28–30 Dec), an info source "Projektphase" (project phase), a source "Leave from another plan" with January days from 2026 and the plan 2027 with bridge days. Changes to the example are not saved automatically; "Save as own file" turns it into an own plan file.
+**View example:** the start screen opens a built-in, fictional plan file, `examples/plans/beispiel-gmbh-2027.urlaub.json`, made from the rule set `beispiel-gmbh.regeln.json`: "Beispiel GmbH" (Example Ltd) without a collective agreement in Bavaria (Assumption Day applies, not Augsburg), full-time, with an allowance of 30 days and the calendar year 2027 as its period. Its day rules give the afternoons of 24 and 31 Dec off ("at most ½") and close the company from 27 to 30 Dec (Mon–Fri, mandatory leave); an info source "Projektphase" (project phase) and a source "Leave from another plan" with January days from a 2026 plan are stored as entries. The plan has leave around Easter, on the bridge days after Ascension (7 May) and Corpus Christi (28 May) and two weeks in summer. Changes to the example are not saved automatically; "Save as own file" turns it into an own plan file.
 
 ### Controls, icons and fonts
 
@@ -478,13 +533,14 @@ Recommendation: generate .ics ourselves. PDF with **Typst as the only template l
 ### .ics export (RFC 5545)
 
 - Mandatory: `VERSION:2.0`, `PRODID`, per event `UID` and `DTSTAMP`; TEXT values correctly escaped (`,` `;` `\`, line breaks).
-- All-day events: `DTSTART;VALUE=DATE`, `DTEND` exclusive. Half days optionally all-day with the title "Leave (½, morning)" or as an appointment with the working hours from the contract, then with `TZID` and a generated `VTIMEZONE`.
+- All-day events only: `DTSTART;VALUE=DATE`, `DTEND` exclusive. Partial days are all-day events with share and part in the title ("Leave (½, morning)") plus the machine-readable fields `X-RESTLOS-TAKE`, `X-RESTLOS-PART` and `X-RESTLOS-TYPE`, so restlos reads its own export back exactly. No working hours, no times, no `TZID` or `VTIMEZONE`.
 - Default: **one event per leave day** with a `UID` from contract ID and date. Stretches as one event are selectable, but their `UID` changes when a stretch grows; note in the dialog.
 - Leave: `TRANSP:OPAQUE`, `X-MICROSOFT-CDO-BUSYSTATUS:OOF`. Holidays exported along with it: `TRANSP:TRANSPARENT`, without OOF.
 - Line folding after 75 octets, without splitting UTF-8 characters ("½" is 2 bytes); CRLF.
 - Titles in the current UI language. No contract data in the .ics.
 - The help says openly: import is not synchronization; deleted days must be removed from the calendar by hand, and some programs create duplicates on re-import.
-- The exported .ics can be loaded again next year as a source "Leave from another plan".
+- The exported .ics can be loaded again next year as a source "Leave from another plan"; `X-RESTLOS-TYPE` marks mandatory leave, so it comes back too.
+- Calendar sources can be exported as .ics as well (see Multiple calendar sources).
 
 ### PDF: variants
 
@@ -542,6 +598,7 @@ All outputs (UI, .ics, PDF, JSON) read the same computed state; no output recalc
 | --- | --- | --- |
 | Browser storage with `file://` | Do local files share one storage? Does it survive renaming the file? (Firefox, Chromium) | version 1 |
 | CSP and keyboard shortcuts | Do all CSP directives work via `<meta>` in the Firefox ESR? Do Ctrl+S and Ctrl+O reach the page? | version 1 |
+| Web Worker from `file://` | Does a worker built into the HTML file start from `file://` with the CSP from `<meta>` (`worker-src blob:`) in the Firefox ESR, Chromium and Safari? How long does handing a 10 MB file's model to the page take? | version 1 |
 | Calendar import | Behavior of Thunderbird, Google, Outlook on re-import of the same `UID` | version 1 |
 | Typst WASM offline | compressed size, load time, fonts as bytes, compiling from `file://` | version 2 |
 | HTML self-copy | rewrite the app's original bytes unchanged (carry the app source along as `type="text/plain"`) | version 3 |
@@ -557,6 +614,7 @@ All outputs (UI, .ics, PDF, JSON) read the same computed state; no output recalc
 | Date arithmetic | daylight saving time changes; no `Date` in the engine | Vitest, ESLint rule `no-restricted-globals` |
 | iCal | round trip export → ical.js → same days; mandatory fields; UTF-8-safe folding; real example files (Google, Outlook, Thunderbird) | Vitest + ical.js |
 | Files | load(save(x)) = x, migration, `revision` warning | Vitest + fast-check |
+| Performance | no wall-clock assertions in tests; every scenario runs at 8× and 16× its base size and fails when twice the input costs more than 2.2× the work, or when it costs more than 5 % over the checked-in baseline (`tests/perf/baseline.json`); raising the baseline needs the maintainer's approval | `npm run perf`: Cachegrind instruction counts with V8 `--predictable`, part of `npm run check` and CI |
 | Multilingual support, colors | missing/unused keys, pseudo-localization, contrast of the schemes | small check scripts |
 | Types and style | TypeScript, Svelte components, lint | `tsc`, svelte-check, ESLint |
 | PDF/Typst | every template × DE/EN with example data, pinned Typst version | Typst CLI |
@@ -605,8 +663,8 @@ Recommendation: every file from outside is considered untrusted, the app has no 
 
 | Input / risk | Example | Countermeasure |
 | --- | --- | --- |
-| Plan file or rule set from a colleague | manipulated JSON, huge file, `__proto__` key | size limit (5 MB); `JSON.parse` followed by schema validation of every field; keys like `__proto__`/`constructor` are discarded; data in `Map` or objects without prototype |
-| iCal file from the internet | script in event names, endless `RRULE`, millions of events | size limit (5 MB) and event limit; recurrences evaluated only in the visible period ± 1 year; names always displayed as text |
+| Plan file or rule set from a colleague | manipulated JSON, huge file, `__proto__` key | size limit (10 MB) and count limits (see Sharing and validation); `JSON.parse` followed by schema validation of every field; keys like `__proto__`/`constructor` are discarded; data in `Map` or objects without prototype |
+| iCal file from the internet | script in event names, endless `RRULE`, millions of events | size limit (5 MB) and event limit; recurrences stored as a `match` or expanded only for a period chosen at import; names always displayed as text |
 | Display of foreign text | HTML/script in names and notes | Svelte escapes text; `{@html}` is forbidden for data (ESLint rule `svelte/no-at-html-tags`) |
 | Own Typst template | endless loop, file or network access | Typst runs as WASM in a Web Worker with a time limit; it only sees the passed data and the bundled fonts, no files, no network |
 | Data in Typst | injecting Typst code via holiday or note names | data is never inserted into Typst source code, but passed as JSON input and read there |
@@ -635,7 +693,7 @@ In the HTML's `<meta>` tag (GitHub Pages cannot set custom HTTP headers):
 
 Recommendation: everything runs locally with one command; GitHub Actions only runs the same commands, as rarely as possible, with a cache for all downloads and minimal permissions. This way neither the npm registry nor any other server is hit again on every run, and the project stays buildable without GitHub.
 
-**Local (NixOS):** a Nix flake with a dev environment (Node.js LTS with npm ≥ 11.10, Typst, Python for the python-holidays reference, Playwright browsers, Firefox ESR for the manual test). `nix develop`, then `npm ci`, `npm run check`, `npm run build`. The flake lock file pins all tools; the README explains the commands for Nix beginners.
+**Local (NixOS):** a Nix flake with a dev environment (Node.js LTS with npm ≥ 11.10, Typst, Python for the python-holidays reference, Playwright browsers, Firefox ESR for the manual test, Valgrind on Linux for the performance gate). `nix develop`, then `npm ci`, `npm run check`, `npm run build`. `npm run plan -- <file>` prints what the engine reads and computes for a plan file or rule set. `npm run perf` runs the performance gate; `npm run check` includes it. The flake lock file pins all tools; the README explains the commands for Nix beginners.
 
 **GitHub Free, public repository:** standard runners are free ([GitHub docs](https://docs.github.com/billing/managing-billing-for-your-products/managing-billing-for-github-actions)), GitHub Pages is available ([GitHub plans](https://docs.github.com/en/get-started/learning-about-github/githubs-plans)). Free doesn't mean unlimited: runs are still kept sparse.
 
@@ -643,7 +701,7 @@ Recommendation: everything runs locally with one command; GitHub Actions only ru
 
 | Workflow | Trigger | Content |
 | --- | --- | --- |
-| `check` | push to `main`, pull requests; only on changes to code, data, lockfile or workflow (path filter) | `npm ci`, lint, REUSE check, type check, Vitest, build, size check |
+| `check` | push to `main`, pull requests; only on changes to code, data, lockfile or workflow (path filter) | `npm ci`, lint, REUSE check, type check, Vitest, performance gate, build, size check |
 | `templates` | only on changes to templates or the Typst version | compile templates × DE/EN with the pinned Typst version |
 | `e2e` | pull requests with the label `e2e`, before every release, otherwise once a week only if there were commits since the last run | Playwright in Firefox, Chromium, WebKit |
 | `release` | manual (tag) | build; create a draft GitHub Release, attach standard and Pro HTML, `SHA256SUMS` and the SPDX bill of materials, then publish it (immutable release); Pages version (web app) on GitHub Pages |
@@ -779,6 +837,7 @@ The repository follows the FSFE's [REUSE specification](https://reuse.software):
 
 - [ ] `check`, `templates` and `e2e` green.
 - [ ] Short manual test: open the standard HTML via `file://` in the current Firefox ESR from the dev shell (`firefox-esr`), load a file, set days, save, export .ics and `.typ`; open the Pages version on a phone.
+- [ ] Largest file: `npm run perf -- --largest-file <path>` writes the worst crafted plan file within the limits; open it in the Firefox ESR on the reference machine and note the times for reading and checking (target: under 2 s together).
 - [ ] Size budget met.
 - [ ] REUSE check green, SPDX bill of materials generated; changelog and version number updated, data status of the holiday rules checked.
 - [ ] Release published by the `release` workflow as an immutable release with `SHA256SUMS`, SPDX bill of materials and build provenance.
@@ -810,7 +869,7 @@ Recommendation: three versions; each is usable on its own. The must lists under 
 | Holiday rules wrong or outdated | wrong costs | reference model tests, versioned rule data, iCal as an escape hatch |
 | Municipality special cases incomplete | wrong required work on 1–2 days | switch "applies at my place of work" with a link to the official source; single dates can be overridden |
 | Browser storage with `file://` unreliable | settings lost | plan file is the source of truth; settings exportable; prefixed keys; feasibility test |
-| Old file versions in the download folder | user loads an old state | `savedAt`/`revision`, warning, file name with year |
+| Old file versions in the download folder | user loads an old state | `revision`, the revision warning (see File operations), file name with the revision (`.revN`) |
 | Month columns on narrow devices | poor UX on the phone | month tiles as the phone default, fixed day column, selection mode |
 | Typst WASM large or not runnable offline | Pro HTML is delayed | feasibility test before version 2; the standard HTML is fully usable without Pro |
 | Typst versions differ | templates break | pinned version, minimum version in templates, CI with the pinned version |
@@ -822,12 +881,12 @@ Recommendation: three versions; each is usable on its own. The must lists under 
 - Project name **restlos-urlaubsplaner** (repository and file name of the HTML); short name in the app "restlos", subtitle "Urlaubsplaner für Brückentage und Feiertage" (EN: "vacation planner for bridge days and holidays").
 - Country-neutral core incl. work week per country; data initially only for Germany.
 - Only days, no hours: taken as a share (UI currently full or half, data model and engine down to 1/32), required work with fractions; cost = min(taken, required work).
-- One plan, one allowance; no automatic carry-over; days from sources "Leave from another plan" (.ics or .urlaub.json) are displayed, not counted.
+- One plan, one allowance; no automatic carry-over; days from sources "Leave from another plan" (.ics or .urlaub.json) are displayed here and counted in the other plan, not in this one.
 - License EUPL-1.2 for code and data; templates and examples MIT-0; documentation CC BY 4.0.
 - German and English from version 1, with a fixed glossary.
 - Development language English (code, identifiers, file-format keys, comments, commits, developer documentation including this specification); user-facing texts (UI, help, templates, README, SUPPORT, issue templates) in German and English.
 - Pro HTML with Typst is accepted; no template editor, templates are created with Typst outside the app.
-- No online fetching of holidays, no contract data in .ics, no loading back from .ics except as "Leave from another plan".
+- No online fetching of holidays, no contract data in .ics, no loading back from .ics except as a one-time import into calendar sources (stored as entries; the .ics file is not kept).
 - Svelte 5, TypeScript, Vite with vite-plugin-singlefile, Vitest; ical.js for the import; no component or icon library (Lucide SVGs as files); hardening according to "Measures against supply chain attacks".
 - Option "Align by weekday" in the month columns, stored in the device settings.
 - Public repository on GitHub Free; distribution as a download and via GitHub Pages (installable, offline); everything also buildable locally, CI only mirrors.

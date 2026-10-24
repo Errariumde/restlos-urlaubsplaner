@@ -8,10 +8,7 @@ import type { PlanResult } from "../../../src/engine/counting/plan";
 import type { Stretch } from "../../../src/engine/counting/stretches";
 import type { DayRule, LeaveDay, Part, PlanInput, PlanPeriod, SourceDay } from "../../../src/engine/counting/types";
 import { isoFromDay } from "../../../src/engine/days";
-import { BAVARIA, baseInput, CHRISTMAS_EVE_RULES, d, FULL, HALF, fixed, once, span } from "./helpers";
-
-// lib has no DOM; performance exists in Node and in Firefox.
-declare const performance: { now(): number };
+import { BAVARIA, baseInput, CHRISTMAS_EVE_RULES, d, FULL, FULL_TIME, HALF, fixed, once, span } from "./helpers";
 
 const fmt = (s: Stretch) => `${isoFromDay(s.start.day)}@${s.start.offset} ${isoFromDay(s.end.day)}@${s.end.offset} ${s.cost}/${s.daysOff}`;
 const listed = (result: PlanResult) => result.stretches.filter((s) => s.listed).map(fmt);
@@ -21,6 +18,7 @@ const dayOf = (result: PlanResult, iso: string) => {
   return found;
 };
 const leave = (iso: string, take = FULL, part?: Part): LeaveDay => ({ day: d(iso), take, ...(part && { part }) });
+const need = (iso: string, take: number, part?: Part): SourceDay => ({ type: "needed", day: d(iso), sourceId: "kita", take, ...(part && { part }) });
 const plan = (changes: Partial<PlanInput>) => computePlan(baseInput(changes));
 const withRules = (...rules: DayRule[]) => ({ ...BAVARIA, rules });
 const closureRule: DayRule = { id: "closure", match: { type: "range", from: fixed(12, 27), to: fixed(1, 4) }, validFrom: 2027, validUntil: 2027, mandatory: FULL };
@@ -43,6 +41,7 @@ describe("computePlan: stretches from the design", () => {
     const morning = plan({ contract, leave: [leave("2027-12-24", HALF, "start")] });
     expect(listed(morning)).toEqual(["2027-12-24@0 2027-12-26@480 480/1440"]);
     expect([dayOf(morning, "2027-12-24").evaluation.ownCost, dayOf(morning, "2027-12-24").evaluation.mandatoryCost]).toEqual([240, 240]);
+    expect(dayOf(morning, "2027-12-24").evaluation.charged).toEqual([{ from: 0, to: 240, kind: "leave" }, { from: 240, to: 480, kind: "mandatory" }]);
     expect(listed(plan({ contract, leave: [leave("2027-12-24", HALF, "end")] }))).toEqual(["2027-12-24@240 2027-12-26@480 240/1200"]);
   });
   it("lists a standalone paid closure with cost 0", () => {
@@ -61,15 +60,15 @@ describe("computePlan: stretches from the design", () => {
   });
   it("lists each other plan once in a leaveTakenInOtherPlan problem", () => {
     const sources: SourceDay[] = [
-      { type: "otherPlan", day: d("2027-05-05"), sourceId: "p", take: FULL },
-      { type: "otherPlan", day: d("2027-05-05"), sourceId: "p", take: FULL },
+      { type: "otherPlan", day: d("2027-05-05"), sourceId: "p", from: 0, to: FULL, kind: "leave" },
+      { type: "otherPlan", day: d("2027-05-05"), sourceId: "p", from: 0, to: FULL, kind: "leave" },
     ];
     expect(plan({ sources, leave: [leave("2027-05-05")] }).problems).toEqual([{ code: "leaveTakenInOtherPlan", day: d("2027-05-05"), sourceIds: ["p"] }]);
   });
   it("names only the other plans that overlap the own leave", () => {
     const sources: SourceDay[] = [
-      { type: "otherPlan", day: d("2027-05-05"), sourceId: "morning", take: HALF, part: "start" },
-      { type: "otherPlan", day: d("2027-05-05"), sourceId: "evening", take: HALF, part: "end" },
+      { type: "otherPlan", day: d("2027-05-05"), sourceId: "morning", from: 0, to: HALF, kind: "leave" },
+      { type: "otherPlan", day: d("2027-05-05"), sourceId: "evening", from: HALF, to: FULL, kind: "leave" },
     ];
     expect(plan({ sources, leave: [leave("2027-05-05", HALF, "end")] }).problems).toEqual([{ code: "leaveTakenInOtherPlan", day: d("2027-05-05"), sourceIds: ["evening"] }]);
   });
@@ -86,7 +85,7 @@ describe("computePlan: totals and plans that share a month", () => {
   it("charges a closure over New Year once across two plans", () => {
     const plan2027 = plan({ contract: withRules(closureRule), period: { from: month(2027, 1), to: month(2028, 1) } });
     expect(plan2027.totals.byYear).toEqual([{ year: 2027, planned: 2400 }, { year: 2028, planned: 960 }]);
-    const otherPlan: SourceDay[] = ["2028-01-03", "2028-01-04"].map((x) => ({ type: "otherPlan", day: d(x), sourceId: "plan-2027", take: FULL }));
+    const otherPlan: SourceDay[] = ["2028-01-03", "2028-01-04"].map((x) => ({ type: "otherPlan", day: d(x), sourceId: "plan-2027", from: 0, to: FULL, kind: "leave" }));
     const plan2028 = plan({ contract: withRules(closureRule), period: { from: month(2028, 1), to: month(2029, 1) }, sources: otherPlan });
     expect(plan2028.totals.planned).toBe(0);
     const again = plan({ contract: withRules(closureRule), period: { from: month(2028, 1), to: month(2029, 1) }, sources: otherPlan, leave: [leave("2028-01-03")] });
@@ -94,7 +93,7 @@ describe("computePlan: totals and plans that share a month", () => {
     expect(again.problems).toEqual([{ code: "leaveTakenInOtherPlan", day: d("2028-01-03"), sourceIds: ["plan-2027"] }]);
   });
   it("never counts leave from another plan and shows it on the day", () => {
-    const sources: SourceDay[] = span("2027-06-01", "2027-06-03").map((x) => ({ type: "otherPlan", day: d(x), sourceId: "p", take: FULL }));
+    const sources: SourceDay[] = span("2027-06-01", "2027-06-03").map((x) => ({ type: "otherPlan", day: d(x), sourceId: "p", from: 0, to: FULL, kind: "leave" }));
     const result = plan({ sources });
     expect(result.totals.planned).toBe(0);
     expect(dayOf(result, "2027-06-02").facts.sources.map((s) => s.sourceId)).toEqual(["p"]);
@@ -122,7 +121,7 @@ describe("computePlan: problems", () => {
       plan({
         contract: withRules({ id: "a", match: once("2027-03-13"), requiredExactly: HALF }, { id: "b", match: once("2027-03-13"), requiredExactly: FULL }),
         leave: [leave("2027-03-13")],
-        sources: [{ type: "otherPlan", day: d("2027-03-13"), sourceId: "p", take: FULL }],
+        sources: [{ type: "otherPlan", day: d("2027-03-13"), sourceId: "p", from: 0, to: FULL, kind: "leave" }],
       }).problems,
     ).toEqual([
       { code: "leaveTakenInOtherPlan", day: d("2027-03-13"), sourceIds: ["p"] },
@@ -161,17 +160,27 @@ describe("computePlan: limits", () => {
       expect(result.stretches.reduce((sum, s) => sum + s.cost, 0)).toBe(result.totals.planned);
     }), { numRuns: 50 });
   });
-  // speed budget for a realistic plan
-  it("computes a 13-month plan with 40 rules and 300 source days quickly", () => {
-    const rules: DayRule[] = Array.from({ length: 40 }, (_, i) =>
-      i % 2 === 0
-        ? { id: `r${i}`, match: fixed(1 + (i % 12), 1 + (i % 28)), requiredAtMost: HALF }
-        : { id: `r${i}`, match: { type: "range", from: fixed(1 + (i % 12), 1), days: 10, weekdays: ["fri"] }, mandatory: HALF });
-    const sources: SourceDay[] = Array.from({ length: 300 }, (_, i) => ({ type: "holiday", day: d("2027-01-01") + i, sourceId: "s", required: HALF }));
-    const input = baseInput({ contract: withRules(...rules), sources, period: { from: month(2027, 1), to: month(2028, 1) } });
-    computePlan(input);
-    const startedAt = performance.now();
-    computePlan(input);
-    expect(performance.now() - startedAt).toBeLessThan(200);
+});
+
+describe("time off needed", () => {
+  const tue = "2027-05-04"; // a working Tuesday
+  it("is covered by own leave at the same part", () =>
+    expect(plan({ sources: [need(tue, HALF, "end")], leave: [leave(tue, HALF, "end")] }).problems).toEqual([]));
+  it("is covered by a public holiday", () =>
+    expect(plan({ sources: [need("2027-05-06", FULL)] }).problems).toEqual([])); // Ascension Day
+  it("is covered by a half work-week day", () => {
+    const halfTuesday = { ...BAVARIA, week: [{ from: d("2020-01-01"), required: { ...FULL_TIME, tue: HALF } }] };
+    expect(plan({ contract: halfTuesday, sources: [need(tue, HALF, "end")] }).problems).toEqual([]);
   });
+  it("is covered by leave from another plan", () =>
+    expect(plan({ sources: [need(tue, HALF, "end"), { type: "otherPlan", day: d(tue), sourceId: "p", from: 240, to: 480, kind: "leave" }] }).problems).toEqual([]));
+  it("is reported when the other half is free", () =>
+    expect(plan({ sources: [need(tue, HALF, "end")], leave: [leave(tue, HALF, "start")] }).problems).toEqual([{ code: "uncoveredNeed", day: d(tue), sourceIds: ["kita"] }]));
+  it("never costs anything", () => {
+    const withNeed = plan({ sources: [need(tue, FULL)] });
+    expect(withNeed.totals).toEqual(plan({}).totals);
+    expect(withNeed.problems).toEqual([{ code: "uncoveredNeed", day: d(tue), sourceIds: ["kita"] }]);
+  });
+  it("is not reported outside the period", () =>
+    expect(plan({ sources: [need("2026-12-15", FULL)] }).problems).toEqual([]));
 });

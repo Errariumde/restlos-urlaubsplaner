@@ -1,0 +1,100 @@
+{
+  "schema": "restlos/1",
+  "kind": "ruleSet",
+  "id": "9ef969fc-7064-4776-a349-29e930e93403",
+  "revision": 1,
+  "contract": {
+    "name": {
+      "de": "Karneval im Rheinland (betriebliche Praxis, Vorschlag 2026)",
+      "en": "Carnival in the Rhineland (company practice, suggestion 2026)"
+    },
+    "description": {
+      "de": "Vorschlag für Betriebe im Rheinland, die an Karneval freigeben: Weiberfastnacht ab Mittag und Rosenmontag frei. Das ist betriebliche Praxis, kein Recht: Weiberfastnacht, Rosenmontag und Karnevalsdienstag sind keine gesetzlichen Feiertage, auch nicht nach regionalem Gewohnheitsrecht. Einen Anspruch können nur Tarifvertrag, Betriebsvereinbarung, Arbeitsvertrag oder betriebliche Übung geben; eine Schriftformklausel für Nebenabreden, etwa in einem Tarifvertrag, kann verhindern, dass aus betrieblicher Übung ein Anspruch entsteht. Die Werte sind Vorschläge: Keine der Quellen nennt übliche Zeiten. Karnevalsdienstag ist nicht enthalten. Trage ein, was in deinem Betrieb gilt. Arbeitswoche Montag bis Freitag mit ganzen Tagen; arbeitest du in Teilzeit oder an anderen Tagen, passe die Arbeitswoche an. Prüfe alles an deinem eigenen Arbeitsvertrag und Tarifvertrag. Es gibt keine Gewähr, dass die Regeln stimmen, vollständig oder aktuell sind.",
+      "en": "A suggestion for employers in the Rhineland that give time off for carnival: Weiberfastnacht (carnival Thursday) from noon and Rosenmontag (carnival Monday) off. This is company practice, not a right: Weiberfastnacht, Rosenmontag and Shrove Tuesday are not public holidays, not even by regional custom. A claim can only come from a collective agreement, a works agreement, the employment contract or established company practice (betriebliche Übung); a written-form clause for side agreements, for example in a collective agreement, can prevent a claim from arising out of such a practice. The values are suggestions: none of the sources gives typical times. Shrove Tuesday is not included. Enter what applies where you work. Work week Monday to Friday with full days; if you work part-time or on other days, adjust the work week. Check everything against your own employment contract and collective agreement. There is no guarantee that these rules are correct, complete or up to date."
+    },
+    "references": {
+      "igmetall-guide": {
+        "title": "IG Metall, Ratgeber „Alaaf und Helau – Karneval auch am Arbeitsplatz?“",
+        "version": {
+          "de": "vom 3. Februar 2016",
+          "en": "of 3 February 2016"
+        },
+        "url": "https://www.igmetall.de/service/ratgeber/alaaf-und-helau--karneval-auch-am-arbeitsplatz",
+        "checked": "2026-10-18"
+      },
+      "lag-koeln-2003": {
+        "title": "Landesarbeitsgericht Köln, 11 (12) Sa 239/03: „Die Arbeitsbefreiung an Rosenmontag ist eine Nebenabrede.“",
+        "version": {
+          "de": "Urteil vom 8. August 2003",
+          "en": "judgment of 8 August 2003"
+        },
+        "url": "https://nrwe.justiz.nrw.de/arbgs/koeln/lag_koeln/j2003/11__12__Sa_239_03urteil20030808.html",
+        "checked": "2026-10-18"
+      }
+    },
+    "region": {
+      "country": "DE"
+    },
+    "minUnit": "1/2",
+    "week": [
+      {
+        "from": "2026-01-01",
+        "required": {
+          "mon": "1",
+          "tue": "1",
+          "wed": "1",
+          "thu": "1",
+          "fri": "1",
+          "sat": "0",
+          "sun": "0"
+        }
+      }
+    ],
+    "rules": [
+      {
+        "id": "weiberfastnacht",
+        "label": {
+          "de": "Weiberfastnacht: ab Mittag frei (Vorschlag)",
+          "en": "Weiberfastnacht (carnival Thursday): off from noon (suggestion)"
+        },
+        "match": {
+          "type": "easter",
+          "offset": -52
+        },
+        "requiredAtMost": "1/2",
+        "part": "end",
+        "note": {
+          "de": "Vorgeschlagener Wert, keine Regel aus einem Gesetz oder Tarifvertrag: halber Tag, frei am Ende des Tages. Ändere ihn so, wie es in deinem Betrieb gilt.",
+          "en": "A suggested value, not a rule from a law or collective agreement: half a day, free at the end of the day. Change it to what applies where you work."
+        },
+        "references": [
+          "igmetall-guide",
+          "lag-koeln-2003"
+        ]
+      },
+      {
+        "id": "rosenmontag",
+        "label": {
+          "de": "Rosenmontag: frei (Vorschlag)",
+          "en": "Rosenmontag (carnival Monday): day off (suggestion)"
+        },
+        "match": {
+          "type": "easter",
+          "offset": -48
+        },
+        "requiredAtMost": "0",
+        "note": {
+          "de": "Vorgeschlagener Wert, keine Regel aus einem Gesetz oder Tarifvertrag: ganzer Tag frei. Ändere ihn so, wie es in deinem Betrieb gilt.",
+          "en": "A suggested value, not a rule from a law or collective agreement: the whole day off. Change it to what applies where you work."
+        },
+        "references": [
+          "igmetall-guide",
+          "lag-koeln-2003"
+        ]
+      }
+    ]
+  },
+  "sources": [],
+  "templates": [],
+  "theme": null
+}

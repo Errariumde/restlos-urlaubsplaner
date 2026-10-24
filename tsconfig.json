@@ -14,7 +14,8 @@
     "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true,
     "noEmit": true,
+    "erasableSyntaxOnly": true,
     "types": []
   },
-  "include": ["src", "tests"]
+  "include": ["src", "tests", "scripts"]
 }

@@ -1,10 +1,10 @@
 ---
-status: open
+status: done
 priority: 1
 area: engine/holidays, file format
-branch:
+branch: file-format
 created: 2026-10-18
-closed:
+closed: 2026-10-18
 ---
 <!--
 SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
@@ -36,3 +36,5 @@ Decide before the file-format branch. Possible approaches:
 - the loader drops unknown option keys and lists them in the import report (fits "unknown fields are reported as a list");
 - the country data keeps a table of renamed switches;
 - the engine ignores unknown keys (this loses the error for typos in calling code).
+
+Decided: the reader drops options the holiday data doesn't define and reports them (`unknownLocalRule`); a table of renamed options waits until a rename happens.

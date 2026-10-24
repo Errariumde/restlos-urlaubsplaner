@@ -35,7 +35,8 @@ export type Problem =
   | { readonly code: "leaveOutsidePeriod"; readonly day: DayNumber }
   | { readonly code: "leaveWithoutRequiredWork"; readonly day: DayNumber }
   | { readonly code: "leaveTakenInOtherPlan"; readonly day: DayNumber; readonly sourceIds: readonly string[] }
-  | { readonly code: "conflictingForcedRules"; readonly day: DayNumber; readonly ruleIds: readonly string[] };
+  | { readonly code: "conflictingForcedRules"; readonly day: DayNumber; readonly ruleIds: readonly string[] }
+  | { readonly code: "uncoveredNeed"; readonly day: DayNumber; readonly sourceIds: readonly string[] };
 export interface PlanResult {
   readonly period: { readonly from: DayNumber; readonly to: DayNumber };
   readonly days: readonly DayResult[]; // consecutive: the period ± STRETCH_MARGIN_DAYS, clamped to the supported years
@@ -58,11 +59,21 @@ export function periodBounds(period: PlanPeriod): { from: DayNumber; to: DayNumb
   return { from, to };
 }
 
+/** The days a plan's results cover: the period ± STRETCH_MARGIN_DAYS, clamped to the supported years. Throws RangeError for an invalid period. */
+export function computationWindow(period: PlanPeriod): { from: DayNumber; to: DayNumber } {
+  const bounds = periodBounds(period);
+  return {
+    from: Math.max(MIN_DAY, bounds.from - STRETCH_MARGIN_DAYS),
+    to: Math.min(MAX_DAY, bounds.to + STRETCH_MARGIN_DAYS),
+  };
+}
+
 const PROBLEM_ORDER: Record<Problem["code"], number> = {
   leaveOutsidePeriod: 0,
   leaveWithoutRequiredWork: 1,
   leaveTakenInOtherPlan: 2,
   conflictingForcedRules: 3,
+  uncoveredNeed: 4,
 };
 
 /** The pieces of leave on a day: own leave, mandatory leave of rules and sources, and leave from other plans. */
@@ -76,7 +87,7 @@ function leavePieces(facts: DayFacts, own: PlanInput["leave"][number] | undefine
     if (source.type === "mandatory") {
       pieces.push({ kind: "mandatory", take: source.take, part: source.part ?? "end", sourceId: source.sourceId });
     } else if (source.type === "otherPlan") {
-      pieces.push({ kind: "otherPlan", take: source.take, part: source.part ?? "end", sourceId: source.sourceId });
+      pieces.push({ kind: "otherPlan", from: source.from, to: source.to, sourceId: source.sourceId });
     }
   }
   return pieces;
@@ -106,8 +117,7 @@ export function computePlan(input: PlanInput): PlanResult {
     leaveByDay.set(entry.day, entry);
   }
 
-  const windowFrom = Math.max(MIN_DAY, period.from - STRETCH_MARGIN_DAYS);
-  const windowTo = Math.min(MAX_DAY, period.to + STRETCH_MARGIN_DAYS);
+  const { from: windowFrom, to: windowTo } = computationWindow(input.period);
   const days: DayResult[] = [];
   const problems: Problem[] = [];
 
@@ -123,10 +133,19 @@ export function computePlan(input: PlanInput): PlanResult {
     if (inPeriod) {
       if (own && required.value === 0) problems.push({ code: "leaveWithoutRequiredWork", day: facts.day });
       if (evaluation.ownCoveredByOtherPlan) {
-        problems.push({ code: "leaveTakenInOtherPlan", day: facts.day, sourceIds: overlappingOtherPlanIds(required.value, pieces) });
+        problems.push({ code: "leaveTakenInOtherPlan", day: facts.day, sourceIds: overlappingOtherPlanIds(required, pieces) });
       }
       if (required.conflictingRules.length > 0) {
         problems.push({ code: "conflictingForcedRules", day: facts.day, ruleIds: required.conflictingRules });
+      }
+      const uncovered = facts.sources.filter(
+        (source) =>
+          source.type === "needed" && (source.part ?? "end") === "end"
+            ? evaluation.freeEnd < source.take
+            : source.type === "needed" && evaluation.freeStart < source.take,
+      );
+      if (!evaluation.whole && uncovered.length > 0) {
+        problems.push({ code: "uncoveredNeed", day: facts.day, sourceIds: [...new Set(uncovered.map((source) => source.sourceId))] });
       }
     }
   }

@@ -24,8 +24,6 @@ SPDX-FileCopyrightText = "2026 The restlos-urlaubsplaner authors"
 SPDX-License-Identifier = "EUPL-1.2"
 
 # Typst templates and example files: free to copy into own work.
-# LICENSES/MIT-0.txt is added together with the first such file
-# (`reuse download MIT-0`); an unused license text fails `reuse lint`.
 [[annotations]]
 path = ["templates/**", "examples/**", "**/*.urlaub.json", "**/*.regeln.json"]
 precedence = "aggregate"
@@ -34,7 +32,7 @@ SPDX-License-Identifier = "MIT-0"
 
 # Generated reference data for tests.
 [[annotations]]
-path = ["tests/reference/python-holidays-de.json"]
+path = ["tests/reference/python-holidays-de.json", "tests/perf/baseline.json"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The restlos-urlaubsplaner authors"
 SPDX-License-Identifier = "EUPL-1.2"

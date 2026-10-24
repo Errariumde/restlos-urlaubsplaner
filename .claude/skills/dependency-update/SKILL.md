@@ -26,3 +26,4 @@ SPDX-License-Identifier: CC-BY-4.0
    - check that npm is still >= 11.10 (the shell warns otherwise);
    - run `npm ci && npm run check && npm run build`;
    - commit `flake.lock` together with the `package.json`/`package-lock.json` change.
+   - After a Node or Valgrind update, `npm run perf` fails with "otherEnvironment". Run `npm run perf -- --update`, review the changed counts in the diff, and get the maintainer's approval in the commit message.

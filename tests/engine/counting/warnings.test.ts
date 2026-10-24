@@ -1,10 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
+import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import type { DayMatch, DayRule, RangeMatch } from "../../../src/engine/counting/types";
-import { dayRuleWarnings } from "../../../src/engine/counting/warnings";
+import { dayRuleWarnings, dayRuleWarningsMemo } from "../../../src/engine/counting/warnings";
 import { easter, fixed, once } from "./helpers";
+import { dayRuleArb, oracleRuleWarnings } from "./oracle";
 
 const r = (match: DayMatch, extra: { validFrom?: number; validUntil?: number } = {}): DayRule => ({
   id: "r",
@@ -70,4 +72,41 @@ describe("dayRuleWarnings", () => {
     expect(
       dayRuleWarnings({ id: "x", match: once("1999-01-01"), validFrom: 2000, mandatory: 480 }),
     ).toEqual([{ code: "neverApplies", ruleId: "x" }]));
+});
+
+describe("dayRuleWarnings against the full scan", () => {
+  it("gives the warnings of the full scan for any rule", () =>
+    fc.assert(
+      fc.property(dayRuleArb, (rule) => {
+        expect(dayRuleWarnings(rule)).toEqual(oracleRuleWarnings(rule));
+      }),
+      { numRuns: 400 },
+    ));
+  it.each([
+    ["an Easter range whose end always lies before its start", { type: "range", from: easter(366), to: easter(-366) }],
+    ["an Easter range that is a day or more short of a year", { type: "range", from: easter(300), to: easter(-99) }],
+    ["an Easter range ending on the first Monday of the next year", { type: "range", from: easter(300), to: { type: "nthWeekday", month: 1, weekday: "mon", n: 1 } }],
+    ["a range that needs 1 January to be a Monday, but not on a Tuesday", {
+      type: "range", from: { type: "weekdayRelative", weekday: "mon", relation: "after", month: 12, day: 31 }, to: fixed(1, 1), weekdays: ["tue"],
+    }],
+    ["the Monday after Easter on a Tuesday", { type: "range", from: easter(1), days: 1, weekdays: ["tue"] }],
+    ["Easter to the Tuesday after on Wednesday", { type: "range", from: easter(0), to: easter(2), weekdays: ["wed"] }],
+  ] as [string, DayMatch][])("finds that %s never applies, like the full scan", (_name, match) => {
+    for (const validity of [{}, { validFrom: 1583 }, { validFrom: 9700 }, { validFrom: 2100, validUntil: 2104 }]) {
+      const rule = r(match, validity);
+      expect(dayRuleWarnings(rule)).toEqual(oracleRuleWarnings(rule));
+    }
+    expect(codes(r(match))).toContain("neverApplies");
+  });
+  it("gives the same warnings through the memo, also for a repeated rule", () => {
+    const memo = dayRuleWarningsMemo();
+    fc.assert(
+      fc.property(dayRuleArb, fc.string({ maxLength: 3 }), (rule, id) => {
+        const expected = oracleRuleWarnings({ ...rule, id });
+        expect(memo({ ...rule, id })).toEqual(expected);
+        expect(memo({ ...rule, id })).toEqual(expected);
+      }),
+      { numRuns: 100 },
+    );
+  });
 });

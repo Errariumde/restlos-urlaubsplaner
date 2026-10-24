@@ -3,10 +3,7 @@
 
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { formatWeight, parseWeight, WeightError } from "../../src/engine/weight";
-
-// lib has no DOM; performance exists in Node and in Firefox.
-declare const performance: { now(): number };
+import { formatAmount, formatSpan, formatWeight, parseAmount, parseWeight, WeightError } from "../../src/engine/weight";
 
 const code = (s: string) => {
   try {
@@ -45,7 +42,7 @@ describe("parseWeight", () => {
     expect(code("9999999999999/9999999999999")).toBe("syntax");
   });
 
-  it("handles very long input in linear time", () => {
+  it("handles inputs of a million characters", () => {
     const n = 1_000_000;
     for (const [input, expected] of [
       ["0." + "0".repeat(n) + "1", "inexact"],
@@ -53,9 +50,7 @@ describe("parseWeight", () => {
       ["0".repeat(n) + "1", "ok"],
       ["1".repeat(n) + "/2", "syntax"],
     ] as const) {
-      const start = performance.now();
       expect(code(input)).toBe(expected);
-      expect(performance.now() - start).toBeLessThan(1000);
     }
   });
 
@@ -87,4 +82,31 @@ describe("formatWeight", () => {
   });
   it.each([-1, 481, 1.5, Number.NaN])(
     "rejects %j", (units) => expect(() => formatWeight(units)).toThrow(RangeError));
+});
+
+describe("parseAmount", () => {
+  it.each([["33", 15_840], ["0", 0], ["12.5", 6000], ["25/2", 6000], ["1/480", 1]])("reads %j", (text, units) =>
+    expect(parseAmount(text)).toBe(units));
+  it.each(["-1", "1,5", "", "1e3", "99999999999999999999", "10001"])("rejects %j", (text) =>
+    expect(() => parseAmount(text)).toThrow(WeightError));
+  it("writes amounts as fractions and round-trips", () => {
+    expect(formatAmount(15_840)).toBe("33");
+    expect(formatAmount(6000)).toBe("25/2");
+    for (const units of [0, 1, 239, 240, 481, 15_840, 4_800_000]) expect(parseAmount(formatAmount(units))).toBe(units);
+  });
+});
+
+describe("formatSpan", () => {
+  it.each([
+    [120, 240, ["1/4", "2/4"]], [0, 240, ["0", "1/2"]], [240, 480, ["1/2", "1"]], [0, 480, ["0", "1"]],
+    [96, 160, ["3/15", "5/15"]], [90, 120, ["3/16", "4/16"]],
+  ])("writes %i-%i as %j", (from, to, text) => expect(formatSpan(from, to)).toEqual(text));
+  it("round-trips through parseWeight", () => {
+    for (let from = 0; from < 480; from += 15) {
+      for (let to = from + 15; to <= 480; to += 15) {
+        const [a, b] = formatSpan(from, to);
+        expect([parseWeight(a), parseWeight(b)]).toEqual([from, to]);
+      }
+    }
+  });
 });

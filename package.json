@@ -11,10 +11,12 @@
   },
   "scripts": {
     "test": "vitest run --dir tests",
+    "plan": "node --import ./scripts/ts-hooks.js scripts/plan.js",
+    "perf": "node --import ./scripts/ts-hooks.js scripts/perf.js",
     "lint": "eslint .",
     "typecheck": "tsc",
     "reference:python": "python3 scripts/python-holidays-reference.py tests/reference/python-holidays-de.json",
-    "check": "npm run lint && npm run typecheck && npm test && reuse lint"
+    "check": "npm run lint && npm run typecheck && npm test && npm run perf && reuse lint"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

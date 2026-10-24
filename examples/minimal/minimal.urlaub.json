@@ -1,0 +1,13 @@
+{
+  "schema": "restlos/1",
+  "kind": "plan",
+  "id": "my-plan-2027",
+  "revision": 1,
+  "contract": {
+    "region": { "country": "DE", "state": "BY" },
+    "week": [
+      { "from": "2027-01-01", "required": { "mon": "1", "tue": "1", "wed": "1", "thu": "1", "fri": "1", "sat": "0", "sun": "0" } }
+    ]
+  },
+  "plan": { "range": { "from": "2027-01", "to": "2027-12" }, "allowance": "30" }
+}

@@ -5,33 +5,39 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Day rules
 
-Reference for people who write day rules by hand, for example in the `rules` list of a plan file or a rule set. A day rule says that on certain days the required work is lower, is a fixed value, or that part of the day is taken as leave automatically. The TypeScript shape is `DayRule` in `src/engine/counting/types.ts`; `ruleDays` in `src/engine/counting/match.ts` finds the days a rule matches, and `dayRuleWarnings` in `src/engine/counting/warnings.ts` reports likely mistakes. Dates are always written as ISO dates (`"2027-03-13"`) and fields have names; there is no text syntax such as `"12-31"`.
+Reference for people who write day rules by hand, for example in the `rules` list of a plan file or a rule set (the files themselves are described in [Plan files and rule sets](file-format.md); calendar-source entries use the same `match`). A day rule says that on certain days the required work is lower, is a fixed value, or that part of the day is taken as leave automatically. The TypeScript shape is `DayRule` in `src/engine/counting/types.ts`; `ruleDays` in `src/engine/counting/match.ts` finds the days a rule matches, and `dayRuleWarnings` in `src/engine/counting/warnings.ts` reports likely mistakes. Dates are always written as ISO dates (`"2027-03-13"`) and fields have names; there is no text syntax such as `"12-31"`.
 
 ## Top level
 
-| Key | Meaning |
-| --- | --- |
-| `id` | Unique rule ID within the file (`"christmas-eve"`). Appears in warnings and in the detail view as the source of a value. |
-| `match` | Which days the rule applies to, see [Match](#match). |
-| `validFrom`, `validUntil` | Optional years, both inclusive. Outside this range the rule produces nothing. For a range, the year in which it starts counts. For a rule that matches one day per year, the year is the rule's year, and its day can fall in the neighbouring calendar year: `{ "type": "weekdayRelative", "weekday": "sat", "relation": "before", "month": 1, "day": 1 }` with `validFrom` and `validUntil` 2028 matches only `2027-12-25`. |
-| `requiredAtMost`, `requiredExactly`, `mandatory` | The effect. Exactly one of the three, see [Effects](#effects). |
-| `part` | Optional `"start"` or `"end"`, see [Part](#part). |
-| `label` | Optional name of the rule, `{ "de": "Silvester", "en": "New Year's Eve" }`. Only shown, never interpreted. |
-| `origin` | Optional ID of the rule set the rule was copied from. Set by the app; "Update rules from rule set" uses it to tell copied rules from your own. Leave it out when writing a rule by hand. |
+The Required column means what it means in [Plan files and rule sets](file-format.md#required-and-optional).
+
+| Key | Required | Meaning |
+| --- | --- | --- |
+| `id` | yes | Unique rule ID within the file (`"christmas-eve"`). Appears in warnings and in the detail view as the source of a value. |
+| `match` | yes | Which days the rule applies to, see [Match](#match). |
+| `validFrom`, `validUntil` | no | Years, both inclusive. Outside this range the rule produces nothing. For a range, the year in which it starts counts. For a rule that matches one day per year, the year is the rule's year, and its day can fall in the neighbouring calendar year: `{ "type": "weekdayRelative", "weekday": "sat", "relation": "before", "month": 1, "day": 1 }` with `validFrom` and `validUntil` 2028 matches only `2027-12-25`. |
+| `requiredAtMost`, `requiredExactly`, `mandatory` | yes, exactly one | The effect, see [Effects](#effects). |
+| `part` | no, `"end"` | `"start"` or `"end"`, see [Part](#part). |
+| `label` | no | Name of the rule, up to 200 characters: a plain string (`"Silvester"`) or a map from language code to text (`{ "de": "Silvester", "en": "New Year's Eve" }`), see [Texts](file-format.md#texts). Only shown, never interpreted. |
+| `note` | no | Explanation shown with the rule, up to 2000 characters, a plain string or a language map like `label`: for example what the rule's basis says that the rule can't express. Only shown, never interpreted. |
+| `references` | no | List of keys of the contract's `references` that the rule is based on (`["betrvg"]`), see [References](file-format.md#references). A key the contract doesn't have is dropped when the file is read. |
+| `origin` | no | ID of the rule set the rule was copied from; exists only in plan files, never in a rule set. Set by the app; "Update rules from rule set" uses it to tell copied rules from your own. Leave it out when writing a rule by hand. |
+
+The app writes the keys in the order given in [Writing](file-format.md#writing). An invalid or over-long `label`, `note` or `references` is dropped when the file is read; the rule is kept.
 
 ## Match
 
-A `match` is either one of the six date rules of the holiday data or a range. The date rules (`fixed`, `easter`, `orthodoxEaster`, `weekdayRelative`, `nthWeekday`, `once`) are written exactly as described in [Date rules](holiday-data-format.md#date-rules) and match one day per year (`once` only in its own year).
+A `match` is either one of the six date rules of the holiday data or a range. The date rules (`fixed`, `easter`, `orthodoxEaster`, `weekdayRelative`, `nthWeekday`, `once`) are written exactly as described in [Date rules](holiday-data-format.md#date-rules) and match one day per year (`once` only in its own year). Only the bound of `offset` differs: in a day rule it may be from −366 to 366.
 
 A range matches several consecutive days:
 
-| Key | Meaning |
-| --- | --- |
-| `type` | `"range"`. |
-| `from` | First day, any date rule. A range never contains another range. |
-| `to` | Last day, any date rule. Exactly one of `to` and `days`. |
-| `days` | Length in days, a whole number from 1 to 366. Exactly one of `to` and `days`. |
-| `weekdays` | Optional non-empty list of `mon` … `sun`. Only these weekdays of the range are matched. |
+| Key | Required | Meaning |
+| --- | --- | --- |
+| `type` | yes | `"range"`. |
+| `from` | yes | First day, any date rule. A range never contains another range. |
+| `to` | yes, exactly one of `to` and `days` | Last day, any date rule. |
+| `days` | yes, exactly one of `to` and `days` | Length in days, a whole number from 1 to 366. |
+| `weekdays` | no | Non-empty list of `mon` … `sun`. Only these weekdays of the range are matched; without it, every day of the range. |
 
 For each year in which `from` gives a day, the range starts on that day. With `days` it covers the start and the following `days − 1` days. With `to` it ends on the first day on or after the start that `to` gives, looked for in the start year and then in the following year. So `27 December to 2 January` crosses New Year without a special case, and a `once` end exists only in its own year. If `to` gives no such day, the range does not occur that year. A day matched twice by the same rule (overlapping occurrences) counts once.
 
@@ -55,7 +61,7 @@ If several layers give the same lowest required work on a day, the first of them
 
 ## Warnings
 
-`dayRuleWarnings(rule)` returns codes with the rule ID; the rule dialog shows them as warnings, not errors. A rule with a warning is still valid.
+`dayRuleWarnings(rule)` returns codes with the rule ID. The rule dialog shows them while a rule is edited; after a file is opened, `checkRules` lists them for every rule and match entry ([Checking](file-format.md#checking)). They are warnings, not errors: a rule with a warning is still valid.
 
 | Code | When | What to do |
 | --- | --- | --- |

@@ -7,6 +7,7 @@ import { holidaysBetween } from "../holidays/holidays";
 import type { Holiday } from "../holidays/types";
 import { checkUnits } from "../weight";
 import type { Units } from "../weight";
+import { checkSpan } from "./leave";
 import { ruleDays } from "./match";
 import type { DayRule, Part, PlanInput, RequiredOverride, SourceDay } from "./types";
 
@@ -69,7 +70,9 @@ export function dayFacts(
   });
   for (const source of sources) {
     if (source.type === "holiday") checkUnits(source.required, "Required work of a source");
-    else if (source.type === "mandatory" || source.type === "otherPlan") checkUnits(source.take, "Take of a source", 1);
+    else if (source.type === "mandatory") checkUnits(source.take, "Take of a source", 1);
+    else if (source.type === "needed") checkUnits(source.take, "Take of a needed source", 1);
+    else if (source.type === "otherPlan") checkSpan(source.from, source.to, "a source span");
   }
   for (const rule of rules) {
     const effects = [rule.requiredAtMost, rule.requiredExactly, rule.mandatory].filter((value) => value !== undefined);

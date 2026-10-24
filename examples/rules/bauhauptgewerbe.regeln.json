@@ -1,0 +1,101 @@
+{
+  "schema": "restlos/1",
+  "kind": "ruleSet",
+  "id": "3b5b2b6f-8a21-4e5f-a6f0-b019be8bf7f5",
+  "revision": 1,
+  "contract": {
+    "name": {
+      "de": "Bauhauptgewerbe (BRTV 2022)",
+      "en": "Construction industry (BRTV 2022)"
+    },
+    "description": {
+      "de": "Für gewerbliche Arbeitnehmer im Bauhauptgewerbe nach dem Bundesrahmentarifvertrag (BRTV) in der Fassung vom 10. November 2022: Heiligabend und Silvester sind arbeitsfrei, aber unbezahlt; sie kosten keinen Urlaub. Nicht abgebildet: dass die Tage unbezahlt sind (restlos rechnet nur Sollarbeit und Urlaub), die unterschiedlichen Stunden je Tag (z. B. freitags kürzer, Winter- und Sommerarbeitszeit; restlos rechnet in Arbeitstagen), Arbeitszeitkonten und Ausfall durch Schlechtwetter. Nicht geprüft: der Rahmentarifvertrag für Angestellte und Poliere. Arbeitswoche Montag bis Freitag mit ganzen Tagen; arbeitest du in Teilzeit oder an anderen Tagen, passe die Arbeitswoche an. Prüfe alles an deinem eigenen Arbeitsvertrag und Tarifvertrag. Es gibt keine Gewähr, dass die Regeln stimmen, vollständig oder aktuell sind.",
+      "en": "For blue-collar workers in the main construction industry under the framework agreement (BRTV) as amended on 10 November 2022: Christmas Eve and New Year's Eve are days off, but unpaid; they cost no leave. Not modelled: that the days are unpaid (restlos counts only required work and leave), the different hours per day (e.g. shorter Fridays, winter and summer hours; restlos counts working days), working-time accounts and bad-weather downtime. Not checked: the framework agreement for salaried staff and site foremen. Work week Monday to Friday with full days; if you work part-time or on other days, adjust the work week. Check everything against your own employment contract and collective agreement. There is no guarantee that these rules are correct, complete or up to date."
+    },
+    "references": {
+      "brtv": {
+        "title": "Bundesrahmentarifvertrag für das Baugewerbe (BRTV), § 3 Nr. 1.7",
+        "version": {
+          "de": "vom 28. September 2018 in der Fassung vom 5. November 2021 und 10. November 2022, in Kraft seit 1. Januar 2023 (Abschrift)",
+          "en": "of 28 September 2018 as amended on 5 November 2021 and 10 November 2022, in force since 1 January 2023 (copy)"
+        },
+        "url": "https://www.sozialkasse-berlin.de/fileadmin/pdf/tarifvertraege/Baugewerbe/2_BRTV_Bundesrahmentarifvertrag_10_Nov_2022.pdf",
+        "checked": "2026-10-18"
+      },
+      "brtv-generally-binding": {
+        "title": "Bekanntmachung über die Allgemeinverbindlicherklärung eines Tarifvertrags für das Baugewerbe (BRTV), BAnz AT 01.08.2023 B1, Tarifvertrag § 3 Nr. 1.7",
+        "version": {
+          "de": "vom 12. Juli 2023: BRTV in der Fassung der Änderungstarifverträge vom 5. November 2021 und 10. November 2022, allgemeinverbindlich mit Wirkung vom 1. Januar 2023",
+          "en": "of 12 July 2023: BRTV as amended by the agreements of 5 November 2021 and 10 November 2022, generally binding with effect from 1 January 2023"
+        },
+        "url": "https://bundesanzeiger.de/pub/publication/dRCa61hTZ5HybmTiPfK/content/dRCa61hTZ5HybmTiPfK/BAnz%20AT%2001.08.2023%20B1.pdf",
+        "checked": "2026-10-18"
+      }
+    },
+    "region": {
+      "country": "DE"
+    },
+    "minUnit": "1/2",
+    "week": [
+      {
+        "from": "2026-01-01",
+        "required": {
+          "mon": "1",
+          "tue": "1",
+          "wed": "1",
+          "thu": "1",
+          "fri": "1",
+          "sat": "0",
+          "sun": "0"
+        }
+      }
+    ],
+    "rules": [
+      {
+        "id": "christmas-eve",
+        "label": {
+          "de": "Heiligabend (unbezahlt frei)",
+          "en": "Christmas Eve (unpaid day off)"
+        },
+        "match": {
+          "type": "fixed",
+          "month": 12,
+          "day": 24
+        },
+        "requiredAtMost": "0",
+        "note": {
+          "de": "„Der 24. und der 31. Dezember sind arbeitsfrei; der Lohnanspruch entfällt.“ Für gewerbliche Arbeitnehmer sind die Tage frei, aber unbezahlt; sie kosten keinen Urlaub. Für Angestellte und Poliere gilt ein eigener Rahmentarifvertrag; nach Sekundärquellen gilt die ausfallende Arbeitszeit dort als geleistet (nicht geprüft).",
+          "en": "\"24 and 31 December are days off; there is no entitlement to wages.\" For blue-collar workers the days are free but unpaid; they cost no leave. Salaried staff and site foremen have their own framework agreement; according to secondary sources the lost time counts as worked there (not checked)."
+        },
+        "references": [
+          "brtv",
+          "brtv-generally-binding"
+        ]
+      },
+      {
+        "id": "new-years-eve",
+        "label": {
+          "de": "Silvester (unbezahlt frei)",
+          "en": "New Year's Eve (unpaid day off)"
+        },
+        "match": {
+          "type": "fixed",
+          "month": 12,
+          "day": 31
+        },
+        "requiredAtMost": "0",
+        "note": {
+          "de": "„Der 24. und der 31. Dezember sind arbeitsfrei; der Lohnanspruch entfällt.“ Für gewerbliche Arbeitnehmer sind die Tage frei, aber unbezahlt; sie kosten keinen Urlaub. Für Angestellte und Poliere gilt ein eigener Rahmentarifvertrag; nach Sekundärquellen gilt die ausfallende Arbeitszeit dort als geleistet (nicht geprüft).",
+          "en": "\"24 and 31 December are days off; there is no entitlement to wages.\" For blue-collar workers the days are free but unpaid; they cost no leave. Salaried staff and site foremen have their own framework agreement; according to secondary sources the lost time counts as worked there (not checked)."
+        },
+        "references": [
+          "brtv",
+          "brtv-generally-binding"
+        ]
+      }
+    ]
+  },
+  "sources": [],
+  "templates": [],
+  "theme": null
+}

@@ -1,0 +1,173 @@
+{
+  "schema": "restlos/1",
+  "kind": "ruleSet",
+  "id": "6d241bc8-b94c-4f97-82f1-af9a2d23cc34",
+  "revision": 1,
+  "contract": {
+    "name": {
+      "de": "Metall- und Elektroindustrie Baden-Württemberg (MTV 2024)",
+      "en": "Metal and electrical industry, Baden-Württemberg (MTV 2024)"
+    },
+    "description": {
+      "de": "Für Beschäftigte der Metall- und Elektroindustrie in Baden-Württemberg, für die der Manteltarifvertrag von 2024 gilt; ob er für dich gilt, hängt von der Tarifbindung deines Betriebs und deinem Arbeitsvertrag ab. Am Werktag unmittelbar vor dem ersten Weihnachtsfeiertag und vor Neujahr endet die Arbeit spätestens um 12 Uhr, hier als halber Tag frei am Ende des Tages. Ist Heiligabend oder Silvester ein Sonntag, lesen wir § 27 so, dass das für den Samstag davor gilt; das ist nicht eindeutig – prüfe es für deinen Betrieb. Nicht abgebildet: die genaue Uhrzeit (½ ist eine Näherung), eine Betriebsvereinbarung zum Vor- oder Nacharbeiten, Schichtpläne. Arbeitswoche Montag bis Freitag mit ganzen Tagen; arbeitest du samstags, in Teilzeit oder an anderen Tagen, passe die Arbeitswoche an. Prüfe alles an deinem eigenen Arbeitsvertrag und Tarifvertrag. Es gibt keine Gewähr, dass die Regeln stimmen, vollständig oder aktuell sind.",
+      "en": "For employees in the metal and electrical industry in Baden-Württemberg covered by the 2024 framework agreement (MTV); whether it applies to you depends on your employer's collective bargaining coverage and your employment contract. On the working day right before Christmas Day and New Year's Day work ends at 12:00 at the latest, written here as half a day free at the end of the day. If Christmas Eve or New Year's Eve is a Sunday, we read § 27 as applying to the Saturday before; that is not certain – check it for your workplace. Not modelled: the exact time (½ is an approximation), a works agreement on working the hours before or after, shift plans. Work week Monday to Friday with full days; if you work on Saturdays, part-time or on other days, adjust the work week. Check everything against your own employment contract and collective agreement. There is no guarantee that these rules are correct, complete or up to date."
+    },
+    "references": {
+      "mtv": {
+        "title": "Manteltarifvertrag für Beschäftigte der Metall- und Elektroindustrie in Baden-Württemberg (MTV), § 27",
+        "version": {
+          "de": "Abschluss und gültig ab 12. November 2024 (ersetzt den MTV vom 11. November 2021 in der Fassung vom 22. Oktober 2022)",
+          "en": "concluded and in force from 12 November 2024 (replaces the MTV of 11 November 2021 as amended on 22 October 2022)"
+        },
+        "url": "https://baden-wuerttemberg.igmetall.de/dam/jcr:7e118b3d-5cfb-46fe-be92-eda1e0bfa96e/MTV.adbdd5dbf80cfb8e07f293961543b83a.pdf",
+        "checked": "2026-10-18"
+      }
+    },
+    "region": {
+      "country": "DE",
+      "state": "BW"
+    },
+    "minUnit": "1/2",
+    "week": [
+      {
+        "from": "2026-01-01",
+        "required": {
+          "mon": "1",
+          "tue": "1",
+          "wed": "1",
+          "thu": "1",
+          "fri": "1",
+          "sat": "0",
+          "sun": "0"
+        }
+      }
+    ],
+    "rules": [
+      {
+        "id": "christmas-eve",
+        "label": {
+          "de": "Heiligabend: Arbeitsende spätestens 12 Uhr",
+          "en": "Christmas Eve: work ends at 12:00 at the latest"
+        },
+        "match": {
+          "type": "range",
+          "from": {
+            "type": "fixed",
+            "month": 12,
+            "day": 24
+          },
+          "days": 1,
+          "weekdays": [
+            "mon",
+            "tue",
+            "wed",
+            "thu",
+            "fri",
+            "sat"
+          ]
+        },
+        "requiredAtMost": "1/2",
+        "part": "end",
+        "note": {
+          "de": "Der MTV sagt: „An Werktagen, die unmittelbar vor dem ersten Weihnachtsfeiertag und vor Neujahr liegen, endet die Arbeitszeit spätestens um 12.00 Uhr. Das Monatsentgelt wird fortgezahlt.“ Die Regel setzt dafür einen halben Tag an, frei am Ende des Tages. Das passt zu einem Arbeitstag von etwa 8 bis 16 Uhr; beginnt oder endet dein Tag anders, ist der freie Anteil größer oder kleiner. Nicht abgebildet: Eine freiwillige Betriebsvereinbarung kann vorsehen, dass bis zu 3,5 Stunden unbezahlt vor- oder nachgearbeitet werden.",
+          "en": "The MTV says that on the working days (Werktage) right before Christmas Day and New Year's Day \"working time ends at 12:00 at the latest\" and the monthly pay continues. The rule writes this as half a day, free at the end of the day. That fits a working day from about 8:00 to 16:00; if your day starts or ends at other times, the free share is larger or smaller. Not modelled: a voluntary works agreement may have up to 3.5 hours worked unpaid before or after."
+        },
+        "references": [
+          "mtv"
+        ]
+      },
+      {
+        "id": "saturday-before-christmas",
+        "label": {
+          "de": "Samstag, 23. Dezember, wenn Heiligabend ein Sonntag ist: Arbeitsende spätestens 12 Uhr",
+          "en": "Saturday 23 December when Christmas Eve is a Sunday: work ends at 12:00 at the latest"
+        },
+        "match": {
+          "type": "range",
+          "from": {
+            "type": "fixed",
+            "month": 12,
+            "day": 23
+          },
+          "days": 1,
+          "weekdays": [
+            "sat"
+          ]
+        },
+        "requiredAtMost": "1/2",
+        "part": "end",
+        "note": {
+          "de": "Wir lesen § 27 so, dass bei einem Sonntag am 24. Dezember der Samstag davor der Werktag unmittelbar vor dem ersten Weihnachtsfeiertag ist und die Arbeit dann an diesem Samstag spätestens um 12 Uhr endet. Das ist nicht eindeutig – prüfe es für deinen Betrieb. Es ändert nur etwas, wenn du samstags arbeitest.",
+          "en": "We read § 27 to mean that when 24 December is a Sunday, the Saturday before it is the working day right before Christmas Day, so work ends at 12:00 at the latest on that Saturday. That is not certain – check it for your workplace. It only matters if you work on Saturdays."
+        },
+        "references": [
+          "mtv"
+        ]
+      },
+      {
+        "id": "new-years-eve",
+        "label": {
+          "de": "Silvester: Arbeitsende spätestens 12 Uhr",
+          "en": "New Year's Eve: work ends at 12:00 at the latest"
+        },
+        "match": {
+          "type": "range",
+          "from": {
+            "type": "fixed",
+            "month": 12,
+            "day": 31
+          },
+          "days": 1,
+          "weekdays": [
+            "mon",
+            "tue",
+            "wed",
+            "thu",
+            "fri",
+            "sat"
+          ]
+        },
+        "requiredAtMost": "1/2",
+        "part": "end",
+        "note": {
+          "de": "Der MTV sagt: „An Werktagen, die unmittelbar vor dem ersten Weihnachtsfeiertag und vor Neujahr liegen, endet die Arbeitszeit spätestens um 12.00 Uhr. Das Monatsentgelt wird fortgezahlt.“ Die Regel setzt dafür einen halben Tag an, frei am Ende des Tages. Das passt zu einem Arbeitstag von etwa 8 bis 16 Uhr; beginnt oder endet dein Tag anders, ist der freie Anteil größer oder kleiner. Nicht abgebildet: Eine freiwillige Betriebsvereinbarung kann vorsehen, dass bis zu 3,5 Stunden unbezahlt vor- oder nachgearbeitet werden.",
+          "en": "The MTV says that on the working days (Werktage) right before Christmas Day and New Year's Day \"working time ends at 12:00 at the latest\" and the monthly pay continues. The rule writes this as half a day, free at the end of the day. That fits a working day from about 8:00 to 16:00; if your day starts or ends at other times, the free share is larger or smaller. Not modelled: a voluntary works agreement may have up to 3.5 hours worked unpaid before or after."
+        },
+        "references": [
+          "mtv"
+        ]
+      },
+      {
+        "id": "saturday-before-new-year",
+        "label": {
+          "de": "Samstag, 30. Dezember, wenn Silvester ein Sonntag ist: Arbeitsende spätestens 12 Uhr",
+          "en": "Saturday 30 December when New Year's Eve is a Sunday: work ends at 12:00 at the latest"
+        },
+        "match": {
+          "type": "range",
+          "from": {
+            "type": "fixed",
+            "month": 12,
+            "day": 30
+          },
+          "days": 1,
+          "weekdays": [
+            "sat"
+          ]
+        },
+        "requiredAtMost": "1/2",
+        "part": "end",
+        "note": {
+          "de": "Wir lesen § 27 so, dass bei einem Sonntag am 31. Dezember der Samstag davor der Werktag unmittelbar vor Neujahr ist und die Arbeit dann an diesem Samstag spätestens um 12 Uhr endet. Das ist nicht eindeutig – prüfe es für deinen Betrieb. Es ändert nur etwas, wenn du samstags arbeitest.",
+          "en": "We read § 27 to mean that when 31 December is a Sunday, the Saturday before it is the working day right before New Year's Day, so work ends at 12:00 at the latest on that Saturday. That is not certain – check it for your workplace. It only matters if you work on Saturdays."
+        },
+        "references": [
+          "mtv"
+        ]
+      }
+    ]
+  },
+  "sources": [],
+  "templates": [],
+  "theme": null
+}

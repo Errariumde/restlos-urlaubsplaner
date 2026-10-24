@@ -104,7 +104,7 @@ describe("requiredWork", () => {
       sources: [
         { type: "info", day: d("2027-05-05"), sourceId: "school" },
         { type: "mandatory", day: d("2027-05-05"), sourceId: "m", take: HALF },
-        { type: "otherPlan", day: d("2027-05-05"), sourceId: "o", take: HALF },
+        { type: "otherPlan", day: d("2027-05-05"), sourceId: "o", from: HALF, to: FULL, kind: "leave" },
       ],
       ...rules({ id: "m", match: once("2027-05-05"), mandatory: FULL }),
     });
@@ -175,7 +175,13 @@ describe("dayFacts", () => {
     [{ sources: [{ type: "holiday", day: d("2027-05-05"), sourceId: "x", required: 481 }] }],
     [rules({ id: "m", match: once("2027-05-05"), mandatory: 0 })],
     [{ sources: [{ type: "mandatory", day: d("2027-05-05"), sourceId: "x", take: 0 }] }],
-    [{ sources: [{ type: "otherPlan", day: d("2027-05-05"), sourceId: "x", take: 0 }] }],
+    [{ sources: [{ type: "needed", day: d("2027-05-05"), sourceId: "x", take: 0 }] }],
+    [{ sources: [{ type: "needed", day: d("2027-05-05"), sourceId: "x", take: 481 }] }],
+    [{ sources: [{ type: "otherPlan", day: d("2027-05-05"), sourceId: "x", from: 240, to: 240, kind: "leave" }] }],
+    [{ sources: [{ type: "otherPlan", day: d("2027-05-05"), sourceId: "x", from: 240, to: 120, kind: "leave" }] }],
+    [{ sources: [{ type: "otherPlan", day: d("2027-05-05"), sourceId: "x", from: -15, to: 240, kind: "leave" }] }],
+    [{ sources: [{ type: "otherPlan", day: d("2027-05-05"), sourceId: "x", from: 240, to: 495, kind: "leave" }] }],
+    [{ sources: [{ type: "otherPlan", day: d("2027-05-05"), sourceId: "x", from: 0, to: 1.5, kind: "leave" }] }],
     [rules({ id: "none", match: once("2027-05-05") } as unknown as DayRule)],
     [rules({ id: "two", match: once("2027-05-05"), requiredAtMost: 0, mandatory: FULL } as unknown as DayRule)],
   ] as [Partial<PlanInput>][])("rejects invalid input %#", (changes) =>

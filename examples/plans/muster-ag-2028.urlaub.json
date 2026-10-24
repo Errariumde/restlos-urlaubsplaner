@@ -1,0 +1,423 @@
+{
+  "schema": "restlos/1",
+  "kind": "plan",
+  "id": "1f1ee217-7219-40bc-9044-92f330eeffd8",
+  "revision": 1,
+  "contract": {
+    "name": {
+      "de": "Muster AG (Testbeispiel)",
+      "en": "Muster AG (test example)"
+    },
+    "description": {
+      "de": "Fiktives Testbeispiel: Die Muster AG gibt es nicht. Das Paar aus den Plänen 2027 und 2028 zeigt möglichst viele Teile des Dateiformats und des Zählmodells: die Stadt Augsburg mit Friedensfest und Mariä Himmelfahrt, eine Arbeitswoche, in der ab 1. September 2027 der Dienstag ein halber Tag ist, Pflichturlaub am Nachmittag des 24. Dezember und in der Betriebsruhe vom 27. Dezember bis 4. Januar, einen Arbeitssamstag, Kalenderquellen jeder Art und im Plan 2028 den Urlaub aus dem Plan 2027. Kein Vorbild für einen echten Arbeitsvertrag.",
+      "en": "A fictional test example: Muster AG doesn't exist. The pair of plans for 2027 and 2028 shows as many parts of the file format and the counting model as it can: the City of Augsburg with its Peace Festival and Assumption Day, a work week in which Tuesday is a half day from 1 September 2027, mandatory leave on the afternoon of 24 December and during the company closure from 27 December to 4 January, a working Saturday, calendar sources of every kind and, in the 2028 plan, the leave from the 2027 plan. Not a model for a real employment contract."
+    },
+    "region": {
+      "country": "DE",
+      "state": "BY",
+      "options": {
+        "assumption": true,
+        "augsburg": true
+      }
+    },
+    "minUnit": "1/2",
+    "week": [
+      {
+        "from": "2027-01-01",
+        "required": {
+          "mon": "1",
+          "tue": "1",
+          "wed": "1",
+          "thu": "1",
+          "fri": "1",
+          "sat": "0",
+          "sun": "0"
+        }
+      },
+      {
+        "from": "2027-09-01",
+        "required": {
+          "mon": "1",
+          "tue": "1/2",
+          "wed": "1",
+          "thu": "1",
+          "fri": "1",
+          "sat": "0",
+          "sun": "0"
+        }
+      }
+    ],
+    "rules": [
+      {
+        "id": "christmas-eve",
+        "label": {
+          "de": "Heiligabend: nachmittags Pflichturlaub",
+          "en": "Christmas Eve: mandatory leave in the afternoon"
+        },
+        "match": {
+          "type": "fixed",
+          "month": 12,
+          "day": 24
+        },
+        "mandatory": "1/2",
+        "part": "end",
+        "note": {
+          "de": "Fiktiv: Die Muster AG schließt am 24. Dezember mittags; der Nachmittag kostet einen halben Urlaubstag.",
+          "en": "Fictional: Muster AG closes at noon on 24 December; the afternoon costs half a day of leave."
+        }
+      },
+      {
+        "id": "new-years-eve",
+        "label": {
+          "de": "Silvester: nachmittags frei",
+          "en": "New Year's Eve: afternoon off"
+        },
+        "match": {
+          "type": "fixed",
+          "month": 12,
+          "day": 31
+        },
+        "requiredAtMost": "1/2",
+        "part": "end",
+        "note": {
+          "de": "Fiktiv: Am 31. Dezember endet die Arbeit mittags. Fällt der Tag in die Betriebsruhe, kostet er deshalb nur einen halben Urlaubstag.",
+          "en": "Fictional: work ends at noon on 31 December. When the day falls in the company closure, it therefore costs only half a day of leave."
+        }
+      },
+      {
+        "id": "company-closure",
+        "label": {
+          "de": "Betriebsruhe 27. Dezember bis 4. Januar",
+          "en": "Company closure 27 December to 4 January"
+        },
+        "match": {
+          "type": "range",
+          "from": {
+            "type": "fixed",
+            "month": 12,
+            "day": 27
+          },
+          "to": {
+            "type": "fixed",
+            "month": 1,
+            "day": 4
+          },
+          "weekdays": [
+            "mon",
+            "tue",
+            "wed",
+            "thu",
+            "fri"
+          ]
+        },
+        "mandatory": "1",
+        "note": {
+          "de": "Fiktiv: Montag bis Freitag als Pflichturlaub. Ein Tag mit weniger Arbeit kostet nur so viel, wie an ihm zu arbeiten wäre.",
+          "en": "Fictional: Monday to Friday as mandatory leave. A day with less work costs only as much as there would be work on it."
+        }
+      },
+      {
+        "id": "working-saturday",
+        "label": {
+          "de": "Arbeitssamstag 20. November 2027",
+          "en": "Working Saturday 20 November 2027"
+        },
+        "match": {
+          "type": "once",
+          "date": "2027-11-20"
+        },
+        "requiredExactly": "1",
+        "note": {
+          "de": "Fiktiv: Umzug in das neue Bürogebäude.",
+          "en": "Fictional: moving into the new office building."
+        }
+      }
+    ]
+  },
+  "sources": [
+    {
+      "id": "previous-year",
+      "name": {
+        "de": "Urlaub 2027",
+        "en": "Leave 2027"
+      },
+      "type": "otherPlan",
+      "color": {
+        "slot": "accent-3"
+      },
+      "visible": true,
+      "plan": {
+        "id": "dacb09ce-a1c4-427c-8633-95857a146af5",
+        "name": {
+          "de": "Muster AG (Testbeispiel)",
+          "en": "Muster AG (test example)"
+        },
+        "revision": 1
+      },
+      "entries": [
+        {
+          "date": "2027-01-04",
+          "from": "0",
+          "to": "1",
+          "kind": "mandatory"
+        },
+        {
+          "date": "2027-05-07",
+          "from": "0",
+          "to": "1",
+          "kind": "mandatory"
+        },
+        {
+          "date": "2027-08-02",
+          "from": "0",
+          "to": "1",
+          "kind": "leave"
+        },
+        {
+          "date": "2027-08-03",
+          "from": "0",
+          "to": "1",
+          "kind": "leave"
+        },
+        {
+          "date": "2027-08-04",
+          "from": "0",
+          "to": "1",
+          "kind": "leave"
+        },
+        {
+          "date": "2027-08-05",
+          "from": "0",
+          "to": "1",
+          "kind": "leave"
+        },
+        {
+          "date": "2027-08-06",
+          "from": "0",
+          "to": "1",
+          "kind": "leave"
+        },
+        {
+          "date": "2027-08-09",
+          "from": "0",
+          "to": "1",
+          "kind": "leave"
+        },
+        {
+          "date": "2027-08-10",
+          "from": "0",
+          "to": "1",
+          "kind": "leave"
+        },
+        {
+          "date": "2027-08-11",
+          "from": "0",
+          "to": "1",
+          "kind": "leave"
+        },
+        {
+          "date": "2027-08-12",
+          "from": "0",
+          "to": "1",
+          "kind": "leave"
+        },
+        {
+          "date": "2027-08-13",
+          "from": "0",
+          "to": "1",
+          "kind": "leave"
+        },
+        {
+          "date": "2027-12-24",
+          "from": "0",
+          "to": "1/2",
+          "kind": "leave"
+        },
+        {
+          "date": "2027-12-24",
+          "from": "1/2",
+          "to": "1",
+          "kind": "mandatory"
+        },
+        {
+          "date": "2027-12-27",
+          "from": "0",
+          "to": "1",
+          "kind": "mandatory"
+        },
+        {
+          "date": "2027-12-28",
+          "from": "0",
+          "to": "1/2",
+          "kind": "mandatory"
+        },
+        {
+          "date": "2027-12-29",
+          "from": "0",
+          "to": "1",
+          "kind": "mandatory"
+        },
+        {
+          "date": "2027-12-30",
+          "from": "0",
+          "to": "1",
+          "kind": "mandatory"
+        },
+        {
+          "date": "2027-12-31",
+          "from": "0",
+          "to": "1/2",
+          "kind": "mandatory"
+        },
+        {
+          "date": "2028-01-03",
+          "from": "0",
+          "to": "1",
+          "kind": "mandatory"
+        },
+        {
+          "date": "2028-01-04",
+          "from": "0",
+          "to": "1/2",
+          "kind": "mandatory"
+        },
+        {
+          "date": "2028-01-05",
+          "from": "0",
+          "to": "1",
+          "kind": "leave"
+        },
+        {
+          "date": "2028-01-07",
+          "from": "0",
+          "to": "1",
+          "kind": "leave"
+        }
+      ]
+    },
+    {
+      "id": "kita",
+      "name": {
+        "de": "Kita",
+        "en": "Daycare"
+      },
+      "type": "needed",
+      "color": {
+        "slot": "accent-4"
+      },
+      "visible": true,
+      "entries": [
+        {
+          "date": "2028-06-16",
+          "name": {
+            "de": "Brückentag: Kita geschlossen",
+            "en": "Bridge day: daycare closed"
+          },
+          "take": "1"
+        },
+        {
+          "match": {
+            "type": "range",
+            "from": {
+              "type": "once",
+              "date": "2028-08-07"
+            },
+            "to": {
+              "type": "once",
+              "date": "2028-08-11"
+            }
+          },
+          "name": {
+            "de": "Schließzeit Sommer",
+            "en": "Summer closure"
+          },
+          "take": "1"
+        },
+        {
+          "match": {
+            "type": "range",
+            "from": {
+              "type": "fixed",
+              "month": 9,
+              "day": 1
+            },
+            "to": {
+              "type": "fixed",
+              "month": 8,
+              "day": 31
+            },
+            "weekdays": [
+              "tue"
+            ]
+          },
+          "validFrom": 2027,
+          "validUntil": 2028,
+          "name": {
+            "de": "Abholen dienstags",
+            "en": "Tuesday pickup"
+          },
+          "take": "1/2",
+          "part": "end"
+        }
+      ]
+    }
+  ],
+  "templates": [],
+  "theme": null,
+  "plan": {
+    "range": {
+      "from": "2028-01",
+      "to": "2029-01"
+    },
+    "allowance": "30",
+    "days": [
+      {
+        "date": "2028-05-26",
+        "take": "1"
+      },
+      {
+        "date": "2028-06-16",
+        "take": "1"
+      },
+      {
+        "date": "2028-08-07",
+        "take": "1"
+      },
+      {
+        "date": "2028-08-09",
+        "take": "1"
+      },
+      {
+        "date": "2028-08-10",
+        "take": "1"
+      },
+      {
+        "date": "2028-08-11",
+        "take": "1"
+      },
+      {
+        "date": "2028-08-14",
+        "take": "1"
+      },
+      {
+        "date": "2029-01-05",
+        "take": "1"
+      }
+    ],
+    "overrides": [],
+    "notes": [
+      {
+        "date": "2028-06-16",
+        "text": "Kita geschlossen (Brückentag)"
+      },
+      {
+        "date": "2028-08-14",
+        "text": "Brückentag vor Mariä Himmelfahrt"
+      },
+      {
+        "date": "2029-01-05",
+        "text": "Brückentag nach der Betriebsruhe"
+      }
+    ]
+  }
+}

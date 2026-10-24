@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 import { describe, expect, it } from "vitest";
-import { suggestPart } from "../../../src/engine/counting/suggest";
+import { suggestPart, suggestParts } from "../../../src/engine/counting/suggest";
 import type { Part, PlanInput } from "../../../src/engine/counting/types";
 import { BAVARIA, baseInput, CHRISTMAS_EVE_RULES, d, FULL, HALF, fixed } from "./helpers";
 
@@ -33,4 +33,35 @@ describe("suggestPart", () => {
     ["2027-05-12", 0],
     ["2027-05-12", 481],
   ] as [string, number][])("rejects %s with %i", (iso, take) => expect(() => suggest(iso, take)).toThrow(RangeError));
+});
+
+describe("suggestParts", () => {
+  const cases: [string, number][] = [
+    ["2027-05-10", HALF],
+    ["2027-05-14", HALF],
+    ["2027-05-07", HALF],
+    ["2027-05-12", HALF],
+    ["2027-05-12", FULL],
+    ["2027-05-10", 1],
+  ];
+  it("gives the same answers as suggestPart per request", () => {
+    const input = baseInput();
+    expect(suggestParts(input, cases.map(([iso, take]) => ({ day: d(iso), take })))).toEqual(cases.map(([iso, take]) => suggestPart(input, d(iso), take)));
+  });
+  it("gives the same answers with own leave on the requested days", () => {
+    const input = baseInput({ leave: [{ day: d("2027-05-10"), take: FULL }] });
+    expect(suggestParts(input, [{ day: d("2027-05-10"), take: HALF }])).toEqual(["start"]);
+  });
+  it("answers each request without the leave of any requested day", () => {
+    // Monday and Tuesday after a free Sunday; both already have leave in the input.
+    const input = baseInput({ leave: [{ day: d("2027-05-10"), take: FULL }, { day: d("2027-05-11"), take: FULL }] });
+    const requests = [{ day: d("2027-05-10"), take: HALF }, { day: d("2027-05-11"), take: HALF }];
+    // Without the leave of both days: Monday joins the free Sunday ("start"), Tuesday has working days on both sides.
+    expect(suggestParts(input, requests)).toEqual(["start", null]);
+    // suggestPart keeps the other day's leave, which counts as free time: Monday has free time on both sides.
+    expect(suggestPart(input, d("2027-05-10"), HALF)).toBeNull();
+    expect(suggestPart(input, d("2027-05-11"), HALF)).toBe("start");
+  });
+  it("answers an empty list with an empty list", () => expect(suggestParts(baseInput(), [])).toEqual([]));
+  it("rejects a day outside the period", () => expect(() => suggestParts(baseInput(), [{ day: d("2028-01-03"), take: HALF }])).toThrow(RangeError));
 });
