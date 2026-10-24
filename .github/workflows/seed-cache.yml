@@ -26,11 +26,13 @@ on:
 permissions:
   contents: read
 
+# Only the seed job writes; a job added here reads unless it says otherwise.
+cache-mode: read
+
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
-    cache-mode: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -40,7 +42,7 @@ jobs:
         run: nix develop .#ci --command npm run nixos-release
 
   seed:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     cache-mode: write
     concurrency:

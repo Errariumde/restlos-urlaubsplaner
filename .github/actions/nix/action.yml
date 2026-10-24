@@ -22,7 +22,8 @@ runs:
     # follow the Nix that flake.lock's nixpkgs ships (the version check below);
     # updating them: .claude/skills/dependency-update/SKILL.md, step 8.
     # Also the one place for the cache keys, which seed-cache.yml saves under
-    # and check.yml restores from.
+    # and check.yml restores from. Each key covers every file that changes what
+    # the seed puts into that cache, so a change to them is seeded afresh.
     - name: Pin the Nix version and the cache keys
       shell: bash
       run: |
@@ -31,8 +32,8 @@ runs:
           echo "NIX_VERSION=$version"
           echo "NIX_TARBALL_SHA256=e8912e087582b3799e0e5a6b06f9d63386c54821f77ad4de3b9b748736ad364e"
           echo "NIX_TARBALL_CACHE_KEY=nix-installer-$version-x86_64-linux"
-          echo "NIX_STORE_CACHE_KEY=nix-store-${{ hashFiles('flake.lock', 'flake.nix', '.github/actions/nix/action.yml') }}"
-          echo "NPM_CACHE_KEY=npm-${{ hashFiles('package-lock.json') }}"
+          echo "NIX_STORE_CACHE_KEY=nix-store-${{ hashFiles('flake.lock', 'flake.nix', '.github/actions/nix/action.yml', '.github/workflows/seed-cache.yml') }}"
+          echo "NPM_CACHE_KEY=npm-${{ hashFiles('package-lock.json', '.npmrc') }}"
         } >> "$GITHUB_ENV"
 
     - name: Restore the Nix tarball

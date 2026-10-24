@@ -21,7 +21,8 @@ updates:
       npm-all:
         patterns: ["*"]
   - package-ecosystem: github-actions
-    directory: /
+    # "/" covers .github/workflows only; the composite action is listed too.
+    directories: ["/", "/.github/actions/nix"]
     schedule:
       interval: monthly
     cooldown:

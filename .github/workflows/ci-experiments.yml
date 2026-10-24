@@ -31,7 +31,7 @@ jobs:
   # E2: a warm run needs neither cache.nixos.org nor releases.nixos.org.
   probe-offline:
     needs: seed
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     cache-mode: read
     steps:
@@ -59,7 +59,8 @@ jobs:
           built="$(sed -n "s/^building '\/nix\/store\/[a-z0-9]*-\(.*\)'.*/\1/p" "$log" | paste -sd, -)"
           https="$(grep -c "from 'https://" "$log" || true)"
           result=FAIL
-          [ "${{ steps.setup.outcome }}" = success ] && [ "${{ steps.develop.outcome }}" = success ] && [ "$https" = 0 ] && result=PASS
+          # Only the shell's own -env output may be built; everything else comes from the file cache.
+          [ "${{ steps.setup.outcome }}" = success ] && [ "${{ steps.develop.outcome }}" = success ] && [ "$https" = 0 ] && [ "$built" = nix-shell-env.drv ] && result=PASS
           {
             echo "| id | result | detail |"; echo "| --- | --- | --- |"
             echo "| E2 | $result | setup ${{ steps.setup.outcome }}, nix develop ${{ steps.develop.outcome }}; built: ${built:-nothing}; copied from https: $https |"
@@ -68,13 +69,22 @@ jobs:
   # E4: the nixpkgs source comes from the store cache, not from GitHub.
   probe-offline-github:
     needs: seed
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     cache-mode: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # The runner fetches the actions a local composite action uses only when
+      # that step starts, through api.github.com. Using the same action here
+      # makes it download it at job setup, before GitHub is blocked.
+      - name: Download actions/cache before GitHub is blocked
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/restlos/unused
+          key: predownload-unused
+          lookup-only: true
       - name: Block the NixOS hosts and GitHub
         run: |
           for host in cache.nixos.org releases.nixos.org channels.nixos.org github.com api.github.com codeload.github.com; do
@@ -92,17 +102,20 @@ jobs:
       - name: Report
         if: always()
         run: |
+          log="$RUNNER_TEMP/develop.log"; touch "$log"
+          built="$(sed -n "s/^building '\/nix\/store\/[a-z0-9]*-\(.*\)'.*/\1/p" "$log" | paste -sd, -)"
+          https="$(grep -c "from 'https://" "$log" || true)"
           result=FAIL
-          [ "${{ steps.setup.outcome }}" = success ] && [ "${{ steps.develop.outcome }}" = success ] && result=PASS
+          [ "${{ steps.setup.outcome }}" = success ] && [ "${{ steps.develop.outcome }}" = success ] && [ "$https" = 0 ] && [ "$built" = nix-shell-env.drv ] && result=PASS
           {
             echo "| id | result | detail |"; echo "| --- | --- | --- |"
-            echo "| E4 | $result | setup (includes the version check, which evaluates nixpkgs) ${{ steps.setup.outcome }}, nix develop ${{ steps.develop.outcome }} |"
+            echo "| E4 | $result | setup (includes the version check, which evaluates nixpkgs) ${{ steps.setup.outcome }}, nix develop ${{ steps.develop.outcome }}; built: ${built:-nothing}; copied from https: $https |"
           } >> "$GITHUB_STEP_SUMMARY"
 
   # E3: tampered cache entries and a changed tarball are refused.
   probe-tamper:
     needs: seed
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     cache-mode: read
     steps:
@@ -171,7 +184,7 @@ jobs:
   # Review Focus 2: a changed dev shell takes what still matches from the old cache entry.
   probe-changed-shell:
     needs: seed
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     cache-mode: read
     steps:
@@ -195,7 +208,8 @@ jobs:
           https="$(sed -n "s/^copying path '\/nix\/store\/[a-z0-9]*-\([^']*\)' from 'https.*/\1/p" "$log" | paste -sd, -)"
           filecache="$(grep -c "from 'file://" "$log" || true)"
           result=FAIL
-          [ "${{ steps.develop.outcome }}" = success ] && grep -q 'Hello, world!' "$log" && result=PASS
+          # The old entry must have served what still matches.
+          [ "${{ steps.develop.outcome }}" = success ] && grep -q 'Hello, world!' "$log" && [ "$filecache" -gt 0 ] && result=PASS
           {
             echo "| id | result | detail |"; echo "| --- | --- | --- |"
             echo "| RF2 | $result | nix develop ${{ steps.develop.outcome }}; from the file cache: $filecache paths; from cache.nixos.org: ${https:-none} |"
@@ -204,7 +218,7 @@ jobs:
   # Review Focus 3: the version check names what to update.
   probe-version-guard:
     needs: seed
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     cache-mode: read
     steps:
@@ -230,7 +244,7 @@ jobs:
   # P: the perf gate's counts on runners against the checked-in baseline.
   perf-sample:
     needs: seed
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     cache-mode: read
     strategy:
@@ -253,16 +267,16 @@ jobs:
           cpu="$(lscpu | sed -n 's/^Model name: *//p')"
           nix develop .#ci --command sh -c 'npm ci --prefer-offline && npm run perf' 2>&1 | tee "$RUNNER_TEMP/perf.log" || true
           {
-            echo "P sample ${{ matrix.sample }}: $cpu, $(nproc) cores"
+            echo "P sample ${{ matrix.sample }}: $cpu, $(nproc) cores; image $ImageOS $ImageVersion"
             echo '```'
             grep -E '^(perf:|FAIL)' "$RUNNER_TEMP/perf.log" || true
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-  # E5 on push: a write job can save, a read job can't.
+  # E5, on the push and on the pull request: a write job can save (the
+  # control), a read job can't.
   probe-cache-write:
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     cache-mode: write
     steps:
@@ -274,8 +288,7 @@ jobs:
           key: probe-write-${{ github.run_id }}-${{ github.run_attempt }}
 
   probe-cache-read:
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     cache-mode: read
     steps:
@@ -290,8 +303,8 @@ jobs:
 
   probe-cache-lookup:
     needs: [probe-cache-write, probe-cache-read]
-    if: always() && github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
+    if: always()
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     cache-mode: read
     steps:
@@ -313,34 +326,5 @@ jobs:
           result=FAIL; [ "$w" = true ] && [ "$r" != true ] && result=PASS
           {
             echo "| id | result | detail |"; echo "| --- | --- | --- |"
-            echo "| E5 push | $result | write job's entry found: ${w:-false}; read job's entry found: ${r:-false} |"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-  # E5 on the pull request: a read job's save creates nothing.
-  probe-cache-pr:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    cache-mode: read
-    steps:
-      - run: mkdir -p ~/probe && date > ~/probe/stamp
-      - id: save
-        continue-on-error: true
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/probe
-          key: probe-pr-${{ github.run_id }}-${{ github.run_attempt }}
-      - id: lookup
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/probe
-          key: probe-pr-${{ github.run_id }}-${{ github.run_attempt }}
-          lookup-only: true
-      - name: Report
-        run: |
-          hit="${{ steps.lookup.outputs.cache-hit }}"
-          result=FAIL; [ "$hit" != true ] && result=PASS
-          {
-            echo "| id | result | detail |"; echo "| --- | --- | --- |"
-            echo "| E5 PR | $result | save step ${{ steps.save.outcome }}; entry found afterwards: ${hit:-false} |"
+            echo "| E5 ${{ github.event_name }} | $result | write job's entry found: ${w:-false}; read job's entry found: ${r:-false} |"
           } >> "$GITHUB_STEP_SUMMARY"

@@ -17,12 +17,14 @@ on:
 permissions:
   contents: read
 
+# For every job, also one added later: only seed-cache.yml writes caches.
+cache-mode: read
+
 jobs:
   check:
     name: check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
-    cache-mode: read
     concurrency:
       group: check-${{ github.ref }}
       cancel-in-progress: true
@@ -43,10 +45,10 @@ jobs:
           restore-keys: npm-
 
       # The perf gate's counts depend on the CPU; the summary keeps them together.
-      - name: Note the runner's CPU
+      - name: Note the runner's CPU and image
         run: |
           cpu="$(lscpu | sed -n 's/^Model name: *//p')"
-          echo "Runner CPU: $cpu, $(nproc) cores" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "Runner CPU: $cpu, $(nproc) cores; image $ImageOS $ImageVersion" | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: npm ci and npm run check
         run: |
