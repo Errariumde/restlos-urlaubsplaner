@@ -56,3 +56,30 @@ Click "Copy results" on the page and paste the Markdown into the chat. The headi
 3. **S3 persistence.** Open `a/storage.html`, click "Write crash value", wait 1 s, then kill only the test browser by its profile directory, with the variable of that browser: `[ -n "$profile_esr" ] && pkill -9 -f -- "$profile_esr"` (or `$profile_ff`, `$profile_chromium`). The guard matters: with an empty variable `pkill -f` would match every process of yours; in another terminal paste the literal path printed by `echo` instead. Start it again with the same profile and open `a/storage.html`. If the browser restores the old tab (Firefox does, and a file given on the command line loads the page a second time), copy the tab opened last. Rows S3-found-* list the earlier marker, pagehide and crash values with their times. Repeat with 5 s of waiting. For the pagehide value, in one run close the tab normally and restart the browser (close it, start it again with the same profile). The pagehide values are written on the IndexedDB connection opened at load (row S3-db-open).
 4. **S5 between tabs.** Open `a/storage.html` in tab 1 and again in tab 2. Click "Send BroadcastChannel ping" and "Write storage ping" in each tab. In tab 1 click "Hold lock"; in tab 2 click "Try lock" (row S5-lock-try-1) and "Query locks". Then "Release lock" in tab 1 and "Try lock" again in tab 2 (S5-lock-try-2). Copy both tabs. Repeat with tab 2 on `a/storage-copy.html`: open it in a new tab 3 instead of navigating tab 2, so tab 2's rows aren't lost, and copy tab 3.
 5. **S7 (Chromium only).** In `a/storage.html` click showOpenFilePicker and pick a text file, click "Write back" (the file now contains `restlos feasibility <time>`) and answer S7-every-visit-write: was "Allow on every visit" offered? Click showSaveFilePicker and save a file. Copy, then reload. Click "Use kept handle", answer S7-every-visit-kept, click "Write back" (row S7-writeback-kept: the kept handle still writes after the reload) and copy. Open `a/storage-copy.html` in a new tab, click "Use kept handle" there, and pick a second file in the same way to see whether a permission granted to one local file applies to another. Drop a file on the drop zone (row S7-drop). In Firefox these rows say "not available".
+
+## T2 CSP via meta and keyboard shortcuts (`csp.html`, `csp-pro.html`)
+
+`npm run feasibility` writes `dist/feasibility/csp.html` (the standard policy) and `csp-pro.html` (the same page with `'wasm-unsafe-eval'`), plus `pixel.png` next to them (the image file for C4). Open each from disk in every browser (Run block, per-browser profile variable). The page runs C1 to C8 by itself and lists every `securitypolicyviolation` event in the row `violations`. Result words: `allowed`, `blocked` (the request failed and the directive reported a violation), `failed-other` (it failed without a violation: another reason, such as Firefox refusing `file://` requests). A font that fails to decode is expected in C4-font; only a `font-src` violation counts as blocked.
+
+**Click "Copy results" before every reload, navigation or tab close**, and head each pasted block with the browser name and the page (`csp.html` or `csp-pro.html`).
+
+1. **C1 to C8** (both pages, every browser). Open the page, wait about 5 s until the rows stop appearing, click "Copy results" and paste. C7-wasm-compile should differ between the two pages.
+2. **K1, K2.** Press Ctrl+S: a row `K1-received-1` appears and the row `K1-dialog` asks whether the browser's own save dialog appeared; answer it. Press Ctrl+S again if you like (`K1-received-2`, ...; the question can be answered once per load). Then press Ctrl+O: `K2-received-1`, and the rows `K2-picker` and `K2-browser-open`; answer both. If a picker opened, cancel it or choose a file (rows `K2-cancel-N` or `K2-picked-N`). Copy. On macOS also try Cmd+S and Cmd+O.
+3. **K3 (Firefox only).** In the same load, open Page Info (Ctrl+I), Permissions, set "Override Keyboard Shortcuts" to Block (untick "Use default"). Click "Start K3", then press Ctrl+S and Ctrl+O again, and answer `K3-dialog`, `K3-picker` and `K3-browser-open`. Rows `K3-received-ctrl-s-N` and `K3-received-ctrl-o-N` show what the page saw; no row after a key press means the page got no event. Copy.
+4. **K4.** Drop a file from your file manager somewhere on the page outside the dashed zone, then once inside the zone. Rows `K4-drop-N` say where it landed; the page must stay. Copy.
+5. **C5 form probe, last.** Click "Run the form probe last (may leave the page)", which sits below the results table. Do this only after the Copy of step 1; the page may navigate away and lose its rows. Copy again if the page is still there (row `C5-form`).
+
+## T2b The Pages policy on `localhost` (`pages/`)
+
+`npm run feasibility` writes `dist/feasibility/pages/` with `index.html` (the same page with the Pages policy: `worker-src 'self' blob:`, `manifest-src 'self'`, and a `<link rel="manifest">`), `manifest.webmanifest`, `sw.js` and `pixel.png`. Serve it from `localhost`:
+
+```sh
+python3 -m http.server --directory dist/feasibility/pages 8000
+```
+
+Open `http://localhost:8000/` in each browser with its profile variable from Run, and head each pasted block with the browser name and "localhost run".
+
+1. **C1 to C8 and P1.** Wait about 5 s, then copy. P1 rows: `P1-context`, `P1-controller` (not controlled on the first load), `P1-service-worker` (registration), `P1-manifest` (violations of `manifest-src`, and whether the link element is present) and `P1-controller-after`. Answer `P1-offline` only on the load in step 3.
+2. **Reload once** (the service worker has cached the page by then): copy; `P1-controller` should say `controlled`.
+3. **Offline.** Stop the server (Ctrl+C in its terminal), reload the page in the browser, answer `P1-offline` with Yes or No, and copy. Start the server again for the next browser; unregister the worker or use a fresh profile per browser.
+4. Do K1 to K4 and the C5 form probe as in T2 only if a difference to `file://` is of interest; they are not part of T2b.
