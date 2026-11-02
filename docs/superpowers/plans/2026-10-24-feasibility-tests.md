@@ -409,6 +409,8 @@ Expected: PASS
 
 ### Round 1: your steps
 
+> **Changed on 2026-11-02:** the maintainer's round was replaced by an automated headless run; T4 was dropped, and only K1 and K2 were checked by hand. See the design's Results.
+
 - [ ] **Y1:** `npm run feasibility` in the dev shell.
 - [ ] **Y2:** T1, T2, T3 in Firefox ESR, Firefox and Chromium as `feasibility/README.md` describes; T2b in each with `python3 -m http.server`. Together with Y3 about 2½–3 hours: one session per browser and one for Y3; collect the copied blocks in a local text file and paste them into the chat once per browser or once per test.
 - [ ] **Y3:** T4 in Thunderbird and Nextcloud, I1–I4; paste the filled table.
