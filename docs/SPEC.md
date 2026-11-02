@@ -63,13 +63,16 @@ Recommendation: two distribution channels from the same build. A **downloadable 
 
 **No desktop wrapper.** A local server .exe, Tauri and Electron were evaluated. The only real gain would be saving into the same file and opening by double-click in any browser. The installed Pages version in Chrome/Edge already covers that ([File Handling API](https://developer.chrome.com/articles/file-handling), from version 102, desktop only); for Firefox a browser setting helps (see below). The costs of a wrapper (builds for three operating systems, signing warnings, a second supply chain with Rust crates, a local server as attack surface) don't fit a stable hobby project.
 
-**Supported browsers:** the current **Firefox ESR** (currently 153, as of 2026-10-17; ESR 140 received its last update on 2026-09-29, see [Mozilla's release calendar](https://whattrainisitnow.com/calendar/)) and current Firefox, the two newest versions of Chromium browsers (Chrome, Edge) and Safari (macOS, iOS). The ESR is decisive: only browser features available there are used (among others container queries, `<dialog>`, popover, `DecompressionStream`, Web Workers, WebAssembly; checked against the ESR before project start). Vite's `build.target` is set to the current ESR. Playwright's Firefox is a patched Playwright build, not the ESR; ESR compatibility is therefore checked manually with `firefox-esr` from the dev shell. If a feature is missing, the app shows a clear message instead of a broken UI.
+**Supported browsers:** the current **Firefox ESR** (currently 153, as of 2026-10-17; ESR 140 received its last update on 2026-09-29, see [Mozilla's release calendar](https://whattrainisitnow.com/calendar/)) and current Firefox, the two newest versions of Chromium browsers (Chrome, Edge) and Safari (macOS, iOS). The ESR is decisive: only browser features available there are used (among others container queries, `<dialog>`, popover, `DecompressionStream`, Web Workers, WebAssembly; checked against the ESR before project start). Vite's `build.target` is set to the current ESR. Playwright's Firefox is a patched Playwright build, not the ESR; ESR compatibility is therefore checked manually with `firefox-esr` from the dev shell. If a feature is missing, the app shows a clear message instead of a broken UI. The `file://` behaviour below was tested on 2026-11-02 in Firefox ESR 153, Firefox 159 and Chromium 147 ([results](superpowers/specs/2026-10-24-feasibility-tests-design.md#results-2026-11-02)). Safari was not tested. According to its documentation, Safari probably keeps no storage for local files, and iOS probably doesn't run a local HTML file at all. The help therefore points Safari users, and every iPhone user, to the Pages version, and mentions that Safari deletes a website's storage after seven days without a visit. The app still works without storage there.
 
 **Consequences of `file://` for the design**
 
-- No `fetch()` on local files: holiday data, fonts and WASM are embedded inline. The user's files only come in via the file picker or drag and drop.
-- Saving: in Chrome/Edge the app writes directly back into the opened file via the File System Access API; Firefox and Safari don't have this interface ([web.dev](https://web.dev/articles/files/save-a-file)), there the file is downloaded, with the name of the opened file and the new revision as suggestion (see File operations). For Firefox, the help explains the setting "Always ask you where to save files": a save dialog then appears in which the original file can be overwritten, instead of collecting copies like "(1)" in the download folder. On the phone via download or the share menu.
-- Browser storage (`localStorage`) is unreliable: depending on the browser, all local HTML files share one storage or each path has its own (feasibility test). Keys with the prefix `urlaubsplaner:v1:`; with empty storage, the app offers to import a `.einstellungen.json`; the plan file is the source of truth. The GitHub Pages version has its own, stable storage (own origin), separate from the downloaded file.
+- No `fetch()` on local files: holiday data, fonts, images and WASM are embedded inline. The user's files only come in via the file picker or drag and drop.
+- Saving: in Chrome/Edge the app writes directly back into the opened file via the File System Access API (from documentation; it couldn't be tested automatically); Firefox and Safari don't have this interface ([web.dev](https://web.dev/articles/files/save-a-file)), there the file is downloaded, with the name of the opened file and the new revision as suggestion (see File operations). For Firefox, the help explains the setting "Always ask you where to save files": a save dialog then appears in which the original file can be overwritten, instead of collecting copies like "(1)" in the download folder. On the phone via download or the share menu.
+- **Browser storage is a cache; the plan file is the only real record.** The app works fully when storage is empty, missing or throws, and checks everything it reads back like an imported file (size limits, schema, values).
+- **Where storage is kept:** Firefox keeps one storage area per file path. A reload keeps it, and so do `?query` and `#hash`; a copy under a new name, the same name in another folder, or the renamed or moved file starts empty, while replacing the file under the same name keeps it. Chromium (Chrome, Edge) has one storage area for every HTML file opened from disk. It survives renaming, and every local HTML file can read and overwrite it. The GitHub Pages version has its own, stable storage (its own origin), separate from the downloaded file.
+- **Empty storage is normal, not an error:** a fresh copy of restlos under a new name, another browser, Safari. The start screen then offers "Open plan file" and "Import device settings (`.einstellungen.json`)", which also brings the settings into a renamed copy.
+- **IndexedDB, not localStorage:** localStorage refuses 10 MB in every tested browser, and after the browser was killed it lost values written 5 s earlier (Firefox) or 1 s earlier (Chromium). IndexedDB kept 10 MB and kept every value whose transaction had completed. All records live in one IndexedDB database `urlaubsplaner` (object stores per record type). Every record carries the app version and the schema that wrote it. An older copy of restlos never overwrites a record that a newer one wrote, because in Chromium all local copies share storage.
 - No network access at runtime; the service worker of the Pages version only loads the app's own files.
 
 ## Holiday sources and work week
@@ -257,8 +260,12 @@ In a plan file every copied part can be changed, e.g. a part-time work week or a
 | **Close** | back to the start screen |
 
 - Exactly one file is open per browser tab; a second file is opened in a second tab.
-- Unsaved changes: the title shows `• filename`. New, Open and Close ask "Save / Don't save / Cancel". When the tab is closed, a web page can only trigger the browser's generic warning dialog, without its own text and only after a user interaction ([beforeunload](https://docs.w3cub.com/dom/window/beforeunload_event)); the autosave catches the rest.
-- **Restore:** autosave in browser storage under `urlaubsplaner:v1:<id>`. The next time the same file is opened and its autosave is newer, the app asks "Restore unsaved changes from …?".
+- Unsaved changes: the title shows `• filename`. New, Open and Close ask "Save / Don't save / Cancel". When the tab is closed, a web page can only trigger the browser's generic warning dialog, without its own text and only after a user interaction ([beforeunload](https://docs.w3cub.com/dom/window/beforeunload_event)); the recovery copy catches the rest.
+- **Restore (crash recovery, like LibreOffice):** while a plan has unsaved changes, a recovery copy is written to IndexedDB after each change, and again when the page is hidden. It holds the plan file's content, the revision it is based on, the time and the app version. Saving and the app's own "Don't save" delete it; that is a clean end. Closing the tab with unsaved changes counts as an unclean end, because the page can't tell the browser's "Leave page" apart from a crash. There is no info bar while working.
+  - Each open tab holds a Web Lock on its plan's `id`, so a plan open in another tab isn't offered for restore. Web Locks reach exactly the tabs that share storage: within one file in Firefox, across all local files in Chromium.
+  - At start, if there are recovery copies of plans that no tab holds, a restore page lists them. For each it shows the plan's name (the name of the file it was opened from or last saved as, without `.revN` and the extension; for a plan never saved, the "Save as" suggestion), the time of the last change, the revision it is based on, and a warning when a newer revision was saved since (from the revision record). The page offers Restore or Discard, and a checkbox "Don't keep recovery copies anymore (you can change this in the settings)". On `file://` in Chromium, one more line says: "In Chrome and Edge, other HTML files you open from your computer can read these copies."
+  - A restored plan is open with unsaved changes and is saved as usual. No file handle is kept for it, because whether a permission granted to one local file covers others was not tested. So in Chrome/Edge, too, Save after a restore asks where to save. Opening a file whose recovery copy is newer still offers the restore, as a second chance.
+  - How several copies are restored at once (one tab per file) is left to the UI branch.
 - **Revision warning:** the browser remembers per `id` the highest revision, the local date of saving it and a fingerprint of its content. Opening an older revision warns that a newer one was saved on that date; opening a file with the same `id` and revision but a different content warns that it is a different file. The file itself carries no date.
 - **Notes and manual changes:** a list shows all notes and all manual changes of the required work of the plan, each to jump to or delete, so they can be cleaned up.
 - There is no list of recently opened files: browsers don't allow access to file paths.
@@ -269,7 +276,11 @@ In a plan file every copied part can be changed, e.g. a part-time work week or a
 | --- | --- |
 | Contract, calendar sources, templates, color scheme (optional), plan | plan file `.urlaub.json` |
 | Contract, calendar sources, templates, color scheme (optional), without plan | rule set `.regeln.json` |
-| Language, light/dark/automatic, active color scheme, own color schemes, view, "Align by weekday", show calendar weeks | device settings (browser storage); exportable and importable as `.einstellungen.json` |
+| Language, light/dark/automatic, active color scheme, own color schemes, view, "Align by weekday", show calendar weeks, "Recovery copies: on / off" | device settings (IndexedDB); exportable and importable as `.einstellungen.json` |
+| Recovery copy of a plan with unsaved changes (see File operations, Restore) | IndexedDB, deleted on Save and "Don't save" |
+| Revision record per `id` (highest revision, date, fingerprint) | IndexedDB |
+
+"Recovery copies: off" writes no copies and shows no restore page; the browser's warning when closing a tab with unsaved changes stays. In Chromium on `file://`, the setting carries the same sentence as the restore page: other local HTML files can read these copies.
 
 Calendar sources store a **color slot** of the palette (e.g. "Accent 3"), not a fixed color; a fixed color is possible as an exception. If a plan file or rule set contains a color scheme, the app asks on first opening "Use colors from file?"; on "Yes" the scheme is added to the own color schemes in the device settings and activated. The answer is remembered via the file's `id`.
 
@@ -343,7 +354,7 @@ JSON with a `schema` version and a `kind` (`"plan"`, `"ruleSet"` or `"settings"`
 - **Rule set for colleagues:** "Save as rule set" (see File operations): contract, sources, templates and color scheme, no leave days.
 - **HTML self-copy** (version 3, after feasibility test): a copy of the app with an embedded rule set and without personal settings; opens directly in "New → From rule set".
 - **No contract data in .ics.** In the PDF only on explicit request, and only the contract part without plan and notes.
-- **Loading:** if the autosave of the same `id` is newer, the app offers to restore it (see File operations); then the revision warning applies. Opening runs in two steps in a Web Worker, so the page stays responsive, with a progress bar from the start. **Reading** checks the size, parses the JSON, checks `schema` and `kind`, migrates older schema versions and validates every value; its bar has no measure, and Cancel stops opening. **Checking** then looks at every day rule and every source entry with a `match` for the likely mistakes listed in `docs/day-rules-format.md`, and never changes the file; its bar shows "rule n of N", Skip opens the file without the hints, and Cancel stops opening. Both steps report a list; each entry is a code, the path of the affected value in the file as it was read, and the data the message needs, and the UI writes the sentence. The opened file shows both lists together, sorted by severity; with at least one Error the choice is "Open without these parts" or "Cancel", otherwise "OK".
+- **Loading:** if the recovery copy of the same `id` is newer, the app offers to restore it (see File operations); then the revision warning applies. Opening runs in two steps in a Web Worker, so the page stays responsive, with a progress bar from the start. **The model stays in the worker; the page receives only what it shows.** With the largest file within the limits, the model is 13.2 MB as JSON. Handing all of it to the page blocked the page for 69–152 ms per handover (median, all three tested browsers, reference machine, 2026-11-02), with single handovers up to 250 ms in the Firefox ESR. Handing over what one year of the calendar shows took 0.3–2 ms. **Reading** checks the size, parses the JSON, checks `schema` and `kind`, migrates older schema versions and validates every value; its bar has no measure, and Cancel stops opening. **Checking** then looks at every day rule and every source entry with a `match` for the likely mistakes listed in `docs/day-rules-format.md`, and never changes the file; its bar shows "rule n of N", Skip opens the file without the hints, and Cancel stops opening. Both steps report a list; each entry is a code, the path of the affected value in the file as it was read, and the data the message needs, and the UI writes the sentence. The opened file shows both lists together, sorted by severity; with at least one Error the choice is "Open without these parts" or "Cancel", otherwise "OK".
 - **Required and optional:** a part of a file is required when the app can't work with the file or the entry without it and no default would be right for every file. It is optional when its absence has a default that is right for every file, or when only a feature the user may never use needs it. A missing optional part reads as its default and is not reported; a feature that needs it says so when it is used. An optional part that is present must be complete and valid like everything else. `docs/file-format.md` and `docs/day-rules-format.md` mark every key as required or optional, give the defaults and show two minimal files to start from.
 - **Reading reports everything it can name for certain:** every problem gets its own entry, also several in one list entry, and a missing value is told apart from an invalid one. Where a value decides how others are read (the country, a source's type, a match's type) and is broken, the values that depend on it are skipped, not guessed.
 - **Refused at once** (nothing is loaded, one message says why) when nothing reliable can follow: a file that is too large or not JSON; a missing, unknown or newer `schema` or `kind` (the device settings `.einstellungen.json` are recognized but not yet supported, see `docs/file-format.md`); content that doesn't match its `kind` (a rule set with `plan` or `ruleSet`); a count limit of the file exceeded.
@@ -492,7 +503,7 @@ Contrast according to WCAG AA for the built-in schemes, a screen reader label pe
 
 ### Built-in help
 
-Offline, bilingual, context-sensitive ("?" on every dialog). Chapters: Getting started, Work week and part-time, Day rules, Calendar sources (incl. showing the previous year), Plan and allowance, Plan file, rule set and saving (incl. the Firefox setting for overwriting and installing the web app with file association), Colors, Keyboard shortcuts, Privacy, **Own PDF templates** (see Output), About/Licenses.
+Offline, bilingual, context-sensitive ("?" on every dialog). Chapters: Getting started, Work week and part-time, Day rules, Calendar sources (incl. showing the previous year), Plan and allowance, Plan file, rule set and saving (incl. the Firefox setting for overwriting and installing the web app with file association), Colors, Keyboard shortcuts, Privacy (incl. what the browser stores: device settings, recovery copies and the revision record, and that in Chrome and Edge other local HTML files can read them), **Own PDF templates** (see Output), About/Licenses.
 
 **Keyboard shortcuts** (in the help as an overview, in menus next to the entries):
 
@@ -502,13 +513,14 @@ Offline, bilingual, context-sensitive ("?" on every dialog). Chapters: Getting s
 | Space / H | set or remove leave full / half |
 | Shift + click or Shift + arrow key | extend range |
 | Ctrl+Z / Ctrl+Y | undo / redo |
-| Ctrl+S / Ctrl+O | save / open (intercepted; check in Firefox and Chromium in the feasibility test) |
+| Ctrl+S | save (taken over: the browser's "Save page" doesn't appear; tested in the Firefox ESR) |
+| Ctrl+O | opens the app's Open dialog with the focus on "Choose file…" (taken over; the Firefox ESR doesn't open the file picker from a key press, so Enter or a click opens it) |
 | V | switch view (tiles / columns) |
 | W | align month columns by weekday |
 | K | calendar weeks on/off |
 | ? | help |
 
-New, Save as and Close are only available in the menu: Ctrl+N, Ctrl+T and Ctrl+W are reserved by the browser and don't reach the page ([Mozilla bug 1203059](https://bugzilla.mozilla.org/show_bug.cgi?id=1203059)), and Ctrl+Shift+S opens screenshots in Firefox ([Mozilla help](https://support.mozilla.org/en-US/kb/take-screenshots-firefox)).
+New, Save as and Close are only available in the menu: Ctrl+N, Ctrl+T and Ctrl+W are reserved by the browser and don't reach the page ([Mozilla bug 1203059](https://bugzilla.mozilla.org/show_bug.cgi?id=1203059)), and Ctrl+Shift+S opens screenshots in Firefox ([Mozilla help](https://support.mozilla.org/en-US/kb/take-screenshots-firefox)). Save and Open stay visible as buttons, because Firefox users can stop pages from taking over shortcuts ("Override Keyboard Shortcuts" in Page Info). Shortcuts match `event.key`, falling back to `event.code` for non-Latin layouts. A file dropped anywhere on the page is caught, so the browser never navigates away from unsaved changes.
 
 **View example:** the start screen opens a built-in, fictional plan file, `examples/plans/beispiel-gmbh-2027.urlaub.json`, made from the rule set `beispiel-gmbh.regeln.json`: "Beispiel GmbH" (Example Ltd) without a collective agreement in Bavaria (Assumption Day applies, not Augsburg), full-time, with an allowance of 30 days and the calendar year 2027 as its period. Its day rules give the afternoons of 24 and 31 Dec off ("at most ½") and close the company from 27 to 30 Dec (Mon–Fri, mandatory leave); an info source "Projektphase" (project phase) and a source "Leave from another plan" with January days from a 2026 plan are stored as entries. The plan has leave around Easter, on the bridge days after Ascension (7 May) and Corpus Christi (28 May) and two weeks in summer. Changes to the example are not saved automatically; "Save as own file" turns it into an own plan file.
 
@@ -534,11 +546,13 @@ Recommendation: generate .ics ourselves. PDF with **Typst as the only template l
 
 - Mandatory: `VERSION:2.0`, `PRODID`, per event `UID` and `DTSTAMP`; TEXT values correctly escaped (`,` `;` `\`, line breaks).
 - All-day events only: `DTSTART;VALUE=DATE`, `DTEND` exclusive. Partial days are all-day events with share and part in the title ("Leave (½, morning)") plus the machine-readable fields `X-RESTLOS-TAKE`, `X-RESTLOS-PART` and `X-RESTLOS-TYPE`, so restlos reads its own export back exactly. No working hours, no times, no `TZID` or `VTIMEZONE`.
-- Default: **one event per leave day** with a `UID` from contract ID and date. Stretches as one event are selectable, but their `UID` changes when a stretch grows; note in the dialog.
+- Default: **one event per leave day**. Stretches as one event are selectable; their `UID` changes when a stretch changes, which the dialog notes.
+- **`UID`:** a one-way hash (SHA-256 via the browser's WebCrypto, `crypto.subtle.digest`) of the plan's random `id` and everything the event says: what it is (own leave, mandatory leave, a holiday exported along, a source's entry), the source or rule it comes from (by `id`), its date or dates or repeat rule, its share and part. It never contains an element's position in the file. It is not the contract ID, because colleagues with the same rule set share that, and RFC 7986 asks for `UID`s that identify nothing. So only an exact copy gets the same `UID`, and the export writes an exact copy only once. An edit the event doesn't show (a colour, a note) keeps the `UID`; any edit it shows (full ↔ half day, another part, a moved day) gives a new one; "Save as" (a new `id`) gives all new ones. An event never changes under its `UID`. The trade-off is accepted: apps that update events by `UID` show a changed day twice, old and new. The engine supplies the text to hash; the export step, which is asynchronous anyway, calls WebCrypto. The project has no hash code of its own. The exact encoding, and the fixed list of fields per kind of event, are issue 0010's.
+- **Without WebCrypto** (it needs a secure context; `file://` is one in Firefox and Chromium): random `UID`s from `crypto.getRandomValues`. The export dialog then says why and what it means, for example: "This browser doesn't offer the function restlos uses to give calendar events fixed IDs, so this export gets new ones. If you import it into a calendar that still holds an earlier export, every event appears twice: delete that calendar first, or subscribe to the file."
 - Leave: `TRANSP:OPAQUE`, `X-MICROSOFT-CDO-BUSYSTATUS:OOF`. Holidays exported along with it: `TRANSP:TRANSPARENT`, without OOF.
 - Line folding after 75 octets, without splitting UTF-8 characters ("½" is 2 bytes); CRLF.
 - Titles in the current UI language. No contract data in the .ics.
-- The help says openly: import is not synchronization; deleted days must be removed from the calendar by hand, and some programs create duplicates on re-import.
+- The help says openly: import is not synchronization; deleted days must be removed from the calendar by hand, and some programs create duplicates on re-import. From documentation (not tested): Thunderbird refuses an event whose `UID` already exists and stops the import there; Nextcloud's web import refuses existing `UID`s; Google probably updates by `UID` but keeps deleted days; classic Outlook duplicates; Apple doesn't update. The workflow that works everywhere: a separate calendar for restlos, which is deleted and created again before importing a new export. The help doesn't recommend just emptying the calendar, because deleted events may still block their `UID`s (Nextcloud's trash bin; untested). The workflows themselves are issue 0010's.
 - The exported .ics can be loaded again next year as a source "Leave from another plan"; `X-RESTLOS-TYPE` marks mandatory leave, so it comes back too.
 - Calendar sources can be exported as .ics as well (see Multiple calendar sources).
 
@@ -580,13 +594,15 @@ Built-in rules (Easter ± n, local rules) ---------\
 Calendar sources (iCal; any number, type, color) ---> Calendar engine --> Plan state --> Calendar + bar
 Plan/rule set (JSON; load, migration, validation) -/   (required work per     (selection,   --> .ics export
                                                         day as minimum,        undo,         --> print CSS / .typ
-                                                        cost in 1/480 day,     autosave)     --> JSON + HTML copy
+                                                        cost in 1/480 day,     recovery)     --> JSON + HTML copy
                                                         stretches, totals
                                                         per year; pure
                                                         functions, no UI)
 ```
 
 All outputs (UI, .ics, PDF, JSON) read the same computed state; no output recalculates costs itself.
+
+**Worker:** the engine runs in a **classic** Web Worker started from a `blob:` URL. A module worker from a `blob:` URL doesn't start from `file://` in Chromium, and Vite's inline-worker wrapper falls back to a `data:` URL, which the CSP blocks. So the UI branch writes its own small wrapper. The worker keeps the model (see Sharing and validation, Loading). Data to and from the worker are strings, plain objects or ArrayBuffers, never Blobs (Safari, [WebKit bug 258443](https://bugs.webkit.org/show_bug.cgi?id=258443)). The worker inherits the page's CSP: no `eval`, no `fetch`, and WebAssembly only with `'wasm-unsafe-eval'` (Pro HTML).
 
 **Size budget:** standard HTML under 600 KB including the DE/EN catalogs, help, templates and one font. The Pro HTML is a second build target from the same sources plus Typst WASM; its size is measured in the feasibility test.
 
@@ -596,10 +612,12 @@ All outputs (UI, .ics, PDF, JSON) read the same computed state; no output recalc
 
 | Test | Question | Before |
 | --- | --- | --- |
-| Browser storage with `file://` | Do local files share one storage? Does it survive renaming the file? (Firefox, Chromium) | version 1 |
-| CSP and keyboard shortcuts | Do all CSP directives work via `<meta>` in the Firefox ESR? Do Ctrl+S and Ctrl+O reach the page? | version 1 |
-| Web Worker from `file://` | Does a worker built into the HTML file start from `file://` with the CSP from `<meta>` (`worker-src blob:`) in the Firefox ESR, Chromium and Safari? How long does handing a 10 MB file's model to the page take? | version 1 |
-| Calendar import | Behavior of Thunderbird, Google, Outlook on re-import of the same `UID` | version 1 |
+| Browser storage with `file://` | Do local files share one storage? Does it survive renaming the file? (Firefox, Chromium) | version 1: **done** 2026-11-02 (see Delivery format) |
+| CSP and keyboard shortcuts | Do all CSP directives work via `<meta>` in the Firefox ESR? Do Ctrl+S and Ctrl+O reach the page? | version 1: **done** 2026-11-02 (see Content Security Policy, Built-in help) |
+| Web Worker from `file://` | Does a worker built into the HTML file start from `file://` with the CSP from `<meta>` (`worker-src blob:`) in the Firefox ESR, Chromium and Safari? How long does handing a 10 MB file's model to the page take? | version 1: **done** 2026-11-02 for Firefox and Chromium (see Architecture, Loading); Safari from documentation |
+| Calendar import | Behavior of Thunderbird, Google, Outlook on re-import of the same `UID` | version 1: **from documentation only** (see .ics export) |
+
+The version 1 tests ran automated and headless in Firefox ESR 153, Firefox 159 and Chromium 147 on the reference machine; the results are in the [feasibility design](superpowers/specs/2026-10-24-feasibility-tests-design.md#results-2026-11-02). Not tested, and taken from documentation: Safari and iOS, Chromium's File System Access API from `file://`, Firefox's "Override Keyboard Shortcuts" set to Block, dropping a file outside a drop zone, and every calendar app (Thunderbird, Nextcloud, Google, Outlook, Apple).
 | Typst WASM offline | compressed size, load time, fonts as bytes, compiling from `file://` | version 2 |
 | HTML self-copy | rewrite the app's original bytes unchanged (carry the app source along as `type="text/plain"`) | version 3 |
 
@@ -675,13 +693,15 @@ Recommendation: every file from outside is considered untrusted, the app has no 
 
 ### Content Security Policy
 
-In the HTML's `<meta>` tag (GitHub Pages cannot set custom HTTP headers):
+In the HTML's `<meta>` tag (GitHub Pages cannot set custom HTTP headers), as the first element after `<meta charset>`: a meta policy applies only to what comes after it.
 
 - `default-src 'none'`, `connect-src 'none'`, `object-src 'none'`, `base-uri 'none'`, `form-action 'none'`.
-- `script-src` only with the SHA-256 hashes of the embedded scripts, computed at build time; in the Pro HTML additionally `'wasm-unsafe-eval'` for WebAssembly. No `eval`, no `new Function`.
-- `style-src 'unsafe-inline'` (embedded styles; low risk, since no foreign HTML is rendered), `img-src data: blob:`, `font-src data:`, `worker-src blob:`, or in the Pages version `'self'` for the service worker.
+- `script-src` only with the SHA-256 hashes of the embedded scripts, computed at build time over the LF-normalized script text; in the Pro HTML additionally `'wasm-unsafe-eval'` for WebAssembly. No `eval`, no `new Function`. Data blocks (`type="application/json"`, `application/octet-stream`) need no hash.
+- `style-src 'unsafe-inline'` (embedded styles; low risk, since no foreign HTML is rendered), `img-src data: blob:`, `font-src data:`, `worker-src blob:`; in the Pages version `worker-src 'self' blob:` for the service worker.
 - The Pages version additionally needs `manifest-src 'self'`: with `default-src 'none'` the web app manifest would otherwise be blocked and the app could not be installed.
-- Whether every directive works via `<meta>` and all features run with it in the Firefox ESR is checked in the feasibility test.
+- WebAssembly is compiled from embedded bytes (`WebAssembly.instantiate`), never fetched, since `connect-src 'none'` applies inside the worker too.
+- **Tested** (2026-11-02, Firefox ESR 153, Firefox 159, Chromium 147, on `file://` and for the Pages policy on `http://127.0.0.1`): every directive above is enforced from `<meta>`, also on `file://` in Firefox. Hashed scripts run; scripts without a hash, event handler attributes, `eval`, `new Function`, `<object>`, `<embed>`, `<base href>`, form submits, `data:` workers and `fetch`/XHR of `blob:` and `data:` URLs are blocked, and WebAssembly runs only with `'wasm-unsafe-eval'`. The service worker registers, and the Pages version loads again offline.
+- **Known gap:** on `file://`, Firefox let the page fetch its own file and show an image file next to it without a `connect-src` or `img-src` violation, where Chromium blocks both. The app never fetches and embeds all images, so this changes nothing for it; the policy is defence in depth, not the only barrier.
 
 ### Verification
 
@@ -855,7 +875,7 @@ The repository follows the FSFE's [REUSE specification](https://reuse.software):
 
 ### Privacy
 
-In the help and README: no accounts, no tracking, no network access; all data stays in the browser or in the files you save yourself. The Pages version is served by GitHub; GitHub's terms apply to retrieving the page, but planning data doesn't leave the device.
+In the help and README: no accounts, no tracking, no network access; all data stays in the browser or in the files you save yourself. The browser keeps the device settings, the revision record and, while a plan has unsaved changes, a recovery copy of it (it can be switched off in the settings). In Chrome and Edge, other HTML files opened from the computer can read them. The Pages version is served by GitHub; GitHub's terms apply to retrieving the page, but planning data doesn't leave the device.
 
 ## Stages, risks, decisions
 
@@ -873,7 +893,7 @@ Recommendation: three versions; each is usable on its own. The must lists under 
 | --- | --- | --- |
 | Holiday rules wrong or outdated | wrong costs | reference model tests, versioned rule data, iCal as an escape hatch |
 | Municipality special cases incomplete | wrong required work on 1–2 days | switch "applies at my place of work" with a link to the official source; single dates can be overridden |
-| Browser storage with `file://` unreliable | settings lost | plan file is the source of truth; settings exportable; prefixed keys; feasibility test |
+| Browser storage with `file://` unreliable | settings lost | plan file is the source of truth; settings exportable; IndexedDB with app version and schema per record; start screen offers the settings import (tested 2026-11-02, see Delivery format) |
 | Old file versions in the download folder | user loads an old state | `revision`, the revision warning (see File operations), file name with the revision (`.revN`) |
 | Month columns on narrow devices | poor UX on the phone | month tiles as the phone default, fixed day column, selection mode |
 | Typst WASM large or not runnable offline | Pro HTML is delayed | feasibility test before version 2; the standard HTML is fully usable without Pro |

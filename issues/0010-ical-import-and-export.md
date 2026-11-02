@@ -84,3 +84,9 @@ Fine as designed: several events on one day, since their kind and content differ
 - **iTIP** (RFC 5546) only covers mail invitations.
 - **RFC points** ([RFC 7986](https://www.rfc-editor.org/rfc/rfc7986), RFC 5545, RFC 5546): a stable, unique `UID` that identifies nothing; `METHOD:PUBLISH` without `ORGANIZER` and `ATTENDEE`; `NAME` / `X-WR-CALNAME`; `REFRESH-INTERVAL` for subscriptions.
 - **The only workflow that works in every app:** a separate calendar, deleted and imported again after a change.
+
+### Feasibility results, 2026-11-02
+
+- The calendar test (T4 in Thunderbird and Nextcloud) was dropped by the maintainer; nothing about calendars was tested. So whether `UID`s in Nextcloud's trash bin block a re-import is still open.
+- Until that is checked, the spec's help text recommends workflow 1 in its safe form: **delete the restlos calendar and create it again** before importing a new export, instead of emptying it. If the trash bin turns out not to block re-imports, emptying is enough again.
+- `crypto.subtle` exists on `file://` in Firefox ESR 153, Firefox 159 and Chromium 147 (a SHA-256 digest works), so the random-`UID` fallback isn't needed in these browsers; it stays for browsers without a secure context.
