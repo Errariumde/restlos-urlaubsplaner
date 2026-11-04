@@ -212,8 +212,17 @@ SPDX-License-Identifier: EUPL-1.2
 
     .leave-full,
     .leave-mandatory {
-      color: var(--r-on-leave);
       font-weight: 700;
+    }
+
+    /* Light digits on the leave blue; in dark mode a dark halo keeps them clear of the blue's edges. */
+    .leave-full {
+      color: var(--r-on-leave);
+      text-shadow: 0 0 2px var(--r-leave-aura), 0 0 1px var(--r-leave-aura);
+    }
+
+    .leave-mandatory {
+      color: var(--r-on-mandatory);
     }
 
     /* Layer 3: leave from another plan, no deduction. */
