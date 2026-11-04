@@ -109,8 +109,8 @@ test.describe("when the app narrows", () => {
     await expect(page.getByRole("button", { name: "More", exact: true })).toBeVisible();
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(details).toHaveAttribute("aria-expanded", "false");
-    // No expectNoPageProblems here: WebKit reports its harmless "ResizeObserver loop completed with
-    // undelivered notifications" when the layout changes under a resize, which the other tests don't do.
+    // WebKit's harmless "ResizeObserver loop" message under the resize is filtered by the helper.
+    await expectNoPageProblems(page);
   });
 });
 

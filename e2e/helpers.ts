@@ -10,8 +10,33 @@ declare global {
   interface Window {
     /** CSP violations of the page, recorded by the init script of `openApp`. */
     __restlosCspViolations?: string[];
+    /** axe-core, injected by `axeViolations`. */
+    axe: typeof import("axe-core");
   }
 }
+
+const AXE_PATH = new URL("../node_modules/axe-core/axe.min.js", import.meta.url).pathname;
+
+/**
+ * Injects axe-core and returns its WCAG 2.2 AA violations for the whole page, one line per node. The page must
+ * be opened with `test.use({ bypassCSP: true })`: the app's CSP blocks the injected script.
+ */
+export async function axeViolations(page: Page): Promise<{ id: string; nodes: string[] }[]> {
+  await page.addScriptTag({ path: AXE_PATH });
+  return page.evaluate(async () => {
+    const result = await window.axe.run(document, { runOnly: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"] });
+    return result.violations.map((violation) => ({
+      id: violation.id,
+      nodes: violation.nodes.map((node) => `${node.target.join(" ")}: ${node.failureSummary ?? ""}`),
+    }));
+  });
+}
+
+/**
+ * WebKit reports this when a layout change under a resize makes a ResizeObserver callback resize again. It is
+ * harmless (the notifications arrive in the next frame) and not an error of the app.
+ */
+const BENIGN_ERRORS = new Set(["ResizeObserver loop completed with undelivered notifications."]);
 
 /** The uncaught errors of each page opened with `openApp` or `openGallery`. */
 const pageErrors = new WeakMap<Page, string[]>();
@@ -30,7 +55,9 @@ async function open(page: Page, url: string): Promise<void> {
   });
   const errors: string[] = [];
   pageErrors.set(page, errors);
-  page.on("pageerror", (error) => errors.push(`${error.name}: ${error.message}`));
+  page.on("pageerror", (error) => {
+    if (!BENIGN_ERRORS.has(error.message)) errors.push(`${error.name}: ${error.message}`);
+  });
   await page.addInitScript(() => {
     const violations: string[] = [];
     window.__restlosCspViolations = violations;

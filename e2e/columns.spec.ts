@@ -136,6 +136,49 @@ test.describe("in English at 1920 px", () => {
   });
 });
 
+/** The week markers that touch or cover their day's number and weekday (less than 2 px apart). */
+async function markersOverText(page: Page): Promise<string[]> {
+  return page.getByRole("grid").evaluate((element) => {
+    const found: string[] = [];
+    for (const marker of element.querySelectorAll<HTMLElement>("[role=gridcell] button")) {
+      const text = marker.closest("[role=gridcell]")?.querySelector(".number");
+      if (!text) continue;
+      const chip = marker.getBoundingClientRect();
+      const range = document.createRange();
+      range.selectNodeContents(text);
+      const words = range.getBoundingClientRect();
+      const apart = words.right + 2 <= chip.left || chip.right + 2 <= words.left;
+      if (!apart) found.push(`${text.textContent?.trim() ?? ""} / ${marker.textContent?.trim() ?? ""}`);
+    }
+    return found;
+  });
+}
+
+// The narrowest columns: 6 visible at a calendar of 520 px (an app of about 550 px without the sidebar or
+// 870 px with it), and all 12 at a calendar of 1100 px (an app of about 1450 px), each about 80 px wide.
+for (const width of [552, 873, 1453]) {
+  test.describe(`at ${String(width)} px`, () => {
+    test.use({ viewport: { width, height: 800 } });
+
+    for (const [locale, columns] of [["en-GB", "Columns"], ["de-DE", "Spalten"]] as const) {
+      test.describe(locale, () => {
+        test.use({ locale });
+
+        test("the week markers leave the day and weekday free", async ({ page }) => {
+          await openApp(page);
+          await openExampleFromStart(page);
+          await page.getByRole("button", { name: columns, exact: true }).click();
+          await expect(cell(page, 1, 4).getByRole("button")).toBeVisible();
+          // The case this is about: a column narrower than the room the text, the marker and the lanes need side by side.
+          expect((await cell(page, 1, 4).boundingBox())!.width).toBeLessThan(90);
+          expect(await markersOverText(page)).toEqual([]);
+          await expectNoPageProblems(page);
+        });
+      });
+    }
+  });
+}
+
 test.describe("in right-to-left text", () => {
   test.skip(({ browserName }) => browserName === "webkit", "The gallery is checked in Chromium and Firefox.");
   test.use({ viewport: { width: 1280, height: 800 } });
@@ -165,6 +208,10 @@ test.describe("in right-to-left text", () => {
     await expect.poll(async () => (await firstCell.boundingBox())?.x).not.toBe(cellBefore?.x);
     expect(await header.boundingBox()).toEqual(before);
     await expectNoPageProblems(page);
+  });
+
+  test("the week markers leave the day and weekday free", async ({ page }) => {
+    expect(await markersOverText(page)).toEqual([]);
   });
 
   test("a focused cell is never under the sticky day column", async ({ page }) => {

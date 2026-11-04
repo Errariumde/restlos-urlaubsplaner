@@ -55,7 +55,7 @@ async function touchEvent(target: Locator, type: string, point: { x: number; y: 
 }
 
 /** A finger from the centre of `from` to the centre of `to`, in steps, then lifted. */
-async function touchDrag(page: Page, from: Locator, to: Locator): Promise<void> {
+async function touchDrag(from: Locator, to: Locator): Promise<void> {
   await from.scrollIntoViewIfNeeded();
   const start = await centre(from);
   const end = await centre(to);
@@ -85,7 +85,7 @@ test.describe("without the selection mode", () => {
   });
 
   test("a swipe plans nothing", async ({ page }) => {
-    await touchDrag(page, cell(page, 6, 14), cell(page, 6, 18));
+    await touchDrag(cell(page, 6, 14), cell(page, 6, 18));
     await expectLeave(page, 6, [14, 15, 16, 17, 18], NONE);
     await expect(page.locator('[aria-selected="true"]')).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Undo", exact: true })).toBeDisabled();
@@ -133,7 +133,7 @@ test.describe("in the selection mode", () => {
   });
 
   test("a touch drag selects, and Half day plans half days", async ({ page }) => {
-    await touchDrag(page, cell(page, 6, 14), cell(page, 6, 18));
+    await touchDrag(cell(page, 6, 14), cell(page, 6, 18));
     for (const day of [14, 15, 16, 17, 18]) await expect(cell(page, 6, day)).toHaveAttribute("aria-selected", "true");
     await expectLeave(page, 6, [14, 15, 16, 17, 18], NONE);
     await page.getByRole("button", { name: "Half day", exact: true }).tap();
@@ -218,8 +218,8 @@ test.describe("in the selection mode", () => {
     await page.getByRole("button", { name: "Columns", exact: true }).tap();
     const grid = page.getByRole("grid", { name: "Calendar" });
     await expect(grid.getByRole("columnheader").nth(1)).toBeVisible();
-    await touchDrag(page, grid.getByRole("columnheader").nth(1), cell(page, 1, 5));
-    await touchDrag(page, grid.getByRole("row").nth(3).getByRole("rowheader"), cell(page, 1, 8));
+    await touchDrag(grid.getByRole("columnheader").nth(1), cell(page, 1, 5));
+    await touchDrag(grid.getByRole("row").nth(3).getByRole("rowheader"), cell(page, 1, 8));
     await expect(page.locator('[aria-selected="true"]')).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Undo", exact: true })).toBeDisabled();
     await expectNoPageProblems(page);

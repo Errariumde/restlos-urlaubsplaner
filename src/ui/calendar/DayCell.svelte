@@ -338,7 +338,9 @@ SPDX-License-Identifier: EUPL-1.2
       inset-inline-end: 10px;
     }
 
+    /* A query container: the week marker of the month columns moves when the cell gets narrow. */
     .column {
+      container: day-cell / inline-size;
       block-size: auto;
       min-block-size: 1.25rem;
       justify-content: flex-start;

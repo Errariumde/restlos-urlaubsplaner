@@ -248,7 +248,7 @@ SPDX-License-Identifier: EUPL-1.2
       inset-inline-end: 16px;
       z-index: 2;
       block-size: 0.9rem;
-      padding: 0 3px;
+      padding: 0 2px;
       border: 0;
       border-end-start-radius: 3px;
       border-end-end-radius: 3px;
@@ -261,6 +261,16 @@ SPDX-License-Identifier: EUPL-1.2
       line-height: 0.9rem;
       font-variant-numeric: tabular-nums;
       cursor: pointer;
+    }
+
+    /*
+     * In a narrow cell (6 or 12 columns of about 80 px) the day, its weekday ("28 Mon"), the marker and the
+     * lanes don't fit side by side: the marker moves over the block start of the lanes, which go on below it.
+     */
+    @container day-cell (inline-size < 92px) {
+      .week {
+        inset-inline-end: 1px;
+      }
     }
 
     .week:hover {
