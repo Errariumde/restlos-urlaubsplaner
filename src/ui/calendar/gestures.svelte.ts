@@ -91,7 +91,8 @@ export function calendarGestures(node: HTMLElement, initial: GestureOptions): { 
   }
 
   function onPointerDown(event: PointerEvent): void {
-    if (press !== undefined || !event.isPrimary) return;
+    // While a change is being applied, the result is about to be replaced: input computed from it would be stale.
+    if (press !== undefined || !event.isPrimary || options.app.applying) return;
     const day = dayOf(node, event.target);
     if (day === undefined) return;
     if (event.pointerType === "touch") {

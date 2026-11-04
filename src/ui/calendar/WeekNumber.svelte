@@ -44,6 +44,14 @@ SPDX-License-Identifier: EUPL-1.2
       cursor: pointer;
     }
 
+    /* Touch: the whole 40 px column (MonthTiles.svelte) and the 40 px row are the target. */
+    @media (pointer: coarse) {
+      button {
+        inline-size: 100%;
+        min-block-size: 2.5rem;
+      }
+    }
+
     button:hover {
       background: var(--r-surface-raised);
       box-shadow: inset 0 0 0 1px var(--r-border-strong);

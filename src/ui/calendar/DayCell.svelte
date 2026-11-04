@@ -149,6 +149,21 @@ SPDX-License-Identifier: EUPL-1.2
         var(--r-holiday);
     }
 
+    /* Right to left: the split mirrors, so the free half stays at the end of the day (the inline end). */
+    .halfRequired:dir(rtl) {
+      background:
+        linear-gradient(225deg, var(--r-workday) 50%, transparent 50%),
+        repeating-linear-gradient(135deg, transparent 0 4px, var(--r-day-pattern) 4px 5px),
+        var(--r-half-required);
+    }
+
+    .halfRequiredHoliday:dir(rtl) {
+      background:
+        linear-gradient(225deg, var(--r-workday) 50%, transparent 50%),
+        radial-gradient(circle, var(--r-day-pattern) 0 1px, transparent 1.5px) 0 0 / 6px 6px,
+        var(--r-holiday);
+    }
+
     /* No work for another reason (a paid closure): crossed hatch. */
     .free {
       background:
@@ -176,6 +191,14 @@ SPDX-License-Identifier: EUPL-1.2
 
     .leave-half.part-start .fill {
       background: linear-gradient(135deg, var(--r-leave-half) 50%, transparent 50%);
+    }
+
+    .leave-half.part-end:dir(rtl) .fill {
+      background: linear-gradient(225deg, transparent 50%, var(--r-leave-half) 50%);
+    }
+
+    .leave-half.part-start:dir(rtl) .fill {
+      background: linear-gradient(225deg, var(--r-leave-half) 50%, transparent 50%);
     }
 
     .leave-half.part-start .number {
@@ -359,12 +382,12 @@ SPDX-License-Identifier: EUPL-1.2
       box-shadow: inset 0 0 0 2px var(--r-selection), inset 0 0 0 3px var(--r-surface);
     }
 
-    .previewed:not(.leave-full, .leave-mandatory) .fill {
+    .cell.previewed:not(.leave-full, .leave-mandatory) .fill {
       background: color-mix(in oklab, var(--r-leave-full) 35%, transparent);
     }
 
     /* A drag that removes leave (the grid has .removing) hatches what goes. */
-    :global(.removing) .previewed .fill {
+    :global(.removing) .cell.previewed .fill {
       background: repeating-linear-gradient(-45deg, transparent 0 3px, color-mix(in oklab, var(--r-overdraft) 55%, transparent) 3px 5px);
     }
 
@@ -390,6 +413,14 @@ SPDX-License-Identifier: EUPL-1.2
 
       .leave-half.part-start .fill {
         background: linear-gradient(135deg, Highlight 50%, transparent 50%);
+      }
+
+      .leave-half.part-end:dir(rtl) .fill {
+        background: linear-gradient(225deg, transparent 50%, Highlight 50%);
+      }
+
+      .leave-half.part-start:dir(rtl) .fill {
+        background: linear-gradient(225deg, Highlight 50%, transparent 50%);
       }
 
       .leave-mandatory .fill {

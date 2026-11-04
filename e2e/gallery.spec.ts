@@ -62,6 +62,11 @@ test.describe("the gallery screenshots", () => {
   }
 });
 
+test("the day cells mirror their diagonal splits in right-to-left text", async ({ page }) => {
+  await show(page, { section: "day-cell", locale: "en-XB", mode: "light" });
+  await expect(page).toHaveScreenshot("day-cell-rtl-light.png", { fullPage: true });
+});
+
 test("buttons keep a visible border in forced colours", async ({ page }) => {
   await page.emulateMedia({ forcedColors: "active" });
   await show(page, { section: "controls", locale: "de", mode: "light" });

@@ -79,6 +79,11 @@ SPDX-License-Identifier: EUPL-1.2
     focusCell(nextDay("tiles", event.key as NavKey, from, ctx));
   }
 
+  /** A week-number click; ignored while a change is being applied, like the cells (gestures.svelte.ts). */
+  function planWeek(startDay: DayNumber): void {
+    if (!app.applying) void app.apply(weekChanges(result, startDay));
+  }
+
   function onfocusin(event: FocusEvent): void {
     const day = cellDay(event.target);
     if (day !== undefined) app.focusDay = day;
@@ -92,6 +97,7 @@ SPDX-License-Identifier: EUPL-1.2
   class:removing={dragPreview.range?.action === "remove"}
   role="grid"
   aria-label={i18n.t("calendar.label")}
+  aria-multiselectable="true"
   tabindex="-1"
   use:calendarGestures={{ getResult: () => result, app, onDetail }}
   {onkeydown}
@@ -115,7 +121,7 @@ SPDX-License-Identifier: EUPL-1.2
       {#each weeks as week (week.startDay)}
         <div class="row" role="row">
           {#if app.weeks}
-            <WeekNumber week={week.isoWeek} onclick={() => app.apply(weekChanges(result, week.startDay))} />
+            <WeekNumber week={week.isoWeek} onclick={() => planWeek(week.startDay)} />
           {/if}
           {#each week.cells as day, column (column)}
             {#if day === null}
@@ -150,8 +156,8 @@ SPDX-License-Identifier: EUPL-1.2
       grid-template-columns: repeat(var(--per-row), minmax(0, 1fr));
       gap: var(--space-4);
       align-items: start;
-      /* Moving a finger scrolls the page; ranges on touch come with the selection mode. */
-      touch-action: auto;
+      /* Moving a finger scrolls the page (ranges on touch come with the selection mode); no double-tap zoom. */
+      touch-action: manipulation;
     }
 
     .tiles:focus {
@@ -189,6 +195,13 @@ SPDX-License-Identifier: EUPL-1.2
 
     .weeks .tile {
       grid-template-columns: 1.5rem repeat(7, minmax(0, 1fr));
+    }
+
+    /* Touch: the week number gets a 40 px wide column, its tap target (WeekNumber.svelte). */
+    @media (pointer: coarse) {
+      .weeks .tile {
+        grid-template-columns: 2.5rem repeat(7, minmax(0, 1fr));
+      }
     }
 
     .row {

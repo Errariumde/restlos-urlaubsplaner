@@ -30,6 +30,13 @@ async function expectLeave(page: Page, month: number, days: readonly number[], l
   for (const day of days) await expect(cell(page, month, day)).toHaveAttribute("aria-label", leave);
 }
 
+declare global {
+  interface Window {
+    /** Holds back the page's "apply" messages to the engine worker (a slow worker), or sends the held ones. */
+    __holdApply?: (on: boolean) => void;
+  }
+}
+
 const FULL = /leave full/;
 const NONE = /no leave/;
 
@@ -37,6 +44,21 @@ test.describe("in English at 1280 px", () => {
   test.use({ locale: "en-GB", viewport: { width: 1280, height: 800 } });
 
   test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      // Kept unbound on purpose: it is called with each worker as `this` below.
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const send = Worker.prototype.postMessage;
+      const held: [Worker, unknown][] = [];
+      let hold = false;
+      window.__holdApply = (on) => {
+        hold = on;
+        if (!on) for (const [worker, message] of held.splice(0)) send.call(worker, message);
+      };
+      Worker.prototype.postMessage = function (this: Worker, message: unknown, ...rest: unknown[]) {
+        if (hold && (message as { type?: string } | null)?.type === "apply") held.push([this, message]);
+        else send.call(this, message, ...(rest as [StructuredSerializeOptions]));
+      };
+    });
     await openApp(page);
     await openExampleFromStart(page);
     await expect(page.getByRole("grid", { name: "Calendar" })).toBeVisible();
@@ -45,7 +67,7 @@ test.describe("in English at 1280 px", () => {
   test("dragging from Mon 14 Jun to Fri 18 Jun plans five days", async ({ page }) => {
     await expectLeave(page, 6, [14, 15, 16, 17, 18], NONE);
     await dragTo(page, cell(page, 6, 14), cell(page, 6, 18));
-    await expect(hint(page)).toContainText("5");
+    await expect(hint(page)).toContainText(/^5 working days · /);
     await page.mouse.up();
     await expectLeave(page, 6, [14, 15, 16, 17, 18], FULL);
     await expect(hint(page)).toHaveText("");
@@ -129,6 +151,34 @@ test.describe("in English at 1280 px", () => {
     await expectNoPageProblems(page);
   });
 
+  test("Escape during a drag discards it", async ({ page }) => {
+    await dragTo(page, cell(page, 6, 14), cell(page, 6, 16));
+    await expect(hint(page)).toContainText(/^3 working days · /);
+    await page.keyboard.press("Escape");
+    await expect(hint(page)).toHaveText("");
+    await page.mouse.up();
+    await expectLeave(page, 6, [14, 15, 16], NONE);
+    await expect(page.getByRole("button", { name: "Undo", exact: true })).toBeDisabled();
+    await expectNoPageProblems(page);
+  });
+
+  test("a click while a change is still being applied changes nothing, and works after", async ({ page }) => {
+    // The init script of this describe holds back every "apply" message to the worker while __holdApply is on.
+    await page.evaluate(() => window.__holdApply?.(true));
+    await cell(page, 6, 14).click();
+    await cell(page, 6, 15).click();
+    await page.getByRole("button", { name: "Week 25", exact: true }).click();
+    await page.evaluate(() => window.__holdApply?.(false));
+    await expectLeave(page, 6, [14], FULL);
+    // A click once the plan is idle; its answer comes after any earlier apply.
+    await cell(page, 6, 16).click();
+    await expectLeave(page, 6, [16], FULL);
+    await expectLeave(page, 6, [15, 21, 22, 23, 24, 25], NONE);
+    await cell(page, 6, 15).click();
+    await expectLeave(page, 6, [15], FULL);
+    await expectNoPageProblems(page);
+  });
+
   test("a drag over a weekend only changes nothing and adds no undo step", async ({ page }) => {
     await dragTo(page, cell(page, 6, 19), cell(page, 6, 20));
     await page.mouse.up();
@@ -150,6 +200,24 @@ test.describe("on a phone", () => {
     const february = await tiles.nth(1).boundingBox();
     expect(january && february && february.y > january.y + january.height - 1).toBe(true);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await expectNoPageProblems(page);
+  });
+});
+
+test.describe("on a touch screen", () => {
+  test.skip(({ browserName }) => browserName !== "chromium", "Touch is emulated in Chromium only.");
+  test.use({ locale: "en-GB", viewport: { width: 375, height: 800 }, hasTouch: true });
+
+  test("a tap toggles a day", async ({ page }) => {
+    await openApp(page);
+    await openExampleFromStart(page);
+    const day = cell(page, 1, 13);
+    await day.scrollIntoViewIfNeeded();
+    const point = await centre(day);
+    await page.touchscreen.tap(point.x, point.y);
+    await expect(day).toHaveAttribute("aria-label", FULL);
+    await page.touchscreen.tap(point.x, point.y);
+    await expect(day).toHaveAttribute("aria-label", NONE);
     await expectNoPageProblems(page);
   });
 });

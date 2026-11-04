@@ -31,7 +31,7 @@ SPDX-License-Identifier: EUPL-1.2
   });
 </script>
 
-<p class="hint" class:active={text !== ""} aria-live="polite">{text}</p>
+<p class="hint" class:active={text !== ""} aria-live="polite" aria-atomic="true">{text}</p>
 
 <style>
   @layer components {
