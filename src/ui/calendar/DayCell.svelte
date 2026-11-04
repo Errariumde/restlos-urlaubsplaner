@@ -202,8 +202,15 @@ SPDX-License-Identifier: EUPL-1.2
       background: linear-gradient(225deg, var(--r-leave-half) 50%, transparent 50%);
     }
 
-    .leave-half.part-start .number {
-      text-shadow: 0 0 2px var(--r-surface), 0 0 1px var(--r-surface);
+    /* Digits on leave, full or half, follow one rule in both modes: the mode's text colour with a surface halo. */
+    .leave-full,
+    .leave-half {
+      color: var(--r-on-leave);
+    }
+
+    .leave-full .number,
+    .leave-half .number {
+      text-shadow: 0 0 2px var(--r-leave-aura), 0 0 1px var(--r-leave-aura);
     }
 
     .leave-mandatory .fill {
@@ -213,12 +220,6 @@ SPDX-License-Identifier: EUPL-1.2
     .leave-full,
     .leave-mandatory {
       font-weight: 700;
-    }
-
-    /* Light digits on the leave blue; in dark mode a dark halo keeps them clear of the blue's edges. */
-    .leave-full {
-      color: var(--r-on-leave);
-      text-shadow: 0 0 2px var(--r-leave-aura), 0 0 1px var(--r-leave-aura);
     }
 
     .leave-mandatory {

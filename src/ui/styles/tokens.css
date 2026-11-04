@@ -42,15 +42,17 @@
     --r-holiday: light-dark(oklch(90% 0.075 80), oklch(38% 0.06 75));
     --r-half-required: light-dark(oklch(95.5% calc(var(--nk) * 0.006) var(--nh)), oklch(26% calc(var(--nk) * 0.008) var(--nh)));
     /* Dark mode: one darker blue for full and half days, with light digits (option "D+", task 16). */
-    --r-leave-full: light-dark(oklch(55% 0.16 255), oklch(52% 0.13 250));
-    --r-leave-half: light-dark(oklch(62% 0.14 252), oklch(52% 0.13 250));
+    /* One blue for full and half leave in each mode (maintainer, 2026-11-04: L2 light, D+ dark). */
+    --r-leave-full: light-dark(oklch(64% 0.14 252), oklch(52% 0.13 250));
+    --r-leave-half: light-dark(oklch(64% 0.14 252), oklch(52% 0.13 250));
     --r-mandatory: light-dark(oklch(48% 0.15 295), oklch(72% 0.12 295));
-    /* The day number on a full leave fill: about 5:1 on the leave blue in both modes. */
-    --r-on-leave: light-dark(oklch(100% 0 var(--nh)), oklch(97% calc(var(--nk) * 0.006) var(--nh)));
+    /* The day number on leave, full or half: the text colour of the mode, about 5:1 on the leave blue in both. */
+    --r-on-leave: light-dark(oklch(22% calc(var(--nk) * 0.012) var(--nh)), oklch(97% calc(var(--nk) * 0.006) var(--nh)));
     /* The day number on a mandatory leave fill; its dark-mode purple is light, so the digits stay dark. */
     --r-on-mandatory: light-dark(oklch(100% 0 var(--nh)), oklch(17% calc(var(--nk) * 0.006) var(--nh)));
-    /* A dark halo around light digits on the dark-mode leave blue (the dark surface); none in light mode. */
-    --r-leave-aura: light-dark(transparent, oklch(21.5% calc(var(--nk) * 0.007) var(--nh)));
+    /* A halo in the surface colour around the digits on leave, in both modes: it keeps them clear of the blue's
+       edges and readable where a half day's digits cross from the blue to the surface. */
+    --r-leave-aura: var(--r-surface);
     /* The patterns that tell the day types apart besides their colour (weekend hatch, holiday dots). */
     --r-day-pattern: light-dark(oklch(22% calc(var(--nk) * 0.012) var(--nh) / 0.14), oklch(93% calc(var(--nk) * 0.006) var(--nh) / 0.13));
     --r-other-plan: light-dark(oklch(50% 0.17 320), oklch(75% 0.13 320));
