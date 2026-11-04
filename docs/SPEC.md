@@ -136,7 +136,7 @@ A **calendar source** is a named list of days with a type and a color. It is imp
 | Leave from another plan | none; shows e.g. in January the days already planned in the previous year, they are counted there (own and mandatory leave of that plan). The source is an .ics or directly another .urlaub.json file; of a .urlaub.json only the days it charged are stored (see Format) |
 | Time off needed | none; the user must be free, e.g. the Kita closes on Tuesday afternoons or on its closure days. Every day of the plan period on which the needed time is not free is reported (see Counting model) |
 
-Conflicts: all sources of a day are displayed (the detail view lists them, the cell shows up to three color dots). The same day with the same name from several sources or the built-in set is shown once and marked as a duplicate.
+Conflicts: all sources of a day are displayed (the detail view lists them, the cell shows up to three lanes and beyond that a "+" pattern). The same day with the same name from several sources or the built-in set is shown once and marked as a duplicate.
 
 **Import (once):** choose file → preview of all recognized events with a checkbox per entry and a list **"not supported / skipped"** → set name, type, color → apply. Only the chosen events are stored, as entries; the `.ics` file is not kept.
 
