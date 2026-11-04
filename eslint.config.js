@@ -32,6 +32,11 @@ export default defineConfig(
     // TypeScript checks undefined names (typescript-eslint turns the rule off for .ts files the same way).
     rules: { "no-undef": "off" },
   },
+  {
+    // Svelte state modules (runes in plain TypeScript files).
+    files: ["**/*.svelte.ts"],
+    languageOptions: { parserOptions: { parser: tseslint.parser, svelteConfig } },
+  },
   { files: ["**/*.js"], extends: [tseslint.configs.disableTypeChecked] },
   {
     files: ["src/engine/**/*.ts"],
