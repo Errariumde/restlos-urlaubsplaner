@@ -155,7 +155,7 @@ async function markersOverText(page: Page): Promise<string[]> {
 }
 
 // Firefox ESR painted the week markers of a new month columns view first at their wide place, then moved
-// them: the narrow place came from a container query on each of the 365 cells, resolved after a first paint.
+// them: probably because the narrow place came from a container query on each of the 365 cells, resolved after a first paint (not reproducible headless; the maintainer's ESR check is the acceptance).
 // The place now follows from the cell's own width in the same layout, and the cells are no query containers.
 for (const [width, gap] of [[1453, 1], [1700, 16]] as const) {
   test.describe(`at ${String(width)} px, the week marker`, () => {

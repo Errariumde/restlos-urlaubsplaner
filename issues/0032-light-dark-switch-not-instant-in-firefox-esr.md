@@ -37,7 +37,7 @@ Measured in Playwright's headless Firefox and Chromium (1280 × 800 and 2100 × 
 
 "Style + layout" is the time from the write to a forced `getComputedStyle()` and `offsetHeight`. "Two frames" waits for two `requestAnimationFrame`s, so 33 ms is the headless frame rate, not work.
 
-The page's own work for a switch is about 10 ms: style recalculation of the calendar's elements. Taking the gradients out doesn't change it, and the click on the Svelte control costs no more than the bare write. What the maintainer sees has to come after the main thread: rasterizing and compositing the newly coloured page (WebRender), which headless runs at device scale 1 don't show. The partial repaint fits tile-by-tile rasterization of a large HiDPI window.
+The page's own work for a switch is about 10 ms: style recalculation of the calendar's elements. Taking the gradients out doesn't change it, and the click on the Svelte control costs no more than the bare write. What the maintainer sees most likely comes after the main thread: rasterizing and compositing the newly coloured page (WebRender), which headless runs at device scale 1 don't show. The partial repaint fits tile-by-tile rasterization of a large HiDPI window.
 
 ## Acceptance criteria
 
@@ -52,5 +52,5 @@ Options, in order:
 1. Maintainer: open `about:support` in ESR and check "Compositing" (WebRender vs. Software WebRender). Software WebRender on a large HiDPI window would explain it by itself.
 2. Maintainer: record the switch with the Firefox Profiler (preset "Graphics") and look at the time in the Renderer/RenderBackend threads and at which display items rasterize slowly.
 3. If the profile points at the gradients: draw the hatches and dots as small tiled images instead (SVG `data:` URLs are allowed by the CSP `img-src data:`) in one shared custom property per pattern, so the raster cache reuses one tile; or drop the hatch on cells that are off screen with `content-visibility: auto` on the month tiles. Both keep the look, and both need new screenshot baselines.
-4. Related: in the same check ESR painted the month columns' week markers once before their per-cell container queries were resolved (task 16 removed those queries). A profile of the switch may show the same kind of split paint of a large page.
+4. Related: in the same check ESR painted the month columns' week markers once in an intermediate place, probably before their per-cell container queries were resolved (task 16 removed those queries). A profile of the switch may show the same kind of split paint of a large page.
 5. Don't add a transition to hide it: it would make the switch slower, and it is not wanted (reduced motion).
