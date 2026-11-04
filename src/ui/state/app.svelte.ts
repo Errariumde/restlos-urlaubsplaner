@@ -113,6 +113,18 @@ class App {
     if (hint !== undefined && current()) this.hint = hint;
   }
 
+  /**
+   * Selects a range (or ends the selection) and previews `changes`, the days the selection bar's Full day
+   * would set. A preview that arrives after the selection changed or ended doesn't refill the hint.
+   */
+  select(range: { anchor: DayNumber; head: DayNumber } | undefined, changes: readonly LeaveChange[]): void {
+    this.selection = range;
+    this.hint = undefined;
+    if (range === undefined) return;
+    const mine = this.selection;
+    void this.preview(changes, () => this.selection === mine);
+  }
+
   async undo(): Promise<void> {
     await this.#change(() => this.#engineNow().undo());
   }

@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { dayFromYmd } from "../../../src/engine/days.ts";
 import type { PlanState } from "../../../src/ui/worker/protocol.ts";
 import { Session } from "../../../src/ui/worker/session.ts";
-import { actionForDrag, rangeChanges, toggleDay, weekChanges } from "../../../src/ui/calendar/range.ts";
+import { actionForDrag, rangeChanges, toggleDay, weekChanges, weekSelection } from "../../../src/ui/calendar/range.ts";
 
 const example = readFileSync("examples/plans/beispiel-gmbh-2027.urlaub.json", "utf8");
 const d = (y: number, m: number, day: number): number => dayFromYmd(y, m, day);
@@ -165,6 +165,35 @@ describe("weekChanges", () => {
     expect(weekChanges(state.result, d(2026, 12, 28))).toEqual([]);
     // A week past the period end.
     expect(weekChanges(state.result, d(2028, 1, 3))).toEqual([]);
+  });
+});
+
+describe("weekSelection", () => {
+  const r = opened().state.result;
+
+  it("selects the week's working days, from its first to its last", () => {
+    expect(weekSelection(r, d(2027, 6, 14))).toEqual({ anchor: d(2027, 6, 14), head: d(2027, 6, 18) });
+    // Whit Monday (17 May) is a holiday.
+    expect(weekSelection(r, d(2027, 5, 17))).toEqual({ anchor: d(2027, 5, 18), head: d(2027, 5, 21) });
+  });
+
+  it("keeps days with leave on them: the selection bar's Remove takes it away", () => {
+    // The week of 4 Jan: other-plan leave on 4 and 5 Jan, Epiphany on 6 Jan, own leave on 7 and 8 Jan.
+    expect(weekSelection(r, d(2027, 1, 4))).toEqual({ anchor: d(2027, 1, 4), head: d(2027, 1, 8) });
+  });
+
+  it("is clipped to the plan period", () => {
+    // The week of 27 Dec 2027 ends with a weekend in 2028; 31 Dec has half required work.
+    expect(weekSelection(r, d(2027, 12, 27))).toEqual({ anchor: d(2027, 12, 27), head: d(2027, 12, 31) });
+    // A period that ended on Thursday 17 June.
+    const ended = { ...r, days: r.days.map((x) => (x.day > d(2027, 6, 17) ? { ...x, inPeriod: false } : x)) };
+    expect(weekSelection(ended, d(2027, 6, 14))).toEqual({ anchor: d(2027, 6, 14), head: d(2027, 6, 17) });
+  });
+
+  it("selects nothing in a week without a working day in the period", () => {
+    // The week of 28 Dec 2026 has only 1 Jan (holiday) and a weekend in the period; the rest is before it.
+    expect(weekSelection(r, d(2026, 12, 28))).toBeUndefined();
+    expect(weekSelection(r, d(2028, 1, 3))).toBeUndefined();
   });
 });
 

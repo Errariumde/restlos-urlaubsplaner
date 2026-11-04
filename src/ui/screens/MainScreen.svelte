@@ -55,10 +55,18 @@ SPDX-License-Identifier: EUPL-1.2
   /** Below this width of the calendar area the detail of a day is a bottom sheet, not a popover. */
   const DETAIL_SHEET_BELOW = 520;
 
-  /** The height of the compact allowance bar, which sticks to the top of the window over the calendar. */
+  /** The compact allowance bar (with the hint line under it) is shown instead of the sidebar. */
+  const barShown = $derived(app.state !== undefined && width !== undefined && !sidebar);
+  /** The height of the compact bar with the hint line, which stick to the top of the window over the calendar. */
   let barSize = $state<number>();
-  /** What covers the top of the window over the calendar; the binding keeps its last value once the bar goes. */
-  const stuckBlockStart = $derived(app.state && width !== undefined && !sidebar && barSize !== undefined ? `${String(barSize)}px` : undefined);
+  /** The height of the hint line that sticks to the top of the calendar area beside the sidebar. */
+  let hintSize = $state<number>();
+  /**
+   * What covers the top of the window over the calendar. Each binding keeps its last value once its element
+   * goes, so only the one that is shown counts; in the selection mode the sidebar layout has nothing there.
+   */
+  const stuckSize = $derived(barShown ? barSize : app.selectMode ? undefined : hintSize);
+  const stuckBlockStart = $derived(stuckSize === undefined ? undefined : `${String(stuckSize)}px`);
 
   /** The sidebar's content is taller than the window, so the sidebar scrolls itself. */
   let panelScrolls = $state(false);
@@ -164,29 +172,35 @@ SPDX-License-Identifier: EUPL-1.2
 
 <div class="screen" bind:clientWidth={width} style:--stuck-block-start={stuckBlockStart}>
   <Toolbar {compact} {selectable} onview={(view: "tiles" | "columns") => void switchView(view)} bind:heading />
-  <!-- In the selection mode the hint line moves into the selection bar, next to its actions. -->
-  {#if !app.selectMode}
-    <HintLine />
-  {/if}
-  {#if app.state && width !== undefined && !sidebar}
+  <!--
+    The hint line is the drag's feedback (docs/SPEC.md, "Calendar interaction"), so it sticks with the
+    allowance: under the compact bar here, at the top of the calendar area beside the sidebar. It is rendered
+    in one place only, so there is one live region. In the selection mode it moves into the selection bar.
+  -->
+  {#if app.state && barShown}
     {@const { meta, result } = app.state}
-    <section class="compact-bar stack" aria-label={i18n.t("allowance.label")} style:--gap="var(--space-2)" bind:offsetHeight={barSize}>
-      <div class="cluster compact-head">
-        <p class="left">{i18n.t("allowance.left", { days: formatDays(result.totals.remaining, i18n.locale), count: pluralCount(result.totals.remaining) })}</p>
-        <Button bind:element={detailsButton} expanded={detailsOpen} controls="allowance-details" onclick={() => (detailsOpen = !detailsOpen)}>
-          {i18n.t("allowance.details")}
-        </Button>
-      </div>
-      <AllowanceBar allowance={meta.allowance} planned={result.totals.planned} />
-      {#if !compact}
-        <!-- Always there, so aria-controls points at something; the Sheet takes this id below 520 px. -->
-        <div id="allowance-details" hidden={!detailsOpen}>
-          {#if detailsOpen}
-            <AllowancePanel allowance={meta.allowance} totals={result.totals} stretches={result.stretches} showBar={false} />
-          {/if}
+    <div class="stuck" bind:offsetHeight={barSize}>
+      <section class="compact-bar stack" aria-label={i18n.t("allowance.label")} style:--gap="var(--space-2)">
+        <div class="cluster compact-head">
+          <p class="left">{i18n.t("allowance.left", { days: formatDays(result.totals.remaining, i18n.locale), count: pluralCount(result.totals.remaining) })}</p>
+          <Button bind:element={detailsButton} expanded={detailsOpen} controls="allowance-details" onclick={() => (detailsOpen = !detailsOpen)}>
+            {i18n.t("allowance.details")}
+          </Button>
         </div>
+        <AllowanceBar allowance={meta.allowance} planned={result.totals.planned} />
+        {#if !compact}
+          <!-- Always there, so aria-controls points at something; the Sheet takes this id below 520 px. -->
+          <div id="allowance-details" hidden={!detailsOpen}>
+            {#if detailsOpen}
+              <AllowancePanel allowance={meta.allowance} totals={result.totals} stretches={result.stretches} showBar={false} />
+            {/if}
+          </div>
+        {/if}
+      </section>
+      {#if !app.selectMode}
+        <HintLine />
       {/if}
-    </section>
+    </div>
     {#if compact}
       <Sheet id="allowance-details" anchor={detailsButton} open={detailsOpen} onclose={() => (detailsOpen = false)} label={i18n.t("allowance.label")}>
         <AllowancePanel allowance={meta.allowance} totals={result.totals} stretches={result.stretches} showBar={false} />
@@ -194,13 +208,20 @@ SPDX-License-Identifier: EUPL-1.2
     {/if}
   {/if}
   <div class="workspace">
-    <main bind:this={calendar} class="calendar" bind:clientWidth={calendarWidth}>
-      {#if app.state && app.view === "tiles"}
-        <MonthTiles meta={app.state.meta} result={app.state.result} {today} onDetail={openDetail} />
-      {:else if app.state}
-        <MonthColumns meta={app.state.meta} result={app.state.result} {today} onDetail={openDetail} />
+    <div class="area">
+      {#if !barShown && !app.selectMode}
+        <div class="stuck" bind:offsetHeight={hintSize}>
+          <HintLine />
+        </div>
       {/if}
-    </main>
+      <main bind:this={calendar} class="calendar" bind:clientWidth={calendarWidth}>
+        {#if app.state && app.view === "tiles"}
+          <MonthTiles meta={app.state.meta} result={app.state.result} {today} onDetail={openDetail} />
+        {:else if app.state}
+          <MonthColumns meta={app.state.meta} result={app.state.result} {today} onDetail={openDetail} />
+        {/if}
+      </main>
+    </div>
     {#if app.state && sidebar}
       <!-- After the calendar in the document and on screen (at the inline end). -->
       <!--
@@ -244,14 +265,18 @@ SPDX-License-Identifier: EUPL-1.2
     }
 
     /*
-     * The allowance is always visible (docs/SPEC.md, "Main screen"): the bar sticks to the top of the window,
-     * above the cells and the columns' day column, below the selection bar. Expanded details scroll inside
-     * it, so it never takes more than half the window.
+     * The allowance is always visible (docs/SPEC.md, "Main screen"): the compact bar and the hint line stick
+     * to the top of the window, above the cells and the columns' day column, below the selection bar. Beside
+     * the sidebar the hint line alone sticks to the top of the calendar area.
      */
-    .compact-bar {
+    .stuck {
       position: sticky;
       inset-block-start: 0;
       z-index: 5;
+    }
+
+    /* Expanded details scroll inside the bar, so it never takes more than half the window. */
+    .compact-bar {
       max-block-size: 50dvh;
       overflow-y: auto;
       padding: var(--space-3) var(--space-4);
@@ -259,7 +284,7 @@ SPDX-License-Identifier: EUPL-1.2
       background: var(--r-surface);
     }
 
-    /* A cell scrolled into view (keyboard, view switch) stops below the sticky bar, not under it. */
+    /* A cell scrolled into view (keyboard, view switch) stops below the sticky region, not under it. */
     .calendar :global([data-day]) {
       scroll-margin-block-start: var(--stuck-block-start, 0);
     }
@@ -290,14 +315,19 @@ SPDX-License-Identifier: EUPL-1.2
      * The line between calendar and sidebar runs the full height, also below the end of the sidebar: the
      * calendar draws it on top of the sidebar's own line, so neither loses a pixel of width.
      */
-    .workspace:has(.panel) .calendar {
+    .workspace:has(.panel) .area {
       margin-inline-end: -1px;
       border-inline-end: 1px solid var(--r-border);
     }
 
+    /* The hint line and the calendar; as tall as the workspace, so the hint line sticks all the way down. */
+    .area {
+      flex: 1;
+      min-inline-size: 0;
+    }
+
     /* The views switch on this width, not the window's (docs/SPEC.md, "Screen sizes"). */
     .calendar {
-      flex: 1;
       min-inline-size: 0;
       padding: var(--space-4);
       container: calendar / inline-size;

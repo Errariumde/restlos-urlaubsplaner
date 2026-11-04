@@ -123,6 +123,36 @@ test.describe("in the selection mode", () => {
     await expectNoPageProblems(page);
   });
 
+  test("a week-number tap selects the week's working days; Full day applies them in one step", async ({ page }) => {
+    const undo = page.getByRole("button", { name: "Undo", exact: true });
+    const week = page.getByRole("button", { name: "Week 24", exact: true });
+    await week.scrollIntoViewIfNeeded();
+    await week.tap();
+    for (const day of [14, 15, 16, 17, 18]) await expect(cell(page, 6, day)).toHaveAttribute("aria-selected", "true");
+    await expect(page.locator('[aria-selected="true"]')).toHaveCount(5);
+    await expect(hint(page)).toContainText(/^5 working days · /);
+    await expectLeave(page, 6, [14, 15, 16, 17, 18], NONE);
+    await expect(undo).toBeDisabled();
+    await page.getByRole("button", { name: "Full day", exact: true }).tap();
+    await expectLeave(page, 6, [14, 15, 16, 17, 18], FULL);
+    await expect(page.locator('[aria-selected="true"]')).toHaveCount(0);
+    await undo.tap();
+    await expectLeave(page, 6, [14, 15, 16, 17, 18], NONE);
+    await expect(undo).toBeDisabled();
+    await expectNoPageProblems(page);
+  });
+
+  test("in the columns, a week-marker tap selects too", async ({ page }) => {
+    await page.getByRole("button", { name: "Columns", exact: true }).tap();
+    const marker = page.getByRole("grid", { name: "Calendar" }).getByRole("button", { name: "Week 24", exact: true });
+    await marker.scrollIntoViewIfNeeded();
+    await marker.tap();
+    for (const day of [14, 15, 16, 17, 18]) await expect(cell(page, 6, day)).toHaveAttribute("aria-selected", "true");
+    await expectLeave(page, 6, [14, 15, 16, 17, 18], NONE);
+    await expect(page.getByRole("button", { name: "Undo", exact: true })).toBeDisabled();
+    await expectNoPageProblems(page);
+  });
+
   test("a third tap starts a new selection", async ({ page }) => {
     await tap(page, cell(page, 6, 14));
     await tap(page, cell(page, 6, 16));
