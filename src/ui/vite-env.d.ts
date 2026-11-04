@@ -8,9 +8,3 @@ declare module "virtual:restlos-worker" {
   const source: string;
   export default source;
 }
-
-/** A file's text (Vite's `?raw` suffix). */
-declare module "*?raw" {
-  const text: string;
-  export default text;
-}

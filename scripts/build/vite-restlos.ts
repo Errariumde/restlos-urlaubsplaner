@@ -1,11 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-// The Vite plugins of the restlos build: the engine worker as a string module, the Content Security Policy
+// The Vite plugins of the restlos build: the engine worker as a string module, the example plan as a data
+// block, the Content Security Policy
 // with the hashes of the inline scripts, the output file name and the size limit of the single HTML file
 // (docs/SPEC.md).
 import { build, type Logger, type Plugin, type ResolvedConfig } from "vite";
-import { insertCsp, scriptHashes, standardPolicy, utf8Length } from "./html.ts";
+import { readFile } from "node:fs/promises";
+import { insertCsp, insertDataBlock, scriptHashes, standardPolicy, utf8Length } from "./html.ts";
 
 /** The name of the built app. */
 export const OUTPUT_FILE = "restlos-urlaubsplaner.html";
@@ -114,7 +116,42 @@ function engineWorker(): Plugin {
   };
 }
 
+/** The id of the data block with the built-in example plan; the start screen reads it. */
+export const EXAMPLE_BLOCK_ID = "example-plan";
+/** The built-in example plan, relative to the project root (docs/SPEC.md, "View example"). */
+export const EXAMPLE_FILE = "examples/plans/beispiel-gmbh-2027.urlaub.json";
+
+/**
+ * The page with the example plan as the non-executed data block `<script type="application/json"
+ * id="example-plan">`. The JSON is written compactly; `insertDataBlock` escapes every `<`, so the text can't
+ * end the element. A text that isn't JSON fails the build.
+ */
+export function embedExample(html: string, text: string): string {
+  return insertDataBlock(html, EXAMPLE_BLOCK_ID, JSON.stringify(JSON.parse(text)));
+}
+
+/**
+ * Embeds the example plan in the page, in the build and on the dev server. It runs before
+ * vite-plugin-singlefile inlines the scripts, and the CSP hashes skip the data block (it doesn't execute).
+ */
+function exampleData(): Plugin {
+  let root: string | undefined;
+  return {
+    name: "restlos:example-data",
+    configResolved(config) {
+      root = config.root;
+    },
+    transformIndexHtml: {
+      order: "post",
+      async handler(html) {
+        if (root === undefined) throw new Error("The page is transformed before the config is resolved.");
+        return embedExample(html, await readFile(`${root}/${EXAMPLE_FILE}`, "utf8"));
+      },
+    },
+  };
+}
+
 /** The restlos plugins, to be listed after `svelte()` and `viteSingleFile()`. */
 export function restlos(): Plugin[] {
-  return [engineWorker(), cspAndSize()];
+  return [engineWorker(), exampleData(), cspAndSize()];
 }

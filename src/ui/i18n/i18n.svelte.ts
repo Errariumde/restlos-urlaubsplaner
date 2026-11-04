@@ -4,7 +4,7 @@
 import { IntlMessageFormat } from "intl-messageformat";
 import de from "./de.json";
 import en from "./en.json";
-import type { Catalog, Locale } from "./locale.ts";
+import { localeForLanguage, type Catalog, type Locale } from "./locale.ts";
 import { pseudoCatalog } from "./pseudo.ts";
 
 export type { Locale } from "./locale.ts";
@@ -34,7 +34,8 @@ function formatterFor(locale: Locale, key: string): IntlMessageFormat | undefine
 }
 
 class I18n {
-  locale = $state<Locale>("de");
+  /** German when the browser's language is German, else English. */
+  locale = $state<Locale>(localeForLanguage(typeof navigator === "undefined" ? "" : navigator.language));
 
   get dir(): "ltr" | "rtl" {
     return catalogs[this.locale]["meta.dir"] === "rtl" ? "rtl" : "ltr";
