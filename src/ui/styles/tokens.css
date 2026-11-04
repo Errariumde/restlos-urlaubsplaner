@@ -43,13 +43,13 @@
     --r-info-band: light-dark(oklch(95.5% calc(var(--nk) * 0.012) var(--nh)), oklch(25% calc(var(--nk) * 0.012) var(--nh)));
 
     /* Source colours */
-    --r-accent-1: light-dark(oklch(55% 0.12 170), oklch(78% 0.12 170));
-    --r-accent-2: light-dark(oklch(58% 0.16 65), oklch(80% 0.13 70));
+    --r-accent-1: light-dark(oklch(55% 0.12 175), oklch(78% 0.12 175));
+    --r-accent-2: light-dark(oklch(58% 0.16 65), oklch(80% 0.13 65));
     --r-accent-3: light-dark(oklch(55% 0.18 350), oklch(76% 0.13 350));
-    --r-accent-4: light-dark(oklch(55% 0.14 130), oklch(78% 0.13 130));
-    --r-accent-5: light-dark(oklch(55% 0.1 205), oklch(78% 0.1 205));
-    --r-accent-6: light-dark(oklch(55% 0.12 90), oklch(80% 0.12 90));
-    --r-accent-7: light-dark(oklch(50% 0.1 40), oklch(72% 0.1 40));
+    --r-accent-4: light-dark(oklch(55% 0.14 140), oklch(78% 0.13 140));
+    --r-accent-5: light-dark(oklch(55% 0.1 210), oklch(78% 0.1 210));
+    --r-accent-6: light-dark(oklch(55% 0.12 105), oklch(80% 0.12 105));
+    --r-accent-7: light-dark(oklch(50% 0.1 30), oklch(72% 0.1 30));
     --r-accent-8: light-dark(oklch(50% 0.02 250), oklch(75% 0.02 250));
 
     /* Scales */

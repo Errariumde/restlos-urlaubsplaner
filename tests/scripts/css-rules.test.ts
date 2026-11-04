@@ -21,7 +21,7 @@ describe("checkCss", () => {
 
   it("flags physical properties and uppercase", () => {
     const errors = checkCss([
-      { path: "src/ui/A.svelte", text: "<style>.a { margin-left: 1px; width: 2px; text-transform: uppercase; inset-inline-start: 0 }</style>" },
+      { path: "src/ui/A.svelte", text: "<style>@layer components { .a { margin-left: 1px; width: 2px; text-transform: uppercase; inset-inline-start: 0 } }</style>" },
     ]);
     expect(errors).toHaveLength(3);
   });
@@ -62,9 +62,53 @@ describe("checkCss", () => {
   });
 
   it("only reads the style blocks of Svelte files", () => {
-    const text = '<div style="left: 0">red</div>\n<style>\n  .a { color: #fff }\n</style>';
+    const text = '<div class="x">red</div>\n<style>\n  @layer components {\n    .a { color: #fff }\n  }\n</style>';
     const errors = checkCss([{ path: "src/ui/A.svelte", text }]);
     expect(errors).toHaveLength(1);
-    expect(errors[0]).toContain("A.svelte:3");
+    expect(errors[0]).toContain("A.svelte:4");
+  });
+
+  it("catches physical keywords with !important", () => {
+    expect(css(".a { text-align: left !important; float: right!important; clear: left !important }")).toHaveLength(3);
+  });
+
+  it("does not read colours out of url() references", () => {
+    expect(css('.a { fill: url(#fff); background: url("x.svg#red") }')).toEqual([]);
+  });
+
+  it("allows width in a nested @media print", () => {
+    expect(css("@media print { @media (min-resolution: 1dppx) { .a { width: 10cm } } .b { height: 1cm } }")).toEqual([]);
+  });
+
+  it("does not mistake words inside var() names or function names for colours", () => {
+    expect(css(".a { margin-inline: var(--space-tan); padding-inline: calc(tan(45deg) * 1px); color: var(--red); outline-color: var(--red, var(--r-focus)) }")).toEqual([]);
+    expect(css(".a { color: var(--x, red) }")).toHaveLength(1);
+  });
+
+  it("checks inline styles and style directives in Svelte markup", () => {
+    const file = (text: string) => checkCss([{ path: "src/ui/A.svelte", text }]);
+    expect(file('<div style="margin-left:0">x</div>')).toHaveLength(1);
+    expect(file('<div style="color: #fff; inline-size: 1px">x</div>')).toHaveLength(1);
+    expect(file('<div style:margin-left="1px">x</div>')).toHaveLength(1);
+    expect(file("<div style:left={x}>x</div>")).toHaveLength(1);
+    expect(file('<div style:color="red">x</div>')).toHaveLength(1);
+    expect(file('<div style:margin-inline-start={x} style:color="var(--r-text)" style:--gap="1px">x</div>')).toEqual([]);
+  });
+
+  it("checks colour attributes in Svelte markup", () => {
+    const file = (text: string) => checkCss([{ path: "src/ui/A.svelte", text }]);
+    expect(file('<svg><path fill="#fff" stroke="red" /></svg>')).toHaveLength(2);
+    expect(file('<svg><stop stop-color="rgb(0 0 0)" /></svg>')).toHaveLength(1);
+    expect(file('<svg><path fill="currentColor" stroke="none" /><rect fill="transparent" /></svg>')).toEqual([]);
+    expect(file('<svg><path fill="url(#grad)" /></svg>')).toEqual([]);
+  });
+
+  it("requires Svelte style blocks to be inside @layer components", () => {
+    const file = (text: string) => checkCss([{ path: "src/ui/A.svelte", text }]);
+    expect(file("<style>.a { color: var(--r-text) }</style>")).toHaveLength(1);
+    expect(file("<style>@layer other { .a { color: var(--r-text) } }</style>")).toHaveLength(1);
+    expect(file("<style>@layer components { .a { color: var(--r-text) } } .b { color: var(--r-text) }</style>")).toHaveLength(1);
+    expect(file("<style>@layer components { .a { color: var(--r-text) } }</style>")).toEqual([]);
+    expect(file("<style></style>")).toEqual([]);
   });
 });
