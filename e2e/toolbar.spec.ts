@@ -141,10 +141,10 @@ test.describe("on a narrow app", () => {
 test.describe("German at 375 px", () => {
   test.use({ locale: "de-DE", viewport: { width: 375, height: 700 } });
 
-  test("view switch, undo, redo and More share one line", async ({ page }) => {
+  test("view switch, Select, undo, redo and More share one line", async ({ page }) => {
     await openApp(page);
     await openExampleFromStart(page);
-    const names = ["Kacheln", "Rückgängig", "Wiederholen", "Mehr"];
+    const names = ["Kacheln", "Spalten", "Auswählen", "Rückgängig", "Wiederholen", "Mehr"];
     const tops: number[] = [];
     for (const name of names) {
       const box = await page.getByRole("button", { name, exact: true }).boundingBox();

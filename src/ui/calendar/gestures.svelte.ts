@@ -4,6 +4,8 @@
 // Planning leave with the pointer (docs/SPEC.md, "Calendar interaction"; D8): drag to paint a range, click to
 // toggle a day, Shift-click to extend from the last clicked day; on touch a tap toggles and a long press
 // opens the detail. Every gesture ends in exactly one `apply` (one undo step) or none (Review Focus 1).
+// In the selection mode (`app.selectMode`) a drag or two taps only select a range (`app.selection`, with its
+// hint); the selection bar applies it. A long press still opens the detail there.
 import type { PlanResult } from "../../engine/counting/plan.ts";
 import type { DayNumber } from "../../engine/days.ts";
 import type { app as appState } from "../state/app.svelte.ts";
@@ -55,6 +57,25 @@ interface TouchPress {
   done: boolean;
 }
 
+/**
+ * A press in the selection mode (D8): a drag selects the days it passes, a tap sets the first day of a range
+ * and the next tap its last day. Nothing is applied; the selection bar does that.
+ */
+interface SelectPress {
+  readonly kind: "select";
+  readonly id: number;
+  readonly touch: boolean;
+  readonly start: DayNumber;
+  readonly x: number;
+  readonly y: number;
+  /** The long press of a finger; undefined for a mouse or a pen, and once the finger has moved. */
+  timer: ReturnType<typeof setTimeout> | undefined;
+  current: DayNumber;
+  moved: boolean;
+  /** The long press opened the detail: lifting the finger selects nothing. */
+  done: boolean;
+}
+
 /** The day of the calendar cell an element is in, or undefined outside the cells of `node`. */
 function dayOf(node: HTMLElement, target: EventTarget | null): DayNumber | undefined {
   if (!(target instanceof Element)) return undefined;
@@ -73,8 +94,13 @@ function isMac(): boolean {
 /** A Svelte action on the calendar grid. */
 export function calendarGestures(node: HTMLElement, initial: GestureOptions): { update(options: GestureOptions): void; destroy(): void } {
   let options = initial;
-  let press: MousePress | TouchPress | undefined;
+  let press: MousePress | TouchPress | SelectPress | undefined;
   let lastClicked: DayNumber | undefined;
+  /**
+   * The selection a first tap in the selection mode made (as `app.selection` returns it). While it is still
+   * the selection, the next tap sets its last day; any other selection, or none, makes the next tap a first one.
+   */
+  let tapSelection: object | undefined;
   /** A Mac Ctrl+click opened the detail; the contextmenu event that follows it opens nothing more. */
   let ctrlClickDetail = false;
   /** Counts the drags; a preview asked for by an earlier one never shows (it may arrive after the drag ended). */
@@ -139,22 +165,63 @@ export function calendarGestures(node: HTMLElement, initial: GestureOptions): { 
     void options.app.preview(changes, () => generation === mine);
   }
 
-  /** Ends the press: the preview and the hint go, and nothing else happens. */
+  /** Selects the days from `anchor` to `head` and previews setting them, as the keyboard's selection does. */
+  function select(anchor: DayNumber, head: DayNumber): void {
+    const app = options.app;
+    app.selection = { anchor, head };
+    const mine = app.selection;
+    tapSelection = undefined;
+    // A preview that arrives after the selection changed or ended doesn't refill the hint.
+    void app.preview(rangeChanges(options.getResult(), anchor, head, "full"), () => app.selection === mine);
+  }
+
+  /**
+   * Ends the press: the drag preview and its hint go, and nothing else happens. A press in the selection mode
+   * keeps its selection and the selection's hint.
+   */
   function finish(): void {
     const ended = press;
     if (ended === undefined) return;
     press = undefined;
     generation += 1;
     window.removeEventListener("keydown", onKeyDown, true);
-    if (ended.kind === "touch") clearTimeout(ended.timer);
+    if (ended.kind !== "mouse") clearTimeout(ended.timer);
     if (node.hasPointerCapture(ended.id)) node.releasePointerCapture(ended.id);
+    if (ended.kind === "select") return;
     dragPreview.range = undefined;
     options.app.hint = undefined;
+  }
+
+  function startSelect(event: PointerEvent, day: DayNumber): void {
+    // The grid has touch-action: none in the mode, so the finger doesn't scroll; no text selection either.
+    event.preventDefault();
+    const touch = event.pointerType === "touch";
+    // A finger has an implicit capture to the cell it started on; the mouse and the pen take the grid's.
+    if (!touch) {
+      (event.target as Element).closest<HTMLElement>("[data-day]")?.focus({ preventScroll: true });
+      node.setPointerCapture(event.pointerId);
+    }
+    press = {
+      kind: "select",
+      id: event.pointerId,
+      touch,
+      start: day,
+      x: event.clientX,
+      y: event.clientY,
+      timer: touch ? setTimeout(onLongPress, LONG_PRESS_MS) : undefined,
+      current: day,
+      moved: false,
+      done: false,
+    };
+    generation += 1;
+    window.addEventListener("keydown", onKeyDown, true);
   }
 
   function onPointerDown(event: PointerEvent): void {
     // While a change is being applied, the result is about to be replaced: input computed from it would be stale.
     if (press !== undefined || !event.isPrimary || options.app.applying) return;
+    // A button in a cell (the week marker of the month columns) is not a press on the day.
+    if (event.target instanceof Element && event.target.closest("button") !== null) return;
     const day = dayOf(node, event.target);
     if (day === undefined) return;
     ctrlClickDetail = false;
@@ -163,6 +230,10 @@ export function calendarGestures(node: HTMLElement, initial: GestureOptions): { 
       event.preventDefault();
       ctrlClickDetail = true;
       detailAfterRelease(day, event);
+      return;
+    }
+    if (options.app.selectMode) {
+      if (event.button === 0) startSelect(event, day);
       return;
     }
     if (event.pointerType === "touch") {
@@ -204,6 +275,19 @@ export function calendarGestures(node: HTMLElement, initial: GestureOptions): { 
       if (Math.hypot(event.clientX - current.x, event.clientY - current.y) > TOUCH_SLOP_PX) finish();
       return;
     }
+    if (current.kind === "select") {
+      if (current.done) return;
+      if (current.timer !== undefined && Math.hypot(event.clientX - current.x, event.clientY - current.y) > TOUCH_SLOP_PX) {
+        clearTimeout(current.timer);
+        current.timer = undefined;
+      }
+      const day = dayOf(node, document.elementFromPoint(event.clientX, event.clientY));
+      if (day === undefined || day === current.current) return;
+      current.current = day;
+      current.moved = true;
+      select(current.start, day);
+      return;
+    }
     // The capture sends every move to the grid; the day under the pointer decides. Between tiles there is
     // none, so the last day found stays.
     const day = dayOf(node, document.elementFromPoint(event.clientX, event.clientY));
@@ -216,6 +300,19 @@ export function calendarGestures(node: HTMLElement, initial: GestureOptions): { 
   function onPointerUp(event: PointerEvent): void {
     const ended = press;
     if (ended === undefined || event.pointerId !== ended.id) return;
+    if (ended.kind === "select") {
+      finish();
+      if (ended.done || ended.moved) return;
+      // A tap: the second one sets the last day of the range the first one began, a third begins anew.
+      const selection = options.app.selection;
+      if (tapSelection !== undefined && selection === tapSelection) {
+        select(selection.anchor, ended.start);
+      } else {
+        select(ended.start, ended.start);
+        tapSelection = options.app.selection;
+      }
+      return;
+    }
     const result = options.getResult();
     let changes: LeaveChange[] = [];
     if (ended.kind === "touch") {
@@ -241,28 +338,34 @@ export function calendarGestures(node: HTMLElement, initial: GestureOptions): { 
   }
 
   function onKeyDown(event: KeyboardEvent): void {
-    if (event.key !== "Escape" || press?.kind !== "mouse") return;
+    if (event.key !== "Escape" || press === undefined || press.kind === "touch") return;
     event.preventDefault();
     event.stopPropagation();
+    const selecting = press.kind === "select";
     finish();
+    // Escape during a selection drag drops what it selected.
+    if (selecting) {
+      options.app.selection = undefined;
+      options.app.hint = undefined;
+    }
   }
 
   function onLongPress(): void {
-    if (press?.kind !== "touch" || press.done) return;
+    if (press === undefined || press.kind === "mouse" || press.done) return;
     press.done = true;
     options.onDetail?.(press.start, "touch");
   }
 
   function onContextMenu(event: MouseEvent): void {
     const day = dayOf(node, event.target);
-    if (day === undefined || press?.kind === "mouse") return;
+    if (day === undefined || press?.kind === "mouse" || (press?.kind === "select" && !press.touch)) return;
     // The Mac's Ctrl+click has opened the detail on pointerdown already; only the browser's menu is left.
     if (ctrlClickDetail) {
       ctrlClickDetail = false;
       event.preventDefault();
       return;
     }
-    if (press?.kind === "touch") {
+    if (press !== undefined) {
       clearTimeout(press.timer);
       // The long press has opened the detail already.
       if (press.done) {

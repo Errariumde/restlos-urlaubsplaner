@@ -84,6 +84,7 @@ SPDX-License-Identifier: EUPL-1.2
   bind:this={grid}
   class="tiles"
   class:weeks={app.weeks}
+  class:selecting={app.selectMode}
   class:removing={dragPreview.range?.action === "remove"}
   role="grid"
   aria-label={i18n.t("calendar.label")}
@@ -148,6 +149,11 @@ SPDX-License-Identifier: EUPL-1.2
       align-items: start;
       /* Moving a finger scrolls the page (ranges on touch come with the selection mode); no double-tap zoom. */
       touch-action: manipulation;
+    }
+
+    /* In the selection mode a finger selects instead of scrolling (gestures.svelte.ts). */
+    .tiles.selecting {
+      touch-action: none;
     }
 
     .tiles:focus {

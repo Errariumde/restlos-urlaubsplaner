@@ -11,6 +11,8 @@
   "gallery.section.dayCell": "Day cell",
   "gallery.section.dayDetail": "Day details",
   "gallery.section.mainTiles": "Main screen, month tiles",
+  "gallery.section.mainColumns": "Main screen, month columns",
+  "gallery.section.selectionBar": "Selection bar",
   "gallery.cell.group.required": "Required work",
   "gallery.cell.group.leave": "Leave",
   "gallery.cell.group.sources": "Calendar sources",

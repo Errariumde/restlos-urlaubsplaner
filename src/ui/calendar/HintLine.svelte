@@ -4,10 +4,17 @@ SPDX-License-Identifier: EUPL-1.2
 -->
 <script lang="ts">
   // What the gesture going on would do (docs/SPEC.md, "Calendar interaction"): the working days it changes,
-  // its cost, the resulting stretch and the remaining allowance. Empty when there is no hint.
+  // its cost, the resulting stretch and the remaining allowance. Without a hint it shows `idle`, else nothing.
   import { pluralCount, formatDate, formatDays } from "../i18n/format.ts";
   import { i18n } from "../i18n/i18n.svelte.ts";
   import { app } from "../state/app.svelte.ts";
+
+  interface Props {
+    /** What the line says while there is no hint (the selection bar's instruction). */
+    idle?: string;
+  }
+
+  let { idle = "" }: Props = $props();
 
   const text = $derived.by(() => {
     const hint = app.hint;
@@ -31,7 +38,7 @@ SPDX-License-Identifier: EUPL-1.2
   });
 </script>
 
-<p class="hint" class:active={text !== ""} aria-live="polite" aria-atomic="true">{text}</p>
+<p class="hint" class:active={text !== ""} aria-live="polite" aria-atomic="true">{text || idle}</p>
 
 <style>
   @layer components {

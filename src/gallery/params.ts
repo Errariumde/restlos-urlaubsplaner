@@ -3,8 +3,19 @@
 
 import type { Locale } from "../ui/i18n/locale.ts";
 
-/** The gallery's sections. Later tasks add the allowance panel and the month columns. */
-export const SECTIONS = ["controls", "popover", "sheet", "toolbar", "day-cell", "day-detail", "allowance", "main-tiles"] as const;
+/** The gallery's sections. */
+export const SECTIONS = [
+  "controls",
+  "popover",
+  "sheet",
+  "toolbar",
+  "day-cell",
+  "day-detail",
+  "allowance",
+  "main-tiles",
+  "main-columns",
+  "selection-bar",
+] as const;
 export type SectionId = (typeof SECTIONS)[number];
 
 export const LOCALES: readonly Locale[] = ["de", "en", "en-XA", "en-XB"];

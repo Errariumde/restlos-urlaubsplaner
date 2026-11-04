@@ -69,6 +69,24 @@ export function tileWeeks(month: MonthBlock, weekStart: Weekday): TileWeek[] {
   return weeks;
 }
 
+export interface WeekMarker {
+  readonly isoWeek: number;
+  readonly startDay: DayNumber; // the week's first day, also when it lies before the period
+}
+
+/**
+ * The calendar-week marker of a day in the month columns (docs/SPEC.md, "Calendar weeks": a marker at the
+ * start of each week): on the first day of every week, and on the period's first day for the week that runs
+ * into it. Like the tiles, a week is numbered by its Thursday, so this holds for any week start.
+ */
+export function columnWeekMarker(day: DayNumber, weekStart: Weekday, periodFrom: DayNumber): WeekMarker | undefined {
+  const offset = offsetInWeek(day, weekStart);
+  if (offset !== 0 && day !== periodFrom) return undefined;
+  const startDay = day - offset;
+  const thursdayOffset = (3 - weekdayIndex(weekStart) + 7) % 7;
+  return { isoWeek: isoWeek(startDay + thursdayOffset), startDay };
+}
+
 /**
  * The rows of the month columns view, as rows × months. Without alignment row i is day i + 1 of
  * the month (31 rows). With alignment the rows are weekday positions from `weekStart`: each month is

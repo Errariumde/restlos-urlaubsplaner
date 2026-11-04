@@ -21,7 +21,8 @@ test.skip(({ browserName }) => browserName === "webkit", "The gallery is checked
 async function show(page: Page, combination: Combination): Promise<void> {
   await openGallery(page, { ...combination });
   await expect(page.locator("[data-section]")).toHaveAttribute("data-section", combination.section);
-  if (combination.section === "main-tiles") await expect(page.getByRole("gridcell").first()).toBeVisible();
+  if (combination.section === "main-tiles" || combination.section === "main-columns") await expect(page.getByRole("gridcell").first()).toBeVisible();
+  if (combination.section === "selection-bar") await expect(page.locator('[aria-live="polite"].active')).toBeVisible();
   if (combination.section === "day-detail") await expect(page.getByRole("region")).toHaveCount(7);
   if (combination.section === "popover") await expect(page.locator("[popover]")).toBeVisible();
   if (combination.section === "sheet") await expect(page.getByRole("dialog")).toBeVisible();
@@ -36,7 +37,7 @@ test.describe("every gallery section passes axe", () => {
     const { section, locale, mode } = combination;
     test(`${section}, ${locale}, ${mode}`, async ({ page }) => {
       // axe checks every one of the main screen's 365 day cells.
-      test.slow(section === "main-tiles");
+      test.slow(section === "main-tiles" || section === "main-columns");
       await show(page, combination);
       await page.addScriptTag({ path: AXE_PATH });
       const violations = await page.evaluate(async () => {

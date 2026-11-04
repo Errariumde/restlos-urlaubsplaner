@@ -3,12 +3,16 @@ SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 SPDX-License-Identifier: EUPL-1.2
 -->
 <script lang="ts">
+  import { tick } from "svelte";
+  import { MediaQuery } from "svelte/reactivity";
   import type { DayNumber } from "../../engine/days.ts";
   import AllowanceBar from "../allowance/AllowanceBar.svelte";
   import AllowancePanel from "../allowance/AllowancePanel.svelte";
   import DayDetail from "../calendar/DayDetail.svelte";
   import HintLine from "../calendar/HintLine.svelte";
+  import MonthColumns from "../calendar/MonthColumns.svelte";
   import MonthTiles from "../calendar/MonthTiles.svelte";
+  import SelectionBar from "../calendar/SelectionBar.svelte";
   import Button from "../controls/Button.svelte";
   import Sheet from "../controls/Sheet.svelte";
   import { pluralCount, formatDays } from "../i18n/format.ts";
@@ -52,6 +56,28 @@ SPDX-License-Identifier: EUPL-1.2
   const DETAIL_SHEET_BELOW = 520;
 
   let calendarWidth = $state<number>();
+  let calendar = $state<HTMLElement>();
+
+  /** Below this width of the app, or on a touch screen, the toolbar offers the touch selection mode. */
+  const SELECT_BELOW = 800;
+  const coarse = new MediaQuery("(pointer: coarse)");
+  const selectable = $derived(coarse.current || (width !== undefined && width < SELECT_BELOW));
+  /**
+   * Switches the view (V and the toolbar). The detail closes first, since its anchor cell goes with the old
+   * view. The focused day stays: it is scrolled into view in the new view and keeps the focus if the old grid
+   * or the detail had it.
+   */
+  async function switchView(view: "tiles" | "columns"): Promise<void> {
+    if (view === app.view) return;
+    const active = document.activeElement;
+    const refocus = (calendar?.contains(active) ?? false) || (detail !== undefined && active?.closest("[popover], dialog") != null);
+    detail = undefined;
+    app.view = view;
+    await tick();
+    const cell = calendar?.querySelector<HTMLElement>(`[data-day="${String(app.focusDay)}"]`);
+    cell?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    if (refocus) cell?.focus({ preventScroll: true });
+  }
 
   interface DetailRequest {
     readonly day: DayNumber;
@@ -104,7 +130,7 @@ SPDX-License-Identifier: EUPL-1.2
         if (app.state?.canRedo) void app.redo();
         break;
       case "view":
-        app.view = app.view === "tiles" ? "columns" : "tiles";
+        void switchView(app.view === "tiles" ? "columns" : "tiles");
         break;
       case "align":
         if (app.view === "columns") app.align = !app.align;
@@ -119,8 +145,11 @@ SPDX-License-Identifier: EUPL-1.2
 <svelte:window {onkeydown} />
 
 <div class="screen" bind:clientWidth={width}>
-  <Toolbar {compact} bind:heading />
-  <HintLine />
+  <Toolbar {compact} {selectable} onview={(view: "tiles" | "columns") => void switchView(view)} bind:heading />
+  <!-- In the selection mode the hint line moves into the selection bar, next to its actions. -->
+  {#if !app.selectMode}
+    <HintLine />
+  {/if}
   {#if app.state && width !== undefined && !sidebar}
     {@const { meta, result } = app.state}
     <section class="compact-bar stack" aria-label={i18n.t("allowance.label")} style:--gap="var(--space-2)">
@@ -147,9 +176,11 @@ SPDX-License-Identifier: EUPL-1.2
     {/if}
   {/if}
   <div class="workspace">
-    <main class="calendar" bind:clientWidth={calendarWidth}>
+    <main bind:this={calendar} class="calendar" bind:clientWidth={calendarWidth}>
       {#if app.state && app.view === "tiles"}
         <MonthTiles meta={app.state.meta} result={app.state.result} {today} onDetail={openDetail} />
+      {:else if app.state}
+        <MonthColumns meta={app.state.meta} result={app.state.result} {today} onDetail={openDetail} />
       {/if}
     </main>
     {#if app.state && sidebar}
@@ -175,6 +206,10 @@ SPDX-License-Identifier: EUPL-1.2
         />
       {/if}
     {/each}
+  {/if}
+  {#if app.state && app.selectMode}
+    <!-- Last in the screen: it sticks to the bottom of the window and ends the page below the calendar. -->
+    <SelectionBar />
   {/if}
 </div>
 
