@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-import type { PlanResult } from "../../engine/counting/plan.ts";
-import type { DayResult } from "../../engine/counting/plan.ts";
+import type { DayResult, PlanResult } from "../../engine/counting/plan.ts";
 import type { LeavePiece } from "../../engine/counting/leave.ts";
 import type { DayNumber } from "../../engine/days.ts";
 import { UNITS_PER_DAY } from "../../engine/weight.ts";
@@ -10,7 +9,11 @@ import type { LeaveChange } from "../worker/protocol.ts";
 
 export type RangeAction = "full" | "half" | "remove";
 
-type OwnPiece = Extract<LeavePiece, { kind: "own" | "mandatory" }>;
+// LeaveChange takes literal amounts; they equal UNITS_PER_DAY and UNITS_PER_DAY / 2.
+const FULL = 480;
+const HALF = 240;
+
+type OwnPiece = Extract<LeavePiece, { kind: "own" | "mandatory" }> & { readonly kind: "own" };
 
 /** The day's result; undefined outside the computed window. */
 function dayAt(result: PlanResult, day: DayNumber): DayResult | undefined {
@@ -36,15 +39,17 @@ function changeFor(day: DayResult, action: RangeAction): LeaveChange | undefined
   if (day.required.value <= 0) return undefined;
   if (day.leave.some((piece) => piece.kind === "mandatory" || piece.kind === "otherPlan")) return undefined;
   if (action === "full") {
-    return own?.take === UNITS_PER_DAY ? undefined : { day: day.day, take: 480 };
+    return own?.take === UNITS_PER_DAY ? undefined : { day: day.day, take: FULL };
   }
-  return own?.take === 240 && own.part === "end" ? undefined : { day: day.day, take: 240, part: "end" };
+  return own?.take === UNITS_PER_DAY / 2 && own.part === "end" ? undefined : { day: day.day, take: HALF, part: "end" };
 }
 
 /** The changes for the days from `from` to `to` (either order), ascending. Days outside the period are never touched. */
 export function rangeChanges(result: PlanResult, from: DayNumber, to: DayNumber, action: RangeAction): LeaveChange[] {
   const changes: LeaveChange[] = [];
-  for (let d = Math.min(from, to); d <= Math.max(from, to); d++) {
+  const lo = Math.min(from, to);
+  const hi = Math.max(from, to);
+  for (let d = lo; d <= hi; d++) {
     const day = dayAt(result, d);
     const change = day === undefined ? undefined : changeFor(day, action);
     if (change !== undefined) changes.push(change);

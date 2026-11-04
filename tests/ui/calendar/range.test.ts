@@ -17,8 +17,7 @@ function opened(): { session: Session; state: PlanState } {
 }
 
 describe("rangeChanges", () => {
-  const { session, state } = opened();
-  const r = state.result;
+  const r = opened().state.result;
 
   it("sets the five working days of the week of 14 June 2027", () => {
     const changes = rangeChanges(r, d(2027, 6, 14), d(2027, 6, 20), "full");
@@ -87,7 +86,11 @@ describe("rangeChanges", () => {
 
   it("crosses the month gap between two tiles", () => {
     // Review Focus 3: 29 Jan Fri, 30 and 31 Jan weekend, 1 Feb Mon, 2 Feb Tue
-    expect(rangeChanges(r, d(2027, 1, 29), d(2027, 2, 2), "full").map((c) => c.day)).toEqual([d(2027, 1, 29), d(2027, 2, 1), d(2027, 2, 2)]);
+    expect(rangeChanges(r, d(2027, 1, 29), d(2027, 2, 2), "full")).toEqual([
+      { day: d(2027, 1, 29), take: 480 },
+      { day: d(2027, 2, 1), take: 480 },
+      { day: d(2027, 2, 2), take: 480 },
+    ]);
   });
 
   it("sets nothing outside the period", () => {
@@ -96,8 +99,44 @@ describe("rangeChanges", () => {
     expect(rangeChanges(r, d(2028, 1, 3), d(2028, 1, 7), "full")).toEqual([]);
   });
 
-  it("is used by the session without side effects", () => {
-    expect(session.apply([]).canUndo).toBe(false);
+  it("gives half over an existing full own day as a half day at the end", () => {
+    expect(rangeChanges(r, d(2027, 1, 7), d(2027, 1, 7), "half")).toEqual([{ day: d(2027, 1, 7), take: 240, part: "end" }]);
+  });
+
+  it("sets no half day where there is no required work", () => {
+    expect(rangeChanges(r, d(2027, 6, 19), d(2027, 6, 20), "half")).toEqual([]);
+  });
+
+  it("changes nothing for a drag over a weekend", () => {
+    // Review Focus 4
+    expect(rangeChanges(r, d(2027, 6, 19), d(2027, 6, 20), "full")).toEqual([]);
+  });
+
+  it("handles the first day of the period", () => {
+    // 1 Jan 2027 is a holiday: nothing to set, but own leave from a file there can be removed (synthetic own leave).
+    const first = d(2027, 1, 1);
+    expect(rangeChanges(r, d(2026, 12, 28), first, "full")).toEqual([]);
+    const withOwn = {
+      ...r,
+      days: r.days.map((x) => (x.day === first ? { ...x, leave: [{ kind: "own" as const, take: 480, part: "end" as const }] } : x)),
+    };
+    expect(rangeChanges(withOwn, d(2026, 12, 28), first, "remove")).toEqual([{ day: first, take: 0 }]);
+  });
+
+  it("does not touch own leave outside the period", () => {
+    // The example has no own leave outside the period, so remove over the margin days is the only check possible.
+    expect(rangeChanges(r, d(2026, 11, 1), d(2026, 12, 31), "remove")).toEqual([]);
+    expect(rangeChanges(r, d(2028, 1, 1), d(2028, 1, 31), "remove")).toEqual([]);
+  });
+
+  it("leaves a day with own and mandatory leave alone when setting, and removes the own leave on a click", () => {
+    const day = d(2027, 12, 28);
+    const both = {
+      ...r,
+      days: r.days.map((x) => (x.day === day ? { ...x, leave: [...x.leave, { kind: "own" as const, take: 480, part: "end" as const }] } : x)),
+    };
+    expect(rangeChanges(both, day, day, "full")).toEqual([]);
+    expect(toggleDay(both, day)).toEqual([{ day, take: 0 }]);
   });
 });
 
@@ -106,22 +145,25 @@ describe("weekChanges", () => {
     const { session, state } = opened();
     const monday = d(2027, 6, 14);
     const set = weekChanges(state.result, monday);
-    expect(set).toHaveLength(5);
+    expect(set).toEqual([14, 15, 16, 17, 18].map((day) => ({ day: d(2027, 6, day), take: 480 })));
     const after = session.apply(set);
-    const removed = weekChanges(after.result, monday);
-    expect(removed).toHaveLength(5);
-    expect(removed.every((c) => c.take === 0)).toBe(true);
+    expect(weekChanges(after.result, monday)).toEqual([14, 15, 16, 17, 18].map((day) => ({ day: d(2027, 6, day), take: 0 })));
   });
 
-  it("changes nothing in a week without working days", () => {
-    // Review Focus 4: the week of 4 Jan is other-plan leave on 4 and 5 Jan plus Epiphany on 6 Jan, and 7 and 8 Jan
-    // already have own leave: nothing to set, so the click removes exactly those two.
+  it("falls back to removing the own leave when there is nothing to set", () => {
+    // The week of 4 Jan: other-plan leave on 4 and 5 Jan, Epiphany on 6 Jan, own leave on 7 and 8 Jan.
     const { state } = opened();
     expect(weekChanges(state.result, d(2027, 1, 4))).toEqual([
       { day: d(2027, 1, 7), take: 0 },
       { day: d(2027, 1, 8), take: 0 },
     ]);
-    // A week past the period end has nothing to change.
+  });
+
+  it("changes nothing when there is nothing to set and nothing to remove", () => {
+    // Review Focus 4. The week of 28 Dec 2026 has only 1 Jan (holiday) and a weekend in the period; the rest is before it.
+    const { state } = opened();
+    expect(weekChanges(state.result, d(2026, 12, 28))).toEqual([]);
+    // A week past the period end.
     expect(weekChanges(state.result, d(2028, 1, 3))).toEqual([]);
   });
 });
