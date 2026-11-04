@@ -111,7 +111,8 @@ export function calendarKeyboard(node: HTMLElement, initial: KeyboardOptions): {
       return;
     }
 
-    const action = event.shiftKey ? undefined : actionKey(event);
+    // Shift means nothing here: it is often still held from growing the selection.
+    const action = actionKey(event);
     if (action === undefined) return;
     // No page scroll on Space, no letter shortcut on H (MainScreen skips handled keys).
     event.preventDefault();

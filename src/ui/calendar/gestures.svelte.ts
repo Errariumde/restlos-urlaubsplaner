@@ -25,8 +25,11 @@ export const dragPreview = new DragPreview();
 export interface GestureOptions {
   readonly getResult: () => PlanResult;
   readonly app: typeof appState;
-  /** Opens the detail of a day (long press, right-click). Unset: the browser's context menu stays. */
-  readonly onDetail?: ((day: DayNumber) => void) | undefined;
+  /**
+   * Opens the detail of a day (long press, right-click), with the pointer type that asked for it ("touch"
+   * gets the sheet). Unset: the browser's context menu stays.
+   */
+  readonly onDetail?: ((day: DayNumber, pointerType: string) => void) | undefined;
 }
 
 interface MousePress {
@@ -84,24 +87,44 @@ export function calendarGestures(node: HTMLElement, initial: GestureOptions): { 
    * contextmenu event comes on the press in Linux and macOS) would be closed again by the browser's light
    * dismiss on its release.
    */
-  function detailAfterRelease(day: DayNumber, buttons: number): void {
+  function detailAfterRelease(day: DayNumber, event: MouseEvent): void {
     stopWaiting?.();
-    if (buttons === 0) {
-      options.onDetail?.(day);
+    const pointer = event instanceof PointerEvent ? event : undefined;
+    const pointerType = pointer?.pointerType || "mouse";
+    if (event.buttons === 0) {
+      options.onDetail?.(day, pointerType);
       return;
     }
+    // The release of the same pointer; an event without a pointer id (an older browser) waits for any.
+    const ours = (other: PointerEvent): boolean => pointer === undefined || other.pointerId === pointer.pointerId;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const released = (): void => {
-      window.removeEventListener("pointerup", released, true);
+    const released = (up: PointerEvent): void => {
+      if (!ours(up)) return;
+      removeListeners();
       // After the release has been handled, light dismiss included.
       timer = setTimeout(() => {
         stopWaiting = undefined;
-        options.onDetail?.(day);
+        options.onDetail?.(day, pointerType);
       });
     };
-    window.addEventListener("pointerup", released, true);
-    stopWaiting = () => {
+    // The pointer went elsewhere (cancelled, the window lost the focus) or the user changed their mind.
+    const cancelled = (other: Event): void => {
+      if (other instanceof PointerEvent && !ours(other)) return;
+      if (other instanceof KeyboardEvent && other.key !== "Escape") return;
+      stopWaiting?.();
+    };
+    function removeListeners(): void {
       window.removeEventListener("pointerup", released, true);
+      window.removeEventListener("pointercancel", cancelled, true);
+      window.removeEventListener("keydown", cancelled, true);
+      window.removeEventListener("blur", cancelled);
+    }
+    window.addEventListener("pointerup", released, true);
+    window.addEventListener("pointercancel", cancelled, true);
+    window.addEventListener("keydown", cancelled, true);
+    window.addEventListener("blur", cancelled);
+    stopWaiting = () => {
+      removeListeners();
       clearTimeout(timer);
       stopWaiting = undefined;
     };
@@ -139,7 +162,7 @@ export function calendarGestures(node: HTMLElement, initial: GestureOptions): { 
     if (event.pointerType === "mouse" && event.button === 0 && event.ctrlKey && isMac() && options.onDetail) {
       event.preventDefault();
       ctrlClickDetail = true;
-      detailAfterRelease(day, event.buttons);
+      detailAfterRelease(day, event);
       return;
     }
     if (event.pointerType === "touch") {
@@ -227,7 +250,7 @@ export function calendarGestures(node: HTMLElement, initial: GestureOptions): { 
   function onLongPress(): void {
     if (press?.kind !== "touch" || press.done) return;
     press.done = true;
-    options.onDetail?.(press.start);
+    options.onDetail?.(press.start, "touch");
   }
 
   function onContextMenu(event: MouseEvent): void {
@@ -247,10 +270,15 @@ export function calendarGestures(node: HTMLElement, initial: GestureOptions): { 
         return;
       }
       press.done = true;
+      if (!options.onDetail) return;
+      // The browser's own long press: the sheet opens while the finger is down, like ours.
+      event.preventDefault();
+      options.onDetail(day, "touch");
+      return;
     }
     if (!options.onDetail) return;
     event.preventDefault();
-    detailAfterRelease(day, event.buttons);
+    detailAfterRelease(day, event);
   }
 
   node.addEventListener("pointerdown", onPointerDown);

@@ -5,7 +5,7 @@ SPDX-License-Identifier: EUPL-1.2
 <script lang="ts">
   // What the gesture going on would do (docs/SPEC.md, "Calendar interaction"): the working days it changes,
   // its cost, the resulting stretch and the remaining allowance. Empty when there is no hint.
-  import { dayCount, formatDate, formatDays } from "../i18n/format.ts";
+  import { pluralCount, formatDate, formatDays } from "../i18n/format.ts";
   import { i18n } from "../i18n/i18n.svelte.ts";
   import { app } from "../state/app.svelte.ts";
 
@@ -19,14 +19,14 @@ SPDX-License-Identifier: EUPL-1.2
     return i18n.t("hint.range", {
       days: hint.days,
       cost: formatDays(hint.cost, locale),
-      costCount: dayCount(hint.cost),
+      costCount: pluralCount(hint.cost),
       remaining: formatDays(hint.remaining, locale),
-      remainingCount: dayCount(hint.remaining),
+      remainingCount: pluralCount(hint.remaining),
       hasStretch: stretch === undefined ? "no" : "yes",
       from: stretch === undefined ? "" : formatDate(stretch.start.day, locale, "dayMonth"),
       to: stretch === undefined ? "" : formatDate(last, locale, "dayMonth"),
       daysOff: stretch === undefined ? "" : formatDays(stretch.daysOff, locale),
-      daysOffCount: stretch === undefined ? 0 : dayCount(stretch.daysOff),
+      daysOffCount: stretch === undefined ? 0 : pluralCount(stretch.daysOff),
     });
   });
 </script>

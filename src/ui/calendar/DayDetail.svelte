@@ -12,7 +12,7 @@ SPDX-License-Identifier: EUPL-1.2
   import Button from "../controls/Button.svelte";
   import Popover from "../controls/Popover.svelte";
   import Sheet from "../controls/Sheet.svelte";
-  import { dayCount, formatDate, formatDays } from "../i18n/format.ts";
+  import { pluralCount, formatDate, formatDays } from "../i18n/format.ts";
   import { i18n } from "../i18n/i18n.svelte.ts";
   import { app } from "../state/app.svelte.ts";
   import type { LeaveChange, PlanMeta } from "../worker/protocol.ts";
@@ -57,8 +57,6 @@ SPDX-License-Identifier: EUPL-1.2
         return i18n.t("detail.required.ruleExactly", values);
       case "detail.required.override":
         return i18n.t("detail.required.override", values);
-      default:
-        return i18n.t(key, values);
     }
   }
 
@@ -125,7 +123,7 @@ SPDX-License-Identifier: EUPL-1.2
         <ul class="sources">
           {#each sources as source (source.id)}
             <li>
-              <span class="swatch {source.style}" style:--swatch="var(--r-accent-{source.accent})" aria-hidden="true"></span>
+              <span class="swatch {source.style}" style:--accent="var(--r-accent-{source.accent})" aria-hidden="true"></span>
               {source.name}
             </li>
           {/each}
@@ -134,7 +132,7 @@ SPDX-License-Identifier: EUPL-1.2
     {/if}
     <div class="stack tight">
       <p class="leave">{i18n.t("detail.leave", { leave: detail.leave })}</p>
-      <p class="muted">{i18n.t("detail.cost", { count: dayCount(detail.cost), days: formatDays(detail.cost, i18n.locale) })}</p>
+      <p class="muted">{i18n.t("detail.cost", { count: pluralCount(detail.cost), days: formatDays(detail.cost, i18n.locale) })}</p>
     </div>
     {#if detail.problems.length > 0}
       <div class="stack tight">
@@ -161,7 +159,7 @@ SPDX-License-Identifier: EUPL-1.2
 {/snippet}
 
 {#if presentation === "popover"}
-  <Popover id="day-detail" {anchor} open={true} {onclose} {label}>
+  <Popover {id} {anchor} open={true} {onclose} {label}>
     {@render body()}
   </Popover>
 {:else if presentation === "sheet"}
@@ -227,6 +225,8 @@ SPDX-License-Identifier: EUPL-1.2
 
     /* The source's line as the cell draws it: its accent and its line style. */
     .swatch {
+      /* The inline style sets the source's accent; forced colours replace it below. */
+      --swatch: var(--accent);
       flex: none;
       inline-size: 1.5rem;
       block-size: 3px;
@@ -255,10 +255,11 @@ SPDX-License-Identifier: EUPL-1.2
       background: var(--r-surface-raised);
     }
 
+    /* The line keeps its style in forced colours: only its colour changes. */
     @media (forced-colors: active) {
       .swatch {
+        --swatch: CanvasText;
         forced-color-adjust: none;
-        background: CanvasText;
       }
     }
   }

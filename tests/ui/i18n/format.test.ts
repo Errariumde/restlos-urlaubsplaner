@@ -1,9 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
+import { IntlMessageFormat } from "intl-messageformat";
 import { describe, expect, it } from "vitest";
 import { dayFromYmd } from "../../../src/engine/days";
-import { dayCount, formatDate, formatDays } from "../../../src/ui/i18n/format";
+import { formatDate, formatDays, pluralCount } from "../../../src/ui/i18n/format";
 
 describe("formatDays", () => {
   it("formats day amounts with ½", () => {
@@ -26,10 +27,22 @@ describe("formatDays", () => {
   });
 });
 
-describe("dayCount", () => {
-  it("is the number of days for plural selection", () => {
-    expect(dayCount(480)).toBe(1);
-    expect(dayCount(720)).toBe(1.5);
+describe("pluralCount", () => {
+  it("selects the singular up to one day and the plural above, whatever the sign", () => {
+    expect(pluralCount(0)).toBe(0);
+    expect(pluralCount(240)).toBe(1);
+    expect(pluralCount(480)).toBe(1);
+    expect(pluralCount(720)).toBe(2);
+    expect(pluralCount(-240)).toBe(1);
+  });
+
+  it("gives a fraction the singular in a message: ½ day, 1 day, 1½ days", () => {
+    const en = new IntlMessageFormat("{count, plural, one {{days} day} other {{days} days}}", "en");
+    const de = new IntlMessageFormat("{count, plural, one {{days} Tag} other {{days} Tage}}", "de");
+    const text = (format: IntlMessageFormat, units: number, locale: "de" | "en") =>
+      format.format({ count: pluralCount(units), days: formatDays(units, locale) });
+    expect([240, 480, 720].map((units) => text(en, units, "en"))).toEqual(["½ day", "1 day", "1½ days"]);
+    expect([240, 480, 720].map((units) => text(de, units, "de"))).toEqual(["½ Tag", "1 Tag", "1½ Tage"]);
   });
 });
 

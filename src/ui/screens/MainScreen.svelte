@@ -11,7 +11,7 @@ SPDX-License-Identifier: EUPL-1.2
   import MonthTiles from "../calendar/MonthTiles.svelte";
   import Button from "../controls/Button.svelte";
   import Sheet from "../controls/Sheet.svelte";
-  import { dayCount, formatDays } from "../i18n/format.ts";
+  import { pluralCount, formatDays } from "../i18n/format.ts";
   import { i18n } from "../i18n/i18n.svelte.ts";
   import { app } from "../state/app.svelte.ts";
   import { shortcut } from "../state/keys.ts";
@@ -62,12 +62,14 @@ SPDX-License-Identifier: EUPL-1.2
   let detail = $state.raw<DetailRequest>();
 
   /** Opens the detail of a day in the period; asking again for the day that is shown changes nothing. */
-  function openDetail(day: DayNumber, anchor: HTMLElement): void {
+  function openDetail(day: DayNumber, anchor: HTMLElement, pointerType?: string): void {
     const state = app.state;
     if (state === undefined || day < state.result.period.from || day > state.result.period.to) return;
     if (detail?.day === day && detail.anchor === anchor) return;
-    // A sheet on a narrow calendar, and on a touch screen (as the toolbar's More menu, Ruling P).
-    const sheet = (calendarWidth !== undefined && calendarWidth < DETAIL_SHEET_BELOW) || matchMedia("(pointer: coarse)").matches;
+    // A sheet on a narrow calendar and on a touch screen (as the toolbar's More menu, Ruling P), and always
+    // for a touch: a long press opens it while the finger is down, and lifting it would light-dismiss a popover.
+    const narrow = calendarWidth !== undefined && calendarWidth < DETAIL_SHEET_BELOW;
+    const sheet = narrow || matchMedia("(pointer: coarse)").matches || pointerType === "touch";
     detail = { day, anchor, sheet };
   }
 
@@ -123,7 +125,7 @@ SPDX-License-Identifier: EUPL-1.2
     {@const { meta, result } = app.state}
     <section class="compact-bar stack" aria-label={i18n.t("allowance.label")} style:--gap="var(--space-2)">
       <div class="cluster compact-head">
-        <p class="left">{i18n.t("allowance.left", { days: formatDays(result.totals.remaining, i18n.locale), count: dayCount(result.totals.remaining) })}</p>
+        <p class="left">{i18n.t("allowance.left", { days: formatDays(result.totals.remaining, i18n.locale), count: pluralCount(result.totals.remaining) })}</p>
         <Button bind:element={detailsButton} expanded={detailsOpen} controls="allowance-details" onclick={() => (detailsOpen = !detailsOpen)}>
           {i18n.t("allowance.details")}
         </Button>

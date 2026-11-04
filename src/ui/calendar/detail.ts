@@ -12,12 +12,22 @@ import type { LeaveChange, PlanMeta, SourceMeta } from "../worker/protocol.ts";
 
 export type DetailLeave = "none" | "full" | "halfStart" | "halfEnd" | "mandatory" | "otherPlan" | "partial";
 
+/** The message keys of what decided the required work, one per kind of RequiredLayer. */
+export type RequiredReasonKey =
+  | "detail.required.workWeek"
+  | "detail.required.publicHoliday"
+  | "detail.required.holidaySource"
+  | "detail.required.paidClosure"
+  | "detail.required.ruleAtMost"
+  | "detail.required.ruleExactly"
+  | "detail.required.override";
+
 export interface DayDetailData {
   /**
    * The message that says what decided the required work. A `nameKey` argument (a public holiday) is a
    * message key itself: the caller passes its text as `name`.
    */
-  readonly requiredReason: { readonly key: string; readonly args: Record<string, string | number> };
+  readonly requiredReason: { readonly key: RequiredReasonKey; readonly args: Record<string, string | number> };
   /** Every calendar source of the day, in the order of the sources list. */
   readonly sources: SourceMeta[];
   readonly leave: DetailLeave;

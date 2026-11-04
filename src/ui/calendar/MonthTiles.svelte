@@ -25,7 +25,7 @@ SPDX-License-Identifier: EUPL-1.2
     /** Today's day number, for the today ring. */
     today: DayNumber;
     /** Opens the detail of a day next to its cell: right-click, long press, Enter or the context-menu key. */
-    onDetail: (day: DayNumber, anchor: HTMLElement) => void;
+    onDetail: (day: DayNumber, anchor: HTMLElement, pointerType?: string) => void;
   }
 
   let { meta, result, today, onDetail }: Props = $props();
@@ -64,9 +64,9 @@ SPDX-License-Identifier: EUPL-1.2
   }
 
   /** A long press or a right-click: the detail opens next to the day's cell. */
-  function detailOf(day: DayNumber): void {
+  function detailOf(day: DayNumber, pointerType: string): void {
     const cell = grid?.querySelector<HTMLElement>(`[data-day="${String(day)}"]`);
-    if (cell) onDetail(day, cell);
+    if (cell) onDetail(day, cell, pointerType);
   }
 
   /** A week-number click; ignored while a change is being applied, like the cells (gestures.svelte.ts). */

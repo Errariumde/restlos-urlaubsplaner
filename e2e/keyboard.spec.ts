@@ -75,15 +75,40 @@ test("the arrows move the focus, and Shift+→ four times then Space plans five 
   await expect(selected(page)).toHaveCount(5);
   await expect(cell(page, 6, 14)).toHaveAttribute("aria-selected", "true");
   await expect(hint(page)).toContainText(/^5 working days · /);
+  const scrollBefore = await page.evaluate(() => window.scrollY);
   await page.keyboard.press("Space");
   await expectLeave(page, 6, [14, 15, 16, 17, 18], FULL);
   await expect(selected(page)).toHaveCount(0);
   await expect(hint(page)).toHaveText("");
   // Space did not scroll the page.
   await expect(cell(page, 6, 18)).toBeFocused();
+  expect(await page.evaluate(() => window.scrollY)).toBe(scrollBefore);
 
   await page.keyboard.press("Control+z");
   await expectLeave(page, 6, [14, 15, 16, 17, 18], NONE);
+  await expectNoPageProblems(page);
+});
+
+test("Space with Shift still held plans the selection and doesn't scroll", async ({ page }) => {
+  await cell(page, 6, 14).focus();
+  await page.keyboard.down("Shift");
+  for (let i = 0; i < 4; i++) await page.keyboard.press("ArrowRight");
+  await expect(selected(page)).toHaveCount(5);
+  const scrollBefore = await page.evaluate(() => window.scrollY);
+  await page.keyboard.press("Space");
+  await page.keyboard.up("Shift");
+  await expectLeave(page, 6, [14, 15, 16, 17, 18], FULL);
+  await expect(selected(page)).toHaveCount(0);
+  expect(await page.evaluate(() => window.scrollY)).toBe(scrollBefore);
+  await expectNoPageProblems(page);
+});
+
+test("Shift+H and Shift+Delete work like H and Delete", async ({ page }) => {
+  await cell(page, 6, 15).focus();
+  await page.keyboard.press("Shift+H");
+  await expect(cell(page, 6, 15)).toHaveAttribute("aria-label", /leave half/);
+  await page.keyboard.press("Shift+Delete");
+  await expectLeave(page, 6, [15], NONE);
   await expectNoPageProblems(page);
 });
 

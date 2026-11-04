@@ -129,6 +129,26 @@ test.describe("on a narrow calendar", () => {
   });
 });
 
+/** Holds a finger on the cell until the detail shows (the long press fires after 500 ms), then lifts it. */
+async function longPress(page: Page, day: Locator): Promise<void> {
+  await day.scrollIntoViewIfNeeded();
+  const box = await day.boundingBox();
+  if (!box) throw new Error("The cell has no box");
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+  await expect(detail(page)).toBeVisible();
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+}
+
+/** Lets pending timers and two frames run, so that something that would open has opened. */
+async function settle(page: Page): Promise<void> {
+  await page.evaluate(
+    () => new Promise<void>((resolve) => setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))),
+  );
+}
+
 test.describe("on a touch screen", () => {
   test.skip(({ browserName }) => browserName !== "chromium", "Touch is emulated in Chromium only.");
   test.use({ locale: "en-GB", viewport: { width: 375, height: 800 }, hasTouch: true });
@@ -137,18 +157,81 @@ test.describe("on a touch screen", () => {
     await openApp(page);
     await openExampleFromStart(page);
     const day = cell(page, 6, 14);
-    await day.scrollIntoViewIfNeeded();
-    const box = await day.boundingBox();
-    if (!box) throw new Error("The cell has no box");
-    const x = box.x + box.width / 2;
-    const y = box.y + box.height / 2;
-    // A touch held down: the long press fires after 500 ms without moving.
-    const cdp = await page.context().newCDPSession(page);
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
-    await expect(detail(page)).toBeVisible();
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await longPress(page, day);
     await expect(page.locator("dialog[open]")).toHaveCount(1);
     await expect(day).toHaveAttribute("aria-label", /no leave/);
+    await expectNoPageProblems(page);
+  });
+});
+
+test.describe("on a wide touch screen with a mouse as the primary pointer", () => {
+  test.skip(({ browserName }) => browserName !== "chromium", "Touch is emulated in Chromium only.");
+  test.use({ locale: "en-GB", viewport: { width: 1280, height: 800 }, hasTouch: true });
+
+  test("a long press opens the sheet, which stays open after the finger lifts", async ({ page }) => {
+    // A touch laptop: the primary pointer is fine, so only the touch itself can ask for the sheet.
+    await page.addInitScript(() => {
+      const original = window.matchMedia.bind(window);
+      window.matchMedia = (query: string) => original(query.replace("pointer: coarse", "pointer: none"));
+    });
+    await openApp(page);
+    await openExampleFromStart(page);
+    await longPress(page, cell(page, 6, 14));
+    await settle(page);
+    await expect(detail(page)).toBeVisible();
+    await expect(page.locator("dialog[open]")).toHaveCount(1);
+    await expectNoPageProblems(page);
+  });
+});
+
+test.describe("a detail waiting for its button's release", () => {
+  test.use({ locale: "en-GB", viewport: { width: 1280, height: 800 } });
+
+  test.beforeEach(async ({ page }) => {
+    await openApp(page);
+    await openExampleFromStart(page);
+    await expect(page.getByRole("grid", { name: "Calendar" })).toBeVisible();
+  });
+
+  /** A contextmenu on the press, as Linux and macOS send it: the right button is still down. */
+  async function pressContextMenu(page: Page, day: Locator, pointerId: number): Promise<void> {
+    await day.evaluate((element, id) => {
+      element.dispatchEvent(new PointerEvent("contextmenu", { bubbles: true, cancelable: true, button: 2, buttons: 2, pointerId: id }));
+    }, pointerId);
+  }
+
+  const release = (page: Page, pointerId: number) =>
+    page.evaluate((id) => window.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerId: id })), pointerId);
+
+  test("opens on the release of its own pointer only", async ({ page }) => {
+    await pressContextMenu(page, cell(page, 6, 14), 7);
+    await release(page, 3);
+    await settle(page);
+    await expect(detail(page)).toHaveCount(0);
+    await release(page, 7);
+    await expect(detail(page)).toBeVisible();
+    await expectNoPageProblems(page);
+  });
+
+  test("Escape, a cancelled pointer or leaving the window stops the wait", async ({ page }) => {
+    const day = cell(page, 6, 14);
+    await pressContextMenu(page, day, 7);
+    await page.keyboard.press("Escape");
+    await release(page, 7);
+    await settle(page);
+    await expect(detail(page)).toHaveCount(0);
+
+    await pressContextMenu(page, day, 8);
+    await page.evaluate(() => window.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true, pointerId: 8 })));
+    await release(page, 8);
+    await settle(page);
+    await expect(detail(page)).toHaveCount(0);
+
+    await pressContextMenu(page, day, 9);
+    await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+    await release(page, 9);
+    await settle(page);
+    await expect(detail(page)).toHaveCount(0);
     await expectNoPageProblems(page);
   });
 });
