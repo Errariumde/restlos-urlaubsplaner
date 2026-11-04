@@ -3,6 +3,7 @@
   "meta.lang": "de",
   "app.name": "restlos",
   "app.subtitle": "Urlaubsplaner für Brückentage und Feiertage",
+  "day.label": "{date}, {kind, select, workday {Arbeitstag} weekend {Wochenende} holiday {Feiertag {name}} halfRequired {halber Arbeitstag} free {arbeitsfrei} other {Arbeitstag}}, {leave, select, none {kein Urlaub} full {Urlaub ganz} half {Urlaub halb} mandatory {Pflichturlaub} otherPlan {Urlaub in anderem Plan} other {kein Urlaub}}{hasCost, select, yes {, kostet {cost}} other {}}{hasSources, select, yes {, Kalender {sources}} other {}}",
   "country.DE": "Deutschland",
   "region.DE.BB": "Brandenburg",
   "region.DE.BE": "Berlin",

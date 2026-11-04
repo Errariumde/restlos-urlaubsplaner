@@ -3,6 +3,7 @@
   "meta.lang": "en",
   "app.name": "restlos",
   "app.subtitle": "Vacation planner for bridge days and holidays",
+  "day.label": "{date}, {kind, select, workday {working day} weekend {weekend} holiday {holiday {name}} halfRequired {half working day} free {day off} other {working day}}, {leave, select, none {no leave} full {leave full} half {leave half} mandatory {mandatory leave} otherPlan {leave in another plan} other {no leave}}{hasCost, select, yes {, costs {cost}} other {}}{hasSources, select, yes {, calendars {sources}} other {}}",
   "country.DE": "Germany",
   "region.DE.BB": "Brandenburg",
   "region.DE.BE": "Berlin",
