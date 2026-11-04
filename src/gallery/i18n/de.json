@@ -1,7 +1,7 @@
 {
   "gallery.title": "Komponentengalerie",
-  "gallery.overview": "Jeder Abschnitt hell und dunkel, auf Deutsch, Englisch und in den beiden Pseudo-Sprachen.",
-  "gallery.frame": "{section}, {mode}, {locale}",
+  "gallery.overview": "Jeder Abschnitt hell und dunkel, auf Deutsch, Englisch und in den beiden Pseudo-Sprachen. Jeder Link öffnet eine Variante.",
+  "gallery.link": "{section}, {mode}, {locale}",
   "gallery.mode.light": "hell",
   "gallery.mode.dark": "dunkel",
   "gallery.section.controls": "Bedienelemente",

@@ -34,14 +34,22 @@ SPDX-License-Identifier: EUPL-1.2
     anchor?.focus();
   }
 
+  /** Whether the last press started on the backdrop; a drag that starts in the content and ends outside doesn't close. */
+  let pressedOnBackdrop = false;
+
+  function handlePointerDown(event: PointerEvent): void {
+    pressedOnBackdrop = event.target === dialog;
+  }
+
   /** A click on the dialog element itself is a click on its backdrop: the content box covers the rest. */
   function handleClick(event: MouseEvent): void {
-    if (event.target === dialog) dialog?.close();
+    if (pressedOnBackdrop && event.target === dialog) dialog?.close();
+    pressedOnBackdrop = false;
   }
 </script>
 
 <!-- The backdrop click is a pointer shortcut; Escape and the close button do the same from the keyboard. -->
-<dialog bind:this={dialog} {id} class="sheet" aria-label={label} onclose={handleClose} onclick={handleClick}>
+<dialog bind:this={dialog} {id} class="sheet" aria-label={label} onclose={handleClose} onpointerdown={handlePointerDown} onclick={handleClick}>
   <div class="content">
     <div class="close">
       <IconButton icon="close" label={i18n.t("dialog.close")} onclick={() => dialog?.close()} />
@@ -62,8 +70,8 @@ SPDX-License-Identifier: EUPL-1.2
       padding: 0;
       border: 1px solid var(--r-border-strong);
       border-block-end: none;
-      border-start-start-radius: 12px;
-      border-start-end-radius: 12px;
+      border-start-start-radius: var(--radius-sheet);
+      border-start-end-radius: var(--radius-sheet);
       background: var(--r-surface-raised);
       color: var(--r-text);
     }

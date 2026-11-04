@@ -60,15 +60,14 @@ SPDX-License-Identifier: EUPL-1.2
     {#each SECTIONS as section (section)}
       <section class="stack">
         <h2>{sectionTitle(section)}</h2>
-        <div class="frames">
-          {#each combinations.filter((candidate) => candidate.section === section) as frame (searchFor(frame))}
-            <iframe
-              src={searchFor(frame)}
-              title={i18n.t("gallery.frame", { section: sectionTitle(section), mode: modeName(frame.mode), locale: frame.locale })}
-              loading="lazy"
-            ></iframe>
+        <!-- Links, not frames: the gallery runs under the app's CSP, whose default-src 'none' blocks frames. -->
+        <ul class="links">
+          {#each combinations.filter((candidate) => candidate.section === section) as link (searchFor(link))}
+            <li>
+              <a href={searchFor(link)}>{i18n.t("gallery.link", { section: sectionTitle(section), mode: modeName(link.mode), locale: link.locale })}</a>
+            </li>
           {/each}
-        </div>
+        </ul>
       </section>
     {/each}
   </main>
@@ -93,17 +92,16 @@ SPDX-License-Identifier: EUPL-1.2
       --gap: var(--space-1);
     }
 
-    .frames {
+    .links {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(min(100%, 40rem), 1fr));
-      gap: var(--space-3);
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+      gap: var(--space-1) var(--space-3);
+      padding: 0;
+      list-style: none;
     }
 
-    iframe {
-      inline-size: 100%;
-      block-size: 32rem;
-      border: 1px solid var(--r-border);
-      resize: block;
+    a {
+      color: var(--r-text);
     }
   }
 </style>

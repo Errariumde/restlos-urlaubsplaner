@@ -14,3 +14,13 @@ declare module "*?raw" {
   const text: string;
   export default text;
 }
+
+/** The part of Vite's `import.meta.env` the UI uses. */
+interface ImportMetaEnv {
+  /** True on the Vite dev server (`vite`, `npm run gallery`), false in a build. */
+  readonly DEV: boolean;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}

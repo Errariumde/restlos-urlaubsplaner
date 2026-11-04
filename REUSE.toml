@@ -45,10 +45,13 @@ precedence = "override"
 SPDX-FileCopyrightText = "2026 Lucide Icons and Contributors"
 SPDX-License-Identifier = "ISC"
 
-# The Feather-derived ones among them (check, columns-3 was "columns", ellipsis was "more-horizontal",
-# moon, triangle-alert was "alert-triangle", x).
+# The Feather-derived ones among them. lucide-static 1.60.0 carries no per-icon origin or alias data
+# (tags.json and font/info.json only), and the list in its LICENSE uses old Lucide names. So the reference
+# is Feather 4.29's icon set, with Lucide's renames: check, moon, sun, x, columns (now columns-3),
+# grid (now layout-grid), more-horizontal (now ellipsis) and alert-triangle (now triangle-alert). Feather
+# has no undo-2, redo-2, languages, sun-moon or square-dashed-mouse-pointer: those are Lucide's own (ISC).
 [[annotations]]
-path = ["src/ui/icons/check.svg", "src/ui/icons/columns-3.svg", "src/ui/icons/ellipsis.svg", "src/ui/icons/moon.svg", "src/ui/icons/triangle-alert.svg", "src/ui/icons/x.svg"]
+path = ["src/ui/icons/check.svg", "src/ui/icons/columns-3.svg", "src/ui/icons/ellipsis.svg", "src/ui/icons/layout-grid.svg", "src/ui/icons/moon.svg", "src/ui/icons/sun.svg", "src/ui/icons/triangle-alert.svg", "src/ui/icons/x.svg"]
 precedence = "override"
 SPDX-FileCopyrightText = ["2013-present Cole Bemis", "2026 Lucide Icons and Contributors"]
 SPDX-License-Identifier = "ISC AND MIT"

@@ -11,11 +11,21 @@ SPDX-License-Identifier: EUPL-1.2
   }
 
   let { label, checked, onchange, disabled = false }: Props = $props();
+
+  /**
+   * Fully controlled: a click only asks the owner. The box then shows `checked` as the owner left it (a
+   * prop reads the owner's current state), also when the owner keeps it as it was.
+   */
+  function change(event: Event & { currentTarget: HTMLInputElement }): void {
+    const box = event.currentTarget;
+    onchange(box.checked);
+    box.checked = checked;
+  }
 </script>
 
 <!-- A native checkbox (D10): the browser draws the check mark, the label makes the whole text clickable. -->
 <label class="checkbox">
-  <input type="checkbox" {checked} {disabled} onchange={(event) => onchange(event.currentTarget.checked)} />
+  <input type="checkbox" {checked} {disabled} onchange={change} />
   <span>{label}</span>
 </label>
 

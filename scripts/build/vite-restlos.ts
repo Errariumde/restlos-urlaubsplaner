@@ -14,15 +14,26 @@ export const OUTPUT_FILE = "restlos-urlaubsplaner.html";
 /** The largest HTML file the build accepts (600 KB). */
 export const MAX_BYTES = 614_400;
 
+/** What the CSP plugin does with the page besides adding the policy. */
+interface PageOptions {
+  /** The page's file name in the output; undefined keeps Vite's. */
+  fileName?: string;
+  /** The largest page the build accepts, in bytes; undefined checks no size. */
+  maxBytes?: number;
+}
+
 /**
- * Runs after vite-plugin-singlefile has inlined the scripts and styles (both `enforce: "post"` with a
- * post-ordered `generateBundle`; this plugin must come after `viteSingleFile()` in the plugin list).
+ * Adds the Content Security Policy with the hashes of the inline scripts. Runs after vite-plugin-singlefile
+ * has inlined the scripts and styles (both `enforce: "post"` with a post-ordered `generateBundle`; this
+ * plugin must come after `viteSingleFile()` in the plugin list). The app also gets its file name and the
+ * size limit; the gallery gets the same policy only.
  */
-function cspAndSize(): Plugin {
+function contentSecurityPolicy(options: PageOptions): Plugin {
   let logger: Logger | undefined;
   let bytes: number | undefined;
+  let fileName: string | undefined;
   return {
-    name: "restlos:csp-and-size",
+    name: "restlos:csp",
     apply: "build",
     enforce: "post",
     configResolved(config) {
@@ -42,16 +53,18 @@ function cspAndSize(): Plugin {
         }
         const html = insertCsp(page.source, standardPolicy(scriptHashes(page.source)));
         bytes = utf8Length(html);
-        // Rolldown doesn't support renaming a bundle entry, so the page is emitted again under its new name.
+        fileName = options.fileName ?? page.fileName;
+        // Rolldown doesn't support renaming a bundle entry, so the page is emitted again (under its new name).
         delete bundle[page.fileName];
-        this.emitFile({ type: "asset", fileName: OUTPUT_FILE, source: html });
+        this.emitFile({ type: "asset", fileName, source: html });
       },
     },
     closeBundle() {
-      if (bytes === undefined) return;
+      if (bytes === undefined || options.maxBytes === undefined) return;
       const kb = (bytes / 1024).toFixed(1);
-      if (bytes > MAX_BYTES) this.error(`${OUTPUT_FILE} is ${kb} KB, over the limit of ${MAX_BYTES / 1024} KB.`);
-      logger?.info(`${OUTPUT_FILE}: ${kb} KB of ${MAX_BYTES / 1024} KB`);
+      const limit = options.maxBytes / 1024;
+      if (bytes > options.maxBytes) this.error(`${fileName ?? "The page"} is ${kb} KB, over the limit of ${limit} KB.`);
+      logger?.info(`${fileName ?? "The page"}: ${kb} KB of ${limit} KB`);
     },
   };
 }
@@ -153,13 +166,14 @@ function exampleData(): Plugin {
 
 /** The restlos plugins, to be listed after `svelte()` and `viteSingleFile()`. */
 export function restlos(): Plugin[] {
-  return [engineWorker(), exampleData(), cspAndSize()];
+  return [engineWorker(), exampleData(), contentSecurityPolicy({ fileName: OUTPUT_FILE, maxBytes: MAX_BYTES })];
 }
 
 /**
  * The plugins of the component gallery (dev only, not the app): the worker and the example, so gallery
- * sections can run the real engine, but no CSP and no single-file checks.
+ * sections can run the real engine, and the app's exact CSP, so the components run under the real policy.
+ * No file name and no size limit.
  */
 export function restlosGallery(): Plugin[] {
-  return [engineWorker(), exampleData()];
+  return [engineWorker(), exampleData(), contentSecurityPolicy({})];
 }

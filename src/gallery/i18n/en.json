@@ -1,7 +1,7 @@
 {
   "gallery.title": "Component gallery",
-  "gallery.overview": "Every section in light and dark, in German, English and the two pseudo-locales.",
-  "gallery.frame": "{section}, {mode}, {locale}",
+  "gallery.overview": "Every section in light and dark, in German, English and the two pseudo-locales. Each link opens one of them.",
+  "gallery.link": "{section}, {mode}, {locale}",
   "gallery.mode.light": "light",
   "gallery.mode.dark": "dark",
   "gallery.section.controls": "Controls",
