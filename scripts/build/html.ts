@@ -9,7 +9,7 @@ import { createHash } from "node:crypto";
 const EXECUTABLE_TYPE = /^(|module|(text|application)\/(x-)?(java|ecma)script)$/i;
 
 const SCRIPT = /<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi;
-const TYPE_ATTRIBUTE = /\btype\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/i;
+const TYPE_ATTRIBUTE = /(?:^|\s)type\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/i;
 
 /** `'sha256-…'` for each executable inline `<script>`, in document order, over its LF-normalized text. */
 export function scriptHashes(html: string): string[] {

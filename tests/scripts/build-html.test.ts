@@ -13,6 +13,11 @@ describe("build HTML helpers", () => {
     expect(scriptHashes(html)).toEqual([sha256Base64("a()\n"), sha256Base64("b()")]);
   });
 
+  it("reads only the type attribute itself, not data-type", () => {
+    const html = `<script data-type="application/json">c()</script><script data-x="1" type="application/json">{}</script>`;
+    expect(scriptHashes(html)).toEqual([sha256Base64("c()")]);
+  });
+
   it("puts the policy right after meta charset", () => {
     const out = insertCsp(`<head><meta charset="utf-8"><title>x</title>`, "default-src 'none'");
     expect(out).toMatch(/^<head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'">/);

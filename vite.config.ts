@@ -10,6 +10,8 @@ export default defineConfig(({ mode }) => ({
   plugins: [svelte(), viteSingleFile(), restlos()],
   build: {
     target: "firefox153",
+    // Everything is inlined, so the modulepreload polyfill (which calls fetch) has nothing to do.
+    modulePreload: { polyfill: false },
     // The gallery (mode "gallery") is a separate build; until it has its own page it builds the app.
     outDir: mode === "gallery" ? "dist-gallery" : "dist",
     rolldownOptions: { input: "index.html" },
