@@ -13,3 +13,20 @@ test("the built file carries the CSP first and makes no network request", async 
   expect(await page.content()).not.toContain("fetch(");
   await expectNoPageProblems(page);
 });
+
+test("the engine worker starts from file://", async ({ page }) => {
+  // CSP violations also show up as console errors (in Firefox and Chromium, not as an event in every case).
+  const consoleErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") consoleErrors.push(message.text());
+  });
+  const workers: string[] = [];
+  page.on("worker", (worker) => workers.push(worker.url()));
+  await openApp(page);
+  // main.ts sets this after the worker answered the opening of the example.
+  await expect(page.locator("body")).toHaveAttribute("data-engine", "ready");
+  expect(workers).toHaveLength(1);
+  expect(workers[0]).toMatch(/^blob:/);
+  expect(consoleErrors, "console errors").toEqual([]);
+  await expectNoPageProblems(page);
+});

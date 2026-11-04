@@ -1,9 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-// The Vite plugins of the restlos build: the Content Security Policy with the hashes of the inline scripts,
-// the output file name and the size limit of the single HTML file (docs/SPEC.md).
-import type { Logger, Plugin } from "vite";
+// The Vite plugins of the restlos build: the engine worker as a string module, the Content Security Policy
+// with the hashes of the inline scripts, the output file name and the size limit of the single HTML file
+// (docs/SPEC.md).
+import { build, type Logger, type Plugin, type ResolvedConfig } from "vite";
 import { insertCsp, scriptHashes, standardPolicy, utf8Length } from "./html.ts";
 
 /** The name of the built app. */
@@ -53,7 +54,64 @@ function cspAndSize(): Plugin {
   };
 }
 
+/** The module that gives the engine worker's code as a string. */
+export const WORKER_MODULE = "virtual:restlos-worker";
+const RESOLVED_WORKER_MODULE = `\0${WORKER_MODULE}`;
+/** The worker's entry, relative to the project root. */
+const WORKER_ENTRY = "src/ui/worker/engine-worker.ts";
+
+/** What would end or confuse the inline `<script>` the worker's code lands in. */
+const SCRIPT_BREAKER = /<(?:\/?script|!--)/i;
+
+/**
+ * `import source from "virtual:restlos-worker"`: the engine worker bundled into one classic script
+ * (format iife, the page's build target), for `new Worker(URL.createObjectURL(new Blob([source])))`.
+ * A module worker from a `blob:` URL doesn't start from `file://` in Chromium, and Vite's own inline
+ * worker falls back to a `data:` URL, which the CSP blocks (docs/SPEC.md, "Worker").
+ */
+function engineWorker(): Plugin {
+  let root: string | undefined;
+  let target: ResolvedConfig["build"]["target"] = false;
+  return {
+    name: "restlos:engine-worker",
+    configResolved(config) {
+      root = config.root;
+      target = config.build.target;
+    },
+    resolveId(id) {
+      return id === WORKER_MODULE ? RESOLVED_WORKER_MODULE : undefined;
+    },
+    async load(id) {
+      if (id !== RESOLVED_WORKER_MODULE) return undefined;
+      if (root === undefined) this.error("The engine worker is loaded before the config is resolved.");
+      const output = await build({
+        configFile: false,
+        root,
+        logLevel: "warn",
+        publicDir: false,
+        build: {
+          target,
+          write: false,
+          emptyOutDir: false,
+          copyPublicDir: false,
+          reportCompressedSize: false,
+          lib: { entry: WORKER_ENTRY, formats: ["iife"], name: "restlosEngineWorker", fileName: () => "engine-worker.js" },
+        },
+      });
+      const results = Array.isArray(output) ? output : [output];
+      const chunks = results.flatMap((result) => ("output" in result ? result.output : [])).filter((file) => file.type === "chunk");
+      const chunk = chunks[0];
+      if (chunks.length !== 1 || !chunk) this.error(`Expected the engine worker as one chunk, found ${chunks.length}.`);
+      if (SCRIPT_BREAKER.test(chunk.code)) this.error("The engine worker's code contains <script or <!--, which would break the page's inline script.");
+      for (const moduleId of chunk.moduleIds) {
+        if (!moduleId.startsWith("\0")) this.addWatchFile(moduleId);
+      }
+      return `export default ${JSON.stringify(chunk.code)};`;
+    },
+  };
+}
+
 /** The restlos plugins, to be listed after `svelte()` and `viteSingleFile()`. */
 export function restlos(): Plugin[] {
-  return [cspAndSize()];
+  return [engineWorker(), cspAndSize()];
 }
