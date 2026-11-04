@@ -91,6 +91,44 @@ export async function openGallery(page: Page, params: { section: string; locale:
   await open(page, GALLERY_URL + search);
 }
 
+// The specs run in Node; the project has no @types/node.
+declare const process: { env: Record<string, string | undefined> };
+
+/**
+ * The browsers' environment without LD_LIBRARY_PATH, as in playwright.config.ts. A spec that sets its own
+ * `launchOptions` replaces the config's and passes this again.
+ */
+export const BROWSER_ENV: Record<string, string> = Object.fromEntries(
+  Object.entries(process.env).filter((entry): entry is [string, string] => entry[0] !== "LD_LIBRARY_PATH" && entry[1] !== undefined),
+);
+
+/** How the month columns' scroller sits around its last row (row 31). */
+export interface ColumnsScroller {
+  /** The months scroll sideways. */
+  scrolls: boolean;
+  /** The room a classic scrollbar takes below the content; 0 for an overlay scrollbar. */
+  scrollbar: number;
+  paddingEnd: number;
+  /** From the block end of the lowest cell to the block end of the scroller's client area (scrollbar excluded). */
+  roomBelowLastRow: number;
+}
+
+/** Measures the month columns' scroller, the page's only grid. */
+export async function columnsScroller(page: Page): Promise<ColumnsScroller> {
+  return page.getByRole("grid").evaluate((element: HTMLElement) => {
+    const box = element.getBoundingClientRect();
+    const clientEnd = box.top + element.clientTop + element.clientHeight;
+    const cells = [...element.querySelectorAll('[role="row"]:last-child > *')];
+    const lastEnd = Math.max(...cells.map((cell) => cell.getBoundingClientRect().bottom));
+    return {
+      scrolls: element.scrollWidth > element.clientWidth,
+      scrollbar: element.offsetHeight - element.clientHeight - element.clientTop * 2,
+      paddingEnd: parseFloat(getComputedStyle(element).paddingBlockEnd),
+      roomBelowLastRow: clientEnd - lastEnd,
+    };
+  });
+}
+
 /** Fails the test if the page opened with `openApp` or `openGallery` had a CSP violation or an uncaught error. */
 export async function expectNoPageProblems(page: Page): Promise<void> {
   const violations = await page.evaluate(() => window.__restlosCspViolations ?? ["the CSP recorder is missing"]);

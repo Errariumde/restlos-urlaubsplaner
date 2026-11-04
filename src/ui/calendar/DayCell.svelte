@@ -338,9 +338,11 @@ SPDX-License-Identifier: EUPL-1.2
       inset-inline-end: 10px;
     }
 
-    /* A query container: the week marker of the month columns moves when the cell gets narrow. */
+    /*
+     * No query container: the week marker's place follows from the cell's width (MonthColumns.svelte), so
+     * Firefox doesn't paint the 365 cells before their container queries are resolved.
+     */
     .column {
-      container: day-cell / inline-size;
       block-size: auto;
       min-block-size: 1.25rem;
       justify-content: flex-start;

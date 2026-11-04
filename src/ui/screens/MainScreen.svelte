@@ -55,6 +55,24 @@ SPDX-License-Identifier: EUPL-1.2
   /** Below this width of the calendar area the detail of a day is a bottom sheet, not a popover. */
   const DETAIL_SHEET_BELOW = 520;
 
+  /** The height of the compact allowance bar, which sticks to the top of the window over the calendar. */
+  let barSize = $state<number>();
+  /** What covers the top of the window over the calendar; the binding keeps its last value once the bar goes. */
+  const stuckBlockStart = $derived(app.state && width !== undefined && !sidebar && barSize !== undefined ? `${String(barSize)}px` : undefined);
+
+  /** The sidebar's content is taller than the window, so the sidebar scrolls itself. */
+  let panelScrolls = $state(false);
+
+  /** Measures when the sidebar (the window's height) or its content (more stretches) changes size. */
+  function watchPanel(panel: HTMLElement): () => void {
+    const observer = new ResizeObserver(() => {
+      panelScrolls = panel.scrollHeight > panel.clientHeight;
+    });
+    observer.observe(panel);
+    for (const child of panel.children) observer.observe(child);
+    return () => observer.disconnect();
+  }
+
   let calendarWidth = $state<number>();
   let calendar = $state<HTMLElement>();
 
@@ -144,7 +162,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 <svelte:window {onkeydown} />
 
-<div class="screen" bind:clientWidth={width}>
+<div class="screen" bind:clientWidth={width} style:--stuck-block-start={stuckBlockStart}>
   <Toolbar {compact} {selectable} onview={(view: "tiles" | "columns") => void switchView(view)} bind:heading />
   <!-- In the selection mode the hint line moves into the selection bar, next to its actions. -->
   {#if !app.selectMode}
@@ -152,7 +170,7 @@ SPDX-License-Identifier: EUPL-1.2
   {/if}
   {#if app.state && width !== undefined && !sidebar}
     {@const { meta, result } = app.state}
-    <section class="compact-bar stack" aria-label={i18n.t("allowance.label")} style:--gap="var(--space-2)">
+    <section class="compact-bar stack" aria-label={i18n.t("allowance.label")} style:--gap="var(--space-2)" bind:offsetHeight={barSize}>
       <div class="cluster compact-head">
         <p class="left">{i18n.t("allowance.left", { days: formatDays(result.totals.remaining, i18n.locale), count: pluralCount(result.totals.remaining) })}</p>
         <Button bind:element={detailsButton} expanded={detailsOpen} controls="allowance-details" onclick={() => (detailsOpen = !detailsOpen)}>
@@ -185,7 +203,12 @@ SPDX-License-Identifier: EUPL-1.2
     </main>
     {#if app.state && sidebar}
       <!-- After the calendar in the document and on screen (at the inline end). -->
-      <aside class="panel" aria-label={i18n.t("allowance.label")}>
+      <!--
+        Stays in view while the page scrolls (docs/SPEC.md: the allowance is always visible). When its content
+        is taller than the window it scrolls itself, and then takes the focus so the keyboard can scroll it.
+      -->
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+      <aside class="panel" aria-label={i18n.t("allowance.label")} tabindex={panelScrolls ? 0 : undefined} {@attach watchPanel}>
         <AllowancePanel allowance={app.state.meta.allowance} totals={app.state.result.totals} stretches={app.state.result.stretches} />
       </aside>
     {/if}
@@ -220,9 +243,25 @@ SPDX-License-Identifier: EUPL-1.2
       min-inline-size: 0;
     }
 
+    /*
+     * The allowance is always visible (docs/SPEC.md, "Main screen"): the bar sticks to the top of the window,
+     * above the cells and the columns' day column, below the selection bar. Expanded details scroll inside
+     * it, so it never takes more than half the window.
+     */
     .compact-bar {
+      position: sticky;
+      inset-block-start: 0;
+      z-index: 5;
+      max-block-size: 50dvh;
+      overflow-y: auto;
       padding: var(--space-3) var(--space-4);
       border-block-end: 1px solid var(--r-border);
+      background: var(--r-surface);
+    }
+
+    /* A cell scrolled into view (keyboard, view switch) stops below the sticky bar, not under it. */
+    .calendar :global([data-day]) {
+      scroll-margin-block-start: var(--stuck-block-start, 0);
     }
 
     .compact-head {
@@ -234,11 +273,26 @@ SPDX-License-Identifier: EUPL-1.2
     }
 
     /* The sidebar sits at the inline end of the workspace, after the calendar. */
+    /* It sticks to the top of the window; a long list of stretches scrolls inside it. */
     .panel {
+      position: sticky;
+      inset-block-start: 0;
       flex: 0 0 var(--sidebar-size, 20rem);
+      align-self: flex-start;
       min-inline-size: 0;
+      max-block-size: 100dvh;
+      overflow-y: auto;
       padding: var(--space-4);
       border-inline-start: 1px solid var(--r-border);
+    }
+
+    /*
+     * The line between calendar and sidebar runs the full height, also below the end of the sidebar: the
+     * calendar draws it on top of the sidebar's own line, so neither loses a pixel of width.
+     */
+    .workspace:has(.panel) .calendar {
+      margin-inline-end: -1px;
+      border-inline-end: 1px solid var(--r-border);
     }
 
     /* The views switch on this width, not the window's (docs/SPEC.md, "Screen sizes"). */

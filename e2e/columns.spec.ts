@@ -154,6 +154,33 @@ async function markersOverText(page: Page): Promise<string[]> {
   });
 }
 
+// Firefox ESR painted the week markers of a new month columns view first at their wide place, then moved
+// them: the narrow place came from a container query on each of the 365 cells, resolved after a first paint.
+// The place now follows from the cell's own width in the same layout, and the cells are no query containers.
+for (const [width, gap] of [[1453, 1], [1700, 16]] as const) {
+  test.describe(`at ${String(width)} px, the week marker`, () => {
+    test.use({ locale: "de-DE", viewport: { width, height: 800 } });
+
+    test(`stands ${String(gap)} px from the cell's end, decided without a per-cell container query`, async ({ page }) => {
+      await openApp(page);
+      await openExampleFromStart(page);
+      await page.getByRole("button", { name: "Spalten", exact: true }).click();
+      const day = cell(page, 2, 8);
+      await expect(day.getByRole("button")).toBeVisible();
+      const place = await day.evaluate((element) => {
+        const chip = element.querySelector("button")!.getBoundingClientRect();
+        return {
+          gap: element.getBoundingClientRect().right - chip.right,
+          containers: [element, ...element.querySelectorAll("*")].filter((node) => getComputedStyle(node).containerType !== "normal").length,
+        };
+      });
+      expect(place.containers).toBe(0);
+      expect(place.gap).toBeCloseTo(gap, 0);
+      await expectNoPageProblems(page);
+    });
+  });
+}
+
 // The narrowest columns: 6 visible at a calendar of 520 px (an app of about 550 px without the sidebar or
 // 870 px with it), and all 12 at a calendar of 1100 px (an app of about 1450 px), each about 80 px wide.
 for (const width of [552, 873, 1453]) {
