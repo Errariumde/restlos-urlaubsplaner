@@ -36,7 +36,7 @@ export async function axeViolations(page: Page): Promise<{ id: string; nodes: st
  * WebKit reports this when a layout change under a resize makes a ResizeObserver callback resize again. It is
  * harmless (the notifications arrive in the next frame) and not an error of the app.
  */
-const BENIGN_ERRORS = new Set(["ResizeObserver loop completed with undelivered notifications."]);
+const BENIGN_WEBKIT_ERRORS = new Set(["ResizeObserver loop completed with undelivered notifications."]);
 
 /** The uncaught errors of each page opened with `openApp` or `openGallery`. */
 const pageErrors = new WeakMap<Page, string[]>();
@@ -55,8 +55,10 @@ async function open(page: Page, url: string): Promise<void> {
   });
   const errors: string[] = [];
   pageErrors.set(page, errors);
+  // Only in WebKit: elsewhere the same message would point at a real resize loop of the app.
+  const webkit = page.context().browser()?.browserType().name() === "webkit";
   page.on("pageerror", (error) => {
-    if (!BENIGN_ERRORS.has(error.message)) errors.push(`${error.name}: ${error.message}`);
+    if (!(webkit && BENIGN_WEBKIT_ERRORS.has(error.message))) errors.push(`${error.name}: ${error.message}`);
   });
   await page.addInitScript(() => {
     const violations: string[] = [];

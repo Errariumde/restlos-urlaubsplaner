@@ -61,6 +61,9 @@ test.describe("the main screen at the four screen sizes", () => {
             // windows show the app at their full width: all columns fit from about 1100 px of calendar.
             if (section === "main-columns" && width > 900) {
               await page.addStyleTag({ content: '[data-section="main-columns"] > div { inline-size: auto !important; }' });
+              // The style must still reach the section's app, or the screenshot would show the 900 px app.
+              const app = await page.locator('[data-section="main-columns"] > div').boundingBox();
+              expect(app?.width ?? 0).toBeGreaterThan(900);
             }
             await expect(page).toHaveScreenshot(`${section}-${String(width)}-${mode}.png`, { fullPage: true });
           });
