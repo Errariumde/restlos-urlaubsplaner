@@ -41,7 +41,8 @@ A personal vacation planner as a single HTML file that runs offline: calculate p
 | Component | License | Relation to the EUPL |
 | --- | --- | --- |
 | Typst / typst.ts (Pro HTML) | Apache-2.0 | permissive, may be included in an EUPL work; pass on NOTICE |
-| Svelte 5, intl-messageformat | MIT | permissive, unproblematic |
+| Svelte 5 | MIT | permissive, unproblematic |
+| intl-messageformat | BSD-3-Clause | permissive, unproblematic; pass on the copyright notice |
 | Lucide icons | ISC (icons derived from Feather: MIT) | permissive |
 | Embedded fonts | SIL OFL | separate works, bundling allowed; include license text |
 | ical.js (iCal import at runtime) | MPL-2.0 | file-level copyleft: ical.js stays MPL-2.0 inside the larger EUPL work (MPL-2.0 §3.3); the About page says where to get its source code |
@@ -413,14 +414,14 @@ A cell in the month columns is only about 75 px wide on desktop, so a fixed rank
 1. **Background:** required work (working day, weekend, holiday, required work ½ as a diagonal split).
 2. **Fill:** own leave (full or half), mandatory leave with a pattern.
 3. **Border:** days from sources of type "Leave from another plan" (dashed, no deduction).
-4. **Dots:** up to three calendar sources; more only in the detail view.
+4. **Lanes:** calendar sources as thin bars at the bottom of the cell, each on its own thin surface-coloured band that is drawn only where a line is (in month columns, vertically at the right edge). The day number moves to the top, so they never overlap. Consecutive days join into one bar. Lanes are packed per month: each run of days gets the lowest lane that no overlapping run uses. Each source has a colour and a line style (solid, dashed, dotted), which the sources list shows. Up to three lanes; beyond that, a "+" pattern marks the cell and the detail view lists all sources. The cell's label and the detail view name the sources.
 5. **Overlay:** today, focus, selection.
 
 Day number and weekday abbreviation are always shown; the detail view shows everything else.
 
 ### Screen sizes
 
-The breakpoints apply to the **width of the calendar area** (container queries), not of the whole window:
+The **views** switch on the **width of the calendar area** (container queries), not of the whole window. The **allowance layout** (sidebar or top bar) switches on the **width of the app's main container**, because the sidebar takes its width from the calendar area and a rule on the calendar area would be circular. The calendar widths in the table decide the views; the Allowance column follows from the app's width at the same breakpoints:
 
 | Calendar width | Month tiles | Month columns | Allowance |
 | --- | --- | --- | --- |
@@ -444,14 +445,25 @@ With "From rule set", country, region, local rules and day rules come from the r
 
 ### Calendar interaction
 
-- **Mouse:** click = full leave day on/off; Shift-click = range up to the last clicked day; drag = range; right-click = menu (half, note, change required work for this date, details).
-- **Touch:** tap = full on/off; long press = detail view with all information and actions; ranges only in **selection mode** (button in the bar), so that swiping to scroll and dragging to select don't collide.
-- **Keyboard:** arrow keys, Space = full, H = half, Ctrl+Z/Ctrl+Y.
-- **Detail view** (tooltip on desktop, sheet on the phone): date, required work and where it comes from, all sources, cost.
+- **Mouse:**
+  - Click = full leave day on/off; Shift-click = range up to the last clicked day.
+  - **Drag to paint a range:** pressing on a day and dragging previews the range, and the hint line shows the working days, the cost, the resulting stretch and the remaining allowance. Releasing applies it. Starting on a day with own leave removes leave instead.
+  - A click on a **week number** sets the days of that week with required work, clipped to the plan period, or removes them when all are set.
+  - Right-click = detail view (see below), with half day, note and change of required work for this date.
+- **Touch:** tap = full on/off; long press = detail view. Ranges only in the **selection mode** (button in the bar), so that swiping to scroll and dragging to select don't collide. In it, both a drag and two taps (first and last day) select a range. An action bar confirms it: Full day, Half day, Remove, Cancel.
+- **Keyboard:** the calendar is one widget with one Tab stop (ARIA grid, roving tabindex); arrow keys, Home/End and PageUp/PageDown move inside it. Shift+arrow grows a visible selection; Space sets full days, H half days and Delete removes leave on the selection (on a single cell: Space = full, H = half). Ctrl+Z/Ctrl+Y.
+- **Range rules** (one function for drag, Shift-click, week click, keyboard and touch ranges):
+  - **Setting** puts a full day on every day in the range that has required work above 0, lies in the plan period, is not mandatory leave and is not covered by "Leave from another plan". Half days in the range become full days. Days with ½ required work (24 and 31 Dec) get a full day and cost ½, the same as a click.
+  - **Removing** removes all own leave in the range, full or half.
+  - Days that wouldn't change are left alone, so the hint line counts only real changes. A gesture that changes nothing adds no undo step. One undo step undoes a range.
+  - A week-number click covers the whole ISO week (starting on the country's week start), not just the visible row, and goes through the range rules. It removes leave instead when every day the rules would set already has a full day.
+  - Every pointer action has a single-pointer alternative (WCAG 2.5.7): clicks, Shift-click, the keyboard and the touch taps.
+- **Detail view:** date, required work and where it comes from, all sources, cost. On desktop a **popover** opened on demand by right-click, the context-menu key, Enter or a long press; on narrow widths a bottom sheet (a modal `<dialog>`). The hover title only repeats the cell's label and is not interactive: a hover tooltip that holds actions fails WCAG 1.4.13 and can't be reached reliably by keyboard.
 
 ### Allowance display
 
 - Plan allowance, planned, remaining, progress bar; remaining < 0 clearly marked. No carry-over field.
+- **Overdraft:** the bar is scaled to what is planned, with a tick at the allowance. The part over the allowance is hatched red (a pattern, not colour alone), and a warning line says by how much, with "Change allowance". Nothing is blocked.
 - List of **stretches**: a stretch is unbroken time off without any work in it (even 15 minutes of work ends it), including weekends, holidays, paid closures and days from "Leave from another plan". Its first and last day may be partial. It shows the cost (the leave charged inside it) and the days off from its start to its end (from noon counts ½ for that day). It is listed when it contains leave that costs something or a paid closure (a paid-closure source or a day rule that frees the whole day), so a paid closure without leave appears with cost 0; it may extend beyond the plan period.
 - **Totals per calendar year** as pure information.
 - Bridge day hints (version 3): working days that yield many days off with little leave; can be turned off.
@@ -460,7 +472,9 @@ With "From rule set", country, region, local rules and day rules come from the r
 
 - **Color roles:** working day, weekend, holiday, required work ½, leave full, leave half, mandatory leave, other plan, overdraft, today, focus, info band, accent 1–8 (for calendar sources).
 - **Color scheme** = values for all roles, each for light and dark. Built in: "Standard", "High contrast", "Color vision deficiency" (Okabe-Ito); not changeable, only duplicable.
-- **Mode:** light, dark, automatic (follows `prefers-color-scheme`).
+- **Mode:** light, dark, automatic (follows `prefers-color-scheme`). Technically: one custom property per colour role with `light-dark()` values; the mode is `color-scheme` on the root (`light`, `dark` or `light dark`). User schemes are written with `style.setProperty()`.
+- **Neutral surfaces:** neutral grey, no hue. The tokens keep the hue and chroma factor (`--nh`, `--nk`), so a tint stays a one-number change.
+- **Primary action colour:** navy, `oklch(37% 0.11 258)` in light mode and `oklch(50% 0.1 258)` with white text in dark mode. Both are darker and greyer than the leave blue, so a filled button never looks like a leave day. **Blue is reserved for leave.**
 - **Editor in version 1:** choose a color per role and mode, preview on a sample month. Contrast check with warning only in version 3.
 - Day types additionally differ by pattern, never by color alone.
 - **Print/PDF** uses its own light print palette per scheme.
@@ -473,6 +487,9 @@ With "From rule set", country, region, local rules and day rules come from the r
 - Files store only IDs and ISO values, never texts translated by the app; free texts (names, descriptions, rule labels and notes, reference titles) are plain strings or maps from language code to text (see Format).
 - Language switch at runtime without reload; help and built-in PDF templates bilingual.
 - CI checks for missing/unused keys; pseudo-localization reveals truncated layouts.
+- **Ready for right-to-left languages from the first component,** although only DE and EN ship: logical CSS properties only (enforced by a check script), `dir` from the catalog, grid arrow keys that follow the visual direction, and a list of icons that mirror.
+- **Two pseudo-locales** in the component gallery: `en-XA` (long, accented) and `en-XB` (right-to-left).
+- No `text-transform: uppercase` on translated text. `Intl.Collator` for sorted lists; the locale's decimal separator is accepted in number fields; engine tests include a country with a Saturday week start.
 
 **Glossary** (binding for UI, help, templates and code identifiers):
 
@@ -499,7 +516,7 @@ With "From rule set", country, region, local rules and day rules come from the r
 
 ### Accessibility
 
-Contrast according to WCAG AA for the built-in schemes, a screen reader label per day ("Friday, 7 May 2027, working day, leave full, costs 1"), fully operable by keyboard, focus visible in both modes.
+Contrast according to WCAG AA for the built-in schemes, a screen reader label per day ("Friday, 7 May 2027, working day, leave full, costs 1"), fully operable by keyboard, focus visible in both modes. Each view is an ARIA grid with a roving tabindex (one Tab stop, not 365); the selection is `aria-selected` and the leave state is part of the label. To be tested once with NVDA + Firefox and with Orca. axe-core checks the component gallery and the main screens.
 
 ### Built-in help
 
@@ -526,12 +543,20 @@ New, Save as and Close are only available in the menu: Ctrl+N, Ctrl+T and Ctrl+W
 
 ### Controls, icons and fonts
 
-No component or icon library:
+No component or icon library.
+
+**Look and structure**
+
+- **Styles:** our own CSS, no framework. Svelte's scoped component CSS on top of one token file, ordered with `@layer reset, tokens, base, layout, components`. A small check script (no package) fails on literal colours outside the token file, on physical properties and on `text-transform: uppercase`.
+- **Buttons:** tactile. A 1 px border at 3:1 contrast, a fill one step lighter than the surface, a 1 px darker bottom edge and a 6 px radius; pressing removes the edge. One filled primary button per area.
+- **File commands:** Open and Save are visible buttons, everything else is in a "File" menu button. No menubar (a `role="menubar"` would collide with the browser's Alt menu). On the phone the File menu merges into the menu button; Save stays visible.
+- **Settings switches** are native checkboxes; toggles in menus are `menuitemcheckbox` items with a check mark.
+
 
 | Need | Solution |
 | --- | --- |
 | Icons (approx. 15: open, save, export, settings, help, light/dark, undo/redo, view, warning, close …) | selected SVGs from [Lucide](https://lucide.dev) (ISC, Feather-derived icons MIT; compatible with the EUPL) as files in the repository, license notice on the license page; no npm package |
-| Dialogs, menus, tooltips, detail sheet | the browser's built-in `<dialog>` and popover elements |
+| Dialogs, menus, detail popover and sheet | the browser's built-in `<dialog>` and popover elements, positioned with CSS anchor positioning and opened by small JS handlers (`showPopover()`, `showModal()`); invoker commands and `popover="hint"` are not relied on. The phone's bottom sheet is a modal `<dialog>` |
 | Color picking | `<input type="color">` |
 | Order of calendar sources | up/down buttons instead of dragging (reliable by touch and keyboard) |
 | Date picking | not needed, the calendar itself is the selection |
@@ -637,6 +662,7 @@ The version 1 tests ran automated and headless in Firefox ESR 153, Firefox 159 a
 | Types and style | TypeScript, Svelte components, lint | `tsc`, svelte-check, ESLint |
 | PDF/Typst | every template × DE/EN with example data, pinned Typst version | Typst CLI |
 | End-to-end | standard and Pro HTML via `file://` in Firefox (Playwright build), Chromium, WebKit; container widths 375/768/1100/1920 px. The Firefox ESR is not covered by Playwright and is tested manually (release checklist) | Playwright |
+| Components, accessibility, keyboard | a component gallery page (dev only, not in the build) shows every component in every state: light and dark, three schemes, DE, EN and the pseudo-locales; Playwright screenshots of it; axe-core on the gallery and the main screens; keyboard end-to-end tests | Playwright, axe-core |
 
 ## Dependencies and supply chain
 
@@ -659,6 +685,7 @@ Recommendation: use common, widespread tools, but choose them deliberately and s
 | intl-messageformat (FormatJS) | ICU messages | yes | established ICU implementation; check the dependency tree during setup, otherwise `@messageformat/core` |
 | date-holidays | reference model | no | development dependency, tests only |
 | @playwright/test | end-to-end | no | standard; browsers locally from nixpkgs, in CI via Playwright |
+| axe-core | accessibility checks | no | MPL-2.0, dev only, pinned exactly; approved 2026-11-04 |
 | typst.ts + WASM | PDF (Pro) | yes (Pro) | pinned exactly, loaded only on the first export |
 | date library | – | – | not needed; the engine calculates with day numbers |
 
