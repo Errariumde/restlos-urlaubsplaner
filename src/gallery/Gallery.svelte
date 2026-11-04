@@ -8,6 +8,7 @@ SPDX-License-Identifier: EUPL-1.2
   import AllowanceSection from "./sections/AllowanceSection.svelte";
   import ControlsSection from "./sections/ControlsSection.svelte";
   import DayCellSection from "./sections/DayCellSection.svelte";
+  import DayDetailSection from "./sections/DayDetailSection.svelte";
   import MainTilesSection from "./sections/MainTilesSection.svelte";
   import PopoverSection from "./sections/PopoverSection.svelte";
   import SheetSection from "./sections/SheetSection.svelte";
@@ -38,6 +39,8 @@ SPDX-License-Identifier: EUPL-1.2
         return i18n.t("gallery.section.toolbar");
       case "day-cell":
         return i18n.t("gallery.section.dayCell");
+      case "day-detail":
+        return i18n.t("gallery.section.dayDetail");
       case "allowance":
         return i18n.t("gallery.section.allowance");
       case "main-tiles":
@@ -66,6 +69,8 @@ SPDX-License-Identifier: EUPL-1.2
       <ToolbarSection />
     {:else if combination.section === "day-cell"}
       <DayCellSection />
+    {:else if combination.section === "day-detail"}
+      <DayDetailSection />
     {:else if combination.section === "allowance"}
       <AllowanceSection />
     {:else}

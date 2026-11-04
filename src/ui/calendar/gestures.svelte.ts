@@ -60,13 +60,52 @@ function dayOf(node: HTMLElement, target: EventTarget | null): DayNumber | undef
   return Number(cell.dataset.day);
 }
 
+/** Whether the page runs on a Mac, where Ctrl+click stands for the right-click. */
+function isMac(): boolean {
+  const data = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData;
+  // navigator.platform is the only source in Firefox and Safari.
+  return [data?.platform, navigator.platform].some((platform) => platform?.includes("Mac") === true);
+}
+
 /** A Svelte action on the calendar grid. */
 export function calendarGestures(node: HTMLElement, initial: GestureOptions): { update(options: GestureOptions): void; destroy(): void } {
   let options = initial;
   let press: MousePress | TouchPress | undefined;
   let lastClicked: DayNumber | undefined;
+  /** A Mac Ctrl+click opened the detail; the contextmenu event that follows it opens nothing more. */
+  let ctrlClickDetail = false;
   /** Counts the drags; a preview asked for by an earlier one never shows (it may arrive after the drag ended). */
   let generation = 0;
+  /** Stops waiting for the release of the button that asked for a detail. */
+  let stopWaiting: (() => void) | undefined;
+
+  /**
+   * Opens the detail once the mouse button is up. A popover shown while the button is still down (the
+   * contextmenu event comes on the press in Linux and macOS) would be closed again by the browser's light
+   * dismiss on its release.
+   */
+  function detailAfterRelease(day: DayNumber, buttons: number): void {
+    stopWaiting?.();
+    if (buttons === 0) {
+      options.onDetail?.(day);
+      return;
+    }
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const released = (): void => {
+      window.removeEventListener("pointerup", released, true);
+      // After the release has been handled, light dismiss included.
+      timer = setTimeout(() => {
+        stopWaiting = undefined;
+        options.onDetail?.(day);
+      });
+    };
+    window.addEventListener("pointerup", released, true);
+    stopWaiting = () => {
+      window.removeEventListener("pointerup", released, true);
+      clearTimeout(timer);
+      stopWaiting = undefined;
+    };
+  }
 
   function showPreview(drag: MousePress): void {
     const changes = rangeChanges(options.getResult(), drag.start, drag.current, drag.action);
@@ -95,6 +134,14 @@ export function calendarGestures(node: HTMLElement, initial: GestureOptions): { 
     if (press !== undefined || !event.isPrimary || options.app.applying) return;
     const day = dayOf(node, event.target);
     if (day === undefined) return;
+    ctrlClickDetail = false;
+    // On a Mac, Ctrl+click is the right-click: it opens the detail and doesn't toggle the day.
+    if (event.pointerType === "mouse" && event.button === 0 && event.ctrlKey && isMac() && options.onDetail) {
+      event.preventDefault();
+      ctrlClickDetail = true;
+      detailAfterRelease(day, event.buttons);
+      return;
+    }
     if (event.pointerType === "touch") {
       // No capture and no preventDefault: moving the finger scrolls the page (touch-action: auto).
       const timer = setTimeout(onLongPress, LONG_PRESS_MS);
@@ -104,7 +151,13 @@ export function calendarGestures(node: HTMLElement, initial: GestureOptions): { 
     if (event.button !== 0) return;
     // No text selection and no focus by the browser: the cell takes the focus below, before the capture moves events to the grid.
     event.preventDefault();
-    const anchor = lastClicked ?? options.app.focusDay;
+    // Shift-click extends from the keyboard's selection anchor when there is one (keyboard.svelte.ts), else
+    // from the last clicked day. Any press ends the keyboard selection.
+    const anchor = options.app.selection?.anchor ?? lastClicked ?? options.app.focusDay;
+    if (options.app.selection !== undefined) {
+      options.app.selection = undefined;
+      options.app.hint = undefined;
+    }
     (event.target as Element).closest<HTMLElement>("[data-day]")?.focus({ preventScroll: true });
     press = {
       kind: "mouse",
@@ -180,6 +233,12 @@ export function calendarGestures(node: HTMLElement, initial: GestureOptions): { 
   function onContextMenu(event: MouseEvent): void {
     const day = dayOf(node, event.target);
     if (day === undefined || press?.kind === "mouse") return;
+    // The Mac's Ctrl+click has opened the detail on pointerdown already; only the browser's menu is left.
+    if (ctrlClickDetail) {
+      ctrlClickDetail = false;
+      event.preventDefault();
+      return;
+    }
     if (press?.kind === "touch") {
       clearTimeout(press.timer);
       // The long press has opened the detail already.
@@ -191,7 +250,7 @@ export function calendarGestures(node: HTMLElement, initial: GestureOptions): { 
     }
     if (!options.onDetail) return;
     event.preventDefault();
-    options.onDetail(day);
+    detailAfterRelease(day, event.buttons);
   }
 
   node.addEventListener("pointerdown", onPointerDown);
@@ -207,6 +266,7 @@ export function calendarGestures(node: HTMLElement, initial: GestureOptions): { 
     },
     destroy() {
       finish();
+      stopWaiting?.();
       node.removeEventListener("pointerdown", onPointerDown);
       node.removeEventListener("pointermove", onPointerMove);
       node.removeEventListener("pointerup", onPointerUp);

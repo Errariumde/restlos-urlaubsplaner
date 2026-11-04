@@ -6,6 +6,7 @@ SPDX-License-Identifier: EUPL-1.2
   import type { DayNumber } from "../../engine/days.ts";
   import AllowanceBar from "../allowance/AllowanceBar.svelte";
   import AllowancePanel from "../allowance/AllowancePanel.svelte";
+  import DayDetail from "../calendar/DayDetail.svelte";
   import HintLine from "../calendar/HintLine.svelte";
   import MonthTiles from "../calendar/MonthTiles.svelte";
   import Button from "../controls/Button.svelte";
@@ -46,6 +47,34 @@ SPDX-License-Identifier: EUPL-1.2
   $effect(() => {
     if (sidebar || compact) detailsOpen = false;
   });
+
+  /** Below this width of the calendar area the detail of a day is a bottom sheet, not a popover. */
+  const DETAIL_SHEET_BELOW = 520;
+
+  let calendarWidth = $state<number>();
+
+  interface DetailRequest {
+    readonly day: DayNumber;
+    readonly anchor: HTMLElement;
+    readonly sheet: boolean;
+  }
+
+  let detail = $state.raw<DetailRequest>();
+
+  /** Opens the detail of a day in the period; asking again for the day that is shown changes nothing. */
+  function openDetail(day: DayNumber, anchor: HTMLElement): void {
+    const state = app.state;
+    if (state === undefined || day < state.result.period.from || day > state.result.period.to) return;
+    if (detail?.day === day && detail.anchor === anchor) return;
+    // A sheet on a narrow calendar, and on a touch screen (as the toolbar's More menu, Ruling P).
+    const sheet = (calendarWidth !== undefined && calendarWidth < DETAIL_SHEET_BELOW) || matchMedia("(pointer: coarse)").matches;
+    detail = { day, anchor, sheet };
+  }
+
+  /** Only the request that is shown closes it: a popover replaced by the next one reports its close late. */
+  function closeDetail(request: DetailRequest): void {
+    if (detail === request) detail = undefined;
+  }
 
   /** Text fields keep their letters; checkboxes and radio buttons are not text input. */
   const NOT_TEXT = new Set(["button", "submit", "reset", "range", "color", "file", "image", "checkbox", "radio"]);
@@ -116,9 +145,9 @@ SPDX-License-Identifier: EUPL-1.2
     {/if}
   {/if}
   <div class="workspace">
-    <main class="calendar">
+    <main class="calendar" bind:clientWidth={calendarWidth}>
       {#if app.state && app.view === "tiles"}
-        <MonthTiles meta={app.state.meta} result={app.state.result} {today} />
+        <MonthTiles meta={app.state.meta} result={app.state.result} {today} onDetail={openDetail} />
       {/if}
     </main>
     {#if app.state && sidebar}
@@ -128,6 +157,23 @@ SPDX-License-Identifier: EUPL-1.2
       </aside>
     {/if}
   </div>
+  {#if app.state}
+    {@const { meta, result } = app.state}
+    <!-- A new popover or sheet for each request: its anchor and its focus handling belong to that cell. -->
+    {#each detail ? [detail] : [] as request (request)}
+      {@const dayResult = result.days[request.day - (result.days[0]?.day ?? 0)]}
+      {#if dayResult}
+        <DayDetail
+          day={dayResult}
+          {meta}
+          problems={result.problems}
+          presentation={request.sheet ? "sheet" : "popover"}
+          anchor={request.anchor}
+          onclose={() => closeDetail(request)}
+        />
+      {/if}
+    {/each}
+  {/if}
 </div>
 
 <style>

@@ -22,6 +22,7 @@ async function show(page: Page, combination: Combination): Promise<void> {
   await openGallery(page, { ...combination });
   await expect(page.locator("[data-section]")).toHaveAttribute("data-section", combination.section);
   if (combination.section === "main-tiles") await expect(page.getByRole("gridcell").first()).toBeVisible();
+  if (combination.section === "day-detail") await expect(page.getByRole("region")).toHaveCount(7);
   if (combination.section === "popover") await expect(page.locator("[popover]")).toBeVisible();
   if (combination.section === "sheet") await expect(page.getByRole("dialog")).toBeVisible();
 }

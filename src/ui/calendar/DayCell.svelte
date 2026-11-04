@@ -12,7 +12,7 @@ SPDX-License-Identifier: EUPL-1.2
   import { i18n } from "../i18n/i18n.svelte.ts";
   import type { PlanMeta } from "../worker/protocol.ts";
   import { lineStyle, sourceAccent, type CellLane } from "./cell-lanes.ts";
-  import { cellLabel, kindOf, leaveOf } from "./label.ts";
+  import { cellLabel, kindOf, leaveOf, ownPart } from "./label.ts";
 
   interface Props {
     day: DayResult;
@@ -32,10 +32,7 @@ SPDX-License-Identifier: EUPL-1.2
 
   const kind = $derived(kindOf(day, meta));
   const leave = $derived(leaveOf(day));
-  const part = $derived.by(() => {
-    const piece = day.leave.find((candidate) => candidate.kind === "own");
-    return piece?.kind === "own" ? piece.part : "end";
-  });
+  const part = $derived(ownPart(day));
   const otherPlan = $derived(day.leave.some((piece) => piece.kind === "otherPlan"));
 
   /** The sources of the lanes, in the order of the sources list, with their accent and line style. */

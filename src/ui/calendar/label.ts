@@ -3,6 +3,7 @@
 
 // The accessible label of a calendar cell (docs/SPEC.md, D4).
 import type { DayResult } from "../../engine/counting/plan.ts";
+import type { Part } from "../../engine/counting/types.ts";
 import { weekdayOf } from "../../engine/days.ts";
 import { UNITS_PER_DAY } from "../../engine/weight.ts";
 import { formatDate, formatDays } from "../i18n/format.ts";
@@ -37,6 +38,12 @@ export function leaveOf(day: DayResult): CellLeave {
   return "none";
 }
 
+/** Where the plan's own leave lies on the day; "end" when it has none. */
+export function ownPart(day: DayResult): Part {
+  const piece = day.leave.find((candidate) => candidate.kind === "own");
+  return piece?.kind === "own" ? piece.part : "end";
+}
+
 const listFormats = new Map<string, Intl.ListFormat>();
 
 function listFormat(locale: Locale): Intl.ListFormat {
@@ -58,11 +65,13 @@ export function cellLabel(day: DayResult, meta: PlanMeta, i18n: { t: Translate; 
   const cost = day.evaluation.cost;
   const holiday = day.facts.holidays[0];
   const list = listFormat(locale);
+  const leave = leaveOf(day);
   return t("day.label", {
     date: formatDate(day.day, locale, "long"),
     kind: kindOf(day, meta),
     name: holiday ? t(holiday.nameKey) : "",
-    leave: leaveOf(day),
+    // A half day says where the leave lies: in the morning (the start of the work block) or the afternoon.
+    leave: leave === "half" ? (ownPart(day) === "start" ? "halfStart" : "halfEnd") : leave,
     hasCost: cost > 0 ? "yes" : "no",
     cost: formatDays(cost, locale),
     hasSources: sourceNames.length > 0 ? "yes" : "no",
