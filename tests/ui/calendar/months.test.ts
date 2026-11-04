@@ -31,6 +31,7 @@ describe("isoWeek", () => {
     expect(isoWeek(d(2026, 12, 31))).toBe(53);
     expect(isoWeek(d(2027, 1, 1))).toBe(53);
     expect(isoWeek(d(2027, 1, 3))).toBe(53);
+    expect(isoWeek(d(2024, 12, 30))).toBe(1);
   });
 });
 
@@ -51,6 +52,16 @@ describe("tileWeeks", () => {
     expect(weeks[0]!.isoWeek).toBe(53);
     expect(weeks[1]!.isoWeek).toBe(1);
   });
+
+  it("starts on Saturday", () => {
+    const weeks = tileWeeks(year2027[0]!, "sat");
+    expect(weeks).toHaveLength(6);
+    expect(weeks[0]!.startDay).toBe(d(2026, 12, 26));
+    expect(weeks[0]!.cells.filter((c) => c === null)).toHaveLength(6);
+    expect(weeks[0]!.cells[6]).toBe(d(2027, 1, 1));
+    expect(weeks.map((w) => w.isoWeek)).toEqual([53, 1, 2, 3, 4, 5]);
+    expect(weeks[5]!.cells.filter((c) => c === null)).toHaveLength(5);
+  });
 });
 
 describe("columnRows", () => {
@@ -70,5 +81,22 @@ describe("columnRows", () => {
     expect(rows[4]![0]).toBe(d(2027, 1, 1));
     expect(rows[3]![0]).toBeNull();
     expect(rows[0]![1]).toBe(d(2027, 2, 1)); // a Monday
+  });
+
+  it("aligns from Sunday and from Saturday", () => {
+    const sun = columnRows(year2027, true, "sun");
+    expect(sun[5]![0]).toBe(d(2027, 1, 1));
+    expect(sun[4]![0]).toBeNull();
+    expect(sun[1]![1]).toBe(d(2027, 2, 1));
+    const sat = columnRows(year2027, true, "sat");
+    expect(sat[6]![0]).toBe(d(2027, 1, 1));
+    expect(sat[2]![1]).toBe(d(2027, 2, 1));
+    expect(sat.length).toBeLessThanOrEqual(37);
+  });
+
+  it("needs 37 rows for a 31-day month that starts on the last weekday row", () => {
+    const rows = columnRows([year2027[0]!], true, "sat");
+    expect(rows).toHaveLength(37);
+    expect(rows[36]![0]).toBe(d(2027, 1, 31));
   });
 });

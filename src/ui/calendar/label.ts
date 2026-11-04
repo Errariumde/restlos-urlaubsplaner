@@ -11,23 +11,41 @@ import type { PlanMeta } from "../worker/protocol.ts";
 
 export type Translate = (key: string, args?: Record<string, string | number>) => string;
 
-type Kind = "workday" | "weekend" | "holiday" | "halfRequired" | "free";
+type Kind = "workday" | "weekend" | "holiday" | "halfRequired" | "halfRequiredHoliday" | "free";
 type Leave = "none" | "full" | "half" | "mandatory" | "otherPlan";
 
+/** The kind follows the required work: a holiday that is worked is a working day, a working Saturday too. */
 function kindOf(day: DayResult, meta: PlanMeta): Kind {
-  if (day.facts.holidays.length > 0) return "holiday";
-  if (meta.weekend.includes(weekdayOf(day.day))) return "weekend";
-  if (day.required.value === 0) return "free"; // no work for another reason, e.g. a paid closure
-  return day.required.value < UNITS_PER_DAY ? "halfRequired" : "workday";
+  const holiday = day.facts.holidays.length > 0;
+  const required = day.required.value;
+  if (required === 0) {
+    if (holiday) return "holiday";
+    if (meta.weekend.includes(weekdayOf(day.day))) return "weekend";
+    return "free"; // no work for another reason, e.g. a paid closure
+  }
+  if (required < UNITS_PER_DAY) return holiday ? "halfRequiredHoliday" : "halfRequired";
+  return "workday";
 }
 
 function leaveOf(day: DayResult): Leave {
-  if (day.leave.some((piece) => piece.kind === "own")) {
+  if (day.leave.some((piece) => piece.kind === "own" && piece.take > 0)) {
     return day.evaluation.ownCost >= day.required.value ? "full" : "half";
   }
   if (day.leave.some((piece) => piece.kind === "mandatory")) return "mandatory";
   if (day.leave.some((piece) => piece.kind === "otherPlan")) return "otherPlan";
   return "none";
+}
+
+const listFormats = new Map<string, Intl.ListFormat>();
+
+function listFormat(locale: Locale): Intl.ListFormat {
+  const tag = locale === "de" ? "de" : "en-GB";
+  let format = listFormats.get(tag);
+  if (!format) {
+    format = new Intl.ListFormat(tag, { style: "long", type: "conjunction" });
+    listFormats.set(tag, format);
+  }
+  return format;
 }
 
 /**
@@ -38,7 +56,7 @@ export function cellLabel(day: DayResult, meta: PlanMeta, i18n: { t: Translate; 
   const { t, locale } = i18n;
   const cost = day.evaluation.cost;
   const holiday = day.facts.holidays[0];
-  const list = new Intl.ListFormat(locale === "de" ? "de" : "en-GB", { style: "long", type: "conjunction" });
+  const list = listFormat(locale);
   return t("day.label", {
     date: formatDate(day.day, locale, "long"),
     kind: kindOf(day, meta),

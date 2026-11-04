@@ -50,8 +50,8 @@ function tilesNext(key: NavKey, day: DayNumber, ctx: NavContext): DayNumber {
     case "PageDown": {
       const step = key === "PageUp" ? -1 : 1;
       const target = neighbour(day, step, ctx);
-      // Past the period the focus goes to its edge; the caller's clamp does the rest.
-      return target ? sameDayOf(day, target) : step < 0 ? ctx.period.from : ctx.period.to;
+      // No month there inside the period: stay, as in the columns. A partial month is clamped by nextDay.
+      return target ? sameDayOf(day, target) : day;
     }
   }
 }
@@ -70,9 +70,9 @@ function columnsNext(key: NavKey, day: DayNumber, ctx: NavContext): DayNumber {
   };
   switch (key) {
     case "ArrowUp":
-      return day - 1;
+      return Math.max(day - 1, own.first); // a column ends with its month
     case "ArrowDown":
-      return day + 1;
+      return Math.min(day + 1, own.last);
     case "ArrowLeft":
       return sameRow(-horizontal);
     case "ArrowRight":

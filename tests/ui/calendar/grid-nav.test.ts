@@ -33,6 +33,19 @@ describe("nextDay in the tiles", () => {
     expect(nextDay("tiles", "Home", day, ctx)).toBe(d(2027, 5, 10));
     expect(nextDay("tiles", "End", day, ctx)).toBe(d(2027, 5, 16));
     expect(nextDay("tiles", "Home", day, { ...ctx, weekStart: "sun" })).toBe(d(2027, 5, 9));
+    expect(nextDay("tiles", "Home", day, { ...ctx, weekStart: "sat" })).toBe(d(2027, 5, 8));
+    expect(nextDay("tiles", "End", day, { ...ctx, weekStart: "sat" })).toBe(d(2027, 5, 14));
+  });
+
+  it("stays put when no neighbouring month is inside the period", () => {
+    expect(nextDay("tiles", "PageDown", d(2027, 12, 15), ctx)).toBe(d(2027, 12, 15));
+    expect(nextDay("tiles", "PageUp", d(2027, 1, 15), ctx)).toBe(d(2027, 1, 15));
+  });
+
+  it("clamps a move into a partial month to the period", () => {
+    const partial = { ...ctx, period: { from: d(2027, 1, 15), to: d(2027, 12, 10) } };
+    expect(nextDay("tiles", "PageUp", d(2027, 2, 10), partial)).toBe(d(2027, 1, 15));
+    expect(nextDay("tiles", "PageDown", d(2027, 11, 25), partial)).toBe(d(2027, 12, 10));
   });
 
   it("goes to the same day of the previous or next month, clamped to its length", () => {
@@ -53,6 +66,11 @@ describe("nextDay in the columns", () => {
     const day = d(2027, 5, 12);
     expect(nextDay("columns", "ArrowDown", day, ctx)).toBe(day + 1);
     expect(nextDay("columns", "ArrowUp", day, ctx)).toBe(day - 1);
+  });
+
+  it("stops at the ends of the column", () => {
+    expect(nextDay("columns", "ArrowDown", d(2027, 1, 31), ctx)).toBe(d(2027, 1, 31));
+    expect(nextDay("columns", "ArrowUp", d(2027, 2, 1), ctx)).toBe(d(2027, 2, 1));
   });
 
   it("moves to the same day of the neighbouring month, clamped", () => {

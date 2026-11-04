@@ -25,6 +25,14 @@ describe("packLanes", () => {
     expect(runs).toHaveLength(2);
   });
 
+  it("lets a later source's earlier run take a lane freed by a gap", () => {
+    const runs = packLanes(may, new Map([["a", range(10, 12)], ["b", range(3, 4)]]), ["a", "b"]);
+    expect(runs).toEqual([
+      { sourceId: "a", first: d(10), last: d(12), lane: 0 },
+      { sourceId: "b", first: d(3), last: d(4), lane: 0 },
+    ]);
+  });
+
   it("gives a fourth overlapping run more", () => {
     const days = new Map([["a", range(3, 6)], ["b", range(3, 6)], ["c", range(3, 6)], ["d", range(3, 6)]]);
     const runs = packLanes(may, days, ["a", "b", "c", "d"]);

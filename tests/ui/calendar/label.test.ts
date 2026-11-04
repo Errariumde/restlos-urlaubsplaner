@@ -81,6 +81,36 @@ describe("cellLabel", () => {
     expect(cellLabel(result({ day: friday, leave: [{ kind: "otherPlan", from: 0, to: 480 }] }), meta, i18n("en"))).toContain(", leave in another plan");
   });
 
+  it("decides the kind from the required work first", () => {
+    const saturday = friday + 1;
+    expect(cellLabel(result({ day: saturday, required: 480 }), meta, i18n("en"))).toBe("Saturday, 8 May 2027, working day, no leave");
+    const eve = dayFromYmd(2027, 12, 24);
+    expect(cellLabel(result({ day: eve, required: 240, holiday: "holiday.christmas-day" }), meta, i18n("en"))).toBe(
+      "Friday, 24 December 2027, half working day, Christmas Day, no leave",
+    );
+    expect(cellLabel(result({ day: eve, required: 240, holiday: "holiday.christmas-day" }), meta, i18n("de"))).toContain(", halber Arbeitstag, 1. Weihnachtstag,");
+    // A holiday that a rule also makes free stays a holiday; a holiday that is worked is a working day.
+    const sunday = dayFromYmd(2027, 5, 9);
+    expect(cellLabel(result({ day: sunday, required: 0, holiday: "holiday.christmas-day" }), meta, i18n("en"))).toContain(", holiday Christmas Day, ");
+    expect(cellLabel(result({ day: friday, required: 480, holiday: "holiday.christmas-day" }), meta, i18n("en"))).toContain(", working day, ");
+  });
+
+  it("calls a day without work that is neither weekend nor holiday a day off", () => {
+    expect(cellLabel(result({ day: friday, required: 0 }), meta, i18n("en"))).toBe("Friday, 7 May 2027, day off, no leave");
+    expect(cellLabel(result({ day: friday, required: 0 }), meta, i18n("de"))).toContain(", arbeitsfrei, ");
+  });
+
+  it("reports own leave when mandatory leave is there too, and not full without own leave", () => {
+    const both = result({ day: friday, leave: [{ kind: "mandatory", take: 240, part: "start" }, own], cost: 480 });
+    expect(cellLabel(both, meta, i18n("en"))).toContain(", leave full, ");
+    const zero = result({ day: friday, leave: [{ kind: "own", take: 0, part: "end" }] });
+    expect(cellLabel(zero, meta, i18n("en"))).toContain(", no leave");
+  });
+
+  it("adds nothing for an empty source list", () => {
+    expect(cellLabel(planned, meta, i18n("en"), [])).toBe("Friday, 7 May 2027, working day, leave full, costs 1");
+  });
+
   it("appends the source names", () => {
     const label = cellLabel(planned, meta, i18n("en"), ["School holidays", "Team trip"]);
     expect(label).toBe("Friday, 7 May 2027, working day, leave full, costs 1, calendars School holidays and Team trip");
