@@ -116,7 +116,8 @@ SPDX-License-Identifier: EUPL-1.2
           {/if}
           {#each week.cells as day, column (column)}
             {#if day === null}
-              <span class="pad" aria-hidden="true"></span>
+              <!-- An empty cell, so every cell stays under its weekday header (Ruling V). -->
+              <span class="pad" role="gridcell"></span>
             {:else}
               {@const dayResult = result.days[day - firstDay]}
               {#if dayResult}
@@ -151,8 +152,11 @@ SPDX-License-Identifier: EUPL-1.2
       touch-action: manipulation;
     }
 
-    /* In the selection mode a finger selects instead of scrolling (gestures.svelte.ts). */
-    .tiles.selecting {
+    /*
+     * In the selection mode a finger on a day selects instead of scrolling (gestures.svelte.ts); the headers
+     * and the gaps still scroll the page (Ruling U).
+     */
+    .tiles.selecting :global([data-day]) {
       touch-action: none;
     }
 

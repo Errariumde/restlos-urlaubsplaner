@@ -10,7 +10,7 @@ SPDX-License-Identifier: EUPL-1.2
   import { app } from "../../ui/state/app.svelte.ts";
 
   // The selection bar of the touch selection mode with 14 to 18 June 2027 of the example selected; the hint
-  // comes from the real engine worker. The bar is fixed at the bottom of the window.
+  // comes from the real engine worker. The bar is sticky: here, with nothing above it, it sits under the title.
   onMount(() => {
     void (async () => {
       await app.openExample();

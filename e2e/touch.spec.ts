@@ -183,6 +183,48 @@ test.describe("in the selection mode", () => {
     await expectNoPageProblems(page);
   });
 
+  test("only the day cells take the finger; the grid still scrolls", async ({ page }) => {
+    const grid = page.getByRole("grid", { name: "Calendar" });
+    expect(await grid.evaluate((element) => getComputedStyle(element).touchAction)).toBe("manipulation");
+    expect(await cell(page, 6, 14).evaluate((element) => getComputedStyle(element).touchAction)).toBe("none");
+    await expectNoPageProblems(page);
+  });
+
+  test("the prompt is not in the live region; only real hints are", async ({ page }) => {
+    const bar = page.getByRole("region", { name: "Selection" });
+    await expect(bar).toContainText("tap the first and the last day");
+    await expect(hint(page)).toHaveText("");
+    await expectNoPageProblems(page);
+  });
+
+  test("two taps work across a scroll, and the bar stays in the window", async ({ page }) => {
+    await tap(page, cell(page, 2, 1));
+    await expect(cell(page, 2, 1)).toHaveAttribute("aria-selected", "true");
+    // Scroll to June without a locator action, which would scroll by itself.
+    await cell(page, 6, 4).evaluate((element) => window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY - 300));
+    const box = await cell(page, 6, 4).boundingBox();
+    expect(box && box.y > 0 && box.y + box.height < 800).toBe(true);
+    await page.touchscreen.tap(box!.x + box!.width / 2, box!.y + box!.height / 2);
+    await expect(cell(page, 6, 4)).toHaveAttribute("aria-selected", "true");
+    await expect(cell(page, 3, 15)).toHaveAttribute("aria-selected", "true");
+    const bar = await page.getByRole("region", { name: "Selection" }).boundingBox();
+    expect(bar).not.toBeNull();
+    expect(bar!.y).toBeGreaterThanOrEqual(0);
+    expect(bar!.y + bar!.height).toBeLessThanOrEqual(800 + 1);
+    await expectNoPageProblems(page);
+  });
+
+  test("in the columns, a drag from a month header or the day column selects nothing", async ({ page }) => {
+    await page.getByRole("button", { name: "Columns", exact: true }).tap();
+    const grid = page.getByRole("grid", { name: "Calendar" });
+    await expect(grid.getByRole("columnheader").nth(1)).toBeVisible();
+    await touchDrag(page, grid.getByRole("columnheader").nth(1), cell(page, 1, 5));
+    await touchDrag(page, grid.getByRole("row").nth(3).getByRole("rowheader"), cell(page, 1, 8));
+    await expect(page.locator('[aria-selected="true"]')).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Undo", exact: true })).toBeDisabled();
+    await expectNoPageProblems(page);
+  });
+
   test("a long press opens the detail sheet", async ({ page }) => {
     const day = cell(page, 6, 14);
     await day.scrollIntoViewIfNeeded();

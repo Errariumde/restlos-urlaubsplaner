@@ -283,8 +283,12 @@ export function calendarGestures(node: HTMLElement, initial: GestureOptions): { 
       }
       const day = dayOf(node, document.elementFromPoint(event.clientX, event.clientY));
       if (day === undefined || day === current.current) return;
+      // On another day the press is a drag, never a long press any more.
+      clearTimeout(current.timer);
+      current.timer = undefined;
       current.current = day;
       current.moved = true;
+      if (!options.app.selectMode) return;
       select(current.start, day);
       return;
     }
@@ -302,7 +306,8 @@ export function calendarGestures(node: HTMLElement, initial: GestureOptions): { 
     if (ended === undefined || event.pointerId !== ended.id) return;
     if (ended.kind === "select") {
       finish();
-      if (ended.done || ended.moved) return;
+      // The mode was left during the press: its selection is gone, and the tap selects nothing.
+      if (ended.done || ended.moved || !options.app.selectMode) return;
       // A tap: the second one sets the last day of the range the first one began, a third begins anew.
       const selection = options.app.selection;
       if (tapSelection !== undefined && selection === tapSelection) {

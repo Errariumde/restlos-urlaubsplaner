@@ -106,7 +106,8 @@ SPDX-License-Identifier: EUPL-1.2
       </span>
       {#each row as day, column (column)}
         {#if day === null}
-          <span class="pad" aria-hidden="true"></span>
+          <!-- An empty cell, so every cell stays under its month header (Ruling V). -->
+          <span class="pad" role="gridcell"></span>
         {:else}
           {@const dayResult = result.days[day - firstDay]}
           {@const week = app.weeks ? columnWeekMarker(day, meta.weekStart, result.period.from) : undefined}
@@ -151,12 +152,17 @@ SPDX-License-Identifier: EUPL-1.2
       gap: var(--gap);
       overflow-x: auto;
       overscroll-behavior-inline: contain;
+      /* A cell scrolled into view (focus, keyboard) stops beside the sticky day column, not under it. */
+      scroll-padding-inline-start: var(--day-column);
       /* Moving a finger scrolls the months (ranges on touch come with the selection mode); no double-tap zoom. */
       touch-action: manipulation;
     }
 
-    /* In the selection mode a finger selects instead of scrolling (gestures.svelte.ts). */
-    .columns.selecting {
+    /*
+     * In the selection mode a finger on a day selects instead of scrolling (gestures.svelte.ts); the headers
+     * and the gaps still scroll the page and the months (Ruling U).
+     */
+    .columns.selecting :global([data-day]) {
       touch-action: none;
     }
 
@@ -266,14 +272,14 @@ SPDX-License-Identifier: EUPL-1.2
       background: var(--r-control-hover);
     }
 
-    /* Touch: a 40 px target around the marker. */
+    /* Touch: a target 40 px tall (the cell's height) and at most 24 px wide, so the day keeps most of the cell. */
     @media (pointer: coarse) {
       .week::after {
         content: "";
         position: absolute;
         inset-block-start: 0;
         inset-inline-start: 50%;
-        inline-size: 2.5rem;
+        inline-size: 1.5rem;
         block-size: 2.5rem;
         translate: -50% 0;
       }

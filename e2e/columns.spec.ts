@@ -47,6 +47,19 @@ test.describe("in English at 1920 px", () => {
     await expectNoPageProblems(page);
   });
 
+  test("31 March sits under the March header: empty slots are cells too", async ({ page }) => {
+    const headers = grid(page).getByRole("row").first().locator('[role="columnheader"]');
+    const names = await headers.evaluateAll((elements) => elements.map((element) => (element as HTMLElement).innerText.trim()));
+    const lastRow = grid(page).getByRole("row").nth(31);
+    const position = await lastRow.evaluate((row, day) => {
+      const cells = [...row.querySelectorAll(':scope > [role="rowheader"], :scope > [role="gridcell"]')];
+      return cells.findIndex((element) => element.getAttribute("data-day") === day);
+    }, String(dayFromYmd(2027, 3, 31)));
+    expect(position).toBe(names.indexOf("March"));
+    expect(position).toBe(3);
+    await expectNoPageProblems(page);
+  });
+
   test("dragging down the column from 14 to 18 June plans five days", async ({ page }) => {
     await expectLeave(page, 6, [14, 15, 16, 17, 18], NONE);
     const start = await centre(cell(page, 6, 14));
@@ -151,6 +164,14 @@ test.describe("in right-to-left text", () => {
     expect(moved).not.toBe(0);
     await expect.poll(async () => (await firstCell.boundingBox())?.x).not.toBe(cellBefore?.x);
     expect(await header.boundingBox()).toEqual(before);
+    await expectNoPageProblems(page);
+  });
+
+  test("a focused cell is never under the sticky day column", async ({ page }) => {
+    const scroller = page.getByRole("grid");
+    const padding = await scroller.evaluate((element) => getComputedStyle(element).scrollPaddingInlineStart);
+    const dayColumn = await scroller.getByRole("row").nth(1).getByRole("rowheader").boundingBox();
+    expect(parseFloat(padding)).toBeCloseTo(dayColumn!.width, 0);
     await expectNoPageProblems(page);
   });
 

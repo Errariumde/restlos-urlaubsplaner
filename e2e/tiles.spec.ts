@@ -74,6 +74,16 @@ test.describe("in English at 1280 px", () => {
     await expectNoPageProblems(page);
   });
 
+  test("Friday 1 Jan sits under the Friday header: empty slots are cells too", async ({ page }) => {
+    const position = await cell(page, 1, 1).evaluate((element) =>
+      [...(element.parentElement?.querySelectorAll(':scope > [role="gridcell"]') ?? [])].indexOf(element),
+    );
+    const heads = await page.getByRole("rowgroup").first().getByRole("row").nth(1).getByRole("columnheader").allInnerTexts();
+    // The week column's header comes first, as the week number comes first in the row (a rowheader, not a cell).
+    expect(heads[position + 1]).toBe("Fri");
+    await expectNoPageProblems(page);
+  });
+
   test("a drag that starts on leave removes it", async ({ page }) => {
     await expectLeave(page, 8, [3, 4, 5, 6, 9, 10, 11], FULL);
     await dragTo(page, cell(page, 8, 4), cell(page, 8, 10));

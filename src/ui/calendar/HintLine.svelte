@@ -38,7 +38,11 @@ SPDX-License-Identifier: EUPL-1.2
   });
 </script>
 
-<p class="hint" class:active={text !== ""} aria-live="polite" aria-atomic="true">{text || idle}</p>
+<!-- Only real hints are announced: the idle text sits next to the live region, not in it. -->
+<div class="hint" class:active={text !== ""}>
+  <span aria-live="polite" aria-atomic="true">{text}</span>
+  {#if text === "" && idle !== ""}<span>{idle}</span>{/if}
+</div>
 
 <style>
   @layer components {
