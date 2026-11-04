@@ -77,6 +77,17 @@
     padding: 0;
   }
 
+  /* Touch targets are at least 40 px (docs/SPEC.md, "Screen sizes"). */
+  @media (pointer: coarse) {
+    .control {
+      min-block-size: 2.5rem;
+    }
+
+    .control.icon-only {
+      inline-size: 2.5rem;
+    }
+  }
+
   @media (forced-colors: active) {
     .control {
       border-color: ButtonText;

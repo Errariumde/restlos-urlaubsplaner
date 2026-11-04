@@ -19,18 +19,30 @@ SPDX-License-Identifier: EUPL-1.2
     options: readonly Option[];
     value: string;
     onchange: (value: string) => void;
+    /** Show only the icons (every option needs one); the labels stay as accessible names and titles. */
+    iconOnly?: boolean;
   }
 
-  let { label, options, value, onchange }: Props = $props();
+  let { label, options, value, onchange, iconOnly = false }: Props = $props();
 </script>
 
 <div class="segmented" role="group" aria-label={label}>
   {#each options as option (option.value)}
-    <button type="button" class="control" aria-pressed={option.value === value} onclick={() => onchange(option.value)}>
+    <button
+      type="button"
+      class="control"
+      class:icon-only={iconOnly && option.icon !== undefined}
+      aria-label={iconOnly && option.icon ? option.label : undefined}
+      title={iconOnly && option.icon ? option.label : undefined}
+      aria-pressed={option.value === value}
+      onclick={() => onchange(option.value)}
+    >
       {#if option.icon}
         <Icon name={option.icon} />
       {/if}
-      {option.label}
+      {#if !(iconOnly && option.icon)}
+        {option.label}
+      {/if}
     </button>
   {/each}
 </div>

@@ -39,6 +39,12 @@ SPDX-License-Identifier: EUPL-1.2
       cursor: pointer;
     }
 
+    @media (pointer: coarse) {
+      .checkbox {
+        min-block-size: 2.5rem;
+      }
+    }
+
     input {
       flex: none;
       inline-size: 1.125rem;

@@ -124,6 +124,52 @@ test.describe("on a narrow app", () => {
     await expect(page.getByRole("button", { name: "More", exact: true })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Dark", exact: true })).toBeVisible();
   });
+
+  test("a menu left open while the app gets wide is closed when it gets narrow again", async ({ page }) => {
+    await openApp(page);
+    await openExampleFromStart(page);
+    await page.getByRole("button", { name: "More", exact: true }).click();
+    await expect(page.getByRole("dialog", { name: "More options" })).toBeVisible();
+    await page.setViewportSize({ width: 900, height: 800 });
+    await expect(page.getByRole("button", { name: "More", exact: true })).toHaveCount(0);
+    await page.setViewportSize({ width: 420, height: 800 });
+    await expect(page.getByRole("button", { name: "More", exact: true })).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "More options" })).toBeHidden();
+  });
+});
+
+test.describe("German at 375 px", () => {
+  test.use({ locale: "de-DE", viewport: { width: 375, height: 700 } });
+
+  test("view switch, undo, redo and More share one line", async ({ page }) => {
+    await openApp(page);
+    await openExampleFromStart(page);
+    const names = ["Kacheln", "Rückgängig", "Wiederholen", "Mehr"];
+    const tops: number[] = [];
+    for (const name of names) {
+      const box = await page.getByRole("button", { name, exact: true }).boundingBox();
+      expect(box, name).not.toBeNull();
+      tops.push(Math.round(box!.y));
+    }
+    expect(new Set(tops).size, `tops ${tops.join(", ")}`).toBe(1);
+  });
+});
+
+test.describe("shortcuts", () => {
+  test.use({ locale: "en-US", viewport: { width: 1100, height: 800 } });
+
+  test("a held key toggles once", async ({ page }) => {
+    await openApp(page);
+    await openExampleFromStart(page);
+    const columns = page.getByRole("button", { name: "Columns", exact: true });
+    await page.keyboard.down("v");
+    await page.keyboard.down("v"); // auto-repeat: down again without up
+    await page.keyboard.up("v");
+    await expect(columns).toHaveAttribute("aria-pressed", "true");
+    await page.keyboard.press("v");
+    await expect(columns).toHaveAttribute("aria-pressed", "false");
+
+  });
 });
 
 test.describe("on a touch device", () => {
@@ -136,6 +182,17 @@ test.describe("on a touch device", () => {
     expect(await page.evaluate(() => matchMedia("(pointer: coarse)").matches)).toBe(true);
     await page.getByRole("button", { name: "More", exact: true }).tap();
     await expect(page.locator("dialog[open]")).toBeVisible();
+    // Shortcuts wait while the modal sheet is open.
+    await page.keyboard.press("v");
+    await expect(page.getByRole("button", { name: "Columns", exact: true })).toHaveAttribute("aria-pressed", "false");
+    // Tap targets are at least 40 px on touch.
+    await page.keyboard.press("Escape");
+    const undo = await page.getByRole("button", { name: "Undo", exact: true }).boundingBox();
+    expect(undo!.width).toBeGreaterThanOrEqual(40);
+    expect(undo!.height).toBeGreaterThanOrEqual(40);
+    await page.getByRole("button", { name: "More", exact: true }).tap();
+    const weeks = await page.getByRole("checkbox", { name: "Calendar weeks" }).locator("xpath=..").boundingBox();
+    expect(weeks!.height).toBeGreaterThanOrEqual(40);
     await expect(page.locator("[popover]:popover-open")).toHaveCount(0);
     await expectNoPageProblems(page);
   });

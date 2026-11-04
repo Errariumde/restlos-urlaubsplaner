@@ -11,18 +11,29 @@ SPDX-License-Identifier: EUPL-1.2
   const COMPACT_BELOW = 520;
 
   let width = $state<number>();
+  let heading = $state<HTMLHeadingElement>();
+
+  // The main screen has just replaced the start screen: the focus would otherwise be lost with the old button.
+  $effect(() => heading?.focus());
   const compact = $derived(width !== undefined && width < COMPACT_BELOW);
 
   /** Text fields keep their letters; checkboxes and radio buttons are not text input. */
+  const NOT_TEXT = new Set(["button", "submit", "reset", "range", "color", "file", "image", "checkbox", "radio"]);
+
   function takesText(target: EventTarget | null): boolean {
     if (!(target instanceof HTMLElement)) return false;
     if (target.isContentEditable || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return true;
-    return target instanceof HTMLInputElement && target.type !== "checkbox" && target.type !== "radio";
+    return target instanceof HTMLInputElement && !NOT_TEXT.has(target.type);
   }
 
   function onkeydown(event: KeyboardEvent): void {
     if (event.defaultPrevented || takesText(event.target)) return;
-    switch (shortcut(event)) {
+    // A modal dialog (the sheet) owns the keyboard while it is open.
+    if (document.querySelector("dialog[open]")) return;
+    const action = shortcut(event);
+    // Holding a toggle key must not flip it back and forth; undo and redo may repeat.
+    if (event.repeat && action !== "undo" && action !== "redo") return;
+    switch (action) {
       case "undo":
         event.preventDefault();
         if (app.state?.canUndo) void app.undo();
@@ -47,5 +58,5 @@ SPDX-License-Identifier: EUPL-1.2
 <svelte:window {onkeydown} />
 
 <div class="screen" bind:clientWidth={width}>
-  <Toolbar {compact} />
+  <Toolbar {compact} bind:heading />
 </div>

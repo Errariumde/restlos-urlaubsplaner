@@ -19,9 +19,11 @@ SPDX-License-Identifier: EUPL-1.2
     compact: boolean;
     /** Open the More menu as a sheet (true) or a popover (false). Unset: a sheet on touch devices. */
     sheet?: boolean;
+    /** The title element, for the screen to focus after it replaces the start screen. */
+    heading?: HTMLHeadingElement | undefined;
   }
 
-  let { compact, sheet }: Props = $props();
+  let { compact, sheet, heading = $bindable() }: Props = $props();
 
   const meta = $derived(app.state?.meta);
   const title = $derived(meta?.name !== undefined ? textFor(meta.name, i18n.lang) : i18n.t("app.name"));
@@ -41,21 +43,22 @@ SPDX-License-Identifier: EUPL-1.2
     });
   });
 
-  let heading = $state<HTMLHeadingElement>();
-  // The main screen has just replaced the start screen: the focus would otherwise be lost with the old button.
-  $effect(() => heading?.focus());
-
   let moreButton = $state<HTMLButtonElement>();
   let moreOpen = $state(false);
   let moreAsSheet = $state(false);
+
+  // The menu only exists in the compact bar.
+  const menuOpen = $derived(compact && moreOpen);
+
+  // Widening the app closes the menu for good: narrowing again must not bring it back.
+  $effect(() => {
+    if (!compact) moreOpen = false;
+  });
 
   function openMore(): void {
     moreAsSheet = sheet ?? matchMedia("(pointer: coarse)").matches;
     moreOpen = !menuOpen;
   }
-
-  // The menu only exists in the compact bar; it closes when the app gets wide.
-  const menuOpen = $derived(compact && moreOpen);
 
   const MODES = ["light", "dark", "auto"] as const;
   const LANGUAGES = ["de", "en"] as const;
@@ -101,7 +104,7 @@ SPDX-License-Identifier: EUPL-1.2
   <Segmented label={i18n.t("toolbar.language")} options={languageOptions} value={i18n.locale === "de" ? "de" : "en"} onchange={setLanguage} />
 {/snippet}
 
-<header class="bar">
+<header class="bar" class:compact>
   <div class="title">
     <h1 bind:this={heading} tabindex="-1">{title}</h1>
     {#if meta}
@@ -112,7 +115,7 @@ SPDX-License-Identifier: EUPL-1.2
     {/if}
   </div>
   <div class="tools" role="toolbar" aria-label={i18n.t("toolbar.label")}>
-    <Segmented label={i18n.t("toolbar.view")} options={viewOptions} value={app.view} onchange={setView} />
+    <Segmented label={i18n.t("toolbar.view")} options={viewOptions} value={app.view} iconOnly={compact} onchange={setView} />
     {#if !compact}
       {@render weeksAndAlign()}
     {/if}
@@ -174,6 +177,11 @@ SPDX-License-Identifier: EUPL-1.2
     .period,
     .note {
       color: var(--r-text-muted);
+    }
+
+    .bar.compact .tools {
+      flex: 1 1 100%;
+      justify-content: space-between;
     }
 
     .tools {
