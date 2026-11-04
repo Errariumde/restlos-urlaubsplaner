@@ -8,3 +8,9 @@ declare module "virtual:restlos-worker" {
   const source: string;
   export default source;
 }
+
+/** A file's text (`import text from "./x.svg?raw"`), used for the icons. */
+declare module "*?raw" {
+  const text: string;
+  export default text;
+}

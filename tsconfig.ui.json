@@ -6,6 +6,6 @@
     "allowJs": true,
     "checkJs": true
   },
-  "include": ["src/ui", "src/ui/**/*.svelte", "e2e", "scripts/build", "vite.config.ts", "playwright.config.ts"],
+  "include": ["src/ui", "src/ui/**/*.svelte", "src/gallery", "src/gallery/**/*.svelte", "e2e", "scripts/build", "vite.config.ts", "playwright.config.ts"],
   "exclude": []
 }

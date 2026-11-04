@@ -36,3 +36,33 @@ path = ["tests/reference/python-holidays-de.json", "tests/perf/baseline.json"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The restlos-urlaubsplaner authors"
 SPDX-License-Identifier = "EUPL-1.2"
+
+# Lucide icons, copied from lucide-static 1.60.0 (npm pack). Their LICENSE: ISC for Lucide, MIT for the
+# icons derived from Feather (docs/SPEC.md, "Licensing").
+[[annotations]]
+path = ["src/ui/icons/*.svg"]
+precedence = "override"
+SPDX-FileCopyrightText = "2026 Lucide Icons and Contributors"
+SPDX-License-Identifier = "ISC"
+
+# The Feather-derived ones among them (check, columns-3 was "columns", ellipsis was "more-horizontal",
+# moon, triangle-alert was "alert-triangle", x).
+[[annotations]]
+path = ["src/ui/icons/check.svg", "src/ui/icons/columns-3.svg", "src/ui/icons/ellipsis.svg", "src/ui/icons/moon.svg", "src/ui/icons/triangle-alert.svg", "src/ui/icons/x.svg"]
+precedence = "override"
+SPDX-FileCopyrightText = ["2013-present Cole Bemis", "2026 Lucide Icons and Contributors"]
+SPDX-License-Identifier = "ISC AND MIT"
+
+# Gallery-only message catalogs (dev only, not in the build).
+[[annotations]]
+path = ["src/gallery/i18n/*.json"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 The restlos-urlaubsplaner authors"
+SPDX-License-Identifier = "EUPL-1.2"
+
+# Screenshot baselines of the end-to-end tests.
+[[annotations]]
+path = ["e2e/__screenshots__/**"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 The restlos-urlaubsplaner authors"
+SPDX-License-Identifier = "EUPL-1.2"

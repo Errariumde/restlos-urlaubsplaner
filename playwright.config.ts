@@ -22,6 +22,8 @@ export default defineConfig({
   forbidOnly: true,
   retries: 0,
   reporter: "list",
+  // Screenshot baselines are committed (e2e/__screenshots__/<spec>/<name>-<browser>-<platform>.png).
+  snapshotPathTemplate: "{testDir}/__screenshots__/{testFilePath}/{arg}-{projectName}-{platform}{ext}",
   use: { launchOptions: { env } },
   projects: [
     { name: "firefox", use: { ...devices["Desktop Firefox"], viewport } },

@@ -15,6 +15,7 @@
     "gallery": "vite --mode gallery",
     "test": "vitest run --dir tests",
     "test:e2e": "npm run build && npm run build:gallery && playwright test",
+    "test:e2e:update": "npm run build && npm run build:gallery && playwright test --update-snapshots=all",
     "plan": "node --import ./scripts/ts-hooks.js scripts/plan.js",
     "perf": "node --import ./scripts/ts-hooks.js scripts/perf.js",
     "nixos-release": "node --import ./scripts/ts-hooks.js scripts/nixos-release.js",

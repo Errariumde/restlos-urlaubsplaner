@@ -155,3 +155,11 @@ function exampleData(): Plugin {
 export function restlos(): Plugin[] {
   return [engineWorker(), exampleData(), cspAndSize()];
 }
+
+/**
+ * The plugins of the component gallery (dev only, not the app): the worker and the example, so gallery
+ * sections can run the real engine, but no CSP and no single-file checks.
+ */
+export function restlosGallery(): Plugin[] {
+  return [engineWorker(), exampleData()];
+}
