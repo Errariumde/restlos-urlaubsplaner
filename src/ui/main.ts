@@ -19,7 +19,7 @@ export default mount(App, { target });
 
 // Until the start screen exists (Task 8), the engine opens the example right away; the e2e test waits on
 // `data-engine="ready"`.
-const engine = startEngine(workerSource);
+const engine = startEngine(workerSource, (url) => new Worker(url));
 engine.open(example, true).then(
   () => (document.body.dataset["engine"] = "ready"),
   (error: unknown) => {

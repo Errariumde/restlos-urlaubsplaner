@@ -71,11 +71,13 @@ const SCRIPT_BREAKER = /<(?:\/?script|!--)/i;
  */
 function engineWorker(): Plugin {
   let root: string | undefined;
+  let mode: string | undefined;
   let target: ResolvedConfig["build"]["target"] = false;
   return {
     name: "restlos:engine-worker",
     configResolved(config) {
       root = config.root;
+      mode = config.mode;
       target = config.build.target;
     },
     resolveId(id) {
@@ -87,6 +89,7 @@ function engineWorker(): Plugin {
       const output = await build({
         configFile: false,
         root,
+        ...(mode === undefined ? {} : { mode }),
         logLevel: "warn",
         publicDir: false,
         build: {

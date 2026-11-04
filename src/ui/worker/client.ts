@@ -7,14 +7,22 @@
 // state (Review Focus 2).
 import type { Hint, LeaveChange, PlanState, Request, Response } from "./protocol.ts";
 
+/**
+ * A handler type that TypeScript compares bivariantly, like a method, so that the DOM's `Worker` (whose
+ * handlers take a `MessageEvent` or an `ErrorEvent`) fits this interface.
+ */
+type Handler<T> = { bivariant(event: T): void }["bivariant"];
+
 /** What the client needs of a worker; a `Worker` in the browser, a fake in the tests. */
 export interface EngineWorker {
-  onmessage: ((event: { readonly data: Response }) => void) | null;
-  onerror: ((event: unknown) => void) | null;
+  onmessage: Handler<{ readonly data: Response }> | null;
+  onerror: Handler<unknown> | null;
+  onmessageerror: Handler<unknown> | null;
   postMessage(message: Request): void;
   terminate(): void;
 }
 
+/** Starts a classic worker from a URL; in the page `(url) => new Worker(url)`. */
 export type MakeWorker = (url: string) => EngineWorker;
 
 export interface Engine {
@@ -28,17 +36,21 @@ export interface Engine {
 }
 
 /**
- * The browser objects the client uses. The client is also type-checked without the DOM types (its tests
- * run in Node), so it names only what it needs.
+ * The browser objects the client uses for the `blob:` URL. The client is also type-checked without the DOM
+ * types (its tests run in Node), so it names only what it needs.
  */
 interface Browser {
-  readonly Worker: new (url: string) => EngineWorker;
   readonly Blob: new (parts: string[], options: { type: string }) => object;
   readonly URL: { createObjectURL(blob: object): string; revokeObjectURL(url: string): void };
 }
 const browser = globalThis as unknown as Browser;
 
-const newWorker: MakeWorker = (url) => new browser.Worker(url);
+/**
+ * Plain copies of the changes. The caller may hand in reactive proxies or objects with extra fields, which
+ * `postMessage` can't clone (DataCloneError) or would copy needlessly.
+ */
+const plain = (changes: readonly LeaveChange[]): LeaveChange[] =>
+  changes.map(({ day, take, part }) => (part === undefined ? { day, take } : { day, take, part }));
 
 interface Pending {
   readonly id: number;
@@ -53,8 +65,10 @@ interface WaitingPreview {
   readonly reject: (error: Error) => void;
 }
 
+const asError = (error: unknown): Error => (error instanceof Error ? error : new Error(String(error)));
+
 /** Starts the engine worker from its source code: a classic worker from a `blob:` URL (docs/SPEC.md, "Worker"). */
-export function startEngine(source: string, makeWorker: MakeWorker = newWorker): Engine {
+export function startEngine(source: string, makeWorker: MakeWorker): Engine {
   const url = browser.URL.createObjectURL(new browser.Blob([source], { type: "text/javascript" }));
   const worker = makeWorker(url);
   /** The requests sent and not yet resolved, in send order. */
@@ -91,9 +105,21 @@ export function startEngine(source: string, makeWorker: MakeWorker = newWorker):
     }
   };
 
+  /**
+   * Sends the request. A message that can't be sent rejects only its own call: its entry leaves the
+   * queue, so later requests still resolve.
+   */
   const send = (request: Request, resolve: Pending["resolve"], reject: Pending["reject"]): void => {
-    pending.push({ id: request.id, resolve, reject });
-    worker.postMessage(request);
+    const entry: Pending = { id: request.id, resolve, reject };
+    pending.push(entry);
+    try {
+      worker.postMessage(request);
+    } catch (error) {
+      pending.splice(pending.indexOf(entry), 1);
+      if (previewInFlight === request.id) previewInFlight = undefined;
+      reject(asError(error));
+      flush();
+    }
   };
 
   const sendPreview = (changes: readonly LeaveChange[], resolve: (hint: Hint | undefined) => void, reject: (error: Error) => void): void => {
@@ -102,8 +128,12 @@ export function startEngine(source: string, makeWorker: MakeWorker = newWorker):
     send({ id, type: "preview", changes }, (value) => resolve(value as Hint | undefined), reject);
   };
 
-  const failAll = (error: Error): void => {
-    stopped ??= error;
+  /** Ends the engine: the worker and its URL go, and every open call is answered. */
+  const shutDown = (error: Error): void => {
+    if (stopped) return;
+    stopped = error;
+    worker.terminate();
+    browser.URL.revokeObjectURL(url);
     waiting?.resolve(undefined);
     waiting = undefined;
     previewInFlight = undefined;
@@ -122,7 +152,8 @@ export function startEngine(source: string, makeWorker: MakeWorker = newWorker):
     }
     flush();
   };
-  worker.onerror = () => failAll(new Error("The engine worker failed"));
+  worker.onerror = () => shutDown(new Error("The engine worker failed"));
+  worker.onmessageerror = () => shutDown(new Error("A message from the engine worker couldn't be read"));
 
   const request = (make: (id: number) => Request): Promise<PlanState> =>
     new Promise<PlanState>((resolve, reject) => {
@@ -140,7 +171,10 @@ export function startEngine(source: string, makeWorker: MakeWorker = newWorker):
 
   return {
     open: (text, example) => request((id) => ({ id, type: "open", text, example })),
-    apply: (changes) => request((id) => ({ id, type: "apply", changes })),
+    apply: (changes) => {
+      const copy = plain(changes);
+      return request((id) => ({ id, type: "apply", changes: copy }));
+    },
     undo: () => request((id) => ({ id, type: "undo" })),
     redo: () => request((id) => ({ id, type: "redo" })),
     preview: (changes) =>
@@ -149,18 +183,14 @@ export function startEngine(source: string, makeWorker: MakeWorker = newWorker):
           reject(stopped);
           return;
         }
+        const copy = plain(changes);
         if (previewInFlight === undefined) {
-          sendPreview(changes, resolve, reject);
+          sendPreview(copy, resolve, reject);
           return;
         }
         waiting?.resolve(undefined);
-        waiting = { changes, resolve, reject };
+        waiting = { changes: copy, resolve, reject };
       }),
-    stop: () => {
-      if (stopped) return;
-      worker.terminate();
-      browser.URL.revokeObjectURL(url);
-      failAll(new Error("The engine was stopped"));
-    },
+    stop: () => shutDown(new Error("The engine was stopped")),
   };
 }
