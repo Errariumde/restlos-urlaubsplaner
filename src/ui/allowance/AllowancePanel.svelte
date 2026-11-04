@@ -21,10 +21,16 @@ SPDX-License-Identifier: EUPL-1.2
 
   let { allowance, totals, stretches, showBar = true }: Props = $props();
 
+  // Per instance: the gallery shows several panels on one page.
+  const uid = $props.id();
+  const headingId = `${uid}-stretches`;
+
   const listed = $derived(stretches.filter((stretch) => stretch.listed));
 
   function stretchText(stretch: Stretch): string {
     const locale = i18n.locale;
+    // Only offset 240 (noon) is shown as "from noon" / "until noon": UI v1 has full and half days only, so any
+    // other offset reads as a whole day.
     // The end is exclusive: offset 0 means the stretch ends with the day before.
     const last = stretch.end.offset === 0 ? stretch.end.day - 1 : stretch.end.day;
     return i18n.t("allowance.stretch", {
@@ -61,11 +67,11 @@ SPDX-License-Identifier: EUPL-1.2
   {/if}
 
   <section class="stack" style:--gap="var(--space-2)">
-    <h3 id="allowance-stretches">{i18n.t("allowance.stretches")}</h3>
+    <h3 id={headingId}>{i18n.t("allowance.stretches")}</h3>
     {#if listed.length === 0}
       <p class="muted">{i18n.t("allowance.noStretches")}</p>
     {:else}
-      <ul class="stretches" aria-labelledby="allowance-stretches">
+      <ul class="stretches" aria-labelledby={headingId}>
         {#each listed as stretch (`${String(stretch.start.day)}:${String(stretch.start.offset)}`)}
           <li>{stretchText(stretch)}</li>
         {/each}
@@ -101,11 +107,12 @@ SPDX-License-Identifier: EUPL-1.2
 
     .figures {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: var(--space-3);
     }
 
     dt {
+      overflow-wrap: anywhere;
       color: var(--r-text-muted);
       font-size: var(--font-size-0);
     }

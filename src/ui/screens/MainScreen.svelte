@@ -40,6 +40,13 @@ SPDX-License-Identifier: EUPL-1.2
   const compact = $derived(width !== undefined && width < COMPACT_BELOW);
   const sidebar = $derived(width !== undefined && width >= SIDEBAR_FROM);
 
+  // Crossing a threshold closes the details: they must neither pop up as a modal sheet when the app narrows
+  // nor reappear when it narrows again after being wide. Only these two values are read here, so the effect
+  // doesn't run when the Details button toggles.
+  $effect(() => {
+    if (sidebar || compact) detailsOpen = false;
+  });
+
   /** Text fields keep their letters; checkboxes and radio buttons are not text input. */
   const NOT_TEXT = new Set(["button", "submit", "reset", "range", "color", "file", "image", "checkbox", "radio"]);
 
@@ -93,9 +100,12 @@ SPDX-License-Identifier: EUPL-1.2
         </Button>
       </div>
       <AllowanceBar allowance={meta.allowance} planned={result.totals.planned} />
-      {#if detailsOpen && !compact}
-        <div id="allowance-details">
-          <AllowancePanel allowance={meta.allowance} totals={result.totals} stretches={result.stretches} showBar={false} />
+      {#if !compact}
+        <!-- Always there, so aria-controls points at something; the Sheet takes this id below 520 px. -->
+        <div id="allowance-details" hidden={!detailsOpen}>
+          {#if detailsOpen}
+            <AllowancePanel allowance={meta.allowance} totals={result.totals} stretches={result.stretches} showBar={false} />
+          {/if}
         </div>
       {/if}
     </section>
@@ -106,17 +116,17 @@ SPDX-License-Identifier: EUPL-1.2
     {/if}
   {/if}
   <div class="workspace">
-    {#if app.state && sidebar}
-      <!-- First in the document so the summary comes before the calendar; .panel puts it at the inline end. -->
-      <aside class="panel" aria-label={i18n.t("allowance.label")}>
-        <AllowancePanel allowance={app.state.meta.allowance} totals={app.state.result.totals} stretches={app.state.result.stretches} />
-      </aside>
-    {/if}
     <main class="calendar">
       {#if app.state && app.view === "tiles"}
         <MonthTiles meta={app.state.meta} result={app.state.result} {today} />
       {/if}
     </main>
+    {#if app.state && sidebar}
+      <!-- After the calendar in the document and on screen (at the inline end). -->
+      <aside class="panel" aria-label={i18n.t("allowance.label")}>
+        <AllowancePanel allowance={app.state.meta.allowance} totals={app.state.result.totals} stretches={app.state.result.stretches} />
+      </aside>
+    {/if}
   </div>
 </div>
 
@@ -142,7 +152,6 @@ SPDX-License-Identifier: EUPL-1.2
 
     /* The sidebar sits at the inline end of the workspace, after the calendar. */
     .panel {
-      order: 1;
       flex: 0 0 var(--sidebar-size, 20rem);
       min-inline-size: 0;
       padding: var(--space-4);

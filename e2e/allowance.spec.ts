@@ -6,8 +6,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { dayFromYmd } from "../src/engine/days.ts";
 import { expectNoPageProblems, openApp, openExampleFromStart } from "./helpers.ts";
 
-/** What the engine computes for the example, in days. Pinned by tests/ui/worker/session.test.ts. */
-const PLANNED = 22;
+import { EXAMPLE_PLANNED_DAYS as PLANNED } from "../tests/fixtures/example-planned.ts";
 
 const cell = (page: Page, month: number, day: number): Locator => page.locator(`[data-day="${String(dayFromYmd(2027, month, day))}"]`);
 
@@ -93,6 +92,37 @@ test.describe("at 600 px", () => {
     await expect(page.getByRole("list", { name: "Stretches" })).toBeVisible();
     await details.click();
     await expect(page.getByRole("list", { name: "Stretches" })).toBeHidden();
+    await expectNoPageProblems(page);
+  });
+});
+
+test.describe("when the app narrows", () => {
+  test.use({ locale: "en-GB", viewport: { width: 600, height: 800 } });
+
+  test("expanded details do not open the sheet by themselves", async ({ page }) => {
+    await openApp(page);
+    await openExampleFromStart(page);
+    const details = page.getByRole("button", { name: "Details", exact: true });
+    await details.click();
+    await expect(page.getByRole("list", { name: "Stretches" })).toBeVisible();
+    await page.setViewportSize({ width: 400, height: 800 });
+    await expect(page.getByRole("button", { name: "More", exact: true })).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(details).toHaveAttribute("aria-expanded", "false");
+    // No expectNoPageProblems here: WebKit reports its harmless "ResizeObserver loop completed with
+    // undelivered notifications" when the layout changes under a resize, which the other tests don't do.
+  });
+});
+
+test.describe("at 375 px", () => {
+  test.use({ locale: "en-GB", viewport: { width: 375, height: 800 } });
+
+  test("the page does not scroll sideways", async ({ page }) => {
+    await openApp(page);
+    await openExampleFromStart(page);
+    await expect(page.getByRole("meter")).toBeVisible();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
     await expectNoPageProblems(page);
   });
 });

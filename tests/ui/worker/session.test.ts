@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { dayFromYmd } from "../../../src/engine/days.ts";
 import type { PlanState } from "../../../src/ui/worker/protocol.ts";
+import { EXAMPLE_PLANNED_DAYS } from "../../fixtures/example-planned.ts";
 import { respond, Session } from "../../../src/ui/worker/session.ts";
 
 const example = readFileSync("examples/plans/beispiel-gmbh-2027.urlaub.json", "utf8");
@@ -23,9 +24,9 @@ describe("Session", () => {
     expect(opened.changed).toBe(false);
   });
 
-  // e2e/allowance.spec.ts reads the same number as EXAMPLE_PLANNED_DAYS: change both together.
-  it("plans 22 days of leave in the example", () => {
-    expect(opened.result.totals.planned / 480).toBe(22);
+  // e2e/allowance.spec.ts uses the same constant.
+  it("plans the pinned days of leave in the example", () => {
+    expect(opened.result.totals.planned / 480).toBe(EXAMPLE_PLANNED_DAYS);
   });
 
   it("applies, undoes and redoes a change", () => {
