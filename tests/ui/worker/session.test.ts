@@ -23,6 +23,11 @@ describe("Session", () => {
     expect(opened.changed).toBe(false);
   });
 
+  // e2e/allowance.spec.ts reads the same number as EXAMPLE_PLANNED_DAYS: change both together.
+  it("plans 22 days of leave in the example", () => {
+    expect(opened.result.totals.planned / 480).toBe(22);
+  });
+
   it("applies, undoes and redoes a change", () => {
     const day = june(14); // Monday, a working day
     const after = s.apply([{ day, take: 480 }]);

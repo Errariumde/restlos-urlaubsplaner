@@ -1,0 +1,114 @@
+// SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
+// SPDX-License-Identifier: EUPL-1.2
+
+// The allowance panel: figures, the bar with its overdraft, the stretches and the compact layout.
+import { expect, test, type Locator, type Page } from "@playwright/test";
+import { dayFromYmd } from "../src/engine/days.ts";
+import { expectNoPageProblems, openApp, openExampleFromStart } from "./helpers.ts";
+
+/** What the engine computes for the example, in days. Pinned by tests/ui/worker/session.test.ts. */
+const PLANNED = 22;
+
+const cell = (page: Page, month: number, day: number): Locator => page.locator(`[data-day="${String(dayFromYmd(2027, month, day))}"]`);
+
+async function centre(locator: Locator): Promise<{ x: number; y: number }> {
+  const box = await locator.boundingBox();
+  if (!box) throw new Error("The element has no box");
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
+
+async function drag(page: Page, from: Locator, to: Locator): Promise<void> {
+  await from.scrollIntoViewIfNeeded();
+  const start = await centre(from);
+  const end = await centre(to);
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(end.x, end.y, { steps: 12 });
+  await page.mouse.up();
+}
+
+test.describe("in English at 1280 px", () => {
+  test.use({ locale: "en-GB", viewport: { width: 1280, height: 800 } });
+
+  test.beforeEach(async ({ page }) => {
+    await openApp(page);
+    await openExampleFromStart(page);
+    await expect(page.getByRole("grid", { name: "Calendar" })).toBeVisible();
+  });
+
+  test("the example shows its allowance and what the engine computes", async ({ page }) => {
+    await expect(page.getByTestId("allowance")).toHaveText("30");
+    await expect(page.getByTestId("planned")).toHaveText(String(PLANNED));
+    await expect(page.getByTestId("remaining")).toHaveText(String(30 - PLANNED));
+    await expect(page.getByRole("meter")).toHaveAttribute("aria-valuenow", String(PLANNED * 480));
+    await expect(page.getByRole("complementary", { name: "Allowance" })).toBeVisible();
+    await expectNoPageProblems(page);
+  });
+
+  test("dragging five days lowers the remaining figure by five", async ({ page }) => {
+    await drag(page, cell(page, 6, 14), cell(page, 6, 18));
+    await expect(page.getByTestId("planned")).toHaveText(String(PLANNED + 5));
+    await expect(page.getByTestId("remaining")).toHaveText(String(30 - PLANNED - 5));
+    await expectNoPageProblems(page);
+  });
+
+  test("the stretches and the yearly totals are listed", async ({ page }) => {
+    const stretches = page.getByRole("list", { name: "Stretches" });
+    await expect(stretches.getByRole("listitem").first()).toContainText(/days? off/);
+    await expect(page.getByRole("table", { name: /^Per calendar year/ })).toContainText("2027");
+    await expectNoPageProblems(page);
+  });
+
+  test("planning past the allowance shows the warning and a value above 30", async ({ page }) => {
+    const over = 30 - PLANNED + 2;
+    // Eleven weeks of working days in autumn and winter are more than enough; plan week by week.
+    let planned = 0;
+    for (let week = 0; planned < over; week++) {
+      const monday = dayFromYmd(2027, 9, 6) + week * 7;
+      await drag(page, page.locator(`[data-day="${String(monday)}"]`), page.locator(`[data-day="${String(monday + 4)}"]`));
+      planned += 5;
+      await expect(page.getByTestId("planned")).toHaveText(String(PLANNED + planned));
+    }
+    await expect(page.getByTestId("remaining")).toHaveText(/^[−-]\d/);
+    await expect(page.getByText(/days? over the allowance/)).toBeVisible();
+    const valuenow = Number(await page.getByRole("meter").getAttribute("aria-valuenow"));
+    expect(valuenow).toBeGreaterThan(30 * 480);
+    await expect(page.getByRole("meter")).toHaveAttribute("aria-valuetext", /^\d+ of 30 days planned/);
+    await expectNoPageProblems(page);
+  });
+});
+
+test.describe("at 600 px", () => {
+  test.use({ locale: "en-GB", viewport: { width: 600, height: 800 } });
+
+  test("the compact bar shows and Details expands the panel", async ({ page }) => {
+    await openApp(page);
+    await openExampleFromStart(page);
+    await expect(page.getByRole("meter")).toBeVisible();
+    await expect(page.getByRole("complementary", { name: "Allowance" })).toHaveCount(0);
+    const details = page.getByRole("button", { name: "Details", exact: true });
+    await expect(details).toHaveAttribute("aria-expanded", "false");
+    await details.click();
+    await expect(details).toHaveAttribute("aria-expanded", "true");
+    await expect(page.getByRole("list", { name: "Stretches" })).toBeVisible();
+    await details.click();
+    await expect(page.getByRole("list", { name: "Stretches" })).toBeHidden();
+    await expectNoPageProblems(page);
+  });
+});
+
+test.describe("at 400 px", () => {
+  test.use({ locale: "en-GB", viewport: { width: 400, height: 800 } });
+
+  test("Details opens a sheet", async ({ page }) => {
+    await openApp(page);
+    await openExampleFromStart(page);
+    await page.getByRole("button", { name: "Details", exact: true }).click();
+    const sheet = page.getByRole("dialog", { name: "Allowance" });
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByRole("list", { name: "Stretches" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(sheet).toBeHidden();
+    await expectNoPageProblems(page);
+  });
+});
