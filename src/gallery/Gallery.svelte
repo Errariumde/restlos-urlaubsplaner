@@ -6,6 +6,8 @@ SPDX-License-Identifier: EUPL-1.2
   import { i18n } from "../ui/i18n/i18n.svelte.ts";
   import { allCombinations, SECTIONS, searchFor, type Combination, type Mode, type SectionId } from "./params.ts";
   import ControlsSection from "./sections/ControlsSection.svelte";
+  import DayCellSection from "./sections/DayCellSection.svelte";
+  import MainTilesSection from "./sections/MainTilesSection.svelte";
   import PopoverSection from "./sections/PopoverSection.svelte";
   import SheetSection from "./sections/SheetSection.svelte";
   import ToolbarSection from "./sections/ToolbarSection.svelte";
@@ -33,6 +35,10 @@ SPDX-License-Identifier: EUPL-1.2
         return i18n.t("gallery.section.sheet");
       case "toolbar":
         return i18n.t("gallery.section.toolbar");
+      case "day-cell":
+        return i18n.t("gallery.section.dayCell");
+      case "main-tiles":
+        return i18n.t("gallery.section.mainTiles");
     }
   }
 
@@ -44,7 +50,8 @@ SPDX-License-Identifier: EUPL-1.2
 </script>
 
 {#if combination}
-  <main class="page stack" data-section={combination.section}>
+  <!-- The main screen brings its own main landmark. -->
+  <svelte:element this={combination.section === "main-tiles" ? "div" : "main"} class="page stack" data-section={combination.section}>
     <h1>{sectionTitle(combination.section)}</h1>
     {#if combination.section === "controls"}
       <ControlsSection />
@@ -52,10 +59,14 @@ SPDX-License-Identifier: EUPL-1.2
       <PopoverSection />
     {:else if combination.section === "sheet"}
       <SheetSection />
-    {:else}
+    {:else if combination.section === "toolbar"}
       <ToolbarSection />
+    {:else if combination.section === "day-cell"}
+      <DayCellSection />
+    {:else}
+      <MainTilesSection />
     {/if}
-  </main>
+  </svelte:element>
 {:else}
   <main class="page stack">
     <hgroup class="stack">

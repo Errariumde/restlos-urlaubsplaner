@@ -28,6 +28,8 @@ export default defineConfig({
   projects: [
     { name: "firefox", use: { ...devices["Desktop Firefox"], viewport } },
     { name: "chromium", use: { ...devices["Desktop Chrome"], viewport } },
-    { name: "webkit", use: { ...devices["Desktop Safari"], viewport } },
+    // The dev shell's WebKit paints in software at about two frames a second; with the month tiles on the
+    // screen, opening the plan or resizing takes several seconds when the workers run in parallel.
+    { name: "webkit", use: { ...devices["Desktop Safari"], viewport }, timeout: 90_000, expect: { timeout: 20_000 } },
   ],
 });

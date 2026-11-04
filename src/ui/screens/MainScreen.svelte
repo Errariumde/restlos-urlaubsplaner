@@ -3,9 +3,20 @@ SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 SPDX-License-Identifier: EUPL-1.2
 -->
 <script lang="ts">
+  import type { DayNumber } from "../../engine/days.ts";
+  import HintLine from "../calendar/HintLine.svelte";
+  import MonthTiles from "../calendar/MonthTiles.svelte";
   import { app } from "../state/app.svelte.ts";
   import { shortcut } from "../state/keys.ts";
+  import { today as todayNow } from "../state/today.ts";
   import Toolbar from "./Toolbar.svelte";
+
+  interface Props {
+    /** Today's day number; the gallery fixes it so its screenshots stay the same. */
+    today?: DayNumber;
+  }
+
+  let { today = todayNow() }: Props = $props();
 
   /** Below this width of the app (not of the window) the toolbar moves its less used controls into a menu. */
   const COMPACT_BELOW = 520;
@@ -59,4 +70,30 @@ SPDX-License-Identifier: EUPL-1.2
 
 <div class="screen" bind:clientWidth={width}>
   <Toolbar {compact} bind:heading />
+  <HintLine />
+  <!-- The allowance panel (Task 12) goes next to the calendar area. -->
+  <div class="workspace">
+    <main class="calendar">
+      {#if app.state && app.view === "tiles"}
+        <MonthTiles meta={app.state.meta} result={app.state.result} {today} />
+      {/if}
+    </main>
+  </div>
 </div>
+
+<style>
+  @layer components {
+    .workspace {
+      display: flex;
+      min-inline-size: 0;
+    }
+
+    /* The views switch on this width, not the window's (docs/SPEC.md, "Screen sizes"). */
+    .calendar {
+      flex: 1;
+      min-inline-size: 0;
+      padding: var(--space-4);
+      container: calendar / inline-size;
+    }
+  }
+</style>

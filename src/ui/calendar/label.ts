@@ -11,11 +11,11 @@ import type { PlanMeta } from "../worker/protocol.ts";
 
 export type Translate = (key: string, args?: Record<string, string | number>) => string;
 
-type Kind = "workday" | "weekend" | "holiday" | "halfRequired" | "halfRequiredHoliday" | "free";
-type Leave = "none" | "full" | "half" | "mandatory" | "otherPlan";
+export type CellKind = "workday" | "weekend" | "holiday" | "halfRequired" | "halfRequiredHoliday" | "free";
+export type CellLeave = "none" | "full" | "half" | "mandatory" | "otherPlan";
 
 /** The kind follows the required work: a holiday that is worked is a working day, a working Saturday too. */
-function kindOf(day: DayResult, meta: PlanMeta): Kind {
+export function kindOf(day: DayResult, meta: PlanMeta): CellKind {
   const holiday = day.facts.holidays.length > 0;
   const required = day.required.value;
   if (required === 0) {
@@ -27,7 +27,8 @@ function kindOf(day: DayResult, meta: PlanMeta): Kind {
   return "workday";
 }
 
-function leaveOf(day: DayResult): Leave {
+/** The leave a cell shows: own leave wins over mandatory leave, which wins over leave from another plan. */
+export function leaveOf(day: DayResult): CellLeave {
   if (day.leave.some((piece) => piece.kind === "own" && piece.take > 0)) {
     return day.evaluation.ownCost >= day.required.value ? "full" : "half";
   }

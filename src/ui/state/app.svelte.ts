@@ -66,10 +66,13 @@ class App {
     this.state = await this.#engineNow().apply($state.snapshot(changes));
   }
 
-  /** Shows what the changes would do, unless a newer request made the hint stale. */
-  async preview(changes: readonly LeaveChange[]): Promise<void> {
+  /**
+   * Shows what the changes would do, unless a newer request made the hint stale or `current` says the
+   * gesture that asked for it is over (a drag that ended while the worker was still computing).
+   */
+  async preview(changes: readonly LeaveChange[], current: () => boolean = () => true): Promise<void> {
     const hint = await this.#engineNow().preview($state.snapshot(changes));
-    if (hint !== undefined) this.hint = hint;
+    if (hint !== undefined && current()) this.hint = hint;
   }
 
   async undo(): Promise<void> {
