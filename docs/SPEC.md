@@ -421,14 +421,16 @@ Day number and weekday abbreviation are always shown; the detail view shows ever
 
 ### Screen sizes
 
-The **views** switch on the **width of the calendar area** (container queries), not of the whole window. The **allowance layout** (sidebar or top bar) switches on the **width of the app's main container**, because the sidebar takes its width from the calendar area and a rule on the calendar area would be circular. The calendar widths in the table decide the views; the Allowance column follows from the app's width at the same breakpoints:
+The **views** switch on the **width of the calendar area** (container queries), not of the whole window. The **allowance layout** (sidebar or top bar) switches on the **width of the app's main container**, because the sidebar takes its width from the calendar area and a rule on the calendar area would be circular. The table uses the same breakpoints for both: the view columns read them as the calendar area's width, the Allowance column as the app's width. The sidebar has a fixed width (20rem); the calendar area gets the rest.
 
-| Calendar width | Month tiles | Month columns | Allowance |
+| Width (views: calendar area; allowance: app) | Month tiles | Month columns | Allowance |
 | --- | --- | --- | --- |
-| ≥ 1100 px | 4 months per row | all columns (up to 13) | sidebar on the right |
-| 800–1099 px | 3 per row | scroll horizontally, day column fixed | sidebar on the right, narrow |
+| ≥ 1100 px | 4 months per row | all columns (up to 13) | sidebar at the inline end |
+| 800–1099 px | 3 per row | scroll horizontally, day column fixed | sidebar at the inline end |
 | 520–799 px | 2 per row | 6 columns visible | compact bar at the top, expandable |
 | < 520 px | 1 per row (**default on phones**) | 3 columns visible | compact bar at the top, details as a bottom sheet |
+
+The allowance and the hint line stay in view while the page scrolls: the compact bar with the hint line under it sticks to the top of the window; beside the sidebar, which sticks too, the hint line sticks to the top of the calendar area. In the selection mode the hint line moves into the action bar at the bottom.
 
 Minimum size for tap targets on touch devices: 40 × 40 px.
 
@@ -450,7 +452,7 @@ With "From rule set", country, region, local rules and day rules come from the r
   - **Drag to paint a range:** pressing on a day and dragging previews the range, and the hint line shows the working days, the cost, the resulting stretch and the remaining allowance. Releasing applies it. Starting on a day with own leave removes leave instead.
   - A click on a **week number** sets the days of that week with required work, clipped to the plan period, or removes them when all are set.
   - Right-click = detail view (see below), with half day, note and change of required work for this date.
-- **Touch:** tap = full on/off; long press = detail view. Ranges only in the **selection mode** (button in the bar), so that swiping to scroll and dragging to select don't collide. In it, both a drag and two taps (first and last day) select a range. An action bar confirms it: Full day, Half day, Remove, Cancel.
+- **Touch:** tap = full on/off; long press = detail view. Ranges only in the **selection mode** (button in the bar), so that swiping to scroll and dragging to select don't collide. In it, both a drag and two taps (first and last day) select a range, and a tap on a week number selects that week's days with required work in the plan period. Nothing changes until an action bar confirms it: Full day, Half day, Remove, Cancel.
 - **Keyboard:** the calendar is one widget with one Tab stop (ARIA grid, roving tabindex); arrow keys, Home/End and PageUp/PageDown move inside it. Shift+arrow grows a visible selection; Space sets full days, H half days and Delete removes leave on the selection (on a single cell: Space = full, H = half). Ctrl+Z/Ctrl+Y.
 - **Range rules** (one function for drag, Shift-click, week click, keyboard and touch ranges):
   - **Setting** puts a full day on every day in the range that has required work above 0, lies in the plan period, is not mandatory leave and is not covered by "Leave from another plan". Half days in the range become full days. Days with ½ required work (24 and 31 Dec) get a full day and cost ½, the same as a click.
