@@ -21,7 +21,7 @@
     "lint": "eslint .",
     "typecheck": "tsc && svelte-check --tsconfig ./tsconfig.ui.json --fail-on-warnings",
     "reference:python": "python3 scripts/python-holidays-reference.py tests/reference/python-holidays-de.json",
-    "check": "npm run lint && npm run typecheck && npm test && npm run perf && node --import ./scripts/ts-hooks.js scripts/check-catalogs.js && reuse lint"
+    "check": "npm run lint && npm run typecheck && npm test && npm run perf && node --import ./scripts/ts-hooks.js scripts/check-catalogs.js && node --import ./scripts/ts-hooks.js scripts/check-css.js && reuse lint"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

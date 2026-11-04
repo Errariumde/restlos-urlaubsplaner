@@ -1,0 +1,32 @@
+/* SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors */
+/* SPDX-License-Identifier: EUPL-1.2 */
+
+@layer base {
+  html {
+    /* light-dark() needs this. The mode setting replaces it with `light` or `dark`. */
+    color-scheme: light dark;
+  }
+
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+    font-size: var(--font-size-2);
+    line-height: 1.5;
+    background: var(--r-surface);
+    color: var(--r-text);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--r-focus);
+    outline-offset: 2px;
+  }
+
+  @media (forced-colors: active) {
+    * {
+      border-color: CanvasText;
+    }
+
+    :focus-visible {
+      outline-color: Highlight;
+    }
+  }
+}
