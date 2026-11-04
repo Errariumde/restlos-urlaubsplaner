@@ -48,6 +48,13 @@ describe("formatDate", () => {
     expect(formatDate(dayFromYmd(2027, 3, 7), "de", "month")).toBe("März");
   });
 
+  it("has a short month and a short month with the year", () => {
+    expect(formatDate(dayFromYmd(2027, 1, 1), "en", "monthShort")).toBe("Jan");
+    expect(formatDate(dayFromYmd(2027, 5, 1), "de", "monthShort")).toBe("Mai");
+    expect(formatDate(dayFromYmd(2027, 12, 1), "en", "monthYear")).toBe("Dec 2027");
+    expect(formatDate(dayFromYmd(2027, 3, 1), "de", "monthYear")).toBe("März 2027");
+  });
+
   it("formats the pseudo-locales like English", () => {
     expect(formatDate(dayFromYmd(2027, 5, 7), "en-XA", "long")).toBe("Friday, 7 May 2027");
   });

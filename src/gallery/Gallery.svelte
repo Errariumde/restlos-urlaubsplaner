@@ -8,6 +8,7 @@ SPDX-License-Identifier: EUPL-1.2
   import ControlsSection from "./sections/ControlsSection.svelte";
   import PopoverSection from "./sections/PopoverSection.svelte";
   import SheetSection from "./sections/SheetSection.svelte";
+  import ToolbarSection from "./sections/ToolbarSection.svelte";
 
   /** One section in one locale and mode (from the URL), or undefined for the overview of all of them. */
   let { combination }: { combination: Combination | undefined } = $props();
@@ -30,6 +31,8 @@ SPDX-License-Identifier: EUPL-1.2
         return i18n.t("gallery.section.popover");
       case "sheet":
         return i18n.t("gallery.section.sheet");
+      case "toolbar":
+        return i18n.t("gallery.section.toolbar");
     }
   }
 
@@ -47,8 +50,10 @@ SPDX-License-Identifier: EUPL-1.2
       <ControlsSection />
     {:else if combination.section === "popover"}
       <PopoverSection />
-    {:else}
+    {:else if combination.section === "sheet"}
       <SheetSection />
+    {:else}
+      <ToolbarSection />
     {/if}
   </main>
 {:else}

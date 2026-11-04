@@ -4,7 +4,7 @@
 import type { Locale } from "../ui/i18n/locale.ts";
 
 /** The gallery's sections. Later tasks add the day cell, the hint line, the allowance panel and the main screen. */
-export const SECTIONS = ["controls", "popover", "sheet"] as const;
+export const SECTIONS = ["controls", "popover", "sheet", "toolbar"] as const;
 export type SectionId = (typeof SECTIONS)[number];
 
 export const LOCALES: readonly Locale[] = ["de", "en", "en-XA", "en-XB"];

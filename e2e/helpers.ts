@@ -50,6 +50,12 @@ export async function openApp(page: Page): Promise<void> {
   await open(page, APP_URL);
 }
 
+/** Clicks the start screen's only button, which opens the built-in example, and waits for the main screen. */
+export async function openExampleFromStart(page: Page): Promise<void> {
+  await page.getByRole("button").click();
+  await expect(page.getByRole("heading", { level: 1 })).not.toHaveText("restlos");
+}
+
 /** Opens the built gallery on one section, locale and mode (`?section=…&locale=…&mode=…`), or on the overview. */
 export async function openGallery(page: Page, params: { section: string; locale: string; mode: string } | undefined): Promise<void> {
   const search = params ? `?${new URLSearchParams(params).toString()}` : "";
