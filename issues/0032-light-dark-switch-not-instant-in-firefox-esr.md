@@ -1,10 +1,10 @@
 ---
-status: open
+status: done
 priority:
 area: UI
-branch:
+branch: ui
 created: 2026-11-04
-closed:
+closed: 2026-11-05
 ---
 <!--
 SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
@@ -63,7 +63,7 @@ Fix: the reset uses `transition-duration: 0s` and `transition-delay: 0s`, which 
 ## Acceptance criteria
 
 - A profile of the switch in ESR on the maintainer's machine shows where the time goes. (Done: the transitions above.)
-- The maintainer confirms the switch is visibly faster, with no change to how the page looks in either mode.
+- The maintainer confirms the switch is visibly faster, with no change to how the page looks in either mode. (Done 2026-11-05: instant in ESR.)
 
 ## Notes
 
