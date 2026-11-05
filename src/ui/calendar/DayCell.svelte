@@ -214,7 +214,7 @@ SPDX-License-Identifier: EUPL-1.2
     }
 
     .leave-mandatory .fill {
-      background: repeating-linear-gradient(45deg, var(--r-mandatory) 0 4px, color-mix(in oklab, var(--r-mandatory) 72%, var(--r-text)) 4px 7px);
+      background: repeating-linear-gradient(45deg, var(--r-mandatory) 0 4px, var(--r-mandatory-stripe) 4px 7px);
     }
 
     .leave-full,
@@ -405,12 +405,12 @@ SPDX-License-Identifier: EUPL-1.2
     }
 
     .cell.previewed:not(.leave-full, .leave-mandatory) .fill {
-      background: color-mix(in oklab, var(--r-leave-full) 35%, transparent);
+      background: var(--r-preview);
     }
 
     /* A drag that removes leave (the grid has .removing) hatches what goes. */
     :global(.removing) .cell.previewed .fill {
-      background: repeating-linear-gradient(-45deg, transparent 0 3px, color-mix(in oklab, var(--r-overdraft) 55%, transparent) 3px 5px);
+      background: repeating-linear-gradient(-45deg, transparent 0 3px, var(--r-overdraft-hatch) 3px 5px);
     }
 
     :global(.removing) .previewed {

@@ -17,40 +17,42 @@ SPDX-License-Identifier: CC-BY-4.0
 
 In the maintainer's manual check (Firefox ESR 153, Linux desktop, wide HiDPI window, UI branch task 16) switching between light and dark mode takes a visible fraction of a second, and the page repaints in parts instead of all at once.
 
-## Context
+## Cause
 
-- The switch is one write of `document.documentElement.style.colorScheme` (`src/ui/App.svelte`). Every colour is a `light-dark()` token (`src/ui/styles/tokens.css`, 37 of them). The UI has no CSS transitions.
-- Only `App.svelte` (that write) and the toolbar's mode control read `app.mode`. No cell or calendar component re-renders on a switch.
-- The day cells paint their day types with gradients: `repeating-linear-gradient` hatches (weekend, mandatory leave, overdraft), `radial-gradient` dots (holidays), split half-day gradients and `color-mix()` (`src/ui/calendar/DayCell.svelte`). The example plan has about 2,100 elements in the tiles view.
+An earlier version of this issue concluded from headless runs that the cost was not in our code. That was wrong. The maintainer's console measurements in ESR 153 (main screen, tiles view, example plan, devtools open, 2026-11-05):
 
-Measured in Playwright's headless Firefox and Chromium (1280 × 800 and 2100 × 1700, the example plan, median of 21 switches, for diagnosis only):
+| Test | Style (forced flush) | Until the next frame |
+|---|---|---|
+| `style.colorScheme` on `<html>`, every colour a `light-dark()` token with `oklch(… calc(var(--nk) …) var(--nh))` | ~90 ms | ~190 ms |
+| Same page, a custom property change without any colour change | ~17 ms | – |
+| All 39 `--r-*` tokens overridden with plain resolved `rgb()` values per mode, then the switch | ~45 ms | ~80 ms |
+| `content-visibility: auto` on the month tiles | worse (~150 / ~260) | – |
 
-| Case | Firefox: style + layout | Chromium: style + layout | Two frames after the write |
-|---|---|---|---|
-| Start screen (16 elements) | 1 ms | 0.4 ms | 33–34 ms (frame cadence) |
-| Tiles view | 7–8 ms | 7–8 ms | 33–40 ms |
-| Tiles, all `background-image`s off | 8 ms | 8–9 ms | 33–42 ms |
-| Tiles, all shadows off | 7–8 ms | 7 ms | 33–39 ms |
-| Calendar `display: none` | 2–3 ms | 1 ms | 33 ms |
-| Columns view | 10–11 ms | 21 ms | 33–50 ms |
-| Clicking the toolbar's Dark/Light button | | | 30–34 ms |
+So about three quarters of the style time went into resolving the colour tokens on every element, and plain per-mode values halve both the style time and the time to the next frame. Firefox's style engine lead notes that restyles after custom property changes are slow and much of the cost is painting (bug 1417970); design systems commonly switch plain values per mode instead of resolving `light-dark()` on every element.
 
-"Style + layout" is the time from the write to a forced `getComputedStyle()` and `offsetHeight`. "Two frames" waits for two `requestAnimationFrame`s, so 33 ms is the headless frame rate, not work.
+## What changed (UI branch, 2026-11-05)
 
-The page's own work for a switch is about 10 ms: style recalculation of the calendar's elements. Taking the gradients out doesn't change it, and the click on the Svelte control costs no more than the bare write. What the maintainer sees most likely comes after the main thread: rasterizing and compositing the newly coloured page (WebRender), which headless runs at device scale 1 don't show. The partial repaint fits tile-by-tile rasterization of a large HiDPI window.
+- `src/ui/styles/tokens.css` holds a finished value per role and mode: light on `:root`, dark under `:root[data-scheme="dark"]`. No `light-dark()`, no `calc(var(--nk) …)`/`var(--nh)` inside colour values; the D11 knobs are baked in (nh = 0, nk = 0) and each neutral names its chroma factor in a comment.
+- The three `color-mix()` uses in `DayCell.svelte` (mandatory stripe, previewed range, removal hatch) are tokens with precomputed per-mode values (`--r-mandatory-stripe`, `--r-preview`, `--r-overdraft-hatch`).
+- `src/ui/scheme.ts` sets `data-scheme` and `color-scheme` on `<html>` (App.svelte from `app.mode`, the gallery from its mode parameter); "auto" follows `matchMedia("(prefers-color-scheme: dark)")` including live changes.
+- Registered tokens (`@property --r-… { syntax: "<color>" }`) were measured too and were not faster, so they were left out.
+
+Headless Firefox ESR 153 through Playwright's BiDi driver (1280 × 800 and 2100 × 1700, example plan, tiles, 2,083 elements; per switch, mean of 100 forced style flushes, three runs each; for diagnosis only, no timing test is committed):
+
+| Variant | Switch | Control: custom property change without a colour |
+|---|---|---|
+| Before (`light-dark()` + `--nk`/`--nh` + `color-mix()`) | 5.3–6.7 ms (mean 5.6) | 4.3–5.3 ms (mean 4.6) |
+| Plain values per mode (kept) | 4.6–4.9 ms (mean 4.7) | 3.9–5.1 ms (mean 4.1) |
+| Plain values, registered with `@property` | 4.7–6.0 ms (mean 5.2) | 4.1–4.9 ms (mean 4.4) |
+| `@property` with `light-dark()` and `--nk` kept | 4.8–5.6 ms (mean 5.2) | – |
+
+Headless runs show only a small part of what the maintainer sees (no devtools, no GPU painting; the frame time is the 33 ms headless frame cadence in every variant), but the colour-specific part above the control fell from about 1 ms to about 0.6 ms.
 
 ## Acceptance criteria
 
-- The cause in ESR is known from a profile, not guessed.
-- If it is raster cost of our backgrounds: the switch is visibly instant in ESR on the maintainer's machine, with no change to how the cells look in either mode.
-- If it is the browser or the graphics setup: this issue records it and is closed without a code change.
+- The maintainer re-measures the switch in ESR on their machine (pending) and confirms it is visibly faster, with no change to how the page looks in either mode.
 
 ## Notes
 
-Options, in order:
-
-1. Maintainer: open `about:support` in ESR and check "Compositing" (WebRender vs. Software WebRender). Software WebRender on a large HiDPI window would explain it by itself.
-2. Maintainer: record the switch with the Firefox Profiler (preset "Graphics") and look at the time in the Renderer/RenderBackend threads and at which display items rasterize slowly.
-3. If the profile points at the gradients: draw the hatches and dots as small tiled images instead (SVG `data:` URLs are allowed by the CSP `img-src data:`) in one shared custom property per pattern, so the raster cache reuses one tile; or drop the hatch on cells that are off screen with `content-visibility: auto` on the month tiles. Both keep the look, and both need new screenshot baselines.
-4. Related: in the same check ESR painted the month columns' week markers once in an intermediate place, probably before their per-cell container queries were resolved (task 16 removed those queries). A profile of the switch may show the same kind of split paint of a large page.
-5. Don't add a transition to hide it: it would make the switch slower, and it is not wanted (reduced motion).
+- If it is still too slow: the remaining cost is the restyle of all elements after any root custom property change (the 17 ms control) plus painting. Options then are fewer elements in the tiles view or simpler cell backgrounds; `content-visibility: auto` on the tiles made it worse.
+- Don't add a transition to hide it: it would make the switch slower, and it is not wanted (reduced motion).

@@ -3,8 +3,8 @@
 
 @layer base {
   html {
-    /* light-dark() needs this. The mode setting replaces it with `light` or `dark`. */
-    color-scheme: light dark;
+    /* The light tokens apply until the app sets data-scheme; scheme.ts then sets the same scheme here for native controls. */
+    color-scheme: light;
   }
 
   body {

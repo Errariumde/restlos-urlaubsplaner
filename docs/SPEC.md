@@ -474,8 +474,8 @@ With "From rule set", country, region, local rules and day rules come from the r
 
 - **Color roles:** working day, weekend, holiday, required work ½, leave full, leave half, mandatory leave, other plan, overdraft, today, focus, info band, accent 1–8 (for calendar sources).
 - **Color scheme** = values for all roles, each for light and dark. Built in: "Standard", "High contrast", "Color vision deficiency" (Okabe-Ito); not changeable, only duplicable.
-- **Mode:** light, dark, automatic (follows `prefers-color-scheme`). Technically: one custom property per colour role with `light-dark()` values; the mode is `color-scheme` on the root (`light`, `dark` or `light dark`). User schemes are written with `style.setProperty()`.
-- **Neutral surfaces:** neutral grey, no hue. The tokens keep the hue and chroma factor (`--nh`, `--nk`), so a tint stays a one-number change.
+- **Mode:** light, dark, automatic (follows `prefers-color-scheme`, also when it changes). Technically: one custom property per colour role with a finished value per mode (no `light-dark()`, `color-mix()` or `var()` left to resolve per element, so a switch is fast in Firefox); the mode is `data-scheme="light"` or `"dark"` on the root, and `color-scheme` on the root follows it for native controls. User schemes are written with `style.setProperty()`.
+- **Neutral surfaces:** neutral grey, no hue. The tokens are defined from a hue and chroma factor (`--nh`, `--nk`, baked into the values and documented in the token file), so a tint stays a change of those two numbers.
 - **Primary action colour:** navy, `oklch(37% 0.11 258)` in light mode and `oklch(50% 0.1 258)` with white text in dark mode. Both are darker and greyer than the leave blue, so a filled button never looks like a leave day. **Blue is reserved for leave.**
 - **Editor in version 1:** choose a color per role and mode, preview on a sample month. Contrast check with warning only in version 3.
 - Day types additionally differ by pattern, never by color alone.
