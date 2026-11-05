@@ -48,9 +48,16 @@ Headless Firefox ESR 153 through Playwright's BiDi driver (1280 × 800 and 2100 
 
 Headless runs show only a small part of what the maintainer sees (no devtools, no GPU painting; the frame time is the 33 ms headless frame cadence in every variant), but the colour-specific part above the control fell from about 1 ms to about 0.6 ms.
 
+### Maintainer's re-measurement (ESR 153, 2026-11-05, after commit 0885584)
+
+Same page and method, the switch toggles `data-scheme` and `color-scheme` as the app does: style 87/79/98/90/93/96 ms, next frame 158/162/194/180/189/191 ms. No change from before (~90/~190). The plain values per mode did not remove the cost, so the earlier 45/80 test was measuring something else; the cause is still unknown.
+
+Headless ESR needs about 5 ms for the same switch, and there the switch costs barely more than the control without a colour change. On the maintainer's machine the switch costs about five times the control (90 vs 17 ms). Whatever makes the difference only shows up in a real window (devtools open, GPU, HiDPI). Next step: a Firefox Profiler recording of the switch with devtools closed.
+
 ## Acceptance criteria
 
-- The maintainer re-measures the switch in ESR on their machine (pending) and confirms it is visibly faster, with no change to how the page looks in either mode.
+- A profile of the switch in ESR on the maintainer's machine shows where the time goes.
+- The maintainer confirms the switch is visibly faster, with no change to how the page looks in either mode.
 
 ## Notes
 
