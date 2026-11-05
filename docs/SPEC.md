@@ -421,7 +421,7 @@ Day number and weekday abbreviation are always shown; the detail view shows ever
 
 ### Screen sizes
 
-The **views** switch on the **width of the calendar area** (container queries), not of the whole window. The **allowance layout** (sidebar or top bar) switches on the **width of the app's main container**, because the sidebar takes its width from the calendar area and a rule on the calendar area would be circular. The table uses the same breakpoints for both: the view columns read them as the calendar area's width, the Allowance column as the app's width. The sidebar has a fixed width (20rem); the calendar area gets the rest.
+The **views** switch on the **width of the calendar area** (container queries), not of the whole window. The **allowance layout** (sidebar or top bar) switches on the **width of the app's main container**, because the sidebar takes its width from the calendar area and a rule on the calendar area would be circular. The table uses the same breakpoints for both: the view columns read them as the calendar area's width, the Allowance column as the app's width. The sidebar has a fixed width (20rem); the calendar area gets the rest. A row therefore doesn't describe one window: with the sidebar shown, the calendar area is 20rem narrower than the app, so an app of 1100 px shows the views of the 520–799 px row.
 
 | Width (views: calendar area; allowance: app) | Month tiles | Month columns | Allowance |
 | --- | --- | --- | --- |
