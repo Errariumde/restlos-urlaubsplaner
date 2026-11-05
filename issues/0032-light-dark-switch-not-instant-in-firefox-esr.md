@@ -19,7 +19,7 @@ In the maintainer's manual check (Firefox ESR 153, Linux desktop, wide HiDPI win
 
 ## Cause
 
-An earlier version of this issue concluded from headless runs that the cost was not in our code. That was wrong. The maintainer's console measurements in ESR 153 (main screen, tiles view, example plan, devtools open, 2026-11-05):
+The cause is the reduced-motion reset (see "The real cause" below). An earlier version of this issue concluded from headless runs that the cost was not in our code. That was wrong. The maintainer's console measurements in ESR 153 (main screen, tiles view, example plan, devtools open, 2026-11-05):
 
 | Test | Style (forced flush) | Until the next frame |
 |---|---|---|
@@ -28,7 +28,7 @@ An earlier version of this issue concluded from headless runs that the cost was 
 | All 39 `--r-*` tokens overridden with plain resolved `rgb()` values per mode, then the switch | ~45 ms | ~80 ms |
 | `content-visibility: auto` on the month tiles | worse (~150 / ~260) | – |
 
-So about three quarters of the style time went into resolving the colour tokens on every element, and plain per-mode values halve both the style time and the time to the next frame. Firefox's style engine lead notes that restyles after custom property changes are slow and much of the cost is painting (bug 1417970); design systems commonly switch plain values per mode instead of resolving `light-dark()` on every element.
+These numbers were read as the cost of resolving the colour tokens on every element. That reading was wrong too (see "The real cause" below). The 17 ms control changed no colour, so it started no transitions. Why the 45/80 test came out faster is not known.
 
 ## What changed (UI branch, 2026-11-05)
 
@@ -54,9 +54,15 @@ Same page and method, the switch toggles `data-scheme` and `color-scheme` as the
 
 Headless ESR needs about 5 ms for the same switch, and there the switch costs barely more than the control without a colour change. On the maintainer's machine the switch costs about five times the control (90 vs 17 ms). Whatever makes the difference only shows up in a real window (devtools open, GPU, HiDPI). Next step: a Firefox Profiler recording of the switch with devtools closed.
 
+### The real cause (profile, 2026-11-05)
+
+The maintainer's Firefox Profiler recording (four switches, devtools closed) holds 28,791 `CSS transition` markers, each 0.01 ms long: `color` on every day cell's fill, number and ring spans, `background-color` and `box-shadow` on every cell, and so on. The maintainer's system asks for reduced motion, and the reset in `src/ui/styles/reset.css` answered that with the common `transition-duration: 0.01ms !important` on every element. `transition-property` defaults to `all`, so any duration above 0 turns every changed property of every element into a transition, which Firefox creates, hands to the compositor and runs. Headless runs and other sites don't ask for reduced motion, which is why they never showed it. Plain values per mode were not the fix, but they stay: the code is simpler and they are not slower.
+
+Fix: the reset uses `transition-duration: 0s` and `transition-delay: 0s`, which start no transition at all. The app has no transitions and no `transitionend` listeners, so nothing depends on the old value. An e2e test switches the scheme with reduced motion and asserts that `document.getAnimations()` stays empty; it failed in all three browsers with the old rule.
+
 ## Acceptance criteria
 
-- A profile of the switch in ESR on the maintainer's machine shows where the time goes.
+- A profile of the switch in ESR on the maintainer's machine shows where the time goes. (Done: the transitions above.)
 - The maintainer confirms the switch is visibly faster, with no change to how the page looks in either mode.
 
 ## Notes

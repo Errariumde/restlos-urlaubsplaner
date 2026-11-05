@@ -45,6 +45,23 @@ test.describe("in English", () => {
     await expectNoPageProblems(page);
   });
 
+  test("with reduced motion the mode switch starts no transitions", async ({ page }) => {
+    // Issue 0032: a reduced-motion reset with a duration above 0 made every changed colour of every element a transition.
+    await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
+    await openApp(page);
+    await openExampleFromStart(page);
+    await expect(page.locator("html")).toHaveAttribute("data-scheme", "light");
+    // Switch and count in one task: transitions of 0.01ms would be over before a second evaluate.
+    const started = await page.evaluate(() => {
+      const root = document.documentElement;
+      root.dataset.scheme = "dark";
+      root.style.colorScheme = "dark";
+      void document.body.offsetHeight;
+      return document.getAnimations().length;
+    });
+    expect(started).toBe(0);
+  });
+
   test("auto follows prefers-color-scheme, also when it changes", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "dark" });
     await openApp(page);
