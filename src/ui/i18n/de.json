@@ -37,7 +37,7 @@
   "selection.half": "Halber Tag",
   "selection.remove": "Entfernen",
   "selection.cancel": "Abbrechen",
-  "hint.range": "{days, plural, =0 {Nichts ändert sich} other {{days, plural, one {1 Arbeitstag} other {{days} Arbeitstage}} · {costCount, plural, one {{cost} Urlaubstag} other {{cost} Urlaubstage}} · {hasStretch, select, yes {{from} – {to}: {daysOffCount, plural, one {{daysOff} Tag frei} other {{daysOff} Tage frei}}} other {kein freier Block}} · {remainingCount, plural, one {{remaining} Tag übrig} other {{remaining} Tage übrig}}}}",
+  "hint.range": "{days, plural, =0 {Nichts ändert sich} other {{days, plural, one {1\u00a0Arbeitstag} other {{days}\u00a0Arbeitstage}} · {costCount, plural, one {{cost}\u00a0Urlaubstag} other {{cost}\u00a0Urlaubstage}} · {hasStretch, select, yes {{from} – {to}: {daysOffCount, plural, one {{daysOff}\u00a0Tag frei} other {{daysOff}\u00a0Tage frei}}} other {kein freier Block}} · {remainingCount, plural, one {{remaining}\u00a0Tag übrig} other {{remaining}\u00a0Tage übrig}}}}",
   "allowance.label": "Kontingent",
   "allowance.allowance": "Kontingent (Tage)",
   "allowance.planned": "Geplant (Tage)",

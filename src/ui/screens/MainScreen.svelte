@@ -66,11 +66,19 @@ SPDX-License-Identifier: EUPL-1.2
   let barSize = $state<number>();
   /** The height of the hint line that sticks to the top of the calendar area beside the sidebar. */
   let hintSize = $state<number>();
+  /** The hint line's height and its one-line slot's: a wrapped line grows past the slot over the calendar. */
+  let hintLine = $state(0);
+  let hintSlot = $state(0);
   /**
-   * What covers the top of the window over the calendar. Each binding keeps its last value once its element
-   * goes, so only the one that is shown counts; in the selection mode the sidebar layout has nothing there.
+   * What covers the top of the window over the calendar, with a wrapped hint line. Each binding keeps its
+   * last value once its element goes, so only the one that is shown counts; in the selection mode the hint
+   * line is in the selection bar, and the sidebar layout has nothing there.
    */
-  const stuckSize = $derived(barShown ? barSize : app.selectMode ? undefined : hintSize);
+  const stuckSize = $derived.by(() => {
+    if (app.selectMode) return barShown ? barSize : undefined;
+    const size = barShown ? barSize : hintSize;
+    return size === undefined ? undefined : size + Math.max(0, hintLine - hintSlot);
+  });
   const stuckBlockStart = $derived(stuckSize === undefined ? undefined : `${String(stuckSize)}px`);
 
   /** The sidebar's content is taller than the window, so the sidebar scrolls itself. */
@@ -206,7 +214,7 @@ SPDX-License-Identifier: EUPL-1.2
         {/if}
       </section>
       {#if !app.selectMode}
-        <HintLine />
+        <HintLine overlay bind:lineSize={hintLine} bind:slotSize={hintSlot} />
       {/if}
     </div>
     {#if compact}
@@ -219,7 +227,7 @@ SPDX-License-Identifier: EUPL-1.2
     <div class="area">
       {#if !barShown && !app.selectMode}
         <div class="stuck" bind:offsetHeight={hintSize}>
-          <HintLine />
+          <HintLine overlay bind:lineSize={hintLine} bind:slotSize={hintSlot} />
         </div>
       {/if}
       <main bind:this={calendar} class="calendar" bind:clientWidth={calendarWidth}>
@@ -292,7 +300,7 @@ SPDX-License-Identifier: EUPL-1.2
       background: var(--r-surface);
     }
 
-    /* A cell scrolled into view (keyboard, view switch) stops below the sticky region, not under it. */
+    /* A cell scrolled into view (keyboard, view switch) stops below the sticky region and a wrapped hint line. */
     .calendar :global([data-day]) {
       scroll-margin-block-start: var(--stuck-block-start, 0);
     }

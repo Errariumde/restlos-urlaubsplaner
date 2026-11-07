@@ -430,7 +430,7 @@ The **views** switch on the **width of the calendar area** (container queries), 
 | 520–799 px | 2 per row | 6 columns visible | compact bar at the top, expandable |
 | < 520 px | 1 per row (**default on phones**) | 3 columns visible | compact bar at the top, details as a bottom sheet |
 
-The allowance and the hint line stay in view while the page scrolls: the compact bar with the hint line under it sticks to the top of the window; beside the sidebar, which sticks too, the hint line sticks to the top of the calendar area. In the selection mode the hint line moves into the action bar at the bottom.
+The allowance and the hint line stay in view while the page scrolls: the compact bar with the hint line under it sticks to the top of the window; beside the sidebar, which sticks too, the hint line sticks to the top of the calendar area. The hint line keeps room for one line; a longer text grows over the calendar instead of pushing it down, so the cells stay under the pointer during a drag, and a day reached with the keyboard stops below the whole text. Dates and amounts in it don't break inside. In the selection mode the hint line moves into the action bar at the bottom.
 
 Minimum size for tap targets on touch devices: 40 × 40 px.
 

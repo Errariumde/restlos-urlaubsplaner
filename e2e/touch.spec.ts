@@ -108,7 +108,7 @@ test.describe("in the selection mode", () => {
     await expectLeave(page, 6, [14], NONE);
     await tap(page, cell(page, 6, 18));
     for (const day of [14, 15, 16, 17, 18]) await expect(cell(page, 6, day)).toHaveAttribute("aria-selected", "true");
-    await expect(hint(page)).toContainText(/^5 working days · /);
+    await expect(hint(page)).toContainText(/^5\sworking days · /);
     await expectLeave(page, 6, [14, 15, 16, 17, 18], NONE);
     await page.getByRole("button", { name: "Full day", exact: true }).tap();
     await expectLeave(page, 6, [14, 15, 16, 17, 18], FULL);
@@ -130,7 +130,7 @@ test.describe("in the selection mode", () => {
     await week.tap();
     for (const day of [14, 15, 16, 17, 18]) await expect(cell(page, 6, day)).toHaveAttribute("aria-selected", "true");
     await expect(page.locator('[aria-selected="true"]')).toHaveCount(5);
-    await expect(hint(page)).toContainText(/^5 working days · /);
+    await expect(hint(page)).toContainText(/^5\sworking days · /);
     await expectLeave(page, 6, [14, 15, 16, 17, 18], NONE);
     await expect(undo).toBeDisabled();
     await page.getByRole("button", { name: "Full day", exact: true }).tap();
@@ -185,7 +185,7 @@ test.describe("in the selection mode", () => {
   test("Cancel changes nothing", async ({ page }) => {
     await tap(page, cell(page, 6, 14));
     await tap(page, cell(page, 6, 18));
-    await expect(hint(page)).toContainText(/^5 working days · /);
+    await expect(hint(page)).toContainText(/^5\sworking days · /);
     await page.getByRole("button", { name: "Cancel", exact: true }).tap();
     await expect(page.locator('[aria-selected="true"]')).toHaveCount(0);
     await expect(hint(page)).not.toContainText("working days");

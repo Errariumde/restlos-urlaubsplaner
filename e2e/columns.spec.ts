@@ -85,7 +85,7 @@ test.describe("in English at 1920 px", () => {
     await page.mouse.move(start.x, start.y);
     await page.mouse.down();
     await page.mouse.move(end.x, end.y, { steps: 8 });
-    await expect(page.locator('[aria-live="polite"]')).toContainText(/^5 working days · /);
+    await expect(page.locator('[aria-live="polite"]')).toContainText(/^5\sworking days · /);
     await page.mouse.up();
     await expectLeave(page, 6, [14, 15, 16, 17, 18], FULL);
     await expectNoPageProblems(page);

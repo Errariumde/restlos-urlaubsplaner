@@ -74,7 +74,7 @@ test("the arrows move the focus, and Shift+→ four times then Space plans five 
   await expect(cell(page, 6, 18)).toBeFocused();
   await expect(selected(page)).toHaveCount(5);
   await expect(cell(page, 6, 14)).toHaveAttribute("aria-selected", "true");
-  await expect(hint(page)).toContainText(/^5 working days · /);
+  await expect(hint(page)).toContainText(/^5\sworking days · /);
   const scrollBefore = await page.evaluate(() => window.scrollY);
   await page.keyboard.press("Space");
   await expectLeave(page, 6, [14, 15, 16, 17, 18], FULL);
