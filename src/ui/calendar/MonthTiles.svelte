@@ -16,7 +16,7 @@ SPDX-License-Identifier: EUPL-1.2
   import { calendarGestures, dragPreview } from "./gestures.svelte.ts";
   import { calendarKeyboard } from "./keyboard.svelte.ts";
   import { periodMonths, tileWeeks } from "./months.ts";
-  import { weekChanges } from "./range.ts";
+  import { rangeChanges, weekChanges, weekSelection } from "./range.ts";
   import WeekNumber from "./WeekNumber.svelte";
 
   interface Props {
@@ -69,9 +69,18 @@ SPDX-License-Identifier: EUPL-1.2
     if (cell) onDetail(day, cell, pointerType);
   }
 
-  /** A week-number click; ignored while a change is being applied, like the cells (gestures.svelte.ts). */
+  /**
+   * A week-number click; ignored while a change is being applied, like the cells (gestures.svelte.ts). In the
+   * selection mode it selects the week's working days, which the selection bar applies.
+   */
   function planWeek(startDay: DayNumber): void {
-    if (!app.applying) void app.apply(weekChanges(result, startDay));
+    if (app.applying) return;
+    if (app.selectMode) {
+      const range = weekSelection(result, startDay);
+      app.select(range, range === undefined ? [] : rangeChanges(result, range.anchor, range.head, "full"));
+      return;
+    }
+    void app.apply(weekChanges(result, startDay));
   }
 
   function onfocusin(event: FocusEvent): void {

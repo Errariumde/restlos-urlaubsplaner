@@ -5,15 +5,7 @@
 // locale and mode, screenshots, and the behaviour of the popover and the sheet. Chromium and Firefox only.
 import { expect, test, type Page } from "@playwright/test";
 import { allCombinations, MODES, SECTIONS, type Combination } from "../src/gallery/params.ts";
-import { expectNoPageProblems, openGallery } from "./helpers.ts";
-
-declare global {
-  interface Window {
-    axe: typeof import("axe-core");
-  }
-}
-
-const AXE_PATH = new URL("../node_modules/axe-core/axe.min.js", import.meta.url).pathname;
+import { axeViolations, expectNoPageProblems, openGallery } from "./helpers.ts";
 
 test.skip(({ browserName }) => browserName === "webkit", "The gallery is checked in Chromium and Firefox.");
 
@@ -39,15 +31,7 @@ test.describe("every gallery section passes axe", () => {
       // axe checks every one of the main screen's 365 day cells.
       test.slow(section === "main-tiles" || section === "main-columns");
       await show(page, combination);
-      await page.addScriptTag({ path: AXE_PATH });
-      const violations = await page.evaluate(async () => {
-        const result = await window.axe.run(document, { runOnly: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"] });
-        return result.violations.map((violation) => ({
-          id: violation.id,
-          nodes: violation.nodes.map((node) => `${node.target.join(" ")}: ${node.failureSummary ?? ""}`),
-        }));
-      });
-      expect(violations).toEqual([]);
+      expect(await axeViolations(page)).toEqual([]);
       await expectNoPageProblems(page);
     });
   }
@@ -62,6 +46,52 @@ test.describe("the gallery screenshots", () => {
       });
     }
   }
+});
+
+test.describe("the main screen at the four screen sizes", () => {
+  for (const width of [375, 768, 1100, 1920]) {
+    test.describe(`${String(width)} px`, () => {
+      test.use({ viewport: { width, height: 800 } });
+
+      for (const section of ["main-tiles", "main-columns"] as const) {
+        for (const mode of MODES) {
+          test(`${section}, ${mode}`, async ({ page }) => {
+            await show(page, { section, locale: "de", mode });
+            // The section keeps its app at 900 px so the 1280 px screenshot scrolls six columns. Wider
+            // windows show the app at their full width: all columns fit from about 1100 px of calendar.
+            if (section === "main-columns" && width > 900) {
+              await page.addStyleTag({ content: '[data-section="main-columns"] > div { inline-size: auto !important; }' });
+              // The style must still reach the section's app, or the screenshot would show the 900 px app.
+              const app = await page.locator('[data-section="main-columns"] > div').boundingBox();
+              expect(app?.width ?? 0).toBeGreaterThan(900);
+            }
+            await expect(page).toHaveScreenshot(`${section}-${String(width)}-${mode}.png`, { fullPage: true });
+          });
+        }
+      }
+    });
+  }
+});
+
+test.describe("the main screen in right-to-left text at 1280 px", () => {
+  // axe runs on these sections in en-XB in "every gallery section passes axe".
+  for (const section of ["main-tiles", "main-columns"] as const) {
+    test(`${section}, screenshot`, async ({ page }) => {
+      await show(page, { section, locale: "en-XB", mode: "light" });
+      await expect(page).toHaveScreenshot(`${section}-rtl-light.png`, { fullPage: true });
+    });
+  }
+
+  test("in RTL the allowance sidebar is at the visual left", async ({ page }) => {
+    await show(page, { section: "main-tiles", locale: "en-XB", mode: "light" });
+    const sidebar = await page.getByRole("complementary").boundingBox();
+    const calendar = await page.getByRole("main").boundingBox();
+    expect(sidebar && calendar).toBeTruthy();
+    // The gallery page has its own padding, so "at the left" means left of the calendar, in the left half.
+    expect(sidebar!.x + sidebar!.width).toBeLessThanOrEqual(calendar!.x + 1);
+    expect(sidebar!.x).toBeLessThan(page.viewportSize()!.width / 2);
+    await expectNoPageProblems(page);
+  });
 });
 
 test("the day cells mirror their diagonal splits in right-to-left text", async ({ page }) => {

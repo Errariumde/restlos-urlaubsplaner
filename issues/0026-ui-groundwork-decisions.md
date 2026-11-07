@@ -1,10 +1,10 @@
 ---
-status: open
+status: done
 priority:
 area: UI
-branch:
+branch: ui
 created: 2026-11-03
-closed:
+closed: 2026-11-04
 ---
 <!--
 SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors

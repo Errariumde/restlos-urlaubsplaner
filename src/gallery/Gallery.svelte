@@ -4,6 +4,7 @@ SPDX-License-Identifier: EUPL-1.2
 -->
 <script lang="ts">
   import { i18n } from "../ui/i18n/i18n.svelte.ts";
+  import { applyMode } from "../ui/scheme.ts";
   import { allCombinations, SECTIONS, searchFor, type Combination, type Mode, type SectionId } from "./params.ts";
   import AllowanceSection from "./sections/AllowanceSection.svelte";
   import ControlsSection from "./sections/ControlsSection.svelte";
@@ -19,15 +20,15 @@ SPDX-License-Identifier: EUPL-1.2
   /** One section in one locale and mode (from the URL), or undefined for the overview of all of them. */
   let { combination }: { combination: Combination | undefined } = $props();
 
-  const COLOR_SCHEME = { light: "light", dark: "dark" } as const;
-
   $effect(() => {
     const root = document.documentElement;
     root.lang = i18n.lang;
     root.dir = i18n.dir;
-    root.style.colorScheme = combination ? COLOR_SCHEME[combination.mode] : "light dark";
     document.title = i18n.t("gallery.title");
   });
+
+  // One combination in its mode; the overview follows the system.
+  $effect(() => applyMode(document.documentElement, combination ? combination.mode : "auto"));
 
   function sectionTitle(section: SectionId): string {
     switch (section) {

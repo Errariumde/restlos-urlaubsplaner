@@ -202,18 +202,28 @@ SPDX-License-Identifier: EUPL-1.2
       background: linear-gradient(225deg, var(--r-leave-half) 50%, transparent 50%);
     }
 
-    .leave-half.part-start .number {
-      text-shadow: 0 0 2px var(--r-surface), 0 0 1px var(--r-surface);
+    /* Digits on leave, full or half, follow one rule in both modes: the mode's text colour with a surface halo. */
+    .leave-full,
+    .leave-half {
+      color: var(--r-on-leave);
+    }
+
+    .leave-full .number,
+    .leave-half .number {
+      text-shadow: 0 0 2px var(--r-leave-aura), 0 0 1px var(--r-leave-aura);
     }
 
     .leave-mandatory .fill {
-      background: repeating-linear-gradient(45deg, var(--r-mandatory) 0 4px, color-mix(in oklab, var(--r-mandatory) 72%, var(--r-text)) 4px 7px);
+      background: repeating-linear-gradient(45deg, var(--r-mandatory) 0 4px, var(--r-mandatory-stripe) 4px 7px);
     }
 
     .leave-full,
     .leave-mandatory {
-      color: var(--r-on-leave);
       font-weight: 700;
+    }
+
+    .leave-mandatory {
+      color: var(--r-on-mandatory);
     }
 
     /* Layer 3: leave from another plan, no deduction. */
@@ -338,6 +348,10 @@ SPDX-License-Identifier: EUPL-1.2
       inset-inline-end: 10px;
     }
 
+    /*
+     * No query container: the week marker's place follows from the cell's width (MonthColumns.svelte), so
+     * Firefox doesn't paint the 365 cells before their container queries are resolved.
+     */
     .column {
       block-size: auto;
       min-block-size: 1.25rem;
@@ -391,12 +405,12 @@ SPDX-License-Identifier: EUPL-1.2
     }
 
     .cell.previewed:not(.leave-full, .leave-mandatory) .fill {
-      background: color-mix(in oklab, var(--r-leave-full) 35%, transparent);
+      background: var(--r-preview);
     }
 
     /* A drag that removes leave (the grid has .removing) hatches what goes. */
     :global(.removing) .cell.previewed .fill {
-      background: repeating-linear-gradient(-45deg, transparent 0 3px, color-mix(in oklab, var(--r-overdraft) 55%, transparent) 3px 5px);
+      background: repeating-linear-gradient(-45deg, transparent 0 3px, var(--r-overdraft-hatch) 3px 5px);
     }
 
     :global(.removing) .previewed {

@@ -77,6 +77,159 @@ test.describe("in English at 1280 px", () => {
   });
 });
 
+/** Scrolls the page until September's last days are on screen, then to the end of the page. */
+async function scrollThroughSeptember(page: Page, check: () => Promise<void>): Promise<void> {
+  await cell(page, 9, 30).scrollIntoViewIfNeeded();
+  await expect(cell(page, 9, 30)).toBeInViewport();
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(200);
+  await check();
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await check();
+}
+
+// docs/SPEC.md, "Main screen": the allowance display is always visible.
+test.describe("the allowance stays in view while the calendar scrolls", () => {
+  test.use({ locale: "en-GB" });
+
+  for (const view of ["Tiles", "Columns"] as const) {
+    test.describe(`at 1280 px in the ${view.toLowerCase()} view`, () => {
+      test.use({ viewport: { width: 1280, height: 600 } });
+
+      test("the sidebar keeps its figures and bar on screen", async ({ page }) => {
+        await openApp(page);
+        await openExampleFromStart(page);
+        await page.getByRole("button", { name: view, exact: true }).click();
+        await expect(page.getByRole("button", { name: view, exact: true })).toHaveAttribute("aria-pressed", "true");
+        await scrollThroughSeptember(page, async () => {
+          await expect(page.getByTestId("remaining")).toBeInViewport({ ratio: 1 });
+          await expect(page.getByTestId("planned")).toBeInViewport({ ratio: 1 });
+          await expect(page.getByRole("meter")).toBeInViewport({ ratio: 1 });
+        });
+        await expectNoPageProblems(page);
+      });
+    });
+  }
+
+  test.describe("in a window lower than the sidebar", () => {
+    test.use({ viewport: { width: 1280, height: 400 } });
+
+    test("the sidebar scrolls itself and takes the focus for the keyboard", async ({ page }) => {
+      await openApp(page);
+      await openExampleFromStart(page);
+      const sidebar = page.getByRole("complementary", { name: "Allowance" });
+      await expect(sidebar).toHaveAttribute("tabindex", "0");
+      expect(await sidebar.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
+      await sidebar.focus();
+      await expect(sidebar).toBeFocused();
+      await page.keyboard.press("PageDown");
+      // The browsers scroll smoothly: wait for the sidebar to move, not for a time.
+      await expect.poll(() => sidebar.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+      await expectNoPageProblems(page);
+    });
+  });
+
+  test.describe("at 375 px", () => {
+    test.use({ viewport: { width: 375, height: 800 } });
+
+    test("the compact bar stays at the top and leaves most of the calendar free", async ({ page }) => {
+      await openApp(page);
+      await openExampleFromStart(page);
+      const bar = page.getByRole("region", { name: "Allowance" });
+      await scrollThroughSeptember(page, async () => {
+        await expect(page.getByText(/days? left$/)).toBeInViewport({ ratio: 1 });
+        await expect(page.getByRole("meter")).toBeInViewport({ ratio: 1 });
+        const box = await bar.boundingBox();
+        expect(box!.y).toBeLessThanOrEqual(1);
+        expect(box!.height).toBeLessThan(800 / 6);
+      });
+      await expectNoPageProblems(page);
+    });
+
+    test("a day reached with the arrows stops below the bar, not under it", async ({ page }) => {
+      await openApp(page);
+      await openExampleFromStart(page);
+      await cell(page, 9, 15).focus();
+      // The week above sits just below the top of the window, under the sticky bar.
+      await cell(page, 9, 8).evaluate((element) => window.scrollBy(0, element.getBoundingClientRect().top - 10));
+      await page.keyboard.press("ArrowUp");
+      const focused = cell(page, 9, 8);
+      await expect(focused).toBeFocused();
+      const bar = await page.getByRole("region", { name: "Allowance" }).boundingBox();
+      const box = await focused.boundingBox();
+      expect(bar!.y).toBeLessThanOrEqual(1);
+      expect(box!.y).toBeGreaterThanOrEqual(bar!.y + bar!.height - 1);
+      await expectNoPageProblems(page);
+    });
+  });
+});
+
+// docs/SPEC.md, "Calendar interaction": the hint line is the drag's feedback, so it sticks with the allowance.
+test.describe("the hint line stays in view during a drag", () => {
+  test.use({ locale: "en-GB" });
+
+  const sizes = [
+    { width: 1100, view: "Tiles" },
+    { width: 1280, view: "Columns" },
+    { width: 375, view: "Tiles" },
+  ] as const;
+
+  for (const { width, view } of sizes) {
+    test.describe(`at ${String(width)} px in the ${view.toLowerCase()} view`, () => {
+      test.use({ viewport: { width, height: 700 } });
+
+      test.beforeEach(async ({ page }) => {
+        await openApp(page);
+        await openExampleFromStart(page);
+        if (view === "Columns") {
+          await page.getByRole("button", { name: view, exact: true }).click();
+          await expect(page.getByRole("button", { name: view, exact: true })).toHaveAttribute("aria-pressed", "true");
+        }
+      });
+
+      test("while dragging in December", async ({ page }) => {
+        const from = cell(page, 12, 20);
+        const to = cell(page, 12, 22);
+        // To the end of the page first: in the columns, December's 20th row fits in the window unscrolled.
+        await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+        await from.scrollIntoViewIfNeeded();
+        // Further down than the hint line's place in the page flow (below the toolbar).
+        expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(150);
+        const start = await centre(from);
+        const hint = page.locator('[aria-live="polite"]');
+        await page.mouse.move(start.x, start.y);
+        await page.mouse.down();
+        const next = await centre(cell(page, 12, 21));
+        await page.mouse.move(next.x, next.y, { steps: 3 });
+        await expect(hint).toContainText(/^2 working days · /);
+        // The hint text may wrap and grow the sticky region; WebKit has no scroll anchoring, so the cells can
+        // move under the pointer. Measure the last day again once the hint is there.
+        const end = await centre(to);
+        await page.mouse.move(end.x, end.y, { steps: 3 });
+        await expect(hint).toContainText(/^3 working days · /);
+        await expect(hint).toBeInViewport({ ratio: 1 });
+        await page.mouse.up();
+        await expect(hint).toHaveText("");
+        await expect(page.locator('[aria-live="polite"]')).toHaveCount(1);
+        await expectNoPageProblems(page);
+      });
+
+      test("a day reached with the arrows stops below the hint line, not under it", async ({ page }) => {
+        await cell(page, 9, 15).focus();
+        // The week above sits just below the top of the window, under the sticky region.
+        await cell(page, 9, view === "Columns" ? 14 : 8).evaluate((element) => window.scrollBy(0, element.getBoundingClientRect().top - 10));
+        await page.keyboard.press("ArrowUp");
+        const focused = cell(page, 9, view === "Columns" ? 14 : 8);
+        await expect(focused).toBeFocused();
+        const line = await page.getByTestId("hint-line").boundingBox();
+        const box = await focused.boundingBox();
+        expect(line!.y).toBeGreaterThanOrEqual(0);
+        expect(box!.y).toBeGreaterThanOrEqual(line!.y + line!.height - 1);
+        await expectNoPageProblems(page);
+      });
+    });
+  }
+});
+
 test.describe("at 600 px", () => {
   test.use({ locale: "en-GB", viewport: { width: 600, height: 800 } });
 
@@ -109,8 +262,8 @@ test.describe("when the app narrows", () => {
     await expect(page.getByRole("button", { name: "More", exact: true })).toBeVisible();
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(details).toHaveAttribute("aria-expanded", "false");
-    // No expectNoPageProblems here: WebKit reports its harmless "ResizeObserver loop completed with
-    // undelivered notifications" when the layout changes under a resize, which the other tests don't do.
+    // WebKit's harmless "ResizeObserver loop" message under the resize is filtered by the helper.
+    await expectNoPageProblems(page);
   });
 });
 

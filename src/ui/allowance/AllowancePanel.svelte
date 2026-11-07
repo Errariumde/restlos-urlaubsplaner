@@ -143,6 +143,8 @@ SPDX-License-Identifier: EUPL-1.2
       padding: 0;
       list-style: none;
       font-size: var(--font-size-1);
+      /* Long words (long translations) wrap instead of running past the sidebar, which scrolls. */
+      overflow-wrap: anywhere;
     }
 
     .years {

@@ -63,6 +63,22 @@ export function weekChanges(result: PlanResult, weekStartDay: DayNumber): LeaveC
   return set.length > 0 ? set : rangeChanges(result, weekStartDay, weekStartDay + 6, "remove");
 }
 
+/**
+ * A week-number tap in the selection mode: the week's working days in the period, from its first to its last,
+ * whatever leave they have (the selection bar decides what to do with them). Undefined when there is none.
+ */
+export function weekSelection(result: PlanResult, weekStartDay: DayNumber): { anchor: DayNumber; head: DayNumber } | undefined {
+  let anchor: DayNumber | undefined;
+  let head: DayNumber | undefined;
+  for (let d = weekStartDay; d <= weekStartDay + 6; d++) {
+    const day = dayAt(result, d);
+    if (day === undefined || !day.inPeriod || day.required.value <= 0) continue;
+    anchor ??= d;
+    head = d;
+  }
+  return anchor === undefined || head === undefined ? undefined : { anchor, head };
+}
+
 /** A click on one day: own leave is removed, otherwise a full day is set where that is possible. */
 export function toggleDay(result: PlanResult, day: DayNumber): LeaveChange[] {
   return rangeChanges(result, day, day, actionForDrag(result, day));

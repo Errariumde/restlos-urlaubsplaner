@@ -39,7 +39,7 @@ SPDX-License-Identifier: EUPL-1.2
 </script>
 
 <!-- Only real hints are announced: the idle text sits next to the live region, not in it. -->
-<div class="hint" class:active={text !== ""}>
+<div class="hint" class:active={text !== ""} data-testid="hint-line">
   <span aria-live="polite" aria-atomic="true">{text}</span>
   {#if text === "" && idle !== ""}<span>{idle}</span>{/if}
 </div>

@@ -7,6 +7,7 @@ SPDX-License-Identifier: EUPL-1.2
   // day of the month (or, aligned by weekday, per weekday position). The grid scrolls sideways itself; its day
   // column stays at the inline start. All columns, scrolling, 6 or 3 visible by the width of the calendar
   // area (container queries, "Screen sizes").
+  import type { Attachment } from "svelte/attachments";
   import type { PlanResult } from "../../engine/counting/plan.ts";
   import type { DayNumber } from "../../engine/days.ts";
   import { formatDate } from "../i18n/format.ts";
@@ -18,7 +19,7 @@ SPDX-License-Identifier: EUPL-1.2
   import { calendarGestures, dragPreview } from "./gestures.svelte.ts";
   import { calendarKeyboard } from "./keyboard.svelte.ts";
   import { columnRows, columnWeekMarker, offsetInWeek, periodMonths } from "./months.ts";
-  import { weekChanges } from "./range.ts";
+  import { rangeChanges, weekChanges, weekSelection } from "./range.ts";
 
   interface Props {
     meta: PlanMeta;
@@ -65,9 +66,43 @@ SPDX-License-Identifier: EUPL-1.2
     if (cell) onDetail(day, cell, pointerType);
   }
 
-  /** A week-marker click; ignored while a change is being applied, like the cells (gestures.svelte.ts). */
+  /**
+   * A week-marker click; ignored while a change is being applied, like the cells (gestures.svelte.ts). In the
+   * selection mode it selects the week's working days, which the selection bar applies.
+   */
   function planWeek(startDay: DayNumber): void {
-    if (!app.applying) void app.apply(weekChanges(result, startDay));
+    if (app.applying) return;
+    if (app.selectMode) {
+      const range = weekSelection(result, startDay);
+      app.select(range, range === undefined ? [] : rangeChanges(result, range.anchor, range.head, "full"));
+      return;
+    }
+    void app.apply(weekChanges(result, startDay));
+  }
+
+  /**
+   * The months scroll sideways under an overlay scrollbar (Firefox on Linux, macOS, phones): it is drawn over
+   * the content, so the grid keeps room for it below row 31. A classic scrollbar takes its own room (the
+   * client area is shorter than the box) and gets no extra gap; `scrollbar-width: none` has no scrollbar.
+   */
+  let overlayScrollbar = $state(false);
+
+  /**
+   * Measures on every resize of the grid. The number of columns changes what scrolls without resizing the
+   * grid: a new count makes a new attachment, which measures again.
+   */
+  function watchScrollbar(columns: number): Attachment<HTMLElement> {
+    void columns;
+    return (element) => {
+      const observer = new ResizeObserver(() => {
+        overlayScrollbar =
+          element.scrollWidth > element.clientWidth &&
+          element.offsetHeight === element.clientHeight &&
+          getComputedStyle(element).scrollbarWidth !== "none";
+      });
+      observer.observe(element);
+      return () => observer.disconnect();
+    };
   }
 
   function onfocusin(event: FocusEvent): void {
@@ -80,6 +115,8 @@ SPDX-License-Identifier: EUPL-1.2
   bind:this={grid}
   class="columns"
   class:selecting={app.selectMode}
+  class:overlay-scrollbar={overlayScrollbar}
+  {@attach watchScrollbar(months.length)}
   class:removing={dragPreview.range?.action === "remove"}
   style:--months={months.length}
   role="grid"
@@ -166,6 +203,11 @@ SPDX-License-Identifier: EUPL-1.2
       touch-action: none;
     }
 
+    /* Room for an overlay scrollbar, so it never covers row 31 (see `overlayScrollbar`). */
+    .columns.overlay-scrollbar {
+      padding-block-end: var(--space-3);
+    }
+
     .columns:focus {
       outline: none;
     }
@@ -241,14 +283,21 @@ SPDX-License-Identifier: EUPL-1.2
       }
     }
 
-    /* The calendar-week marker at the block start of the cell that starts a week, left of the lanes. */
+    /*
+     * The calendar-week marker at the block start of the cell that starts a week, left of the lanes. In a
+     * narrow cell (6 or 12 columns of about 80 px) the day, its weekday ("28 Mon"), the marker and the lanes
+     * don't fit side by side: the marker moves over the block start of the lanes, which go on below it.
+     * Narrow means a content box under 92 px, so a cell under 100 px with its 8 px start padding. The place
+     * follows from the cell's width (100 % of the containing block) in the same layout: a container query on
+     * each cell let Firefox ESR paint the wide place first and move the marker after.
+     */
     .week {
       position: absolute;
       inset-block-start: 0;
-      inset-inline-end: 16px;
+      inset-inline-end: clamp(1px, (100% - 100px) * 1000, 16px);
       z-index: 2;
       block-size: 0.9rem;
-      padding: 0 3px;
+      padding: 0 2px;
       border: 0;
       border-end-start-radius: 3px;
       border-end-end-radius: 3px;

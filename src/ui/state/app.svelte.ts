@@ -17,7 +17,7 @@ class App {
   /** The last state from the worker. */
   state = $state.raw<PlanState | undefined>(undefined);
   view = $state<"tiles" | "columns">("tiles");
-  /** Sets `color-scheme` on `<html>` (App.svelte). */
+  /** Sets `data-scheme` and `color-scheme` on `<html>` (App.svelte, scheme.ts); "auto" follows `prefers-color-scheme`. */
   mode = $state<"light" | "dark" | "auto">("auto");
   /** Calendar weeks. */
   weeks = $state(true);
@@ -111,6 +111,18 @@ class App {
   async preview(changes: readonly LeaveChange[], current: () => boolean = () => true): Promise<void> {
     const hint = await this.#engineNow().preview($state.snapshot(changes));
     if (hint !== undefined && current()) this.hint = hint;
+  }
+
+  /**
+   * Selects a range (or ends the selection) and previews `changes`, the days the selection bar's Full day
+   * would set. A preview that arrives after the selection changed or ended doesn't refill the hint.
+   */
+  select(range: { anchor: DayNumber; head: DayNumber } | undefined, changes: readonly LeaveChange[]): void {
+    this.selection = range;
+    this.hint = undefined;
+    if (range === undefined) return;
+    const mine = this.selection;
+    void this.preview(changes, () => this.selection === mine);
   }
 
   async undo(): Promise<void> {

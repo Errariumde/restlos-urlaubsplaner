@@ -136,6 +136,76 @@ test.describe("in English at 1920 px", () => {
   });
 });
 
+/** The week markers that touch or cover their day's number and weekday (less than 2 px apart). */
+async function markersOverText(page: Page): Promise<string[]> {
+  return page.getByRole("grid").evaluate((element) => {
+    const found: string[] = [];
+    for (const marker of element.querySelectorAll<HTMLElement>("[role=gridcell] button")) {
+      const text = marker.closest("[role=gridcell]")?.querySelector(".number");
+      if (!text) continue;
+      const chip = marker.getBoundingClientRect();
+      const range = document.createRange();
+      range.selectNodeContents(text);
+      const words = range.getBoundingClientRect();
+      const apart = words.right + 2 <= chip.left || chip.right + 2 <= words.left;
+      if (!apart) found.push(`${text.textContent?.trim() ?? ""} / ${marker.textContent?.trim() ?? ""}`);
+    }
+    return found;
+  });
+}
+
+// Firefox ESR painted the week markers of a new month columns view first at their wide place, then moved
+// them: probably because the narrow place came from a container query on each of the 365 cells, resolved after a first paint (not reproducible headless; the maintainer's ESR check is the acceptance).
+// The place now follows from the cell's own width in the same layout, and the cells are no query containers.
+for (const [width, gap] of [[1453, 1], [1700, 16]] as const) {
+  test.describe(`at ${String(width)} px, the week marker`, () => {
+    test.use({ locale: "de-DE", viewport: { width, height: 800 } });
+
+    test(`stands ${String(gap)} px from the cell's end, decided without a per-cell container query`, async ({ page }) => {
+      await openApp(page);
+      await openExampleFromStart(page);
+      await page.getByRole("button", { name: "Spalten", exact: true }).click();
+      const day = cell(page, 2, 8);
+      await expect(day.getByRole("button")).toBeVisible();
+      const place = await day.evaluate((element) => {
+        const chip = element.querySelector("button")!.getBoundingClientRect();
+        return {
+          gap: element.getBoundingClientRect().right - chip.right,
+          containers: [element, ...element.querySelectorAll("*")].filter((node) => getComputedStyle(node).containerType !== "normal").length,
+        };
+      });
+      expect(place.containers).toBe(0);
+      expect(place.gap).toBeCloseTo(gap, 0);
+      await expectNoPageProblems(page);
+    });
+  });
+}
+
+// The narrowest columns: 6 visible at a calendar of 520 px (an app of about 550 px without the sidebar or
+// 870 px with it), and all 12 at a calendar of 1100 px (an app of about 1450 px), each about 80 px wide.
+for (const width of [552, 873, 1453]) {
+  test.describe(`at ${String(width)} px`, () => {
+    test.use({ viewport: { width, height: 800 } });
+
+    for (const [locale, columns] of [["en-GB", "Columns"], ["de-DE", "Spalten"]] as const) {
+      test.describe(locale, () => {
+        test.use({ locale });
+
+        test("the week markers leave the day and weekday free", async ({ page }) => {
+          await openApp(page);
+          await openExampleFromStart(page);
+          await page.getByRole("button", { name: columns, exact: true }).click();
+          await expect(cell(page, 1, 4).getByRole("button")).toBeVisible();
+          // The case this is about: a column narrower than the room the text, the marker and the lanes need side by side.
+          expect((await cell(page, 1, 4).boundingBox())!.width).toBeLessThan(90);
+          expect(await markersOverText(page)).toEqual([]);
+          await expectNoPageProblems(page);
+        });
+      });
+    }
+  });
+}
+
 test.describe("in right-to-left text", () => {
   test.skip(({ browserName }) => browserName === "webkit", "The gallery is checked in Chromium and Firefox.");
   test.use({ viewport: { width: 1280, height: 800 } });
@@ -165,6 +235,10 @@ test.describe("in right-to-left text", () => {
     await expect.poll(async () => (await firstCell.boundingBox())?.x).not.toBe(cellBefore?.x);
     expect(await header.boundingBox()).toEqual(before);
     await expectNoPageProblems(page);
+  });
+
+  test("the week markers leave the day and weekday free", async ({ page }) => {
+    expect(await markersOverText(page)).toEqual([]);
   });
 
   test("a focused cell is never under the sticky day column", async ({ page }) => {

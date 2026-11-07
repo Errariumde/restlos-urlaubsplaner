@@ -13,3 +13,17 @@ test("the built file carries the CSP first and makes no network request", async 
   expect(await page.content()).not.toContain("fetch(");
   await expectNoPageProblems(page);
 });
+
+test("only WebKit's ResizeObserver loop message is ignored, and only in WebKit", async ({ page, browserName }) => {
+  await openApp(page);
+  const reported = page.waitForEvent("pageerror");
+  await page.evaluate(() => {
+    setTimeout(() => {
+      throw new Error("ResizeObserver loop completed with undelivered notifications.");
+    });
+  });
+  await reported;
+  const problems = expectNoPageProblems(page);
+  if (browserName === "webkit") await problems;
+  else await expect(problems).rejects.toThrow(/ResizeObserver loop/);
+});
