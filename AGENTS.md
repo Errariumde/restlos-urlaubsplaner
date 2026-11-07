@@ -51,7 +51,7 @@ restlos is an offline vacation planner delivered as a single HTML file (plus a G
 ## Environment
 
 - Work inside the Nix dev shell (`nix develop`, or direnv with `use flake`). It provides Node.js, Typst, REUSE, language servers, Firefox ESR, Playwright browsers and Valgrind (Linux).
-- Commands: `npm ci`, `npm test`, `npm run lint`, `npm run typecheck`, `npm run check` (lint, typecheck, test, perf and `reuse lint`). `npm run build` and `npm run test:e2e` follow with the UI. `npm run reference:python` regenerates the python-holidays reference after rule changes. `npm run plan -- <file>` prints what the engine reads and computes for a plan file or rule set. `npm run perf` runs the performance gate (Valgrind from the dev shell).
+- Commands: `npm ci`, `npm test`, `npm run lint`, `npm run typecheck`, `npm run check` (lint, typecheck, test, perf, the catalog and CSS checks and `reuse lint`). `npm run build` and `npm run build:gallery` build the app and the component gallery; `npm run test:e2e` builds both and runs the Playwright tests in Chromium, Firefox and WebKit. `npm run reference:python` regenerates the python-holidays reference after rule changes. `npm run plan -- <file>` prints what the engine reads and computes for a plan file or rule set. `npm run perf` runs the performance gate (Valgrind from the dev shell).
 
 ## Repository-specific procedures
 

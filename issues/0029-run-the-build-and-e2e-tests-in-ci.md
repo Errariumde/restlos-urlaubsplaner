@@ -28,7 +28,7 @@ The `ui` branch added `npm run build`, the size limit, the component gallery and
 ## Acceptance criteria
 
 - [ ] CI builds the app and the gallery and fails when the HTML exceeds the size limit.
-- [ ] CI runs the end-to-end tests inside `nix develop .#ci` (the `ci` shell gains what they need), with the same browsers as locally.
+- [ ] The separate `e2e` workflow from `docs/SPEC.md`, "Workflows" (pull requests with the label `e2e`, before every release, otherwise weekly when there were commits) runs the end-to-end tests inside `nix develop .#ci` (the `ci` shell gains what they need), with the same browsers as locally.
 - [ ] It is decided how screenshot comparisons work on the runner (shared baselines with a tolerance, runner-made baselines, or screenshots only locally), and the decision is written down.
 - [ ] A failing run keeps the Playwright report as an artifact, without secrets and with a short retention.
 

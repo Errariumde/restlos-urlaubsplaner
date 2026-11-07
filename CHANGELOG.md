@@ -12,5 +12,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/), versions follow [Semant
 ### Added
 
 - Specification, project files, Nix development environment, AI tooling configuration.
+- Holiday and counting engine, with reading of plan files and rule sets.
+- Main screen with the example plan: month tiles and month columns, planning by mouse, touch and keyboard, the allowance, the day detail, German and English, light and dark mode.
 
 [Unreleased]: https://github.com/errariumde/restlos-urlaubsplaner/commits/main

@@ -11,7 +11,7 @@ restlos is a hobby project. Contributions are welcome, but there is no entitleme
 
 1. Discuss larger changes in an issue first.
 2. Develop inside the Nix dev shell (`nix develop`).
-3. `npm run check` must pass (tests, lint, types, REUSE).
+3. `npm run check` must pass (tests, lint, types, performance gate, catalog and CSS checks, REUSE).
 4. Holiday data only with a link to the official source and a test.
 5. New dependencies only after discussion.
 

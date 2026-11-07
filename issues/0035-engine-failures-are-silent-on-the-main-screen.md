@@ -27,7 +27,7 @@ When the engine worker answers an apply, undo, redo or preview with `failed` (an
 
 - [ ] `#change` (and `preview`) catch the failure and set an error state on `app` (for example `app.engineError`); no unhandled rejection is left.
 - [ ] The main screen shows the error in a `role="alert"` line with a text from both catalogs; it goes away with the next successful change.
-- [ ] `applying` is reset after a failure, so the calendar takes input again.
+- [x] `applying` is reset after a failure, so the calendar takes input again. The `finally` in `#change` already does this.
 - [ ] An e2e test makes the worker fail (e.g. by intercepting `postMessage`, as `e2e/tiles.spec.ts` does) and checks the alert and that `expectNoPageProblems` sees no page error.
 - [ ] `npm run check` and `npm run test:e2e` pass.
 
