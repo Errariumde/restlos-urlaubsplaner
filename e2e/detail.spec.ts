@@ -71,12 +71,27 @@ test.describe("in English at 1280 px", () => {
     await expectNoPageProblems(page);
   });
 
-  test("a click on another cell closes the detail and leaves the focus there", async ({ page }) => {
+  // The popover doesn't shade the calendar (docs/SPEC.md, "Detail view"): a click on a day closes it and acts.
+  test("a click on another day closes the detail, plans that day and leaves the focus there", async ({ page }) => {
+    await expect(cell(page, 2, 2)).toHaveAttribute("aria-label", /no leave/);
     await cell(page, 6, 14).click({ button: "right" });
     await expect(detail(page)).toBeVisible();
     await cell(page, 2, 2).click();
     await expect(detail(page)).toBeHidden();
+    await expect(cell(page, 2, 2)).toHaveAttribute("aria-label", /leave full/);
     await expect(cell(page, 2, 2)).toBeFocused();
+    await expectNoPageProblems(page);
+  });
+
+  test("a click on free space only closes the detail", async ({ page }) => {
+    const allowance = page.getByRole("complementary", { name: "Allowance" });
+    const before = await allowance.textContent();
+    await cell(page, 6, 14).click({ button: "right" });
+    await expect(detail(page)).toBeVisible();
+    await page.getByRole("heading", { level: 1 }).click();
+    await expect(detail(page)).toBeHidden();
+    await expect(cell(page, 6, 14)).toHaveAttribute("aria-label", /no leave/);
+    expect(await allowance.textContent()).toBe(before);
     await expectNoPageProblems(page);
   });
 

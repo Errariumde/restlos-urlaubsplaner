@@ -460,7 +460,7 @@ With "From rule set", country, region, local rules and day rules come from the r
   - Days that wouldn't change are left alone, so the hint line counts only real changes. A gesture that changes nothing adds no undo step. One undo step undoes a range.
   - A week-number click covers the whole ISO week (starting on the country's week start), not just the visible row, and goes through the range rules. It removes leave instead when every day the rules would set already has a full day.
   - Every pointer action has a single-pointer alternative (WCAG 2.5.7): clicks, Shift-click, the keyboard and the touch taps.
-- **Detail view:** date, required work and where it comes from, all sources, cost. On desktop a **popover** opened on demand by right-click, the context-menu key, Enter or a long press; on narrow widths a bottom sheet (a modal `<dialog>`). The hover title only repeats the cell's label and is not interactive: a hover tooltip that holds actions fails WCAG 1.4.13 and can't be reached reliably by keyboard.
+- **Detail view:** date, required work and where it comes from, all sources, cost. On desktop a **popover** opened on demand by right-click, the context-menu key, Enter or a long press; on narrow widths a bottom sheet (a modal `<dialog>`). The popover doesn't shade the calendar, which stays usable while it is open: a click on free space only closes it, and a click on a day or a week number closes it and acts on that day or week. The bottom sheet shades the page and blocks it until it is closed. The hover title only repeats the cell's label and is not interactive: a hover tooltip that holds actions fails WCAG 1.4.13 and can't be reached reliably by keyboard.
 
 ### Allowance display
 
