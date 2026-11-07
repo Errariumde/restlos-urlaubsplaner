@@ -8,7 +8,8 @@ import { createHash } from "node:crypto";
 /** The `type` values that make a `<script>` executable: none, empty, `module` or a JavaScript MIME type. */
 const EXECUTABLE_TYPE = /^(|module|(text|application)\/(x-)?(java|ecma)script)$/i;
 
-const SCRIPT = /<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi;
+// The HTML parser also ends a script at `</script foo>` and `</script/>`, but not at `</script-x>`.
+const SCRIPT = /<script\b([^>]*)>([\s\S]*?)<\/script(?:[\t\n\f\r /][^>]*)?>/gi;
 const TYPE_ATTRIBUTE = /(?:^|\s)type\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/i;
 
 /** `'sha256-…'` for each executable inline `<script>`, in document order, over its LF-normalized text. */

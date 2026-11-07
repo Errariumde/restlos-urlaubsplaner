@@ -18,6 +18,17 @@ describe("build HTML helpers", () => {
     expect(scriptHashes(html)).toEqual([sha256Base64("c()")]);
   });
 
+  it.each(["</script>", "</SCRIPT>", "</script >", "</script foo>", "</script\t\n bar>", "</script/>"])(
+    "ends a script at the end tag %j, as the HTML parser does",
+    (end) => {
+      expect(scriptHashes(`<script>a()${end}<script>b()</script>`)).toEqual([sha256Base64("a()"), sha256Base64("b()")]);
+    },
+  );
+
+  it("doesn't end a script at a tag that only starts like the end tag", () => {
+    expect(scriptHashes("<script>a()</script-x>b()</script>")).toEqual([sha256Base64("a()</script-x>b()")]);
+  });
+
   it("puts the policy right after meta charset", () => {
     const out = insertCsp(`<head><meta charset="utf-8"><title>x</title>`, "default-src 'none'");
     expect(out).toMatch(/^<head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'">/);
