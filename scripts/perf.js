@@ -21,7 +21,7 @@ import { BUDGET_TOLERANCE, GROWTH_LIMIT, SIZES, checkScenarios, verdict } from "
 const ROOT = join(import.meta.dirname, "..");
 const BASELINE = "tests/perf/baseline.json";
 const VALGRIND = ["--tool=cachegrind", "--cache-sim=no", "--cachegrind-out-file=/dev/null", "--vgdb=no"];
-// V8 settings under which a count depends only on the code and its input (issue 0020):
+// V8 settings under which a count depends only on the code and its input (issue 0020, perf counts depend on the checkout location):
 // - --predictable: single-threaded, with fixed seeds.
 // - --liftoff-only: Node strips the TypeScript types with WebAssembly; V8 would optimize that code at moments
 //   that depend on timing, which moved the startup count by up to 38 M instructions.

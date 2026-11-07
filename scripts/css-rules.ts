@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-// The CSS rules of the UI (D1, D2, D14): colours only as tokens, logical properties only, no uppercase text.
+// The CSS rules of the UI (docs/SPEC.md, "Controls, icons and fonts" and "Multilingual support"): colours only
+// as tokens, logical properties only, no uppercase text.
 // Checks declarations, not substrings. Run through `npm run check` (scripts/check-css.js).
 
 export interface CssFile {

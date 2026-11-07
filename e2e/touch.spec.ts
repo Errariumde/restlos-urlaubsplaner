@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-// Touch (docs/SPEC.md, "Calendar interaction"; D8): a tap toggles a day and a swipe scrolls; ranges come with
+// Touch (docs/SPEC.md, "Calendar interaction"): a tap toggles a day and a swipe scrolls; ranges come with
 // the selection mode, where a drag or two taps select and the selection bar applies or cancels. The drags are
 // pointer events of type "touch" sent to the cell the finger starts on, as a browser does with its implicit
 // pointer capture. The example plan runs from January to December 2027.

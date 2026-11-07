@@ -17,7 +17,7 @@ SPDX-License-Identifier: EUPL-1.2
   const label = $derived(i18n.t("calendar.week", { week }));
 </script>
 
-<!-- The grid keeps one Tab stop (D4): the week buttons are for the pointer; the keyboard selects a range instead. -->
+<!-- The grid keeps one Tab stop (docs/SPEC.md, "Calendar interaction"): the week buttons are for the pointer; the keyboard selects a range instead. -->
 <div role="rowheader" class="week">
   <button type="button" tabindex="-1" aria-label={label} title={label} {onclick}>{week}</button>
 </div>

@@ -10,7 +10,7 @@ export type EntryShape = () => Generator<Record<string, unknown>>;
 
 const WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
-/** Shape X of issue 0015: ranges from an early Easter date to the next January or February, on a weekday they never cover. */
+/** Shape X of issue 0015 (worst-case read time of crafted files): ranges from an early Easter date to the next January or February, on a weekday they never cover. */
 export const earlyEasterRangesOffWeekday: EntryShape = function* () {
   for (let validFrom = 1600; ; validFrom++) {
     for (let k = 286; k <= 338; k++) {

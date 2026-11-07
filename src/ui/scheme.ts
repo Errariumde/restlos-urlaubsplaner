@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-// The light/dark switch (D2, issue 0032): tokens.css holds a finished colour per mode, chosen by data-scheme on <html>.
+// The light/dark switch (docs/SPEC.md, "Colors, light and dark mode"): tokens.css holds a finished colour per mode,
+// chosen by data-scheme on <html>.
 // color-scheme follows only so native controls and scrollbars match.
 
 export type Scheme = "light" | "dark";

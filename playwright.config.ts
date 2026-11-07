@@ -30,11 +30,12 @@ export default defineConfig({
     { name: "chromium", use: { ...devices["Desktop Chrome"], viewport } },
     // The dev shell's WebKit paints in software at about two frames a second; with the month tiles on the
     // screen, opening the plan or resizing takes seconds. `npm run test:e2e` runs it alone with one worker
-    // after Chromium and Firefox (Ruling Q); parallel runs timed out at random (issue 0025).
-    // It also crashes about once every four tests, in Mesa's software renderer or with an abort. The test:e2e
-    // scripts therefore start with `ulimit -c 0`: with systemd-coredump, every crash wrote a dump that took up
-    // to two minutes, slowed the whole machine and made WebKit tests time out. Without dumps, a WebKit run took
-    // 10.4 instead of 16.9 minutes (2026-11-07). Set it yourself before calling `playwright test` directly.
+    // after Chromium and Firefox; parallel runs timed out at random (issue 0025, browser behaviour left
+    // untested by the feasibility run). It also crashes about once every four tests, in Mesa's software
+    // renderer or with an abort. The test:e2e scripts therefore start with `ulimit -c 0`: with systemd-coredump,
+    // every crash wrote a dump that took up to two minutes, slowed the whole machine and made WebKit tests time
+    // out. Without dumps, a WebKit run took 10.4 instead of 16.9 minutes (2026-11-07). Set it yourself before
+    // calling `playwright test` directly.
     { name: "webkit", use: { ...devices["Desktop Safari"], viewport }, timeout: 90_000, expect: { timeout: 20_000 } },
   ],
 });

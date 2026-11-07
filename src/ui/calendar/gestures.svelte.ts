@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-// Planning leave with the pointer (docs/SPEC.md, "Calendar interaction"; D8): drag to paint a range, click to
+// Planning leave with the pointer (docs/SPEC.md, "Calendar interaction"): drag to paint a range, click to
 // toggle a day, Shift-click to extend from the last clicked day; on touch a tap toggles and a long press
 // opens the detail. Every gesture ends in exactly one `apply` (one undo step) or none (Review Focus 1).
 // In the selection mode (`app.selectMode`) a drag or two taps only select a range (`app.selection`, with its
@@ -58,7 +58,7 @@ interface TouchPress {
 }
 
 /**
- * A press in the selection mode (D8): a drag selects the days it passes, a tap sets the first day of a range
+ * A press in the selection mode: a drag selects the days it passes, a tap sets the first day of a range
  * and the next tap its last day. Nothing is applied; the selection bar does that.
  */
 interface SelectPress {

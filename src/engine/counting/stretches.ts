@@ -13,7 +13,7 @@ export interface StretchDay {
   readonly freeEnd: Units;
   readonly costStart: Units;
   readonly costEnd: Units;
-  readonly closure: boolean; // a paid closure (see Task 7)
+  readonly closure: boolean; // a paid closure
 }
 export interface StretchPoint {
   readonly day: DayNumber;

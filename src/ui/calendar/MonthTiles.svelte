@@ -3,8 +3,8 @@ SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 SPDX-License-Identifier: EUPL-1.2
 -->
 <script lang="ts">
-  // View 1, the month tiles (docs/SPEC.md, "View 1"): one ARIA grid over all months with a roving tabindex
-  // (D4), 4, 3, 2 or 1 tiles per row by the width of the calendar area (container queries).
+  // View 1, the month tiles (docs/SPEC.md, "View 1"): one ARIA grid over all months with a roving tabindex,
+  // 4, 3, 2 or 1 tiles per row by the width of the calendar area (container queries).
   import type { PlanResult } from "../../engine/counting/plan.ts";
   import type { DayNumber } from "../../engine/days.ts";
   import { formatDate } from "../i18n/format.ts";
@@ -125,7 +125,7 @@ SPDX-License-Identifier: EUPL-1.2
           {/if}
           {#each week.cells as day, column (column)}
             {#if day === null}
-              <!-- An empty cell, so every cell stays under its weekday header (Ruling V). -->
+              <!-- An empty cell, so every cell stays under its weekday header. -->
               <span class="pad" role="gridcell"></span>
             {:else}
               {@const dayResult = result.days[day - firstDay]}
@@ -163,7 +163,7 @@ SPDX-License-Identifier: EUPL-1.2
 
     /*
      * In the selection mode a finger on a day selects instead of scrolling (gestures.svelte.ts); the headers
-     * and the gaps still scroll the page (Ruling U).
+     * and the gaps still scroll the page.
      */
     .tiles.selecting :global([data-day]) {
       touch-action: none;

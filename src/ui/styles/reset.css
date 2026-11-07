@@ -47,7 +47,7 @@
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       /* 0s, not the common 0.01ms: transition-property defaults to "all", so any duration above 0 starts a transition
-         for every changed property on every element; a light/dark switch then started thousands of them (issue 0032). */
+         for every changed property on every element; a light/dark switch then started thousands of them (issue 0032, light/dark switch not instant in Firefox ESR). */
       transition-duration: 0s !important;
       transition-delay: 0s !important;
       scroll-behavior: auto !important;

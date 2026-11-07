@@ -118,7 +118,7 @@ SPDX-License-Identifier: EUPL-1.2
     const state = app.state;
     if (state === undefined || day < state.result.period.from || day > state.result.period.to) return;
     if (detail?.day === day && detail.anchor === anchor) return;
-    // A sheet on a narrow calendar and on a touch screen (as the toolbar's More menu, Ruling P), and always
+    // A sheet on a narrow calendar and on a touch screen (as the toolbar's More menu), and always
     // for a touch: a long press opens it while the finger is down, and lifting it would light-dismiss a popover.
     const narrow = calendarWidth !== undefined && calendarWidth < DETAIL_SHEET_BELOW;
     const sheet = narrow || matchMedia("(pointer: coarse)").matches || pointerType === "touch";

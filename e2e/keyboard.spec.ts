@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-// Planning leave with the keyboard only (docs/SPEC.md, "Calendar interaction"; D4): one Tab stop, the arrows,
+// Planning leave with the keyboard only (docs/SPEC.md, "Calendar interaction"): one Tab stop, the arrows,
 // PageUp/PageDown, Shift+arrows for a visible selection, Space, H, Delete and Escape. No mouse in this file.
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { dayFromYmd } from "../src/engine/days.ts";

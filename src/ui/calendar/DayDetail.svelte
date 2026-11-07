@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 SPDX-License-Identifier: EUPL-1.2
 -->
 <script lang="ts">
-  // The detail of a day (docs/SPEC.md, "Detail view"; D7): the date, the required work and what decided it,
+  // The detail of a day (docs/SPEC.md, "Detail view"): the date, the required work and what decided it,
   // the calendar sources, the leave, its cost and the day's problems, with one action per kind of leave.
   // A popover next to the cell; a bottom sheet on a narrow calendar or a touch screen; inline in the gallery.
   import { tick } from "svelte";

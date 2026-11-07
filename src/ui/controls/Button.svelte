@@ -7,7 +7,7 @@ SPDX-License-Identifier: EUPL-1.2
   import "./control.css";
 
   interface Props {
-    /** One filled primary button per area (D5). */
+    /** One filled primary button per area (docs/SPEC.md, "Controls, icons and fonts"). */
     variant?: "default" | "primary";
     type?: "button";
     /** A toggle button: sets aria-pressed. Leave it out for a plain button. */

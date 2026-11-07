@@ -3,11 +3,12 @@
 
 /* The design tokens. This file is the scheme "Standard"; user schemes overwrite the --r-* properties with style.setProperty().
    Each role is a finished colour per mode: the light value on :root, the dark value under :root[data-scheme="dark"]. App.svelte
-   sets data-scheme on <html> from the mode (D2). Colours exist only in this file.
-   A switch only swaps plain values: no light-dark(), var() or color-mix() is left to resolve on every element (issue 0032).
-   Neutrals (D11) are oklch(L calc(nk * C) nh) with one hue nh and one chroma factor nk for all of them; the values below bake
+   sets data-scheme on <html> from the mode (docs/SPEC.md, "Colors, light and dark mode"). Colours exist only in this file.
+   A switch only swaps plain values: no light-dark(), var() or color-mix() is left to resolve on every element (issue 0032,
+   light/dark switch not instant in Firefox ESR).
+   Neutrals are oklch(L calc(nk * C) nh) with one hue nh and one chroma factor nk for all of them; the values below bake
    nh = 0 and nk = 0 (pure greys) and name each role's C as "C light / dark", so a tint stays a change of those two numbers.
-   Blue is reserved for leave (D15): the primary action is a darker, greyer navy. */
+   Blue is reserved for leave: the primary action is a darker, greyer navy. */
 @layer tokens {
   :root {
     /* Surfaces */
@@ -27,7 +28,7 @@
     --r-primary-hover: oklch(31% 0.1 258);
     --r-focus: oklch(45% 0.19 262);
 
-    /* Controls (D5): the fill is --r-surface-raised, one step lighter than the surface; the bottom edge is
+    /* Controls (docs/SPEC.md, "Controls, icons and fonts"): the fill is --r-surface-raised, one step lighter than the surface; the bottom edge is
        darker than --r-border-strong and disappears while pressed. */
     --r-control-hover: oklch(96.5% 0 0); /* C 0.005 / 0.009 */
     --r-control-edge: oklch(38% 0 0); /* C 0.014 / 0.012 */

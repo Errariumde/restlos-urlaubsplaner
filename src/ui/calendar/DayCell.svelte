@@ -124,7 +124,7 @@ SPDX-License-Identifier: EUPL-1.2
       outline-offset: 1px;
     }
 
-    /* Layer 1: the required work. Each day type has its own pattern, not only its own colour (Ruling H). */
+    /* Layer 1: the required work. Each day type has its own pattern, not only its own colour. */
     .weekend {
       background: repeating-linear-gradient(135deg, transparent 0 4px, var(--r-day-pattern) 4px 5px), var(--r-weekend);
       color: var(--r-text-muted);

@@ -20,5 +20,5 @@ export const ICON_FILES = {
 
 export type IconName = keyof typeof ICON_FILES;
 
-/** The icons that point in the reading direction and are mirrored in right-to-left text (D14). */
+/** The icons that point in the reading direction and are mirrored in right-to-left text (docs/SPEC.md, "Multilingual support"). */
 export const MIRRORED_ICONS: ReadonlySet<IconName> = new Set<IconName>(["undo", "redo"]);

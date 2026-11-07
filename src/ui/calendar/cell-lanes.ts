@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-// The source lanes of each day cell (docs/SPEC.md, "Day cell", layer 4; D12), and how a source is drawn.
+// The source lanes of each day cell (docs/SPEC.md, "Day cell", layer 4), and how a source is drawn.
 import type { PlanResult } from "../../engine/counting/plan.ts";
 import type { DayNumber, Weekday } from "../../engine/days.ts";
 import type { SourceMeta } from "../worker/protocol.ts";

@@ -452,8 +452,8 @@ With "From rule set", country, region, local rules and day rules come from the r
   - **Drag to paint a range:** pressing on a day and dragging previews the range, and the hint line shows the working days, the cost, the resulting stretch and the remaining allowance. Releasing applies it. Starting on a day with own leave removes leave instead.
   - A click on a **week number** sets the days of that week with required work, clipped to the plan period, or removes them when all are set.
   - Right-click = detail view (see below), with half day, note and change of required work for this date.
-- **Touch:** tap = full on/off; long press = detail view. Ranges only in the **selection mode** (button in the bar), so that swiping to scroll and dragging to select don't collide. In it, both a drag and two taps (first and last day) select a range, and a tap on a week number selects that week's days with required work in the plan period. Nothing changes until an action bar confirms it: Full day, Half day, Remove, Cancel.
-- **Keyboard:** the calendar is one widget with one Tab stop (ARIA grid, roving tabindex); arrow keys, Home/End and PageUp/PageDown move inside it. Shift+arrow grows a visible selection; Space sets full days, H half days and Delete removes leave on the selection (on a single cell: Space = full, H = half). Ctrl+Z/Ctrl+Y.
+- **Touch:** tap = full on/off; long press = detail view. Ranges only in the **selection mode** (button in the bar), so that swiping to scroll and dragging to select don't collide. In it, both a drag and two taps (first and last day) select a range, and a tap on a week number selects that week's days with required work in the plan period. Nothing changes until an action bar confirms it: Full day, Half day, Remove, Cancel. In the mode only the day cells take the touch, so the headers, the day column and the gaps still scroll the page.
+- **Keyboard:** the calendar is one widget with one Tab stop (ARIA grid, roving tabindex); arrow keys, Home/End and PageUp/PageDown move inside it. Shift+arrow grows a visible selection; Space sets full days, H half days and Delete removes leave on the selection (on a single cell: Space = full, H = half). Ctrl+Z/Ctrl+Y. In the month columns, Up and Down stop at the first and the last day of a month, since a month is one column; the other keys move between months. When there is no month in that direction inside the plan period, PageUp and PageDown, and Left and Right in the month columns, leave the focus where it is. Week numbers are buttons for the pointer; with the keyboard a week is selected with Shift+arrows and then planned with Space, H or Delete.
 - **Range rules** (one function for drag, Shift-click, week click, keyboard and touch ranges):
   - **Setting** puts a full day on every day in the range that has required work above 0, lies in the plan period, is not mandatory leave and is not covered by "Leave from another plan". Half days in the range become full days. Days with ½ required work (24 and 31 Dec) get a full day and cost ½, the same as a click.
   - **Removing** removes all own leave in the range, full or half.
@@ -490,7 +490,7 @@ With "From rule set", country, region, local rules and day rules come from the r
 - Language switch at runtime without reload; help and built-in PDF templates bilingual.
 - CI checks for missing/unused keys; pseudo-localization reveals truncated layouts.
 - **Ready for right-to-left languages from the first component,** although only DE and EN ship: logical CSS properties only (enforced by a check script), `dir` from the catalog, grid arrow keys that follow the visual direction, and a list of icons that mirror.
-- **Two pseudo-locales** in the component gallery: `en-XA` (long, accented) and `en-XB` (right-to-left).
+- **Two pseudo-locales** in the component gallery: `en-XA` (long, accented) and `en-XB` (right-to-left). Only the gallery registers them and its own texts, so the app ships German and English alone.
 - No `text-transform: uppercase` on translated text. `Intl.Collator` for sorted lists; the locale's decimal separator is accepted in number fields; engine tests include a country with a Saturday week start.
 
 **Glossary** (binding for UI, help, templates and code identifiers):
@@ -518,7 +518,7 @@ With "From rule set", country, region, local rules and day rules come from the r
 
 ### Accessibility
 
-Contrast according to WCAG AA for the built-in schemes, a screen reader label per day ("Friday, 7 May 2027, working day, leave full, costs 1"), fully operable by keyboard, focus visible in both modes. Each view is an ARIA grid with a roving tabindex (one Tab stop, not 365); the selection is `aria-selected` and the leave state is part of the label. To be tested once with NVDA + Firefox and with Orca. axe-core checks the component gallery and the main screens.
+Contrast according to WCAG AA for the built-in schemes, a screen reader label per day ("Friday, 7 May 2027, working day, leave full, costs 1"), fully operable by keyboard, focus visible in both modes. Each view is an ARIA grid with a roving tabindex (one Tab stop, not 365); the selection is `aria-selected` and the leave state is part of the label. The slots before the first and after the last day of a month are empty grid cells, so every cell sits under its header. The allowance panel follows the calendar in the document, because the calendar is the main content. To be tested once with NVDA + Firefox and with Orca. axe-core checks the component gallery and the main screens.
 
 ### Built-in help
 
@@ -550,8 +550,9 @@ No component or icon library.
 **Look and structure**
 
 - **Styles:** our own CSS, no framework. Svelte's scoped component CSS on top of one token file, ordered with `@layer reset, tokens, base, layout, components`. A small check script (no package) fails on literal colours outside the token file, on physical properties and on `text-transform: uppercase`.
-- **Buttons:** tactile. A 1 px border at 3:1 contrast, a fill one step lighter than the surface, a 1 px darker bottom edge and a 6 px radius; pressing removes the edge. One filled primary button per area.
+- **Buttons:** tactile. A 1 px border at 3:1 contrast, a fill one step lighter than the surface, a 1 px darker bottom edge and a 6 px radius; pressing removes the edge. One filled primary button per area. A filled or pressed button keeps its strong 1 px border, so in dark mode the primary colour is never the only sign of its state.
 - **File commands:** Open and Save are visible buttons, everything else is in a "File" menu button. No menubar (a `role="menubar"` would collide with the browser's Alt menu). On the phone the File menu merges into the menu button; Save stays visible.
+- **More menu:** below 520 px app width, the toolbar moves the mode, the language and the checkboxes into a More menu. It opens as a bottom sheet on touch screens (`pointer: coarse`) and as a popover otherwise.
 - **Settings switches** are native checkboxes; toggles in menus are `menuitemcheckbox` items with a check mark.
 
 
