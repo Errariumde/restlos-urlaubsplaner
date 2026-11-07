@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 // Planning leave with the keyboard only (docs/SPEC.md, "Calendar interaction"): one Tab stop, the arrows,
-// PageUp/PageDown, Shift+arrows for a visible selection, Space, H, Delete and Escape. No mouse in this file.
+// Home/End, PageUp/PageDown, Shift+arrows for a visible selection, Space, H, Delete and Escape. No mouse in this file.
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { dayFromYmd } from "../src/engine/days.ts";
 import { expectNoPageProblems, openApp } from "./helpers.ts";
@@ -185,6 +185,27 @@ test("PageDown moves to the next month and PageUp back", async ({ page }) => {
   await expect(cell(page, 5, 16)).toBeFocused();
   await page.keyboard.press("Home");
   await expect(cell(page, 5, 10)).toBeFocused();
+  await expectNoPageProblems(page);
+});
+
+test("Home and End go to the week across a month's edge, Ctrl+Home and Ctrl+End to the month", async ({ page }) => {
+  // Tuesday 1 June 2027: its week starts on Monday 31 May.
+  await cell(page, 6, 1).focus();
+  await page.keyboard.press("Home");
+  await expect(cell(page, 5, 31)).toBeFocused();
+  await page.keyboard.press("Control+End");
+  await expect(cell(page, 5, 31)).toBeFocused();
+  await page.keyboard.press("Control+Home");
+  await expect(cell(page, 5, 1)).toBeFocused();
+  await page.keyboard.press("Shift+Control+End");
+  await expect(cell(page, 5, 31)).toBeFocused();
+  await expect(selected(page)).toHaveCount(31);
+  await page.keyboard.press("v");
+  await cell(page, 6, 1).focus();
+  await page.keyboard.press("End");
+  await expect(cell(page, 6, 6)).toBeFocused();
+  await page.keyboard.press("Control+Home");
+  await expect(cell(page, 6, 1)).toBeFocused();
   await expectNoPageProblems(page);
 });
 

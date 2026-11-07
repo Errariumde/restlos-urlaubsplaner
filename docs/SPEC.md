@@ -453,7 +453,7 @@ With "From rule set", country, region, local rules and day rules come from the r
   - A click on a **week number** sets the days of that week with required work, clipped to the plan period, or removes them when all are set.
   - Right-click = detail view (see below), with half day, note and change of required work for this date.
 - **Touch:** tap = full on/off; long press = detail view. Ranges only in the **selection mode** (button in the bar), so that swiping to scroll and dragging to select don't collide. In it, both a drag and two taps (first and last day) select a range, and a tap on a week number selects that week's days with required work in the plan period. Nothing changes until an action bar confirms it: Full day, Half day, Remove, Cancel. In the mode only the day cells take the touch, so the headers, the day column and the gaps still scroll the page.
-- **Keyboard:** the calendar is one widget with one Tab stop (ARIA grid, roving tabindex); arrow keys, Home/End and PageUp/PageDown move inside it. Shift+arrow grows a visible selection; Space sets full days, H half days and Delete removes leave on the selection (on a single cell: Space = full, H = half). Ctrl+Z/Ctrl+Y. In the month columns, Up and Down stop at the first and the last day of a month, since a month is one column; the other keys move between months. When there is no month in that direction inside the plan period, PageUp and PageDown, and Left and Right in the month columns, leave the focus where it is. Week numbers are buttons for the pointer; with the keyboard a week is selected with Shift+arrows and then planned with Space, H or Delete.
+- **Keyboard:** the calendar is one widget with one Tab stop (ARIA grid, roving tabindex); arrow keys, Home/End and PageUp/PageDown move inside it. Home and End go to the start and the end of the week, in both views and also into the neighbouring month; Ctrl+Home and Ctrl+End (Cmd on macOS) go to the first and the last day of the month. No key moves the focus out of the plan period. Shift+arrow grows a visible selection; Space sets full days, H half days and Delete removes leave on the selection (on a single cell: Space = full, H = half). Ctrl+Z/Ctrl+Y. In the month columns, Up and Down stop at the first and the last day of a month, since a month is one column; the other keys move between months. When there is no month in that direction inside the plan period, PageUp and PageDown, and Left and Right in the month columns, leave the focus where it is. Week numbers are buttons for the pointer; with the keyboard a week is selected with Shift+arrows and then planned with Space, H or Delete.
 - **Range rules** (one function for drag, Shift-click, week click, keyboard and touch ranges):
   - **Setting** puts a full day on every day in the range that has required work above 0, lies in the plan period, is not mandatory leave and is not covered by "Leave from another plan". Half days in the range become full days. Days with ½ required work (24 and 31 Dec) get a full day and cost ½, the same as a click.
   - **Removing** removes all own leave in the range, full or half.
@@ -529,6 +529,9 @@ Offline, bilingual, context-sensitive ("?" on every dialog). Chapters: Getting s
 | Key | Action |
 | --- | --- |
 | Arrow keys | move focus in the calendar |
+| Home / End | start / end of the week |
+| Ctrl+Home / Ctrl+End | first / last day of the month |
+| PageUp / PageDown | same day in the previous / next month |
 | Space / H | set or remove leave full / half |
 | Shift + click or Shift + arrow key | extend range |
 | Ctrl+Z / Ctrl+Y | undo / redo |

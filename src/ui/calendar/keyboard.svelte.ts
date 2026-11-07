@@ -13,7 +13,7 @@ import type { DayNumber } from "../../engine/days.ts";
 import { i18n } from "../i18n/i18n.svelte.ts";
 import type { app as appState } from "../state/app.svelte.ts";
 import type { LeaveChange } from "../worker/protocol.ts";
-import { nextDay, type NavKey } from "./grid-nav.ts";
+import { navKeyOf, nextDay } from "./grid-nav.ts";
 import { rangeChanges, toggleDay, type RangeAction } from "./range.ts";
 
 export interface KeyboardOptions {
@@ -22,8 +22,6 @@ export interface KeyboardOptions {
   /** Opens the detail of a day next to its cell. */
   readonly openDetail: (day: DayNumber, anchor: HTMLElement) => void;
 }
-
-const NAV_KEYS: ReadonlySet<string> = new Set<NavKey>(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"]);
 
 /** The cell an event comes from, inside `node`. */
 function cellOf(node: HTMLElement, target: EventTarget | null): HTMLElement | undefined {
@@ -82,19 +80,21 @@ export function calendarKeyboard(node: HTMLElement, initial: KeyboardOptions): {
   function onKeyDown(event: KeyboardEvent): void {
     const cell = cellOf(node, event.target);
     const state = options.app.state;
-    if (cell === undefined || state === undefined || event.altKey || event.ctrlKey || event.metaKey) return;
+    if (cell === undefined || state === undefined) return;
     const from = Number(cell.dataset.day);
 
-    if (NAV_KEYS.has(event.key)) {
+    const key = navKeyOf(event);
+    if (key !== undefined) {
       // Moving works while a change is being applied; only the preview of a selection would be stale for a moment.
       event.preventDefault();
       const ctx = { dir: i18n.dir, weekStart: state.meta.weekStart, period: state.result.period, alignByWeekday: options.app.align };
-      const to = nextDay(options.view(), event.key as NavKey, from, ctx);
+      const to = nextDay(options.view(), key, from, ctx);
       if (event.shiftKey) extend(from, to);
       else clearSelection();
       focusCell(to);
       return;
     }
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
 
     if (event.key === "Escape") {
       if (options.app.selection === undefined) return;
