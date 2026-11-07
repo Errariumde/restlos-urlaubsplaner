@@ -173,19 +173,19 @@ SPDX-License-Identifier: EUPL-1.2
       outline: none;
     }
 
-    @container calendar (inline-size >= 520px) {
+    @container calendar (inline-size >= 32.5rem) {
       .tiles {
         --per-row: 2;
       }
     }
 
-    @container calendar (inline-size >= 800px) {
+    @container calendar (inline-size >= 50rem) {
       .tiles {
         --per-row: 3;
       }
     }
 
-    @container calendar (inline-size >= 1100px) {
+    @container calendar (inline-size >= 68.75rem) {
       .tiles {
         --per-row: 4;
       }

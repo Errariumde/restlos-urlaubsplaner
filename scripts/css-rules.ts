@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 // The CSS rules of the UI (docs/SPEC.md, "Controls, icons and fonts" and "Multilingual support"): colours only
-// as tokens, logical properties only, no uppercase text.
+// as tokens, logical properties only, no uppercase text, and rem for what follows the text size.
 // Checks declarations, not substrings. Run through `npm run check` (scripts/check-css.js).
 
 export interface CssFile {
@@ -36,6 +36,12 @@ const NO_COLOR_WORDS = /^(?:font|font-family|content|quotes|grid|grid-area|grid-
 const PHYSICAL_SIDE = /^(?:margin|padding|border|inset|scroll-margin|scroll-padding)-(?:left|right|top|bottom)(?:-|$)/;
 const PHYSICAL_BARE = /^(?:left|right|top|bottom)$/;
 const PHYSICAL_SIZE = /^(?:min-|max-)?(?:width|height)$/;
+const BOX_SIZE = /^(?:min-|max-)?(?:inline-size|block-size)$/;
+const PX = /(?<![\w.-])(\d*\.?\d+)px\b/g;
+/** The largest size in px for a box: lines, marks and patterns that must not grow with the text. */
+const MAX_PX_BOX = 16;
+const SIZE_RULE =
+  "text sizes, boxes that hold text and breakpoints use rem, so they follow the browser's text size (1rem is 16px by default); px only for borders, shadows, patterns and marks up to 16px";
 
 interface Block {
   /** Text of one stylesheet (a .css file, a `<style>` block, or an inline style wrapped in a rule). */
@@ -140,6 +146,22 @@ function declarationErrors(block: Block, path: string, isTokenFile: boolean): st
       if (!print.some(([from, to]) => at >= from && at < to)) report(`physical property "${name}"; use inline-size/block-size (allowed only in @media print)`);
     } else if ((name === "text-align" || name === "float" || name === "clear") && /^(?:left|right)\b/i.test(value)) report(`physical value "${name}: ${value}"; use start/end or inline-start/inline-end`);
     else if (name === "text-transform" && /\buppercase\b/i.test(value)) report("text-transform: uppercase is not allowed");
+
+    if (print.some(([from, to]) => at >= from && at < to)) continue;
+    if (name === "font-size" && value.match(PX)) report(`font size in px ("${value}"); ${SIZE_RULE}`);
+    else if (BOX_SIZE.test(name)) {
+      for (const px of value.matchAll(PX)) if (Number(px[1]) > MAX_PX_BOX) report(`box size ${px[0]} in "${name}"; ${SIZE_RULE}`);
+    }
+  }
+  return errors;
+}
+
+/** Breakpoints in px in the conditions of `@container` and `@media`. */
+function queryErrors(block: Block, path: string): string[] {
+  const text = blank(block.text);
+  const errors: string[] = [];
+  for (const match of text.matchAll(/@(container|media)\b([^{;]*)\{/gi)) {
+    if (match[2]!.match(PX)) errors.push(`${path}:${String(lineOf(text, match.index) + 1 + block.lineOffset)}: breakpoint in px in @${match[1]!}; ${SIZE_RULE}`);
   }
   return errors;
 }
@@ -189,6 +211,7 @@ export function checkCss(files: readonly CssFile[]): string[] {
     for (const block of blocksOf(file)) {
       if (isSvelte) errors.push(...layerErrors(block, file.path));
       errors.push(...declarationErrors(block, file.path, isTokenFile));
+      errors.push(...queryErrors(block, file.path));
     }
     if (isSvelte) errors.push(...markupErrors(file));
   }

@@ -30,7 +30,7 @@ SPDX-License-Identifier: EUPL-1.2
     }
 
     button {
-      inline-size: 18px;
+      inline-size: 1.125rem;
       block-size: 100%;
       padding: 0;
       border: 0;
@@ -38,7 +38,7 @@ SPDX-License-Identifier: EUPL-1.2
       background: var(--r-weekend);
       color: var(--r-text-muted);
       font: inherit;
-      font-size: 10px;
+      font-size: 0.625rem;
       font-weight: 700;
       font-variant-numeric: tabular-nums;
       cursor: pointer;

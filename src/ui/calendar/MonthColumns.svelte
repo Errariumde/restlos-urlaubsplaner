@@ -212,19 +212,19 @@ SPDX-License-Identifier: EUPL-1.2
       outline: none;
     }
 
-    @container calendar (inline-size >= 520px) {
+    @container calendar (inline-size >= 32.5rem) {
       .columns {
         --visible: 6;
       }
     }
 
-    @container calendar (inline-size >= 800px) {
+    @container calendar (inline-size >= 50rem) {
       .columns {
         --column: minmax(5.5rem, 1fr);
       }
     }
 
-    @container calendar (inline-size >= 1100px) {
+    @container calendar (inline-size >= 68.75rem) {
       .columns {
         --column: minmax(0, 1fr);
       }
@@ -273,7 +273,7 @@ SPDX-License-Identifier: EUPL-1.2
       display: none;
     }
 
-    @container calendar (inline-size < 800px) {
+    @container calendar (inline-size < 50rem) {
       .long {
         display: none;
       }
@@ -305,7 +305,7 @@ SPDX-License-Identifier: EUPL-1.2
       box-shadow: inset 0 0 0 1px var(--r-border-strong);
       color: var(--r-text-muted);
       font: inherit;
-      font-size: 10px;
+      font-size: 0.625rem;
       font-weight: 700;
       line-height: 0.9rem;
       font-variant-numeric: tabular-nums;

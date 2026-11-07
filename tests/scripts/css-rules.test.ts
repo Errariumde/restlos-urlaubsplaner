@@ -103,6 +103,24 @@ describe("checkCss", () => {
     expect(file('<svg><path fill="url(#grad)" /></svg>')).toEqual([]);
   });
 
+  it("flags font sizes in px and names rem as the fix", () => {
+    const errors = css(".a { font-size: 10px } .b { font-size: 0.625rem } .c { font-size: calc(1em + 2px) }");
+    expect(errors).toHaveLength(2);
+    expect(errors[0]).toContain("rem");
+  });
+
+  it("flags breakpoints in px in @container and @media", () => {
+    expect(css("@container calendar (inline-size >= 520px) { .a { gap: 0 } }")).toHaveLength(1);
+    expect(css("@media (min-width: 40em) and (max-width: 800px) { .a { gap: 0 } }")).toHaveLength(1);
+    expect(css("@container calendar (inline-size >= 32.5rem) { .a { gap: 0 } } @media (pointer: coarse) { .b { gap: 0 } }")).toEqual([]);
+  });
+
+  it("flags box sizes over 16 px, but not smaller marks, lines and other properties", () => {
+    expect(css(".a { inline-size: 18px } .b { max-inline-size: min(900px, 100%) } .c { min-block-size: 40px }")).toHaveLength(3);
+    expect(css(".a { inline-size: 15px; block-size: 5px; border: 1px solid; box-shadow: 0 4px 16px; inset-block-end: 10px }")).toEqual([]);
+    expect(css(".a { inline-size: 1.125rem; block-size: calc(100% - 2px) }")).toEqual([]);
+  });
+
   it("requires Svelte style blocks to be inside @layer components", () => {
     const file = (text: string) => checkCss([{ path: "src/ui/A.svelte", text }]);
     expect(file("<style>.a { color: var(--r-text) }</style>")).toHaveLength(1);
