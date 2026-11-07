@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 // The month columns (docs/SPEC.md, "View 2"): one column per month with a fixed day column, the drag, the
-// alignment by weekday, the week markers, the view switch that keeps the focused day, and right-to-left text.
+// alignment by weekday and the view switch, which both keep the focused day, the week markers, and
+// right-to-left text.
 // The example plan runs from January to December 2027.
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { dayFromYmd } from "../src/engine/days.ts";
@@ -119,6 +120,27 @@ test.describe("in English at 1920 px", () => {
     await expect(detail).toHaveCount(0);
     await expect(cell(page, 6, 14)).toBeFocused();
     await expect(cell(page, 6, 14)).toBeInViewport();
+    await expectNoPageProblems(page);
+  });
+
+  test("W keeps the focused day: 15 January stays focused, and Space plans it", async ({ page }) => {
+    await cell(page, 1, 15).focus();
+    await page.keyboard.press("w");
+    await expect(page.getByRole("checkbox", { name: "Align by weekday" })).toBeChecked();
+    await expect(cell(page, 1, 15)).toBeFocused();
+    await expect(cell(page, 1, 15)).toHaveAttribute("tabindex", "0");
+    await page.keyboard.press("Space");
+    await expectLeave(page, 1, [15], FULL);
+    await expectLeave(page, 1, [14, 16, 11], NONE);
+
+    await page.keyboard.press("Enter");
+    const detail = page.getByRole("dialog", { name: /^Details for / });
+    await expect(detail).toBeVisible();
+    await page.keyboard.press("w");
+    await expect(page.getByRole("checkbox", { name: "Align by weekday" })).not.toBeChecked();
+    await expect(detail).toHaveCount(0);
+    await expect(cell(page, 1, 15)).toBeFocused();
+    await expect(cell(page, 1, 15)).toBeInViewport();
     await expectNoPageProblems(page);
   });
 

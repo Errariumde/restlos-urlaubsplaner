@@ -94,20 +94,23 @@ SPDX-License-Identifier: EUPL-1.2
   const coarse = new MediaQuery("(pointer: coarse)");
   const selectable = $derived(coarse.current || (width !== undefined && belowRem(width, SELECT_BELOW, rem())));
   /**
-   * Switches the view (V and the toolbar). The detail closes first, since its anchor cell goes with the old
-   * view. The focused day stays: it is scrolled into view in the new view and keeps the focus if the old grid
-   * or the detail had it.
+   * Changes the grid's layout: the view (V and the toolbar) or the alignment by weekday (W). The detail closes
+   * first, since its anchor cell goes with the old layout. The focused day stays: it is scrolled into view in
+   * the new layout and keeps the focus if the old grid or the detail had it.
    */
-  async function switchView(view: "tiles" | "columns"): Promise<void> {
-    if (view === app.view) return;
+  async function relayout(change: () => void): Promise<void> {
     const active = document.activeElement;
     const refocus = (calendar?.contains(active) ?? false) || (detail !== undefined && active?.closest("[popover], dialog") != null);
     detail = undefined;
-    app.view = view;
+    change();
     await tick();
     const cell = calendar?.querySelector<HTMLElement>(`[data-day="${String(app.focusDay)}"]`);
     cell?.scrollIntoView({ block: "nearest", inline: "nearest" });
     if (refocus) cell?.focus({ preventScroll: true });
+  }
+
+  function switchView(view: "tiles" | "columns"): Promise<void> {
+    return view === app.view ? Promise.resolve() : relayout(() => (app.view = view));
   }
 
   interface DetailRequest {
@@ -164,7 +167,7 @@ SPDX-License-Identifier: EUPL-1.2
         void switchView(app.view === "tiles" ? "columns" : "tiles");
         break;
       case "align":
-        if (app.view === "columns") app.align = !app.align;
+        if (app.view === "columns") void relayout(() => (app.align = !app.align));
         break;
       case "weeks":
         app.weeks = !app.weeks;
