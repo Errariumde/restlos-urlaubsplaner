@@ -234,11 +234,11 @@ SPDX-License-Identifier: EUPL-1.2
     }
 
     .swatch.dashed {
-      background: repeating-linear-gradient(90deg, var(--swatch) 0 7px, transparent 7px 10px);
+      background: repeating-linear-gradient(in srgb 90deg, var(--swatch) 0 7px, transparent 7px 10px);
     }
 
     .swatch.dotted {
-      background: repeating-linear-gradient(90deg, var(--swatch) 0 3px, transparent 3px 6px);
+      background: repeating-linear-gradient(in srgb 90deg, var(--swatch) 0 3px, transparent 3px 6px);
     }
 
     .actions {
