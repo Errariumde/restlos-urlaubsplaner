@@ -1,0 +1,101 @@
+/* SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors */
+/* SPDX-License-Identifier: EUPL-1.2 */
+
+/* The tactile look shared by Button, IconButton and the segments of Segmented (D5): a 1 px border at 3:1,
+   a fill one step lighter than the surface, a 1 px darker bottom edge and a 6 px radius. Pressing removes
+   the edge. A pressed toggle (aria-pressed) is filled with the primary colour and keeps the border and an
+   inner ring, so the fill is never its only sign (Ruling G).
+   [data-force="…"] on an ancestor shows a state without the pointer; only the gallery sets it. */
+@layer components {
+  .control {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    min-block-size: 2.25rem;
+    padding-block: var(--space-1);
+    padding-inline: var(--space-3);
+    border: 1px solid var(--r-border-strong);
+    border-block-end-color: var(--r-control-edge);
+    border-radius: var(--radius-control);
+    background: var(--r-surface-raised);
+    color: var(--r-text);
+    font: inherit;
+    line-height: 1.25;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .control:hover:not(:disabled),
+  [data-force="hover"] .control:not(:disabled) {
+    background: var(--r-control-hover);
+  }
+
+  .control:active:not(:disabled),
+  [data-force="active"] .control:not(:disabled) {
+    border-block-end-color: var(--r-border-strong);
+  }
+
+  .control:focus-visible,
+  [data-force="focus"] .control {
+    position: relative;
+    z-index: 1;
+    outline: 2px solid var(--r-focus);
+    outline-offset: 2px;
+  }
+
+  .control.primary {
+    background: var(--r-primary);
+    color: var(--r-on-primary);
+  }
+
+  .control.primary:hover:not(:disabled),
+  [data-force="hover"] .control.primary:not(:disabled) {
+    background: var(--r-primary-hover);
+  }
+
+  .control[aria-pressed="true"] {
+    border-block-end-color: var(--r-border-strong);
+    background: var(--r-primary);
+    box-shadow: inset 0 0 0 1px var(--r-on-primary);
+    color: var(--r-on-primary);
+  }
+
+  .control[aria-pressed="true"]:hover:not(:disabled),
+  [data-force="hover"] .control[aria-pressed="true"]:not(:disabled) {
+    background: var(--r-primary-hover);
+  }
+
+  .control:disabled {
+    border-block-end-color: var(--r-border-strong);
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .control.icon-only {
+    inline-size: 2.25rem;
+    padding: 0;
+  }
+
+  /* Touch targets are at least 40 px (docs/SPEC.md, "Screen sizes"). */
+  @media (pointer: coarse) {
+    .control {
+      min-block-size: 2.5rem;
+    }
+
+    .control.icon-only {
+      inline-size: 2.5rem;
+    }
+  }
+
+  @media (forced-colors: active) {
+    .control {
+      border-color: ButtonText;
+    }
+
+    .control[aria-pressed="true"] {
+      background: Highlight;
+      color: HighlightText;
+    }
+  }
+}

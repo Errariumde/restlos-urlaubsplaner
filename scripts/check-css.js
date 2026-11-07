@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 // Checks the UI styles: colours only as tokens, logical properties only, no uppercase text.
-// Scans src/ui/**/*.css and the <style> blocks of src/ui/**/*.svelte. Run through `npm run check`.
+// Scans the .css files and the <style> blocks of the .svelte files in src/ui and src/gallery. Run through `npm run check`.
 /* global console, process, URL */
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -21,7 +21,7 @@ function styleFiles(directory) {
   return files;
 }
 
-const errors = checkCss(styleFiles("src/ui").map((path) => ({ path, text: readFileSync(join(root, path), "utf8") })));
+const errors = checkCss([...styleFiles("src/ui"), ...styleFiles("src/gallery")].map((path) => ({ path, text: readFileSync(join(root, path), "utf8") })));
 
 if (errors.length > 0) {
   console.error(errors.join("\n"));

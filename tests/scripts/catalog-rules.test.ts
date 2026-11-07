@@ -52,4 +52,25 @@ describe("checkCatalogs", () => {
     });
     expect(errors).toEqual([expect.stringContaining("x.a: never used")]);
   });
+
+  it("lets the sources use keys of another catalog (the gallery uses the app's texts)", () => {
+    const input = {
+      de: { "gallery.a": "A" },
+      en: { "gallery.a": "A" },
+      sources: [{ path: "g.svelte", text: `t("gallery.a") t("app.name") t("x.missing")` }],
+      dataKeys: [],
+    };
+    expect(checkCatalogs({ ...input, externalKeys: ["app.name"] })).toEqual([expect.stringContaining("x.missing: used in g.svelte but missing")]);
+  });
+
+  it("reports a key that is also in the other catalog", () => {
+    const errors = checkCatalogs({
+      de: { "app.name": "A" },
+      en: { "app.name": "A" },
+      sources: [{ path: "g.svelte", text: `t("app.name")` }],
+      dataKeys: [],
+      externalKeys: ["app.name"],
+    });
+    expect(errors).toEqual([expect.stringContaining("app.name: also in the other catalog")]);
+  });
 });

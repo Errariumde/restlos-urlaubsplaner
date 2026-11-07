@@ -11,6 +11,11 @@ export interface CatalogCheckInput {
   sources: readonly { path: string; text: string }[];
   /** Keys that the holiday data refers to; they are not in the source code. */
   dataKeys: readonly string[];
+  /**
+   * Keys of another catalog that the sources may use too: the gallery's catalog is checked on its own, and
+   * the gallery also shows the app's texts. A key may not be in both catalogs.
+   */
+  externalKeys?: readonly string[];
 }
 
 // A call `t("key")` or `i18n.t("key")` with a literal key. Keys are lowercase-start, dot-separated words.
@@ -30,11 +35,13 @@ export function checkCatalogs(input: CatalogCheckInput): string[] {
     }
   }
   const dataKeys = new Set(input.dataKeys);
+  const externalKeys = new Set(input.externalKeys ?? []);
 
   for (const key of keys) {
     if (!(key in en)) errors.push(`${key}: only in de`);
     if (!(key in de)) errors.push(`${key}: only in en`);
     if (!key.startsWith("meta.") && !usedIn.has(key) && !dataKeys.has(key)) errors.push(`${key}: never used`);
+    if (externalKeys.has(key)) errors.push(`${key}: also in the other catalog`);
     for (const [language, catalog] of [["de", de], ["en", en]] as const) {
       const message = catalog[key];
       if (message === undefined) continue;
@@ -48,7 +55,7 @@ export function checkCatalogs(input: CatalogCheckInput): string[] {
     }
   }
   for (const [key, path] of usedIn) {
-    if (!(key in de) && !(key in en)) errors.push(`${key}: used in ${path} but missing`);
+    if (!(key in de) && !(key in en) && !externalKeys.has(key)) errors.push(`${key}: used in ${path} but missing`);
   }
   return errors;
 }

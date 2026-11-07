@@ -37,6 +37,16 @@ test.describe("in German", () => {
   });
 });
 
+test("a double click on the example button starts one worker", async ({ page }) => {
+  const workers: string[] = [];
+  page.on("worker", (worker) => workers.push(worker.url()));
+  await openApp(page);
+  await page.getByRole("button").dblclick();
+  await expect(page.getByRole("banner")).toBeVisible();
+  expect(workers).toHaveLength(1);
+  await expectNoPageProblems(page);
+});
+
 test.describe("in English", () => {
   test.use({ locale: "en-US" });
 

@@ -24,7 +24,17 @@
     /* Actions */
     --r-primary: light-dark(oklch(37% 0.11 258), oklch(50% 0.1 258));
     --r-on-primary: white;
+    --r-primary-hover: light-dark(oklch(31% 0.1 258), oklch(54% 0.1 258));
     --r-focus: light-dark(oklch(45% 0.19 262), oklch(78% 0.13 262));
+
+    /* Controls (D5): the fill is --r-surface-raised, one step lighter than the surface; the bottom edge is
+       darker than --r-border-strong and disappears while pressed. */
+    --r-control-hover: light-dark(oklch(96.5% calc(var(--nk) * 0.005) var(--nh)), oklch(29% calc(var(--nk) * 0.009) var(--nh)));
+    --r-control-edge: light-dark(oklch(38% calc(var(--nk) * 0.014) var(--nh)), oklch(42% calc(var(--nk) * 0.012) var(--nh)));
+
+    /* Overlays: the popover's shadow and the sheet's backdrop. */
+    --r-shadow: light-dark(oklch(0% 0 0 / 0.16), oklch(0% 0 0 / 0.5));
+    --r-backdrop: light-dark(oklch(0% 0 0 / 0.35), oklch(0% 0 0 / 0.6));
 
     /* Day types */
     --r-workday: light-dark(oklch(99.5% calc(var(--nk) * 0.003) var(--nh)), oklch(23.5% calc(var(--nk) * 0.007) var(--nh)));
@@ -60,6 +70,7 @@
     --space-5: 1.5rem;
     --space-6: 2.5rem;
     --radius-control: 6px;
+    --radius-sheet: 12px;
     --font-size-0: 0.75rem;
     --font-size-1: 0.875rem;
     --font-size-2: 1rem;

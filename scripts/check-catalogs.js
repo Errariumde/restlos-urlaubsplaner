@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 // Checks the UI message catalogs: same keys in de and en, every key used (or a holiday data key),
-// every used key present, valid ICU syntax, no "#". Run through `npm run check`.
+// every used key present, valid ICU syntax, no "#". The gallery's catalogs are checked the same way against
+// src/gallery. Run through `npm run check`.
 /* global console, process, URL */
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -42,12 +43,21 @@ for (const entry of readdirSync(join(root, holidayDirectory))) {
   if (entry.endsWith(".json")) collectDataKeys(readJson(join(holidayDirectory, entry)), dataKeys);
 }
 
-const errors = checkCatalogs({
-  de: readJson("src/ui/i18n/de.json"),
-  en: readJson("src/ui/i18n/en.json"),
-  sources: sourceFiles("src/ui").map((path) => ({ path, text: readFileSync(join(root, path), "utf8") })),
-  dataKeys: [...dataKeys],
-});
+const readSources = (directory) => sourceFiles(directory).map((path) => ({ path, text: readFileSync(join(root, path), "utf8") }));
+const app = { de: readJson("src/ui/i18n/de.json"), en: readJson("src/ui/i18n/en.json") };
+
+const errors = [
+  // The app's catalogs against the app's code.
+  ...checkCatalogs({ ...app, sources: readSources("src/ui"), dataKeys: [...dataKeys] }),
+  // The gallery's own texts (dev only, not in the build) against the gallery's code, which may use the app's keys too.
+  ...checkCatalogs({
+    de: readJson("src/gallery/i18n/de.json"),
+    en: readJson("src/gallery/i18n/en.json"),
+    sources: readSources("src/gallery"),
+    dataKeys: [],
+    externalKeys: [...Object.keys(app.de), ...Object.keys(app.en)],
+  }).map((error) => `gallery: ${error}`),
+];
 
 if (errors.length > 0) {
   console.error(errors.join("\n"));
