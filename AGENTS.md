@@ -21,6 +21,13 @@ restlos is an offline vacation planner delivered as a single HTML file (plus a G
 - UI texts, help and bundled templates: German and English via message catalogs; never hard-code user-visible strings.
 - Domain terms follow the glossary in `docs/SPEC.md` (e.g. Soll = required work, Kontingent = allowance).
 
+## Text in the repository
+
+- Everything in the repository must make sense from the repository alone: no pointers to chats, sessions, review rounds, rulings or files outside it. Write the reason or the rule itself.
+- A short reference never stands alone: a decision number such as "D4" or an issue number such as "issue 0032" always gets a short description next to it, for example "issue 0032 (light/dark switch not instant in Firefox ESR)".
+- `docs/superpowers/` holds design and plan documents written with AI tools. Treat it as outside the repository and as if it could disappear at any time: nothing else links to it or depends on it. **Only the maintainer may delete it or anything in it; agents never do.**
+- `npm run check` fails on links into `docs/superpowers/`, on rulings and on review files from outside the repository.
+
 ## Working style
 
 - Small, reviewable steps. Engine functions get tests before UI builds on them.
@@ -51,7 +58,7 @@ restlos is an offline vacation planner delivered as a single HTML file (plus a G
 ## Environment
 
 - Work inside the Nix dev shell (`nix develop`, or direnv with `use flake`). It provides Node.js, Typst, REUSE, language servers, Firefox ESR, Playwright browsers and Valgrind (Linux).
-- Commands: `npm ci`, `npm test`, `npm run lint`, `npm run typecheck`, `npm run check` (lint, typecheck, test, perf, the catalog and CSS checks and `reuse lint`). `npm run build` and `npm run build:gallery` build the app and the component gallery; `npm run test:e2e` builds both and runs the Playwright tests in Chromium, Firefox and WebKit. `npm run reference:python` regenerates the python-holidays reference after rule changes. `npm run plan -- <file>` prints what the engine reads and computes for a plan file or rule set. `npm run perf` runs the performance gate (Valgrind from the dev shell).
+- Commands: `npm ci`, `npm test`, `npm run lint`, `npm run typecheck`, `npm run check` (lint, typecheck, test, perf, the catalog, CSS and reference checks and `reuse lint`). `npm run build` and `npm run build:gallery` build the app and the component gallery; `npm run test:e2e` builds both and runs the Playwright tests in Chromium, Firefox and WebKit. `npm run reference:python` regenerates the python-holidays reference after rule changes. `npm run plan -- <file>` prints what the engine reads and computes for a plan file or rule set. `npm run perf` runs the performance gate (Valgrind from the dev shell).
 
 ## Repository-specific procedures
 

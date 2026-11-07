@@ -751,7 +751,7 @@ Recommendation: everything runs locally with one command; GitHub Actions only ru
 
 | Workflow | Trigger | Content |
 | --- | --- | --- |
-| `check` | push to `main`, pull requests; always the full check, without a path filter (a required check whose workflow a path filter skipped stays pending and blocks the merge) | inside `nix develop .#ci`: NixOS release check, `npm ci`, lint, REUSE check, type check, Vitest, performance gate, catalog and CSS checks; then, as separate steps, the app build with its size check and the gallery build |
+| `check` | push to `main`, pull requests; always the full check, without a path filter (a required check whose workflow a path filter skipped stays pending and blocks the merge) | inside `nix develop .#ci`: NixOS release check, `npm ci`, lint, REUSE check, type check, Vitest, performance gate, catalog, CSS and reference checks; then, as separate steps, the app build with its size check and the gallery build |
 | `seed-cache` | pushes to `main` that change `flake.nix`, `flake.lock`, `package-lock.json`, `.npmrc`, the Nix action or the workflow itself; weekly; by hand | the only workflow that writes caches: the Nix tarball, the Nix store cache and the npm cache, each fetched fresh from upstream; a separate read-only job runs the NixOS release check, so a failed weekly run reports an outdated release |
 | `templates` | only on changes to templates or the Typst version | compile templates × DE/EN with the pinned Typst version |
 | `e2e` | pull requests with the label `e2e`, before every release, otherwise once a week only if there were commits since the last run | Playwright in Firefox, Chromium, WebKit |
@@ -878,7 +878,7 @@ The repository follows the FSFE's [REUSE specification](https://reuse.software):
 
 ### AI tools in the repository
 
-`AGENTS.md` is the shared instruction file for AI coding tools; `CLAUDE.md` includes it for Claude Code via `@AGENTS.md`. In addition there are `.claude/` (settings, skills), `.mcp.json` (Svelte MCP) and a local plugin for language servers. Agents commit unsigned on branches and never push; the maintainer reviews, signs and pushes over SSH. Follow-ups and open decisions are tracked as Markdown files in `issues/` (conventions in `issues/README.md`); this internal backlog is separate from GitHub issues, which stay the channel for bug reports and ideas from users. Rationale and setup are in `docs/ai-tooling.md`.
+`AGENTS.md` is the shared instruction file for AI coding tools; `CLAUDE.md` includes it for Claude Code via `@AGENTS.md`. In addition there are `.claude/` (settings, skills), `.mcp.json` (Svelte MCP) and a local plugin for language servers. Agents commit unsigned on branches and never push; the maintainer reviews, signs and pushes over SSH. Follow-ups and open decisions are tracked as Markdown files in `issues/` (conventions in `issues/README.md`); this internal backlog is separate from GitHub issues, which stay the channel for bug reports and ideas from users. Rationale and setup are in `docs/ai-tooling.md`. Text in the repository stands on its own: no pointers to chats, sessions or files outside it, short references always with a description, and nothing links into `docs/superpowers/`, the design and plan documents written with AI tools, which may disappear at any time but which only the maintainer deletes (`AGENTS.md`, "Text in the repository"; `npm run check` enforces the links).
 
 ### Releases and updates
 

@@ -11,7 +11,7 @@ restlos is a hobby project. Contributions are welcome, but there is no entitleme
 
 1. Discuss larger changes in an issue first.
 2. Develop inside the Nix dev shell (`nix develop`).
-3. `npm run check` must pass (tests, lint, types, performance gate, catalog and CSS checks, REUSE).
+3. `npm run check` must pass (tests, lint, types, performance gate, catalog, CSS and reference checks, REUSE).
 4. Holiday data only with a link to the official source and a test.
 5. New dependencies only after discussion.
 
@@ -27,6 +27,12 @@ restlos is a hobby project. Contributions are welcome, but there is no entitleme
 - User-visible texts (UI, help, bundled templates): always both German and English, via the message catalogs.
 - Domain terms follow the glossary in `docs/SPEC.md`.
 - Issues and pull request descriptions may be written in German or English.
+
+## Text in the repository
+
+- Everything in the repository must make sense on its own: no pointers to chats, sessions, reviews or files outside it.
+- A short reference always comes with a short description, for example "issue 0032 (light/dark switch not instant in Firefox ESR)".
+- `docs/superpowers/` holds design and plan documents written with AI tools. Nothing links to it, because it may disappear at any time; only the maintainer deletes it. `npm run check` fails on links into it.
 
 ## License of contributions
 
