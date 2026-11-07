@@ -10,22 +10,35 @@
     "npm": ">=11.10"
   },
   "scripts": {
+    "build": "vite build",
+    "build:gallery": "vite build --mode gallery",
+    "gallery": "vite --mode gallery",
     "test": "vitest run --dir tests",
+    "test:e2e": "npm run build && npm run build:gallery && playwright test",
     "plan": "node --import ./scripts/ts-hooks.js scripts/plan.js",
     "perf": "node --import ./scripts/ts-hooks.js scripts/perf.js",
     "nixos-release": "node --import ./scripts/ts-hooks.js scripts/nixos-release.js",
     "lint": "eslint .",
-    "typecheck": "tsc",
+    "typecheck": "tsc && svelte-check --tsconfig ./tsconfig.ui.json --fail-on-warnings",
     "reference:python": "python3 scripts/python-holidays-reference.py tests/reference/python-holidays-de.json",
-    "check": "npm run lint && npm run typecheck && npm test && npm run perf && reuse lint"
+    "check": "npm run lint && npm run typecheck && npm test && npm run perf && node --import ./scripts/ts-hooks.js scripts/check-catalogs.js && node --import ./scripts/ts-hooks.js scripts/check-css.js && reuse lint"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@playwright/test": "1.59.1",
+    "@sveltejs/vite-plugin-svelte": "7.3.1",
+    "axe-core": "4.14.0",
     "date-holidays": "3.37.0",
     "eslint": "10.12.0",
+    "eslint-plugin-svelte": "3.23.1",
     "fast-check": "4.10.2",
+    "intl-messageformat": "12.1.4",
+    "svelte": "5.57.2",
+    "svelte-check": "4.7.7",
     "typescript": "6.0.3",
     "typescript-eslint": "8.71.0",
+    "vite": "8.3.4",
+    "vite-plugin-singlefile": "2.3.4",
     "vitest": "5.0.3"
   }
 }

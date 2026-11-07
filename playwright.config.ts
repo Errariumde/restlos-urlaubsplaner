@@ -1,0 +1,31 @@
+// SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
+// SPDX-License-Identifier: EUPL-1.2
+
+// End-to-end tests against the built file (npm run test:e2e builds it first). The browsers come from the
+// Nix dev shell (PLAYWRIGHT_BROWSERS_PATH). Tests that need a narrower or wider window set their own viewport
+// (375, 768, 1100 or 1920 px).
+import { defineConfig, devices } from "@playwright/test";
+
+// The config runs in Node; the project has no @types/node.
+declare const process: { env: Record<string, string | undefined> };
+
+const viewport = { width: 1280, height: 800 };
+
+// The browsers bring their own libraries. An LD_LIBRARY_PATH from the shell (alsa-lib built against a newer
+// glibc) stops Chromium ("GLIBC_2.43 not found") and Firefox ("Couldn't load XPCOM") from starting.
+const env = Object.fromEntries(
+  Object.entries(process.env).filter((entry): entry is [string, string] => entry[0] !== "LD_LIBRARY_PATH" && entry[1] !== undefined),
+);
+
+export default defineConfig({
+  testDir: "e2e",
+  forbidOnly: true,
+  retries: 0,
+  reporter: "list",
+  use: { launchOptions: { env } },
+  projects: [
+    { name: "firefox", use: { ...devices["Desktop Firefox"], viewport } },
+    { name: "chromium", use: { ...devices["Desktop Chrome"], viewport } },
+    { name: "webkit", use: { ...devices["Desktop Safari"], viewport } },
+  ],
+});

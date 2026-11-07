@@ -3,6 +3,7 @@
 
 node_modules/
 dist/
+dist-gallery/
 coverage/
 playwright-report/
 test-results/

@@ -1,0 +1,38 @@
+/* SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors */
+/* SPDX-License-Identifier: EUPL-1.2 */
+
+/* Every Layout primitives. The spacing comes from --gap, which defaults to a scale step. */
+@layer layout {
+  /* Vertical rhythm: children are stacked with --gap between them. */
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap, var(--space-3));
+  }
+
+  /* A row that wraps: toolbars, button groups, tags. */
+  .cluster {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--gap, var(--space-2));
+  }
+
+  /* A sidebar next to the content that wraps below it when the content would get narrower than --content-min. */
+  .sidebar-layout {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--gap, var(--space-4));
+  }
+
+  .sidebar-layout > :first-child {
+    flex-basis: var(--sidebar-size, 20rem);
+    flex-grow: 1;
+  }
+
+  .sidebar-layout > :last-child {
+    flex-basis: 0;
+    flex-grow: 999;
+    min-inline-size: var(--content-min, 50%);
+  }
+}

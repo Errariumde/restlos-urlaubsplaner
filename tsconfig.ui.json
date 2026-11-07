@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["es2023", "dom", "dom.iterable"],
+    "types": ["svelte"],
+    "allowJs": true,
+    "checkJs": true
+  },
+  "include": ["src/ui", "src/ui/**/*.svelte", "e2e", "scripts/build", "vite.config.ts", "playwright.config.ts"],
+  "exclude": []
+}

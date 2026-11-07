@@ -18,7 +18,7 @@ SPDX-License-Identifier = "EUPL-1.2"
 
 # Holiday and calendar data (code/data license).
 [[annotations]]
-path = ["src/data/**"]
+path = ["src/data/**", "src/ui/i18n/*.json"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The restlos-urlaubsplaner authors"
 SPDX-License-Identifier = "EUPL-1.2"

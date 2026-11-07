@@ -1,0 +1,69 @@
+/* SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors */
+/* SPDX-License-Identifier: EUPL-1.2 */
+
+/* The design tokens. This file is the scheme "Standard"; user schemes overwrite the --r-* properties with style.setProperty().
+   Each role is light-dark(<light>, <dark>), so the mode is only color-scheme on <html> (D1). Colours exist only in this file.
+   Neutrals take one hue (--nh) and one chroma factor (--nk) (D11); --nk 0 gives pure greys.
+   Blue is reserved for leave (D15): the primary action is a darker, greyer navy. */
+@layer tokens {
+  :root {
+    --nh: 0;
+    --nk: 0;
+
+    /* Surfaces */
+    --r-surface: light-dark(oklch(99.5% calc(var(--nk) * 0.003) var(--nh)), oklch(21.5% calc(var(--nk) * 0.007) var(--nh)));
+    --r-surface-raised: light-dark(oklch(100% 0 var(--nh)), oklch(25% calc(var(--nk) * 0.008) var(--nh)));
+    --r-surface-sunken: light-dark(oklch(96% calc(var(--nk) * 0.005) var(--nh)), oklch(17% calc(var(--nk) * 0.006) var(--nh)));
+    --r-border: light-dark(oklch(86% calc(var(--nk) * 0.011) var(--nh)), oklch(35% calc(var(--nk) * 0.01) var(--nh)));
+    --r-border-strong: light-dark(oklch(56% calc(var(--nk) * 0.014) var(--nh)), oklch(60% calc(var(--nk) * 0.012) var(--nh)));
+
+    /* Text */
+    --r-text: light-dark(oklch(22% calc(var(--nk) * 0.012) var(--nh)), oklch(93% calc(var(--nk) * 0.006) var(--nh)));
+    --r-text-muted: light-dark(oklch(45% calc(var(--nk) * 0.014) var(--nh)), oklch(73% calc(var(--nk) * 0.01) var(--nh)));
+
+    /* Actions */
+    --r-primary: light-dark(oklch(37% 0.11 258), oklch(50% 0.1 258));
+    --r-on-primary: white;
+    --r-focus: light-dark(oklch(45% 0.19 262), oklch(78% 0.13 262));
+
+    /* Day types */
+    --r-workday: light-dark(oklch(99.5% calc(var(--nk) * 0.003) var(--nh)), oklch(23.5% calc(var(--nk) * 0.007) var(--nh)));
+    --r-weekend: light-dark(oklch(92% calc(var(--nk) * 0.009) var(--nh)), oklch(29% calc(var(--nk) * 0.009) var(--nh)));
+    --r-holiday: light-dark(oklch(90% 0.075 80), oklch(38% 0.06 75));
+    --r-half-required: light-dark(oklch(95.5% calc(var(--nk) * 0.006) var(--nh)), oklch(26% calc(var(--nk) * 0.008) var(--nh)));
+    --r-leave-full: light-dark(oklch(55% 0.16 255), oklch(68% 0.13 250));
+    --r-leave-half: light-dark(oklch(62% 0.14 252), oklch(60% 0.12 250));
+    --r-mandatory: light-dark(oklch(48% 0.15 295), oklch(72% 0.12 295));
+    --r-other-plan: light-dark(oklch(50% 0.17 320), oklch(75% 0.13 320));
+
+    /* States */
+    --r-overdraft: light-dark(oklch(50% 0.18 28), oklch(74% 0.14 28));
+    --r-today: light-dark(oklch(55% 0.18 45), oklch(76% 0.14 50));
+    --r-selection: light-dark(oklch(45% 0.19 262), oklch(78% 0.13 262));
+    --r-info-band: light-dark(oklch(95.5% calc(var(--nk) * 0.012) var(--nh)), oklch(25% calc(var(--nk) * 0.012) var(--nh)));
+
+    /* Source colours */
+    --r-accent-1: light-dark(oklch(55% 0.12 175), oklch(78% 0.12 175));
+    --r-accent-2: light-dark(oklch(58% 0.16 65), oklch(80% 0.13 65));
+    --r-accent-3: light-dark(oklch(55% 0.18 350), oklch(76% 0.13 350));
+    --r-accent-4: light-dark(oklch(55% 0.14 140), oklch(78% 0.13 140));
+    --r-accent-5: light-dark(oklch(55% 0.1 210), oklch(78% 0.1 210));
+    --r-accent-6: light-dark(oklch(55% 0.12 105), oklch(80% 0.12 105));
+    --r-accent-7: light-dark(oklch(50% 0.1 30), oklch(72% 0.1 30));
+    --r-accent-8: light-dark(oklch(50% 0.02 250), oklch(75% 0.02 250));
+
+    /* Scales */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.5rem;
+    --space-6: 2.5rem;
+    --radius-control: 6px;
+    --font-size-0: 0.75rem;
+    --font-size-1: 0.875rem;
+    --font-size-2: 1rem;
+    --font-size-3: 1.25rem;
+    --font-size-4: 1.625rem;
+  }
+}

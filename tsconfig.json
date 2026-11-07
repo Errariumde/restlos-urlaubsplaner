@@ -1,7 +1,9 @@
 {
   "compilerOptions": {
     "target": "es2023",
-    "lib": ["es2023"],
+    "lib": [
+      "es2023"
+    ],
     "module": "esnext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
@@ -15,7 +17,16 @@
     "skipLibCheck": true,
     "noEmit": true,
     "erasableSyntaxOnly": true,
+    "allowImportingTsExtensions": true,
     "types": []
   },
-  "include": ["src", "tests", "scripts"]
+  "include": [
+    "src",
+    "tests",
+    "scripts"
+  ],
+  "exclude": [
+    "src/ui",
+    "e2e"
+  ]
 }
