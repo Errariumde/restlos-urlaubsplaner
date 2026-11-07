@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-// Keyboard movement in the calendar grid (docs/SPEC.md, D4; D14 for right-to-left).
+// Keyboard movement in the calendar grid (docs/SPEC.md, "Calendar interaction"; "Multilingual support" for
+// right-to-left).
 import { ymdFromDay, type DayNumber, type Weekday } from "../../engine/days.ts";
 import { monthBlock, offsetInWeek, type MonthBlock } from "./months.ts";
 

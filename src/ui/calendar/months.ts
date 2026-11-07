@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-// The month and week layout of the two calendar views (docs/SPEC.md, D4).
+// The month and week layout of the two calendar views (docs/SPEC.md, "View 1: Month tiles" and "View 2: Month
+// columns").
 import type { PlanPeriod } from "../../engine/counting/types.ts";
 import { WEEKDAYS, dayFromYmd, daysInMonth, weekdayOf, ymdFromDay, type DayNumber, type Weekday } from "../../engine/days.ts";
 

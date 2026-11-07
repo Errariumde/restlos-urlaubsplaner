@@ -19,7 +19,7 @@ The task reviews of branch `file-format` found small problems that were left for
 
 ## Context
 
-- Branch `file-format`: the task reviews of Tasks 1–9 (2026-10-18/19) and the re-review of the final fix wave (2026-10-19).
+- Branch `file-format`, 2026-10-18 and 19.
 - Fixed on the branch itself, so not listed here:
   - `except` as a `Set`;
   - out-of-period `partSuggested` order;

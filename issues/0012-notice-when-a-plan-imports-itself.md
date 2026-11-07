@@ -20,7 +20,7 @@ Importing a plan file with the same `id` as the current plan as "Leave from anot
 ## Context
 
 - `importOtherPlan` in `src/engine/file/other-plan.ts`: its notices cover a different `id` than the plan imported before (`differentPlan`), a lower `revision` (`olderRevision`) and an older copy of the current plan inside the imported one (`outdatedCopyOfCurrent`), but not the imported file being the current plan itself.
-- Noticed in the review of Task 8 of the file-format branch (`docs/superpowers/plans/2026-10-18-file-format.md`).
+- Noticed on the `file-format` branch.
 
 ## Acceptance criteria
 

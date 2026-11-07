@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-// The detail popover of a day (docs/SPEC.md, "Detail view"; D7): right-click, Enter, the context-menu key and
+// The detail popover of a day (docs/SPEC.md, "Detail view"): right-click, Enter, the context-menu key and
 // a long press open it; on a narrow calendar or a touch screen it is a bottom sheet.
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { dayFromYmd } from "../src/engine/days.ts";

@@ -20,7 +20,7 @@ The `test` script in `package.json` runs `vitest run --dir tests`, because plain
 ## Context
 
 - `package.json`, script `test`.
-- Chosen in Task 1 of branch `holiday-engine`, when there was no Vite config yet.
+- Chosen at the start of branch `holiday-engine`, when there was no Vite config yet.
 
 ## Acceptance criteria
 

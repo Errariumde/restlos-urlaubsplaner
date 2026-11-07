@@ -29,7 +29,7 @@ class App {
   #selectMode = $state(false);
 
   /**
-   * The touch selection mode (D8): a drag or two taps select a range, which the selection bar applies.
+   * The touch selection mode (docs/SPEC.md, "Calendar interaction"): a drag or two taps select a range, which the selection bar applies.
    * Leaving it ends the selection and its hint.
    */
   get selectMode(): boolean {

@@ -22,7 +22,7 @@ The UI's engine worker opens only the bundled example so far. Two gaps show once
 
 ## Context
 
-- Ruling I of the `ui` branch (Task 5): accepted for the first slice, which opens only the example.
+- Accepted on the `ui` branch for the first slice, which opens only the example.
 - Issue 0017 (messages in the open dialog) decides what a report entry carries; this issue makes the report reach the UI at all.
 - `docs/SPEC.md`, file operations; `docs/file-format.md`, the report codes and severities.
 

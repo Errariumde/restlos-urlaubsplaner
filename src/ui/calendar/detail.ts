@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-// What the detail popover of a day shows (docs/SPEC.md, "Detail view"; D7), and the changes its actions make.
+// What the detail popover of a day shows (docs/SPEC.md, "Detail view"), and the changes its actions make.
 import type { DayResult, Problem } from "../../engine/counting/plan.ts";
 import type { RequiredLayer } from "../../engine/counting/required.ts";
 import { textFor } from "../../engine/file/text.ts";

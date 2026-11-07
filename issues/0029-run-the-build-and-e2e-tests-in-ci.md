@@ -15,7 +15,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 ## Problem
 
-The `ui` branch added `npm run build`, the size limit, the component gallery and `npm run test:e2e` (Playwright in Chromium, Firefox and WebKit, with axe-core and screenshot baselines). The `check` workflow runs none of them, so a broken build, a CSP violation or a changed screenshot is only found locally.
+The `ui` branch added `npm run build`, the size limit, the component gallery and `npm run test:e2e` (Playwright in Chromium, Firefox and WebKit, with axe-core and screenshot baselines). The `check` workflow ran none of them. It now builds the app and the gallery, but a CSP violation or a changed screenshot is still found only locally.
 
 ## Context
 
@@ -27,11 +27,11 @@ The `ui` branch added `npm run build`, the size limit, the component gallery and
 
 ## Acceptance criteria
 
-- [ ] CI builds the app and the gallery and fails when the HTML exceeds the size limit.
-- [ ] CI runs the end-to-end tests inside `nix develop .#ci` (the `ci` shell gains what they need), with the same browsers as locally.
+- [x] CI builds the app and the gallery and fails when the HTML exceeds the size limit: two separate steps in the `check` job.
+- [ ] The separate `e2e` workflow from `docs/SPEC.md`, "Workflows" (pull requests with the label `e2e`, before every release, otherwise weekly when there were commits) runs the end-to-end tests inside `nix develop .#ci` (the `ci` shell gains what they need), with the same browsers as locally.
 - [ ] It is decided how screenshot comparisons work on the runner (shared baselines with a tolerance, runner-made baselines, or screenshots only locally), and the decision is written down.
 - [ ] A failing run keeps the Playwright report as an artifact, without secrets and with a short retention.
 
 ## Notes
 
-Found while closing the `ui` branch (Task 16 of `docs/superpowers/plans/2026-11-04-ui-main-screen.md`).
+Found while closing the `ui` branch.

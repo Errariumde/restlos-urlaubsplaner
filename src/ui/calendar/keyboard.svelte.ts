@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-// Planning leave with the keyboard (docs/SPEC.md, "Calendar interaction"; D4): the grid is one Tab stop with
+// Planning leave with the keyboard (docs/SPEC.md, "Calendar interaction"): the grid is one Tab stop with
 // a roving tabindex. The arrows, Home/End and PageUp/PageDown move; with Shift they grow a visible selection
 // (`app.selection`, `aria-selected` on the cells) whose cost the hint line shows. Space sets full days, H half
 // days and Delete or Backspace removes own leave on the selection, else on the focused day; each is one undo
 // step and ends the selection. Enter and the context-menu key open the day's detail; Escape ends the selection.
 //
-// This is also the keyboard path to the week action (Ruling R): select the week with Shift+arrows and press
+// This is also the keyboard path to the week action: select the week with Shift+arrows and press
 // Space or Delete; a week number is a button, but this is how the whole range is reached from the grid.
 import type { DayNumber } from "../../engine/days.ts";
 import { i18n } from "../i18n/i18n.svelte.ts";

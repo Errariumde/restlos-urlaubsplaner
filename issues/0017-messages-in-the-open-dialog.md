@@ -22,7 +22,8 @@ The open dialog writes a sentence for every report entry, but two things are sti
 
 ## Context
 
-The design of 2026-10-23 (decision 1 and Non-goals).
+- `docs/file-format.md`, "Reading": a report entry has a `code` and the `path` of the key in the text that was read, and `readFile` also returns `positions`, which the UI can use the other way round to find and mark a loaded object.
+- When the reading rules were settled on 2026-10-23, the wording and layout of the open dialog and the position of a JSON syntax error were left for the UI on purpose.
 
 ## Acceptance criteria
 

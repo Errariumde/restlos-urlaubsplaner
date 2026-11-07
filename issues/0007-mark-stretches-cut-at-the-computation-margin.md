@@ -20,7 +20,7 @@ SPDX-License-Identifier: CC-BY-4.0
 ## Context
 
 - `src/engine/counting/plan.ts` (`STRETCH_MARGIN_DAYS`), `src/engine/counting/stretches.ts`.
-- `docs/superpowers/specs/2026-10-18-counting-model-design.md`, stretches.
+- `docs/SPEC.md`, "Allowance display": what a stretch is.
 
 ## Acceptance criteria
 

@@ -9,7 +9,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 Offline-Urlaubsplaner als einzelne HTML-Datei: Feiertage berechnen, Urlaub per Klick planen, Kontingent live sehen, als PDF und .ics exportieren. Alle Daten bleiben auf deinem Gerät.
 
-> **Status:** in Planung. Die Spezifikation (englisch) steht in [`docs/SPEC.md`](docs/SPEC.md).
+> **Status:** in Entwicklung. Der Planbildschirm läuft mit einem Beispielplan, eigene Pläne, Dateien und Exporte fehlen noch. Die Spezifikation (englisch) steht in [`docs/SPEC.md`](docs/SPEC.md).
 
 ## Projektstatus
 
@@ -38,7 +38,7 @@ Das Repository folgt [REUSE](https://reuse.software). Code und Daten: EUPL-1.2; 
 
 Offline vacation planner as a single HTML file: calculates public holidays, lets you plan leave with a click, shows your remaining allowance live, exports to PDF and .ics. All data stays on your device.
 
-> **Status:** planning stage. The specification is in [`docs/SPEC.md`](docs/SPEC.md).
+> **Status:** in development. The plan screen runs with an example plan; own plans, files and exports are still missing. The specification is in [`docs/SPEC.md`](docs/SPEC.md).
 
 ## Project status
 

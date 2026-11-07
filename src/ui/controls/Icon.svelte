@@ -34,7 +34,7 @@ SPDX-License-Identifier: EUPL-1.2
       block-size: 1.25rem;
     }
 
-    /* Icons that point in the reading direction turn round in right-to-left text (D14). */
+    /* Icons that point in the reading direction turn round in right-to-left text (docs/SPEC.md, "Multilingual support"). */
     .mirror:dir(rtl) {
       scale: -1 1;
     }

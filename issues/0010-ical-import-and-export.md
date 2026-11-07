@@ -19,7 +19,7 @@ The file-format branch stores calendar sources as entries (a date or a repeating
 
 ## Context
 
-- `docs/superpowers/specs/2026-10-18-file-format-design.md`, "Calendar sources" and "Calendar sources: import and export later".
+- `docs/file-format.md`, "Calendar sources".
 - `docs/SPEC.md`, "Multiple calendar sources (iCal)" and ".ics export" (updated in the file-format branch).
 - Issue 0006: its `.ics` criterion moved here.
 
@@ -44,7 +44,7 @@ Later, the maintainer's extended option B: the user decides how partial days are
 
 ### Feasibility branch, 2026-10-24
 
-Source: `docs/superpowers/specs/2026-10-24-feasibility-tests-design.md` on the `feasibility` branch (decisions 5 and 6, "Research", "Review of the `UID` concept"). The "Export" criterion above must follow decision 5 below: the `UID` is not the contract ID with the date.
+Decided on the `feasibility` branch, after research and a review of the `UID` concept. The "Export" criterion above must follow decision 5 below: the `UID` is not the contract ID with the date.
 
 **Decision 5: the `.ics` `UID`.** It is a one-way hash of the plan's random `id` and everything the exported event says. Colleagues who use the same rule set share the contract ID, so their leave on the same day would collide in a shared calendar, and RFC 7986 asks for `UID`s that identify nothing.
 

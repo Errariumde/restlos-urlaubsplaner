@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-// The accessible label of a calendar cell (docs/SPEC.md, D4).
+// The accessible label of a calendar cell (docs/SPEC.md, "Accessibility").
 import type { DayResult } from "../../engine/counting/plan.ts";
 import type { Part } from "../../engine/counting/types.ts";
 import { weekdayOf } from "../../engine/days.ts";

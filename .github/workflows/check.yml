@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 # The full check on every pull request and every push to main, inside the
-# CI dev shell (docs/superpowers/specs/2026-10-24-ci-design.md). It only
+# CI dev shell (docs/SPEC.md, "Workflows"). It only
 # reads caches; seed-cache.yml writes them. Without a cache it falls back to
 # cache.nixos.org and the npm registry. The job `check` is the status check
 # the ruleset for main requires.
@@ -53,6 +53,13 @@ jobs:
         run: |
           set -o pipefail
           nix develop .#ci --command sh -c 'npm ci --prefer-offline && npm run check' 2>&1 | tee "$RUNNER_TEMP/check.log"
+
+      # The build fails when the HTML file exceeds its size limit.
+      - name: Build the app
+        run: nix develop .#ci --command npm run build
+
+      - name: Build the component gallery
+        run: nix develop .#ci --command npm run build:gallery
 
       - name: Perf counts to the summary
         if: always()

@@ -14,16 +14,16 @@
     "build:gallery": "vite build --mode gallery",
     "gallery": "vite --mode gallery",
     "test": "vitest run --dir tests",
-    "test:e2e": "npm run build && npm run build:gallery && playwright test --project=chromium --project=firefox && playwright test --project=webkit --workers=1",
-    "test:e2e:update": "npm run build && npm run build:gallery && playwright test --project=chromium --project=firefox --update-snapshots=all && playwright test --project=webkit --workers=1 --update-snapshots=all",
-    "test:e2e:file": "npm run build && npm run build:gallery && playwright test --workers=2",
+    "test:e2e": "ulimit -c 0 && npm run build && npm run build:gallery && playwright test --project=chromium --project=firefox && playwright test --project=webkit --workers=1",
+    "test:e2e:update": "ulimit -c 0 && npm run build && npm run build:gallery && playwright test --project=chromium --project=firefox --update-snapshots=all && playwright test --project=webkit --workers=1 --update-snapshots=all",
+    "test:e2e:file": "ulimit -c 0 && npm run build && npm run build:gallery && playwright test --workers=2",
     "plan": "node --import ./scripts/ts-hooks.js scripts/plan.js",
     "perf": "node --import ./scripts/ts-hooks.js scripts/perf.js",
     "nixos-release": "node --import ./scripts/ts-hooks.js scripts/nixos-release.js",
     "lint": "eslint .",
     "typecheck": "tsc && svelte-check --tsconfig ./tsconfig.ui.json --fail-on-warnings",
     "reference:python": "python3 scripts/python-holidays-reference.py tests/reference/python-holidays-de.json",
-    "check": "npm run lint && npm run typecheck && npm test && npm run perf && node --import ./scripts/ts-hooks.js scripts/check-catalogs.js && node --import ./scripts/ts-hooks.js scripts/check-css.js && reuse lint"
+    "check": "npm run lint && npm run typecheck && npm test && npm run perf && node --import ./scripts/ts-hooks.js scripts/check-catalogs.js && node --import ./scripts/ts-hooks.js scripts/check-css.js && node --import ./scripts/ts-hooks.js scripts/check-references.js && reuse lint"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

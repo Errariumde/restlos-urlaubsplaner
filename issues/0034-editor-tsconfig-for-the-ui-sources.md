@@ -22,7 +22,7 @@ This misleads every UI task: `CLAUDE.md` tells agents to use the language server
 ## Context
 
 - `tsconfig.json` (`exclude: ["src/ui", "src/gallery", "e2e"]`), `tsconfig.ui.json`.
-- Seen throughout the `ui` branch and filed by its final review (`final-review.md`, parked items).
+- Seen throughout the `ui` branch.
 
 ## Acceptance criteria
 

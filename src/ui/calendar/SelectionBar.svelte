@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 SPDX-License-Identifier: EUPL-1.2
 -->
 <script lang="ts">
-  // The action bar of the touch selection mode (docs/SPEC.md, "Calendar interaction"; D8), kept at the block
+  // The action bar of the touch selection mode (docs/SPEC.md, "Calendar interaction"), kept at the block
   // end of the window: the hint line for the selection, and Full day, Half day, Remove and Cancel. Each action
   // goes through the range rules as one undo step and ends the selection; the mode stays on.
   import Button from "../controls/Button.svelte";

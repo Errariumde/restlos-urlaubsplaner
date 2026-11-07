@@ -3,8 +3,8 @@
 
 # Installs Nix single-user from a hash-checked release tarball and, with
 # store-cache, adds the store cache (a file:// binary cache that keeps
-# cache.nixos.org's signatures) as a substituter. Design:
-# docs/superpowers/specs/2026-10-24-ci-design.md. Only reads caches; the
+# cache.nixos.org's signatures) as a substituter. Design: docs/SPEC.md,
+# "Consideration for upstream sources (caching)". Only reads caches; the
 # seed-cache workflow saves them.
 name: Nix
 description: Install the Nix that the pinned nixpkgs ships, from a hash-checked tarball, with the store cache as substituter.

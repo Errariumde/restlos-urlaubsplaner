@@ -1,10 +1,10 @@
 # SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 # SPDX-License-Identifier: EUPL-1.2
 
-# The only workflow that writes caches (docs/superpowers/specs/2026-10-24-ci-design.md,
-# decision 5). The seed job restores nothing, takes the Nix tarball, the dev
-# shell and the npm packages fresh from upstream and runs no tests and no npm
-# scripts; check.yml only reads what it saves. The weekly run also checks the
+# The only workflow that writes caches (docs/SPEC.md, "Workflows" and
+# "Workflow security"). The seed job restores nothing, takes the Nix tarball,
+# the dev shell and the npm packages fresh from upstream and runs no tests and
+# no npm scripts; check.yml only reads what it saves. The weekly run also checks the
 # NixOS release in a read-only job, so a failed scheduled run reports an
 # outdated one.
 name: seed-cache

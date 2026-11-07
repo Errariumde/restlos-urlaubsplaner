@@ -15,7 +15,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 ## Problem
 
-`flake.nix` follows `nixos-26.05`, which NixOS supports until 2026-12-31. Its successor 26.11 is due at the end of November 2026 (branch-off planned for 2026-11-16, release for 2026-11-23, nixpkgs#567567). Once `nixos-26.11` exists, Dependabot opens a pull request that moves `flake.nix` to it, probably with its monthly run on 2026-12-01. The maintainer decided (2026-10-24) to take that pull request only as the notice and to make the move by hand. CI warns from 2026-12-01 and fails from 2026-12-16 (`npm run nixos-release`, design decision 7 in `docs/superpowers/specs/2026-10-24-ci-design.md`).
+`flake.nix` follows `nixos-26.05`, which NixOS supports until 2026-12-31. Its successor 26.11 is due at the end of November 2026 (branch-off planned for 2026-11-16, release for 2026-11-23, nixpkgs#567567). Once `nixos-26.11` exists, Dependabot opens a pull request that moves `flake.nix` to it, probably with its monthly run on 2026-12-01. The maintainer decided (2026-10-24) to take that pull request only as the notice and to make the move by hand. CI warns from 2026-12-01 and fails from 2026-12-16 (`npm run nixos-release`, `docs/SPEC.md`, "NixOS release check").
 
 ## Context
 

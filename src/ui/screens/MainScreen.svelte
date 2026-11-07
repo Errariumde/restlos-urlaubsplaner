@@ -20,6 +20,7 @@ SPDX-License-Identifier: EUPL-1.2
   import { app } from "../state/app.svelte.ts";
   import { shortcut } from "../state/keys.ts";
   import { today as todayNow } from "../state/today.ts";
+  import { belowRem } from "../state/width.ts";
   import Toolbar from "./Toolbar.svelte";
 
   interface Props {
@@ -29,11 +30,15 @@ SPDX-License-Identifier: EUPL-1.2
 
   let { today = todayNow() }: Props = $props();
 
+  // The width limits are in rem, like the views' container queries (520 px, 800 px at the default text size).
   /** Below this width of the app (not of the window) the toolbar moves its less used controls into a menu. */
-  const COMPACT_BELOW = 520;
+  const COMPACT_BELOW = 32.5;
 
   /** From this width of the app the allowance panel is a sidebar; below it, a bar above the calendar. */
-  const SIDEBAR_FROM = 800;
+  const SIDEBAR_FROM = 50;
+
+  /** What 1rem is in pixels: the root font size, which the browser's text size setting changes. */
+  const rem = (): number => parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
 
   let width = $state<number>();
   let detailsOpen = $state(false);
@@ -42,8 +47,8 @@ SPDX-License-Identifier: EUPL-1.2
 
   // The main screen has just replaced the start screen: the focus would otherwise be lost with the old button.
   $effect(() => heading?.focus());
-  const compact = $derived(width !== undefined && width < COMPACT_BELOW);
-  const sidebar = $derived(width !== undefined && width >= SIDEBAR_FROM);
+  const compact = $derived(width !== undefined && belowRem(width, COMPACT_BELOW, rem()));
+  const sidebar = $derived(width !== undefined && !belowRem(width, SIDEBAR_FROM, rem()));
 
   // Crossing a threshold closes the details: they must neither pop up as a modal sheet when the app narrows
   // nor reappear when it narrows again after being wide. Only these two values are read here, so the effect
@@ -53,7 +58,7 @@ SPDX-License-Identifier: EUPL-1.2
   });
 
   /** Below this width of the calendar area the detail of a day is a bottom sheet, not a popover. */
-  const DETAIL_SHEET_BELOW = 520;
+  const DETAIL_SHEET_BELOW = 32.5;
 
   /** The compact allowance bar (with the hint line under it) is shown instead of the sidebar. */
   const barShown = $derived(app.state !== undefined && width !== undefined && !sidebar);
@@ -85,9 +90,9 @@ SPDX-License-Identifier: EUPL-1.2
   let calendar = $state<HTMLElement>();
 
   /** Below this width of the app, or on a touch screen, the toolbar offers the touch selection mode. */
-  const SELECT_BELOW = 800;
+  const SELECT_BELOW = 50;
   const coarse = new MediaQuery("(pointer: coarse)");
-  const selectable = $derived(coarse.current || (width !== undefined && width < SELECT_BELOW));
+  const selectable = $derived(coarse.current || (width !== undefined && belowRem(width, SELECT_BELOW, rem())));
   /**
    * Switches the view (V and the toolbar). The detail closes first, since its anchor cell goes with the old
    * view. The focused day stays: it is scrolled into view in the new view and keeps the focus if the old grid
@@ -118,9 +123,9 @@ SPDX-License-Identifier: EUPL-1.2
     const state = app.state;
     if (state === undefined || day < state.result.period.from || day > state.result.period.to) return;
     if (detail?.day === day && detail.anchor === anchor) return;
-    // A sheet on a narrow calendar and on a touch screen (as the toolbar's More menu, Ruling P), and always
+    // A sheet on a narrow calendar and on a touch screen (as the toolbar's More menu), and always
     // for a touch: a long press opens it while the finger is down, and lifting it would light-dismiss a popover.
-    const narrow = calendarWidth !== undefined && calendarWidth < DETAIL_SHEET_BELOW;
+    const narrow = calendarWidth !== undefined && belowRem(calendarWidth, DETAIL_SHEET_BELOW, rem());
     const sheet = narrow || matchMedia("(pointer: coarse)").matches || pointerType === "touch";
     detail = { day, anchor, sheet };
   }

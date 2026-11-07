@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 // The component gallery (dev only, not in the app's build). It adds its own texts and the two
-// pseudo-locales to the app's catalogs before anything renders (Ruling N: they stay out of the app).
+// pseudo-locales to the app's catalogs before anything renders, so they stay out of the app (docs/SPEC.md,
+// "Multilingual support").
 import "../ui/styles/layers.css";
 import "../ui/styles/reset.css";
 import "../ui/styles/tokens.css";

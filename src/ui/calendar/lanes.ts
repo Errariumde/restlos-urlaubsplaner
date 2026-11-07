@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-// Packs the source markers of a month into lanes (docs/SPEC.md, D12).
+// Packs the source markers of a month into lanes (docs/SPEC.md, "Day cell: what is shown how").
 import type { DayNumber } from "../../engine/days.ts";
 import type { MonthBlock } from "./months.ts";
 

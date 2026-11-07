@@ -28,7 +28,7 @@ SPDX-License-Identifier: EUPL-1.2
 <style>
   @layer components {
     .app {
-      inline-size: min(900px, 100%);
+      inline-size: min(56.25rem, 100%);
     }
   }
 </style>

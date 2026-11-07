@@ -29,7 +29,7 @@ Every workflow runs on `ubuntu-24.04`, pinned on branch `ci` so that all jobs of
 - [ ] All workflows use `ubuntu-26.04`.
 - [ ] `seed-cache` and `check` pass on it; the Nix install and `nix develop .#ci` behave as on 24.04.
 - [ ] The perf gate's counts on 26.04 are within the gate's tolerance of `tests/perf/baseline.json`, or the difference is explained before anything else changes.
-- [ ] The design doc (`docs/superpowers/specs/2026-10-24-ci-design.md`, decision 1) names the new image.
+- [ ] Nothing else in the repository names the old image (`git grep ubuntu-24.04`).
 
 ## Notes
 

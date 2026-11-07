@@ -50,7 +50,7 @@ SPDX-License-Identifier: EUPL-1.2
       gap: var(--space-1);
     }
 
-    /* The border keeps the track visible in dark mode, whatever the fill is (Ruling G). */
+    /* The border keeps the track visible in dark mode, whatever the fill is. */
     .track {
       position: relative;
       block-size: 1rem;
@@ -67,7 +67,7 @@ SPDX-License-Identifier: EUPL-1.2
       background: var(--r-leave-full);
     }
 
-    /* Hatched, so the overdraft does not rely on its colour (Ruling H). */
+    /* Hatched, so the overdraft does not rely on its colour. */
     .over {
       position: absolute;
       inset-block: 0;

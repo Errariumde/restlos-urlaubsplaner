@@ -21,6 +21,13 @@ restlos is an offline vacation planner delivered as a single HTML file (plus a G
 - UI texts, help and bundled templates: German and English via message catalogs; never hard-code user-visible strings.
 - Domain terms follow the glossary in `docs/SPEC.md` (e.g. Soll = required work, Kontingent = allowance).
 
+## Text in the repository
+
+- Everything in the repository must make sense from the repository alone: no pointers to chats, sessions, review rounds, rulings or files outside it. Write the reason or the rule itself.
+- A short reference never stands alone: a decision number such as "D4" or an issue number such as "issue 0032" always gets a short description next to it, for example "issue 0032 (light/dark switch not instant in Firefox ESR)".
+- `docs/superpowers/` holds design and plan documents written with AI tools. Treat it as outside the repository and as if it could disappear at any time: nothing else links to it or depends on it. **Only the maintainer may delete it or anything in it; agents never do.**
+- `npm run check` fails on links into `docs/superpowers/`, on rulings and on review files from outside the repository.
+
 ## Working style
 
 - Small, reviewable steps. Engine functions get tests before UI builds on them.
@@ -45,13 +52,14 @@ restlos is an offline vacation planner delivered as a single HTML file (plus a G
 - **Dependencies:** only packages listed in the spec. Ask before adding any package. Exact versions, `npm ci`, `.npmrc` keeps `ignore-scripts=true` and `min-release-age=14`. `@playwright/test` must match the `playwright-driver` version from the Nix dev shell.
 - **Git:** commit on a branch, never directly on `main`. Never push, tag or sign: the maintainer reviews, signs and pushes. If a commit fails because it can't be signed, use `git -c commit.gpgsign=false commit …`, never the maintainer's keys or SSH agent.
 - **npm usage:** run tools through npm scripts (`npm run …`), never `npx`: without a TTY, npx installs missing packages without asking, bypassing the lockfile. `ignore-scripts=true` also skips `pre*`/`post*` scripts, so don't rely on them.
+- **Sizes:** rem for font sizes, spacing, anything that holds text, and breakpoints, also the width limits in code (`src/ui/state/width.ts`); px only for what must not grow with the text: borders, outlines, shadows, patterns and marks up to 16 px. `npm run check` fails on font sizes and breakpoints in px and on px boxes over 16 px. The reason is in `docs/SPEC.md`, "Controls, icons and fonts".
 - **Browsers:** only features available in the current Firefox ESR. Playwright's Firefox is not the ESR; check ESR behaviour manually with `firefox-esr` from the dev shell.
 - **Licensing (REUSE):** every new file gets SPDX headers (`SPDX-FileCopyrightText`, `SPDX-License-Identifier`) or an entry in `REUSE.toml`. Code, data and configuration: EUPL-1.2; templates/examples: MIT-0; documentation (Markdown, including agent instructions and skills): CC-BY-4.0; generated lockfiles: CC0-1.0. Missing license texts are added with `reuse download <SPDX-ID>`. `reuse lint` must pass.
 
 ## Environment
 
 - Work inside the Nix dev shell (`nix develop`, or direnv with `use flake`). It provides Node.js, Typst, REUSE, language servers, Firefox ESR, Playwright browsers and Valgrind (Linux).
-- Commands: `npm ci`, `npm test`, `npm run lint`, `npm run typecheck`, `npm run check` (lint, typecheck, test, perf and `reuse lint`). `npm run build` and `npm run test:e2e` follow with the UI. `npm run reference:python` regenerates the python-holidays reference after rule changes. `npm run plan -- <file>` prints what the engine reads and computes for a plan file or rule set. `npm run perf` runs the performance gate (Valgrind from the dev shell).
+- Commands: `npm ci`, `npm test`, `npm run lint`, `npm run typecheck`, `npm run check` (lint, typecheck, test, perf, the catalog, CSS and reference checks and `reuse lint`). `npm run build` and `npm run build:gallery` build the app and the component gallery; `npm run test:e2e` builds both and runs the Playwright tests in Chromium, Firefox and WebKit. `npm run reference:python` regenerates the python-holidays reference after rule changes. `npm run plan -- <file>` prints what the engine reads and computes for a plan file or rule set. `npm run perf` runs the performance gate (Valgrind from the dev shell).
 
 ## Repository-specific procedures
 

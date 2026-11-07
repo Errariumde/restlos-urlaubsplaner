@@ -23,7 +23,7 @@ SPDX-License-Identifier: EUPL-1.2
   }
 </script>
 
-<!-- A native checkbox (D10): the browser draws the check mark, the label makes the whole text clickable. -->
+<!-- A native checkbox (docs/SPEC.md, "Controls, icons and fonts"): the browser draws the check mark, the label makes the whole text clickable. -->
 <label class="checkbox">
   <input type="checkbox" {checked} {disabled} onchange={change} />
   <span>{label}</span>

@@ -143,7 +143,7 @@ SPDX-License-Identifier: EUPL-1.2
       </span>
       {#each row as day, column (column)}
         {#if day === null}
-          <!-- An empty cell, so every cell stays under its month header (Ruling V). -->
+          <!-- An empty cell, so every cell stays under its month header. -->
           <span class="pad" role="gridcell"></span>
         {:else}
           {@const dayResult = result.days[day - firstDay]}
@@ -162,7 +162,7 @@ SPDX-License-Identifier: EUPL-1.2
               {#snippet marker()}
                 {#if week}
                   {@const label = i18n.t("calendar.week", { week: week.isoWeek })}
-                  <!-- The grid keeps one Tab stop (D4): the keyboard selects the week with Shift+arrows instead. -->
+                  <!-- The grid keeps one Tab stop (docs/SPEC.md, "Calendar interaction"): the keyboard selects the week with Shift+arrows instead. -->
                   <button type="button" class="week" tabindex="-1" aria-label={label} title={label} onclick={() => planWeek(week.startDay)}>
                     {week.isoWeek}
                   </button>
@@ -197,7 +197,7 @@ SPDX-License-Identifier: EUPL-1.2
 
     /*
      * In the selection mode a finger on a day selects instead of scrolling (gestures.svelte.ts); the headers
-     * and the gaps still scroll the page and the months (Ruling U).
+     * and the gaps still scroll the page and the months.
      */
     .columns.selecting :global([data-day]) {
       touch-action: none;
@@ -212,19 +212,19 @@ SPDX-License-Identifier: EUPL-1.2
       outline: none;
     }
 
-    @container calendar (inline-size >= 520px) {
+    @container calendar (inline-size >= 32.5rem) {
       .columns {
         --visible: 6;
       }
     }
 
-    @container calendar (inline-size >= 800px) {
+    @container calendar (inline-size >= 50rem) {
       .columns {
         --column: minmax(5.5rem, 1fr);
       }
     }
 
-    @container calendar (inline-size >= 1100px) {
+    @container calendar (inline-size >= 68.75rem) {
       .columns {
         --column: minmax(0, 1fr);
       }
@@ -273,7 +273,7 @@ SPDX-License-Identifier: EUPL-1.2
       display: none;
     }
 
-    @container calendar (inline-size < 800px) {
+    @container calendar (inline-size < 50rem) {
       .long {
         display: none;
       }
@@ -305,7 +305,7 @@ SPDX-License-Identifier: EUPL-1.2
       box-shadow: inset 0 0 0 1px var(--r-border-strong);
       color: var(--r-text-muted);
       font: inherit;
-      font-size: 10px;
+      font-size: 0.625rem;
       font-weight: 700;
       line-height: 0.9rem;
       font-variant-numeric: tabular-nums;

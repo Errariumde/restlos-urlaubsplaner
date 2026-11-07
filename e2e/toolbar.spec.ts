@@ -46,7 +46,8 @@ test.describe("in English", () => {
   });
 
   test("with reduced motion the mode switch starts no transitions", async ({ page }) => {
-    // Issue 0032: a reduced-motion reset with a duration above 0 made every changed colour of every element a transition.
+    // Issue 0032 (light/dark switch not instant in Firefox ESR): a reduced-motion reset with a duration above 0
+    // made every changed colour of every element a transition.
     await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
     await openApp(page);
     await openExampleFromStart(page);
