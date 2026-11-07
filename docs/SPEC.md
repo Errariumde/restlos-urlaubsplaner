@@ -518,7 +518,7 @@ With "From rule set", country, region, local rules and day rules come from the r
 
 ### Accessibility
 
-Contrast according to WCAG AA for the built-in schemes, a screen reader label per day ("Friday, 7 May 2027, working day, leave full, costs 1"), fully operable by keyboard, focus visible in both modes. Each view is an ARIA grid with a roving tabindex (one Tab stop, not 365); the selection is `aria-selected` and the leave state is part of the label. The slots before the first and after the last day of a month are empty grid cells, so every cell sits under its header. The allowance panel follows the calendar in the document, because the calendar is the main content. To be tested once with NVDA + Firefox and with Orca. axe-core checks the component gallery and the main screens.
+Contrast according to WCAG AA for the built-in schemes, a screen reader label per day ("Friday, 7 May 2027, working day, leave full, costs 1"), fully operable by keyboard, focus visible in both modes. Each view is an ARIA grid with a roving tabindex (one Tab stop, not 365); the selection is `aria-selected` and the leave state is part of the label. The slots before the first and after the last day of a month are empty grid cells, so every cell sits under its header. The allowance panel follows the calendar in the document, because the calendar is the main content. In forced colours (Windows contrast themes) the system colours replace the tokens; planned days and pressed buttons draw Highlight with HighlightText themselves, because the browser's backplate behind their text would hide it. To be tested once with NVDA + Firefox and with Orca. axe-core checks the component gallery and the main screens.
 
 ### Built-in help
 

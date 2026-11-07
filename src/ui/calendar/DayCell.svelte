@@ -424,8 +424,9 @@ SPDX-License-Identifier: EUPL-1.2
         forced-color-adjust: none;
       }
 
+      /* The preview's selector matches the token rule above, so it wins by coming later. */
       .leave-full .fill,
-      .previewed .fill {
+      .cell.previewed:not(.leave-full, .leave-mandatory) .fill {
         background: Highlight;
       }
 
@@ -449,9 +450,27 @@ SPDX-License-Identifier: EUPL-1.2
         background: repeating-linear-gradient(in srgb 45deg, Highlight 0 4px, Canvas 4px 7px);
       }
 
-      .leave-full,
-      .leave-mandatory {
+      /*
+       * Digits on a Highlight fill draw their own HighlightText on Highlight: the browser would put a Canvas
+       * backplate behind them, and the halo of the normal modes goes.
+       */
+      .leave-full .number,
+      .leave-mandatory .number,
+      .previewed .number {
+        forced-color-adjust: none;
+        background: Highlight;
         color: HighlightText;
+        text-shadow: none;
+      }
+
+      /* A drag that removes leave hatches in system colours; its digits stay on Canvas. */
+      :global(.removing) .cell.previewed .fill {
+        background: repeating-linear-gradient(in srgb -45deg, Canvas 0 3px, CanvasText 3px 5px);
+      }
+
+      :global(.removing) .previewed .number {
+        background: Canvas;
+        color: CanvasText;
       }
 
       .lane::before {

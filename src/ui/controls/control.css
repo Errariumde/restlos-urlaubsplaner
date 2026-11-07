@@ -94,7 +94,9 @@
       border-color: ButtonText;
     }
 
+    /* Its own colours: the browser would put a Canvas backplate behind the HighlightText label. */
     .control[aria-pressed="true"] {
+      forced-color-adjust: none;
       background: Highlight;
       color: HighlightText;
     }
