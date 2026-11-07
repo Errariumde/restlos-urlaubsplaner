@@ -60,24 +60,47 @@ class App {
     }
   }
 
+  /**
+   * An apply, undo or redo is on its way to the worker. The calendar ignores new input meanwhile: it would be
+   * computed from the state before the change (a second click wouldn't take the first one back).
+   */
+  applying = $state(false);
+  #inFlight = 0;
+
+  /** Waits for a new state from the worker, with `applying` set meanwhile. */
+  async #change(request: () => Promise<PlanState>): Promise<void> {
+    this.#inFlight += 1;
+    this.applying = true;
+    try {
+      this.state = await request();
+    } finally {
+      this.#inFlight -= 1;
+      this.applying = this.#inFlight > 0;
+    }
+  }
+
   /** Sets the plan's own leave; no worker call when nothing changes. */
   async apply(changes: readonly LeaveChange[]): Promise<void> {
     if (changes.length === 0) return;
-    this.state = await this.#engineNow().apply($state.snapshot(changes));
+    const copy = $state.snapshot(changes);
+    await this.#change(() => this.#engineNow().apply(copy));
   }
 
-  /** Shows what the changes would do, unless a newer request made the hint stale. */
-  async preview(changes: readonly LeaveChange[]): Promise<void> {
+  /**
+   * Shows what the changes would do, unless a newer request made the hint stale or `current` says the
+   * gesture that asked for it is over (a drag that ended while the worker was still computing).
+   */
+  async preview(changes: readonly LeaveChange[], current: () => boolean = () => true): Promise<void> {
     const hint = await this.#engineNow().preview($state.snapshot(changes));
-    if (hint !== undefined) this.hint = hint;
+    if (hint !== undefined && current()) this.hint = hint;
   }
 
   async undo(): Promise<void> {
-    this.state = await this.#engineNow().undo();
+    await this.#change(() => this.#engineNow().undo());
   }
 
   async redo(): Promise<void> {
-    this.state = await this.#engineNow().redo();
+    await this.#change(() => this.#engineNow().redo());
   }
 }
 

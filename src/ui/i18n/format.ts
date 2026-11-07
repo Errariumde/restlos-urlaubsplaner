@@ -5,7 +5,7 @@ import type { DayNumber } from "../../engine/days.ts";
 import { UNITS_PER_DAY, type Units } from "../../engine/weight.ts";
 import type { Locale } from "./locale.ts";
 
-export type DateStyle = "long" | "short" | "weekday" | "month" | "monthShort" | "monthYear";
+export type DateStyle = "long" | "short" | "weekday" | "month" | "monthShort" | "monthYear" | "monthLongYear" | "dayMonth";
 
 const MINUS = "−";
 const MS_PER_DAY = 86_400_000;
@@ -36,6 +36,8 @@ const DATE_OPTIONS: Record<DateStyle, Intl.DateTimeFormatOptions> = {
   month: { month: "long" },
   monthShort: { month: "short" },
   monthYear: { month: "short", year: "numeric" },
+  monthLongYear: { month: "long", year: "numeric" },
+  dayMonth: { day: "numeric", month: "short" },
 };
 
 /** Day amount for display: whole and half days with ½ ("1½", "½", "−2½"), other fractions with up to two decimals. */

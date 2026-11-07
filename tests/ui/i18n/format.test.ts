@@ -55,6 +55,16 @@ describe("formatDate", () => {
     expect(formatDate(dayFromYmd(2027, 3, 1), "de", "monthYear")).toBe("März 2027");
   });
 
+  it("has a long month with the year, for the month tiles", () => {
+    expect(formatDate(dayFromYmd(2027, 2, 1), "en", "monthLongYear")).toBe("February 2027");
+    expect(formatDate(dayFromYmd(2027, 12, 1), "de", "monthLongYear")).toBe("Dezember 2027");
+  });
+
+  it("has a day and month without the year, for the hint line", () => {
+    expect(formatDate(dayFromYmd(2027, 6, 14), "en", "dayMonth")).toBe("14 Jun");
+    expect(formatDate(dayFromYmd(2027, 6, 14), "de", "dayMonth")).toBe("14. Juni");
+  });
+
   it("formats the pseudo-locales like English", () => {
     expect(formatDate(dayFromYmd(2027, 5, 7), "en-XA", "long")).toBe("Friday, 7 May 2027");
   });

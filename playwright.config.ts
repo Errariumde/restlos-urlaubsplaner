@@ -28,6 +28,9 @@ export default defineConfig({
   projects: [
     { name: "firefox", use: { ...devices["Desktop Firefox"], viewport } },
     { name: "chromium", use: { ...devices["Desktop Chrome"], viewport } },
-    { name: "webkit", use: { ...devices["Desktop Safari"], viewport } },
+    // The dev shell's WebKit paints in software at about two frames a second; with the month tiles on the
+    // screen, opening the plan or resizing takes seconds. `npm run test:e2e` runs it alone with one worker
+    // after Chromium and Firefox (Ruling Q); parallel runs timed out at random (issue 0025).
+    { name: "webkit", use: { ...devices["Desktop Safari"], viewport }, timeout: 90_000, expect: { timeout: 20_000 } },
   ],
 });

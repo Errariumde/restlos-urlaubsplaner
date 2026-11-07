@@ -20,7 +20,8 @@ test.skip(({ browserName }) => browserName === "webkit", "The gallery is checked
 /** Opens one combination and waits until its section has rendered (and its popover or sheet is open). */
 async function show(page: Page, combination: Combination): Promise<void> {
   await openGallery(page, { ...combination });
-  await expect(page.locator("main")).toHaveAttribute("data-section", combination.section);
+  await expect(page.locator("[data-section]")).toHaveAttribute("data-section", combination.section);
+  if (combination.section === "main-tiles") await expect(page.getByRole("gridcell").first()).toBeVisible();
   if (combination.section === "popover") await expect(page.locator("[popover]")).toBeVisible();
   if (combination.section === "sheet") await expect(page.getByRole("dialog")).toBeVisible();
 }
@@ -33,6 +34,8 @@ test.describe("every gallery section passes axe", () => {
   for (const combination of allCombinations()) {
     const { section, locale, mode } = combination;
     test(`${section}, ${locale}, ${mode}`, async ({ page }) => {
+      // axe checks every one of the main screen's 365 day cells.
+      test.slow(section === "main-tiles");
       await show(page, combination);
       await page.addScriptTag({ path: AXE_PATH });
       const violations = await page.evaluate(async () => {
@@ -57,6 +60,11 @@ test.describe("the gallery screenshots", () => {
       });
     }
   }
+});
+
+test("the day cells mirror their diagonal splits in right-to-left text", async ({ page }) => {
+  await show(page, { section: "day-cell", locale: "en-XB", mode: "light" });
+  await expect(page).toHaveScreenshot("day-cell-rtl-light.png", { fullPage: true });
 });
 
 test("buttons keep a visible border in forced colours", async ({ page }) => {

@@ -44,6 +44,10 @@
     --r-leave-full: light-dark(oklch(55% 0.16 255), oklch(68% 0.13 250));
     --r-leave-half: light-dark(oklch(62% 0.14 252), oklch(60% 0.12 250));
     --r-mandatory: light-dark(oklch(48% 0.15 295), oklch(72% 0.12 295));
+    /* The day number on a full leave or mandatory leave fill. */
+    --r-on-leave: light-dark(oklch(100% 0 var(--nh)), oklch(17% calc(var(--nk) * 0.006) var(--nh)));
+    /* The patterns that tell the day types apart besides their colour (weekend hatch, holiday dots). */
+    --r-day-pattern: light-dark(oklch(22% calc(var(--nk) * 0.012) var(--nh) / 0.14), oklch(93% calc(var(--nk) * 0.006) var(--nh) / 0.13));
     --r-other-plan: light-dark(oklch(50% 0.17 320), oklch(75% 0.13 320));
 
     /* States */
