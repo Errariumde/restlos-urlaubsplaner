@@ -61,6 +61,21 @@ test.describe("in English at 1920 px", () => {
     await expectNoPageProblems(page);
   });
 
+  test("the month names repeat below the last row, under their columns, hidden from screen readers", async ({ page }) => {
+    const foot = grid(page).locator(":scope > :last-child");
+    await expect(foot).toHaveAttribute("aria-hidden", "true");
+    await expect(foot.locator(".month")).toHaveText(MONTHS, { useInnerText: true });
+    const headers = await grid(page).getByRole("row").first().locator(".month").evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().left));
+    const repeated = await foot.locator(".month").evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().left));
+    expect(repeated).toEqual(headers);
+    // Below row 31, and not one more column header or row for a screen reader.
+    const lastRow = await grid(page).getByRole("row").last().boundingBox();
+    expect((await foot.boundingBox())!.y).toBeGreaterThanOrEqual(lastRow!.y + lastRow!.height);
+    await expect(grid(page).getByRole("row")).toHaveCount(32);
+    await expect(grid(page).getByRole("columnheader")).toHaveCount(13);
+    await expectNoPageProblems(page);
+  });
+
   test("dragging down the column from 14 to 18 June plans five days", async ({ page }) => {
     await expectLeave(page, 6, [14, 15, 16, 17, 18], NONE);
     const start = await centre(cell(page, 6, 14));

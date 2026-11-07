@@ -82,7 +82,7 @@ SPDX-License-Identifier: EUPL-1.2
 
   /**
    * The months scroll sideways under an overlay scrollbar (Firefox on Linux, macOS, phones): it is drawn over
-   * the content, so the grid keeps room for it below row 31. A classic scrollbar takes its own room (the
+   * the content, so the grid keeps room for it below the last row. A classic scrollbar takes its own room (the
    * client area is shorter than the box) and gets no extra gap; `scrollbar-width: none` has no scrollbar.
    */
   let overlayScrollbar = $state(false);
@@ -130,10 +130,7 @@ SPDX-License-Identifier: EUPL-1.2
   <div class="row" role="row">
     <span class="corner" role="columnheader">{app.align ? i18n.t("calendar.weekdayColumn") : i18n.t("calendar.dayColumn")}</span>
     {#each months as month (month.first)}
-      <span class="month" role="columnheader">
-        <span class="long">{formatDate(month.first, i18n.locale, withYear ? "monthLongYear" : "month")}</span>
-        <span class="short">{formatDate(month.first, i18n.locale, withYear ? "monthYear" : "monthShort")}</span>
-      </span>
+      <span class="month" role="columnheader">{@render monthName(month.first)}</span>
     {/each}
   </div>
   {#each rows as row, index (index)}
@@ -174,7 +171,22 @@ SPDX-License-Identifier: EUPL-1.2
       {/each}
     </div>
   {/each}
+  <!--
+    The month names again below the last row, for the end of a long column (docs/SPEC.md, "View 2"). Hidden
+    from screen readers, which have the column headers, so they get no extra row or headers.
+  -->
+  <div class="row foot" aria-hidden="true">
+    <span class="corner"></span>
+    {#each months as month (month.first)}
+      <span class="month">{@render monthName(month.first)}</span>
+    {/each}
+  </div>
 </div>
+
+{#snippet monthName(first: DayNumber)}
+  <span class="long">{formatDate(first, i18n.locale, withYear ? "monthLongYear" : "month")}</span>
+  <span class="short">{formatDate(first, i18n.locale, withYear ? "monthYear" : "monthShort")}</span>
+{/snippet}
 
 <style>
   @layer components {
@@ -203,7 +215,7 @@ SPDX-License-Identifier: EUPL-1.2
       touch-action: none;
     }
 
-    /* Room for an overlay scrollbar, so it never covers row 31 (see `overlayScrollbar`). */
+    /* Room for an overlay scrollbar, so it never covers the last row (see `overlayScrollbar`). */
     .columns.overlay-scrollbar {
       padding-block-end: var(--space-3);
     }
@@ -271,6 +283,10 @@ SPDX-License-Identifier: EUPL-1.2
       font-size: var(--font-size-1);
       font-weight: 700;
       overflow-wrap: anywhere;
+    }
+
+    .foot .month {
+      padding-block: var(--space-1) 0;
     }
 
     .short {

@@ -14,7 +14,7 @@ test.describe("with classic scrollbars at 900 px", () => {
   test.skip(({ browserName }) => browserName !== "chromium", "Only Chromium can show its scrollbars headless.");
   test.use({ locale: "en-GB", viewport: { width: 900, height: 900 } });
 
-  test("the month columns get no extra gap below row 31", async ({ page }) => {
+  test("the month columns get no extra gap below their last row", async ({ page }) => {
     await openApp(page);
     await openExampleFromStart(page);
     await page.getByRole("button", { name: "Columns", exact: true }).click();

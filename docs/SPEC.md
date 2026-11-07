@@ -401,7 +401,7 @@ Day | Jan | Feb | Mar | Apr | May | Jun | Jul ...
 Narrow width: scroll horizontally, the day column stays fixed.
 ```
 
-One month per column, days 1–31 as rows, weekday abbreviation in every cell, like a wall year planner. Good for an overview of 13 months and as the model for the year band PDF. Both views share selection, keyboard and context menu; switching keeps focus and scroll position on the current date.
+One month per column, days 1–31 as rows, weekday abbreviation in every cell, like a wall year planner. Good for an overview of 13 months and as the model for the year band PDF. The month names repeat in a row after the last row, so the end of a long column has them too; screen readers skip that row, since the column headers already name the months. Both views share selection, keyboard and context menu; switching keeps focus and scroll position on the current date.
 
 **Option "Align by weekday":** instead of days 1–31, the rows show weeks (repeated from the configured week start, up to 6 weeks or 37 rows), so that all Mondays are at the same height and bridge days become comparable across months. A single toggle in the view menu, no additional control in the calendar. The setting is a personal display preference and is stored in the **device settings**, not in the plan file; the year band template gets the same switch as a template parameter.
 
