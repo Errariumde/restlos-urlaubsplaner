@@ -54,6 +54,13 @@ jobs:
           set -o pipefail
           nix develop .#ci --command sh -c 'npm ci --prefer-offline && npm run check' 2>&1 | tee "$RUNNER_TEMP/check.log"
 
+      # The build fails when the HTML file exceeds its size limit.
+      - name: Build the app
+        run: nix develop .#ci --command npm run build
+
+      - name: Build the component gallery
+        run: nix develop .#ci --command npm run build:gallery
+
       - name: Perf counts to the summary
         if: always()
         run: |
