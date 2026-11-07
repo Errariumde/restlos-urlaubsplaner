@@ -74,7 +74,10 @@ SPDX-License-Identifier: EUPL-1.2
     if (open && !shown) {
       // `source` keeps a click on the anchor from closing and reopening the popover (where supported).
       element.showPopover(anchor ? { source: anchor } : undefined);
-      const first = element.querySelector<HTMLElement>("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])");
+      // A disabled control can't take the focus; the popover itself does when nothing else can.
+      const first = element.querySelector<HTMLElement>(
+        "button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex='-1'])",
+      );
       (first ?? element).focus();
     } else if (!open && shown) {
       element.hidePopover();
@@ -95,10 +98,27 @@ SPDX-License-Identifier: EUPL-1.2
     };
   });
 
+  /**
+   * Whether the focus should go back to the anchor when the popover closes: only when it was inside the
+   * popover or nowhere (on the body). A click elsewhere, say on another day cell, keeps the focus there.
+   */
+  let returnFocus = false;
+
+  function onbeforetoggle(event: ToggleEvent): void {
+    if (event.newState !== "closed" || !element) return;
+    const active = document.activeElement;
+    returnFocus = active === null || active === document.body || element.contains(active);
+  }
+
   function ontoggle(event: ToggleEvent): void {
     if (event.newState !== "closed") return;
     onclose();
-    anchor?.focus();
+    // A popover removed from the page (its owner went away) leaves the focus to whatever comes next.
+    if (returnFocus && element?.isConnected) {
+      const active = document.activeElement;
+      if (active === null || active === document.body || element.contains(active)) anchor?.focus();
+    }
+    returnFocus = false;
   }
 </script>
 
@@ -114,6 +134,7 @@ SPDX-License-Identifier: EUPL-1.2
   style:position-anchor={anchorName}
   style:inset-block-start={fallback ? `${fallback.block}px` : undefined}
   style:inset-inline-start={fallback ? `${fallback.inline}px` : undefined}
+  {onbeforetoggle}
   {ontoggle}
 >
   {@render children()}

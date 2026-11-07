@@ -6,7 +6,7 @@ SPDX-License-Identifier: EUPL-1.2
   // The planned leave against the allowance. The bar is scaled to what is planned when that exceeds the
   // allowance: the overdraft is hatched (not only red) and a warning line says how far over it is.
   import type { Units } from "../../engine/weight.ts";
-  import { dayCount, formatDays } from "../i18n/format.ts";
+  import { pluralCount, formatDays } from "../i18n/format.ts";
   import { i18n } from "../i18n/i18n.svelte.ts";
   import { barGeometry } from "./bar.ts";
 
@@ -24,7 +24,7 @@ SPDX-License-Identifier: EUPL-1.2
     i18n.t("allowance.valuetext", {
       planned: formatDays(planned, i18n.locale),
       allowance: formatDays(allowance, i18n.locale),
-      allowanceCount: dayCount(allowance),
+      allowanceCount: pluralCount(allowance),
     }),
   );
 </script>
@@ -38,7 +38,7 @@ SPDX-License-Identifier: EUPL-1.2
     <div class="tick" style:inset-inline-start={percent(geometry.tickShare)}></div>
   </div>
   {#if overdrawn > 0}
-    <p class="warning">{i18n.t("allowance.over", { days: formatDays(overdrawn, i18n.locale), count: dayCount(overdrawn) })}</p>
+    <p class="warning">{i18n.t("allowance.over", { days: formatDays(overdrawn, i18n.locale), count: pluralCount(overdrawn) })}</p>
   {/if}
 </div>
 

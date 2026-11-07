@@ -21,6 +21,12 @@ export interface SourceMeta {
   readonly visible: boolean;
 }
 
+/** A day rule of the contract, for naming it where it decides a day's required work (the detail popover). */
+export interface RuleMeta {
+  readonly id: string;
+  readonly label: Text | undefined;
+}
+
 /** What the page shows of the opened file besides the result; it doesn't change while the file is open. */
 export interface PlanMeta {
   readonly name: Text | undefined; // contract.name
@@ -31,6 +37,7 @@ export interface PlanMeta {
   readonly period: PlanPeriod;
   readonly allowance: Units;
   readonly sources: readonly SourceMeta[];
+  readonly rules: readonly RuleMeta[];
   readonly example: boolean;
 }
 

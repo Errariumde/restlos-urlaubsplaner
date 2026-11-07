@@ -3,14 +3,19 @@ SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 SPDX-License-Identifier: EUPL-1.2
 -->
 <script lang="ts">
+  import { tick } from "svelte";
+  import { MediaQuery } from "svelte/reactivity";
   import type { DayNumber } from "../../engine/days.ts";
   import AllowanceBar from "../allowance/AllowanceBar.svelte";
   import AllowancePanel from "../allowance/AllowancePanel.svelte";
+  import DayDetail from "../calendar/DayDetail.svelte";
   import HintLine from "../calendar/HintLine.svelte";
+  import MonthColumns from "../calendar/MonthColumns.svelte";
   import MonthTiles from "../calendar/MonthTiles.svelte";
+  import SelectionBar from "../calendar/SelectionBar.svelte";
   import Button from "../controls/Button.svelte";
   import Sheet from "../controls/Sheet.svelte";
-  import { dayCount, formatDays } from "../i18n/format.ts";
+  import { pluralCount, formatDays } from "../i18n/format.ts";
   import { i18n } from "../i18n/i18n.svelte.ts";
   import { app } from "../state/app.svelte.ts";
   import { shortcut } from "../state/keys.ts";
@@ -47,6 +52,58 @@ SPDX-License-Identifier: EUPL-1.2
     if (sidebar || compact) detailsOpen = false;
   });
 
+  /** Below this width of the calendar area the detail of a day is a bottom sheet, not a popover. */
+  const DETAIL_SHEET_BELOW = 520;
+
+  let calendarWidth = $state<number>();
+  let calendar = $state<HTMLElement>();
+
+  /** Below this width of the app, or on a touch screen, the toolbar offers the touch selection mode. */
+  const SELECT_BELOW = 800;
+  const coarse = new MediaQuery("(pointer: coarse)");
+  const selectable = $derived(coarse.current || (width !== undefined && width < SELECT_BELOW));
+  /**
+   * Switches the view (V and the toolbar). The detail closes first, since its anchor cell goes with the old
+   * view. The focused day stays: it is scrolled into view in the new view and keeps the focus if the old grid
+   * or the detail had it.
+   */
+  async function switchView(view: "tiles" | "columns"): Promise<void> {
+    if (view === app.view) return;
+    const active = document.activeElement;
+    const refocus = (calendar?.contains(active) ?? false) || (detail !== undefined && active?.closest("[popover], dialog") != null);
+    detail = undefined;
+    app.view = view;
+    await tick();
+    const cell = calendar?.querySelector<HTMLElement>(`[data-day="${String(app.focusDay)}"]`);
+    cell?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    if (refocus) cell?.focus({ preventScroll: true });
+  }
+
+  interface DetailRequest {
+    readonly day: DayNumber;
+    readonly anchor: HTMLElement;
+    readonly sheet: boolean;
+  }
+
+  let detail = $state.raw<DetailRequest>();
+
+  /** Opens the detail of a day in the period; asking again for the day that is shown changes nothing. */
+  function openDetail(day: DayNumber, anchor: HTMLElement, pointerType?: string): void {
+    const state = app.state;
+    if (state === undefined || day < state.result.period.from || day > state.result.period.to) return;
+    if (detail?.day === day && detail.anchor === anchor) return;
+    // A sheet on a narrow calendar and on a touch screen (as the toolbar's More menu, Ruling P), and always
+    // for a touch: a long press opens it while the finger is down, and lifting it would light-dismiss a popover.
+    const narrow = calendarWidth !== undefined && calendarWidth < DETAIL_SHEET_BELOW;
+    const sheet = narrow || matchMedia("(pointer: coarse)").matches || pointerType === "touch";
+    detail = { day, anchor, sheet };
+  }
+
+  /** Only the request that is shown closes it: a popover replaced by the next one reports its close late. */
+  function closeDetail(request: DetailRequest): void {
+    if (detail === request) detail = undefined;
+  }
+
   /** Text fields keep their letters; checkboxes and radio buttons are not text input. */
   const NOT_TEXT = new Set(["button", "submit", "reset", "range", "color", "file", "image", "checkbox", "radio"]);
 
@@ -73,7 +130,7 @@ SPDX-License-Identifier: EUPL-1.2
         if (app.state?.canRedo) void app.redo();
         break;
       case "view":
-        app.view = app.view === "tiles" ? "columns" : "tiles";
+        void switchView(app.view === "tiles" ? "columns" : "tiles");
         break;
       case "align":
         if (app.view === "columns") app.align = !app.align;
@@ -88,13 +145,16 @@ SPDX-License-Identifier: EUPL-1.2
 <svelte:window {onkeydown} />
 
 <div class="screen" bind:clientWidth={width}>
-  <Toolbar {compact} bind:heading />
-  <HintLine />
+  <Toolbar {compact} {selectable} onview={(view: "tiles" | "columns") => void switchView(view)} bind:heading />
+  <!-- In the selection mode the hint line moves into the selection bar, next to its actions. -->
+  {#if !app.selectMode}
+    <HintLine />
+  {/if}
   {#if app.state && width !== undefined && !sidebar}
     {@const { meta, result } = app.state}
     <section class="compact-bar stack" aria-label={i18n.t("allowance.label")} style:--gap="var(--space-2)">
       <div class="cluster compact-head">
-        <p class="left">{i18n.t("allowance.left", { days: formatDays(result.totals.remaining, i18n.locale), count: dayCount(result.totals.remaining) })}</p>
+        <p class="left">{i18n.t("allowance.left", { days: formatDays(result.totals.remaining, i18n.locale), count: pluralCount(result.totals.remaining) })}</p>
         <Button bind:element={detailsButton} expanded={detailsOpen} controls="allowance-details" onclick={() => (detailsOpen = !detailsOpen)}>
           {i18n.t("allowance.details")}
         </Button>
@@ -116,9 +176,11 @@ SPDX-License-Identifier: EUPL-1.2
     {/if}
   {/if}
   <div class="workspace">
-    <main class="calendar">
+    <main bind:this={calendar} class="calendar" bind:clientWidth={calendarWidth}>
       {#if app.state && app.view === "tiles"}
-        <MonthTiles meta={app.state.meta} result={app.state.result} {today} />
+        <MonthTiles meta={app.state.meta} result={app.state.result} {today} onDetail={openDetail} />
+      {:else if app.state}
+        <MonthColumns meta={app.state.meta} result={app.state.result} {today} onDetail={openDetail} />
       {/if}
     </main>
     {#if app.state && sidebar}
@@ -128,6 +190,27 @@ SPDX-License-Identifier: EUPL-1.2
       </aside>
     {/if}
   </div>
+  {#if app.state}
+    {@const { meta, result } = app.state}
+    <!-- A new popover or sheet for each request: its anchor and its focus handling belong to that cell. -->
+    {#each detail ? [detail] : [] as request (request)}
+      {@const dayResult = result.days[request.day - (result.days[0]?.day ?? 0)]}
+      {#if dayResult}
+        <DayDetail
+          day={dayResult}
+          {meta}
+          problems={result.problems}
+          presentation={request.sheet ? "sheet" : "popover"}
+          anchor={request.anchor}
+          onclose={() => closeDetail(request)}
+        />
+      {/if}
+    {/each}
+  {/if}
+  {#if app.state && app.selectMode}
+    <!-- Last in the screen: it sticks to the bottom of the window and ends the page below the calendar. -->
+    <SelectionBar />
+  {/if}
 </div>
 
 <style>

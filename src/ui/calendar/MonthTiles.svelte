@@ -14,7 +14,7 @@ SPDX-License-Identifier: EUPL-1.2
   import { periodCellLanes, type CellLane } from "./cell-lanes.ts";
   import DayCell from "./DayCell.svelte";
   import { calendarGestures, dragPreview } from "./gestures.svelte.ts";
-  import { nextDay, type NavKey } from "./grid-nav.ts";
+  import { calendarKeyboard } from "./keyboard.svelte.ts";
   import { periodMonths, tileWeeks } from "./months.ts";
   import { weekChanges } from "./range.ts";
   import WeekNumber from "./WeekNumber.svelte";
@@ -24,13 +24,12 @@ SPDX-License-Identifier: EUPL-1.2
     result: PlanResult;
     /** Today's day number, for the today ring. */
     today: DayNumber;
-    /** Opens the detail of a day (long press, right-click); Task 13 sets it. */
-    onDetail?: ((day: DayNumber) => void) | undefined;
+    /** Opens the detail of a day next to its cell: right-click, long press, Enter or the context-menu key. */
+    onDetail: (day: DayNumber, anchor: HTMLElement, pointerType?: string) => void;
   }
 
   let { meta, result, today, onDetail }: Props = $props();
 
-  const NAV_KEYS: ReadonlySet<string> = new Set<NavKey>(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"]);
   const NO_LANES: readonly CellLane[] = [];
 
   let grid = $state<HTMLElement>();
@@ -59,24 +58,15 @@ SPDX-License-Identifier: EUPL-1.2
     return day >= Math.min(selection.anchor, selection.head) && day <= Math.max(selection.anchor, selection.head);
   }
 
-  function focusCell(day: DayNumber): void {
-    app.focusDay = day;
-    grid?.querySelector<HTMLElement>(`[data-day="${String(day)}"]`)?.focus();
-  }
-
   function cellDay(target: EventTarget | null): DayNumber | undefined {
     const cell = target instanceof Element ? target.closest<HTMLElement>("[data-day]") : null;
     return cell ? Number(cell.dataset.day) : undefined;
   }
 
-  function onkeydown(event: KeyboardEvent): void {
-    // Shift+arrows (the selection) and the other keys of the grid come with the detail popover (Task 13).
-    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || !NAV_KEYS.has(event.key)) return;
-    const from = cellDay(event.target);
-    if (from === undefined) return;
-    event.preventDefault();
-    const ctx = { dir: i18n.dir, weekStart: meta.weekStart, period: result.period, alignByWeekday: app.align };
-    focusCell(nextDay("tiles", event.key as NavKey, from, ctx));
+  /** A long press or a right-click: the detail opens next to the day's cell. */
+  function detailOf(day: DayNumber, pointerType: string): void {
+    const cell = grid?.querySelector<HTMLElement>(`[data-day="${String(day)}"]`);
+    if (cell) onDetail(day, cell, pointerType);
   }
 
   /** A week-number click; ignored while a change is being applied, like the cells (gestures.svelte.ts). */
@@ -94,13 +84,14 @@ SPDX-License-Identifier: EUPL-1.2
   bind:this={grid}
   class="tiles"
   class:weeks={app.weeks}
+  class:selecting={app.selectMode}
   class:removing={dragPreview.range?.action === "remove"}
   role="grid"
   aria-label={i18n.t("calendar.label")}
   aria-multiselectable="true"
   tabindex="-1"
-  use:calendarGestures={{ getResult: () => result, app, onDetail }}
-  {onkeydown}
+  use:calendarGestures={{ getResult: () => result, app, onDetail: detailOf }}
+  use:calendarKeyboard={{ view: () => "tiles", app, openDetail: onDetail }}
   {onfocusin}
 >
   {#each months as { month, id, weeks } (month.first)}
@@ -125,7 +116,8 @@ SPDX-License-Identifier: EUPL-1.2
           {/if}
           {#each week.cells as day, column (column)}
             {#if day === null}
-              <span class="pad" aria-hidden="true"></span>
+              <!-- An empty cell, so every cell stays under its weekday header (Ruling V). -->
+              <span class="pad" role="gridcell"></span>
             {:else}
               {@const dayResult = result.days[day - firstDay]}
               {#if dayResult}
@@ -158,6 +150,14 @@ SPDX-License-Identifier: EUPL-1.2
       align-items: start;
       /* Moving a finger scrolls the page (ranges on touch come with the selection mode); no double-tap zoom. */
       touch-action: manipulation;
+    }
+
+    /*
+     * In the selection mode a finger on a day selects instead of scrolling (gestures.svelte.ts); the headers
+     * and the gaps still scroll the page (Ruling U).
+     */
+    .tiles.selecting :global([data-day]) {
+      touch-action: none;
     }
 
     .tiles:focus {

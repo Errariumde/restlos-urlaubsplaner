@@ -76,7 +76,11 @@ describe("cellLabel", () => {
 
   it("tells half, mandatory and other-plan leave apart", () => {
     const half = result({ day: friday, leave: [{ kind: "own", take: 240, part: "end" }], cost: 240 });
-    expect(cellLabel(half, meta, i18n("en"))).toContain(", leave half, costs ½");
+    expect(cellLabel(half, meta, i18n("en"))).toContain(", leave half, afternoon, costs ½");
+    expect(cellLabel(half, meta, i18n("de"))).toContain(", Urlaub halb, nachmittags, kostet ½");
+    const morning = result({ day: friday, leave: [{ kind: "own", take: 240, part: "start" }], cost: 240 });
+    expect(cellLabel(morning, meta, i18n("en"))).toContain(", leave half, morning, costs ½");
+    expect(cellLabel(morning, meta, i18n("de"))).toContain(", Urlaub halb, vormittags, kostet ½");
     expect(cellLabel(result({ day: friday, leave: [{ kind: "mandatory", take: 480, part: "end" }], cost: 480 }), meta, i18n("en"))).toContain(", mandatory leave, ");
     expect(cellLabel(result({ day: friday, leave: [{ kind: "otherPlan", from: 0, to: 480 }] }), meta, i18n("en"))).toContain(", leave in another plan");
   });

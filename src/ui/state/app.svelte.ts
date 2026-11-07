@@ -26,6 +26,24 @@ class App {
   focusDay = $state<DayNumber | undefined>(undefined);
   selection = $state<{ anchor: DayNumber; head: DayNumber } | undefined>(undefined);
   hint = $state.raw<Hint | undefined>(undefined);
+  #selectMode = $state(false);
+
+  /**
+   * The touch selection mode (D8): a drag or two taps select a range, which the selection bar applies.
+   * Leaving it ends the selection and its hint.
+   */
+  get selectMode(): boolean {
+    return this.#selectMode;
+  }
+
+  set selectMode(on: boolean) {
+    this.#selectMode = on;
+    if (!on) {
+      this.selection = undefined;
+      this.hint = undefined;
+    }
+  }
+
   /** The example couldn't be opened; the start screen says so. */
   openFailed = $state(false);
 

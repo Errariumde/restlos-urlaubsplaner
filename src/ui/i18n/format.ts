@@ -63,7 +63,11 @@ export function formatDate(day: DayNumber, locale: Locale, style: DateStyle): st
   return format.format(day * MS_PER_DAY); // day 0 is 1970-01-01
 }
 
-/** The number of days, for plural selection in messages (the formatted amount is passed as a separate argument). */
-export function dayCount(units: Units): number {
-  return units / UNITS_PER_DAY;
+/**
+ * The number that selects the plural form for a day amount in messages (the formatted amount is passed as a
+ * separate argument). Up to one day, a fraction included, is singular: "½ day", "1 day", "1½ days" (and
+ * "½ Tag", "1½ Tage"); English and German plural rules would put 0.5 and 1.5 in "other" alike.
+ */
+export function pluralCount(units: Units): number {
+  return Math.ceil(Math.abs(units) / UNITS_PER_DAY);
 }

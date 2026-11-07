@@ -8,7 +8,10 @@ SPDX-License-Identifier: EUPL-1.2
   import AllowanceSection from "./sections/AllowanceSection.svelte";
   import ControlsSection from "./sections/ControlsSection.svelte";
   import DayCellSection from "./sections/DayCellSection.svelte";
+  import DayDetailSection from "./sections/DayDetailSection.svelte";
+  import MainColumnsSection from "./sections/MainColumnsSection.svelte";
   import MainTilesSection from "./sections/MainTilesSection.svelte";
+  import SelectionBarSection from "./sections/SelectionBarSection.svelte";
   import PopoverSection from "./sections/PopoverSection.svelte";
   import SheetSection from "./sections/SheetSection.svelte";
   import ToolbarSection from "./sections/ToolbarSection.svelte";
@@ -38,10 +41,16 @@ SPDX-License-Identifier: EUPL-1.2
         return i18n.t("gallery.section.toolbar");
       case "day-cell":
         return i18n.t("gallery.section.dayCell");
+      case "day-detail":
+        return i18n.t("gallery.section.dayDetail");
       case "allowance":
         return i18n.t("gallery.section.allowance");
       case "main-tiles":
         return i18n.t("gallery.section.mainTiles");
+      case "main-columns":
+        return i18n.t("gallery.section.mainColumns");
+      case "selection-bar":
+        return i18n.t("gallery.section.selectionBar");
     }
   }
 
@@ -54,7 +63,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 {#if combination}
   <!-- The main screen brings its own main landmark. -->
-  <svelte:element this={combination.section === "main-tiles" ? "div" : "main"} class="page stack" data-section={combination.section}>
+  <svelte:element this={combination.section === "main-tiles" || combination.section === "main-columns" ? "div" : "main"} class="page stack" data-section={combination.section}>
     <h1>{sectionTitle(combination.section)}</h1>
     {#if combination.section === "controls"}
       <ControlsSection />
@@ -66,10 +75,16 @@ SPDX-License-Identifier: EUPL-1.2
       <ToolbarSection />
     {:else if combination.section === "day-cell"}
       <DayCellSection />
+    {:else if combination.section === "day-detail"}
+      <DayDetailSection />
     {:else if combination.section === "allowance"}
       <AllowanceSection />
-    {:else}
+    {:else if combination.section === "main-tiles"}
       <MainTilesSection />
+    {:else if combination.section === "main-columns"}
+      <MainColumnsSection />
+    {:else}
+      <SelectionBarSection />
     {/if}
   </svelte:element>
 {:else}

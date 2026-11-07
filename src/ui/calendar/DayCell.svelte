@@ -5,6 +5,7 @@ SPDX-License-Identifier: EUPL-1.2
 <script lang="ts">
   // One day of the calendar, drawn in the layers of docs/SPEC.md, "Day cell": background (required work),
   // fill (leave), border (another plan), source lanes, and the ring (today, selection, preview).
+  import type { Snippet } from "svelte";
   import type { DayResult } from "../../engine/counting/plan.ts";
   import { textFor } from "../../engine/file/text.ts";
   import { ymdFromDay } from "../../engine/days.ts";
@@ -12,7 +13,7 @@ SPDX-License-Identifier: EUPL-1.2
   import { i18n } from "../i18n/i18n.svelte.ts";
   import type { PlanMeta } from "../worker/protocol.ts";
   import { lineStyle, sourceAccent, type CellLane } from "./cell-lanes.ts";
-  import { cellLabel, kindOf, leaveOf } from "./label.ts";
+  import { cellLabel, kindOf, leaveOf, ownPart } from "./label.ts";
 
   interface Props {
     day: DayResult;
@@ -26,16 +27,15 @@ SPDX-License-Identifier: EUPL-1.2
     today: boolean;
     /** A drag would change this day. */
     previewed: boolean;
+    /** Drawn inside the cell above the ring: the calendar-week marker of the month columns. */
+    marker?: Snippet | undefined;
   }
 
-  let { day, meta, lanes, orientation, focused, selected, today, previewed }: Props = $props();
+  let { day, meta, lanes, orientation, focused, selected, today, previewed, marker }: Props = $props();
 
   const kind = $derived(kindOf(day, meta));
   const leave = $derived(leaveOf(day));
-  const part = $derived.by(() => {
-    const piece = day.leave.find((candidate) => candidate.kind === "own");
-    return piece?.kind === "own" ? piece.part : "end";
-  });
+  const part = $derived(ownPart(day));
   const otherPlan = $derived(day.leave.some((piece) => piece.kind === "otherPlan"));
 
   /** The sources of the lanes, in the order of the sources list, with their accent and line style. */
@@ -87,6 +87,7 @@ SPDX-License-Identifier: EUPL-1.2
   {/if}
   {#if more}<i class="more"></i>{/if}
   <span class="ring"></span>
+  {@render marker?.()}
 </div>
 
 <style>
@@ -345,6 +346,13 @@ SPDX-License-Identifier: EUPL-1.2
       padding-block: 0;
       padding-inline-start: var(--space-2);
       border-radius: 0;
+    }
+
+    /* Touch: a 40 px tap target in the columns too. */
+    @media (pointer: coarse) {
+      .column {
+        min-block-size: 2.5rem;
+      }
     }
 
     /* More than three sources: a "+" in the corner; the label and the detail name them all. */

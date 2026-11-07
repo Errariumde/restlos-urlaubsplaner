@@ -17,13 +17,17 @@ SPDX-License-Identifier: EUPL-1.2
   interface Props {
     /** The app is narrower than 520 px: mode, language and the checkboxes move into the More menu. */
     compact: boolean;
+    /** Show the Select toggle of the touch selection mode (a touch screen or an app narrower than 800 px). */
+    selectable?: boolean;
+    /** Switches the view (the main screen keeps the focused day). Unset: the view switch sets `app.view`. */
+    onview?: ((view: "tiles" | "columns") => void) | undefined;
     /** Open the More menu as a sheet (true) or a popover (false). Unset: a sheet on touch devices. */
     sheet?: boolean;
     /** The title element, for the screen to focus after it replaces the start screen. */
     heading?: HTMLHeadingElement | undefined;
   }
 
-  let { compact, sheet, heading = $bindable() }: Props = $props();
+  let { compact, selectable = false, onview, sheet, heading = $bindable() }: Props = $props();
 
   const meta = $derived(app.state?.meta);
   const title = $derived(meta?.name !== undefined ? textFor(meta.name, i18n.lang) : i18n.t("app.name"));
@@ -88,7 +92,9 @@ SPDX-License-Identifier: EUPL-1.2
   }
 
   function setView(value: string): void {
-    if (value === "tiles" || value === "columns") app.view = value;
+    if (value !== "tiles" && value !== "columns") return;
+    if (onview) onview(value);
+    else app.view = value;
   }
 </script>
 
@@ -118,6 +124,10 @@ SPDX-License-Identifier: EUPL-1.2
     <Segmented label={i18n.t("toolbar.view")} options={viewOptions} value={app.view} iconOnly={compact} onchange={setView} />
     {#if !compact}
       {@render weeksAndAlign()}
+    {/if}
+    <!-- Also while the mode is on, so it can always be left. -->
+    {#if selectable || app.selectMode}
+      <IconButton icon="select" label={i18n.t("toolbar.select")} pressed={app.selectMode} onclick={() => (app.selectMode = !app.selectMode)} />
     {/if}
     <IconButton icon="undo" label={i18n.t("toolbar.undo")} disabled={!app.state?.canUndo} onclick={() => app.undo()} />
     <IconButton icon="redo" label={i18n.t("toolbar.redo")} disabled={!app.state?.canRedo} onclick={() => app.redo()} />

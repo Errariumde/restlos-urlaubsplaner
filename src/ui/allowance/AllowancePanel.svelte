@@ -7,7 +7,7 @@ SPDX-License-Identifier: EUPL-1.2
   import type { PlanTotals } from "../../engine/counting/plan.ts";
   import type { Stretch } from "../../engine/counting/stretches.ts";
   import type { Units } from "../../engine/weight.ts";
-  import { dayCount, formatDate, formatDays } from "../i18n/format.ts";
+  import { pluralCount, formatDate, formatDays } from "../i18n/format.ts";
   import { i18n } from "../i18n/i18n.svelte.ts";
   import AllowanceBar from "./AllowanceBar.svelte";
 
@@ -39,9 +39,9 @@ SPDX-License-Identifier: EUPL-1.2
       to: formatDate(last, locale, "dayMonth"),
       untilNoon: stretch.end.offset === 240 ? "yes" : "no",
       cost: formatDays(stretch.cost, locale),
-      costCount: dayCount(stretch.cost),
+      costCount: pluralCount(stretch.cost),
       daysOff: formatDays(stretch.daysOff, locale),
-      daysOffCount: dayCount(stretch.daysOff),
+      daysOffCount: pluralCount(stretch.daysOff),
     });
   }
 </script>

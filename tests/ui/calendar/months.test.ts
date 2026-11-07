@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import { dayFromYmd } from "../../../src/engine/days.ts";
-import { columnRows, isoWeek, periodMonths, tileWeeks } from "../../../src/ui/calendar/months.ts";
+import { columnRows, columnWeekMarker, isoWeek, periodMonths, tileWeeks } from "../../../src/ui/calendar/months.ts";
 
 const d = (y: number, m: number, day: number): number => dayFromYmd(y, m, day);
 const year2027 = periodMonths({ from: { year: 2027, month: 1 }, to: { year: 2027, month: 12 } });
@@ -98,5 +98,26 @@ describe("columnRows", () => {
     const rows = columnRows([year2027[0]!], true, "sat");
     expect(rows).toHaveLength(37);
     expect(rows[36]![0]).toBe(d(2027, 1, 31));
+  });
+});
+
+describe("columnWeekMarker", () => {
+  const from = d(2027, 1, 1);
+
+  it("marks the first day of each week with the ISO week and the week's first day", () => {
+    expect(columnWeekMarker(d(2027, 6, 14), "mon", from)).toEqual({ isoWeek: 24, startDay: d(2027, 6, 14) });
+    expect(columnWeekMarker(d(2027, 6, 15), "mon", from)).toBeUndefined();
+    expect(columnWeekMarker(d(2027, 6, 20), "mon", from)).toBeUndefined();
+  });
+
+  it("marks the period's first day for the week that runs into it", () => {
+    expect(columnWeekMarker(from, "mon", from)).toEqual({ isoWeek: 53, startDay: d(2026, 12, 28) });
+    expect(columnWeekMarker(d(2027, 1, 2), "mon", from)).toBeUndefined();
+  });
+
+  it("follows the week start, numbered by the week's Thursday", () => {
+    expect(columnWeekMarker(d(2027, 6, 13), "sun", from)).toEqual({ isoWeek: 24, startDay: d(2027, 6, 13) });
+    expect(columnWeekMarker(d(2027, 6, 14), "sun", from)).toBeUndefined();
+    expect(columnWeekMarker(d(2027, 6, 12), "sat", from)).toEqual({ isoWeek: 24, startDay: d(2027, 6, 12) });
   });
 });

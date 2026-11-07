@@ -9,7 +9,7 @@ SPDX-License-Identifier: EUPL-1.2
   import { UNITS_PER_DAY } from "../../engine/weight.ts";
   import AllowanceBar from "../../ui/allowance/AllowanceBar.svelte";
   import AllowancePanel from "../../ui/allowance/AllowancePanel.svelte";
-  import { dayCount, formatDays } from "../../ui/i18n/format.ts";
+  import { pluralCount, formatDays } from "../../ui/i18n/format.ts";
   import { i18n } from "../../ui/i18n/i18n.svelte.ts";
 
   const days = (count: number): number => count * UNITS_PER_DAY;
@@ -56,7 +56,7 @@ SPDX-License-Identifier: EUPL-1.2
 
   <section class="stack frame" style:--gap="var(--space-2)">
     <h2>{i18n.t("gallery.allowance.compact")}</h2>
-    <p><strong>{i18n.t("allowance.left", { days: formatDays(totals.remaining, i18n.locale), count: dayCount(totals.remaining) })}</strong></p>
+    <p><strong>{i18n.t("allowance.left", { days: formatDays(totals.remaining, i18n.locale), count: pluralCount(totals.remaining) })}</strong></p>
     <AllowanceBar allowance={ALLOWANCE} planned={totals.planned} />
   </section>
 </div>
