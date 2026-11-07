@@ -36,6 +36,15 @@ describe("parseIcon", () => {
     expect(() => parseIcon(svg('<foreignObject />'))).toThrow(/foreignObject/);
   });
 
+  it("refuses a comment anywhere but before the svg element", () => {
+    expect(() => parseIcon(svg('<!-- x --><path d="M0 0" />'))).toThrow(/self-closing/);
+  });
+
+  it("refuses anything hidden between two comments before the svg element", () => {
+    const root = '<svg viewBox="0 0 24 24"><path d="M0 0" /></svg>';
+    expect(() => parseIcon(`<!-- a --><script>alert(1)</script><!-- b -->${root}`)).toThrow(/svg/);
+  });
+
   it("refuses attributes that aren't geometry", () => {
     expect(() => parseIcon(svg('<path d="M0 0" onload="alert(1)" />'))).toThrow(/onload/);
     expect(() => parseIcon(svg('<path d="M0 0" fill="#f00" />'))).toThrow(/fill/);

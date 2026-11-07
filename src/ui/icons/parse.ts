@@ -74,8 +74,8 @@ function checkValue(tag: IconElement["tag"], name: string, value: string): void 
 
 /** Parses one icon file. Throws on any element other than the shapes in GEOMETRY and on any other attribute. */
 export function parseIcon(text: string): IconData {
-  const source = text.replace(/<!--[\s\S]*?-->/g, "").trim();
-  const root = /^<svg\b([^>]*)>([\s\S]*)<\/svg>$/.exec(source);
+  // Lucide's licence comment may come first; comments anywhere else are refused like any other content.
+  const root = /^\s*(?:<!--[^>]*-->\s*)?<svg\b([^>]*)>([\s\S]*)<\/svg>\s*$/.exec(text);
   if (!root) throw new Error("The file isn't a single <svg> element.");
   const rootAttrs = attributesOf(root[1]!, "<svg>");
   for (const [name, value] of Object.entries(rootAttrs)) {
