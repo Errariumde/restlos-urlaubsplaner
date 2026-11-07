@@ -425,7 +425,7 @@ The **views** switch on the **width of the calendar area** (container queries), 
 
 | Width (views: calendar area; allowance: app) | Month tiles | Month columns | Allowance |
 | --- | --- | --- | --- |
-| ≥ 1100 px | 4 months per row | all columns (up to 13) | sidebar at the inline end |
+| ≥ 1100 px | 4 months per row | all columns that fit, at least 13; more scroll horizontally | sidebar at the inline end |
 | 800–1099 px | 3 per row | scroll horizontally, day column fixed | sidebar at the inline end |
 | 520–799 px | 2 per row | 6 columns visible | compact bar at the top, expandable |
 | < 520 px | 1 per row (**default on phones**) | 3 columns visible | compact bar at the top, details as a bottom sheet |

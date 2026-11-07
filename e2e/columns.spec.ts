@@ -228,6 +228,55 @@ for (const width of [552, 873, 1453]) {
   });
 }
 
+/** Opens the built-in example with its plan period stretched to end in `to` (a month, "2029-12"). */
+async function openLongerExample(page: Page, to: string): Promise<void> {
+  await openApp(page);
+  await page.evaluate((end) => {
+    const block = document.getElementById("example-plan");
+    if (!block?.textContent) throw new Error("The page has no example data block");
+    const file = JSON.parse(block.textContent) as { plan: { range: { to: string } } };
+    file.plan.range.to = end;
+    block.textContent = JSON.stringify(file);
+  }, to);
+  await openExampleFromStart(page);
+  await page.getByRole("button", { name: "Columns", exact: true }).click();
+}
+
+const monthHeaders = (page: Page): Locator => grid(page).getByRole("row").first().getByRole("columnheader").filter({ hasNotText: /^Day$/ });
+
+// A wide calendar shows all the columns that fit, each at least 4.875rem (78 px) wide, so the month names and
+// the week markers keep their room; the rest scroll sideways. 13 months still fit at a calendar of 1100 px
+// (an app of about 1450 px with the sidebar).
+test.describe("a plan longer than a year, in English", () => {
+  test.use({ locale: "en-GB" });
+
+  test.describe("at 1920 px", () => {
+    test.use({ viewport: { width: 1920, height: 1000 } });
+
+    test("36 months scroll sideways instead of squeezing their columns", async ({ page }) => {
+      await openLongerExample(page, "2029-12");
+      await expect(monthHeaders(page)).toHaveCount(36);
+      expect(await grid(page).evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+      for (const box of await monthHeaders(page).evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().width))) {
+        expect(box).toBeGreaterThanOrEqual(77.5);
+      }
+      expect(await markersOverText(page)).toEqual([]);
+      await expectNoPageProblems(page);
+    });
+  });
+
+  test.describe("at 1453 px", () => {
+    test.use({ viewport: { width: 1453, height: 800 } });
+
+    test("13 months fit without scrolling", async ({ page }) => {
+      await openLongerExample(page, "2028-01");
+      await expect(monthHeaders(page)).toHaveCount(13);
+      expect(await grid(page).evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+      await expectNoPageProblems(page);
+    });
+  });
+});
+
 test.describe("in right-to-left text", () => {
   test.skip(({ browserName }) => browserName === "webkit", "The gallery is checked in Chromium and Firefox.");
   test.use({ viewport: { width: 1280, height: 800 } });

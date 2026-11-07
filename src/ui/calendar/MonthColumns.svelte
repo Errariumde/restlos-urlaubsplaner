@@ -224,9 +224,13 @@ SPDX-License-Identifier: EUPL-1.2
       }
     }
 
+    /*
+     * All the columns that fit, each wide enough for "September" and the week markers beside the day and
+     * weekday; a longer plan scrolls. 13 still fit at 68.75rem: (1100 px - 48 px - 13 gaps) / 13 is 78.9 px.
+     */
     @container calendar (inline-size >= 68.75rem) {
       .columns {
-        --column: minmax(0, 1fr);
+        --column: minmax(4.875rem, 1fr);
       }
     }
 
