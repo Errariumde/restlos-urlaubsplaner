@@ -6,7 +6,7 @@
 // a YY.11 release until 30 June of the next year (the 26.05 announcement: fixes "up until 2026-12-31",
 // https://nixos.org/blog/announcements/2026/nixos-2605/). Its successor comes out about a month before that.
 // From the 1st of the last month the successor is due; from the 16th the project is overdue to move, so it moves
-// while the old release is still supported (docs/superpowers/specs/2026-10-24-ci-design.md, decision 7).
+// while the old release is still supported (docs/SPEC.md, "NixOS release check").
 
 export type ReleaseStatus =
   | { kind: "supported"; release: string; endOfSupport: string }
