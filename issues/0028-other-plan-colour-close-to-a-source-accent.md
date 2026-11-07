@@ -21,7 +21,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 - Tokens: `src/ui/styles/tokens.css` (day types and accents 1–8).
 - The day cell draws other-plan days with a dashed border (layer 3) and every visible source as a lane (layer 4), other-plan sources included (`src/ui/calendar/cell-lanes.ts`, `DayCell.svelte`).
-- Found while building the month tiles (UI branch, Task 11).
+- Found while building the month tiles on the UI branch.
 
 ## Acceptance criteria
 

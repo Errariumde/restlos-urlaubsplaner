@@ -19,7 +19,7 @@ Vite's `emptyOutDir` wipes `dist/` on every `npm run build`, while the feasibili
 
 ## Context
 
-Found in Task 2 of the UI branch (single-file build into `dist/restlos-urlaubsplaner.html`, `vite.config.ts`). The first build on the `ui` branch deleted an existing `dist/feasibility/`.
+Found when the UI branch added the single-file build (into `dist/restlos-urlaubsplaner.html`, `vite.config.ts`). The first build on the `ui` branch deleted an existing `dist/feasibility/`.
 
 ## Acceptance criteria
 

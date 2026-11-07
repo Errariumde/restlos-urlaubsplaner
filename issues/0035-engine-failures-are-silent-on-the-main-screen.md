@@ -21,7 +21,7 @@ When the engine worker answers an apply, undo, redo or preview with `failed` (an
 
 - `src/ui/state/app.svelte.ts`, `#change` and `preview`.
 - The `void app.apply(…)` / `void app.preview(…)` calls in `gestures.svelte.ts`, `keyboard.svelte.ts`, `MonthTiles.svelte`, `MonthColumns.svelte`, `SelectionBar.svelte`, `MainScreen.svelte` and `app.select`.
-- Found by the final review of branch `ui` (`final-review.md`, Minor 1). Acceptable for a slice that opens only the example, but later branches will copy the pattern.
+- Found at the end of branch `ui`. Acceptable for a slice that opens only the example, but later branches will copy the pattern.
 
 ## Acceptance criteria
 

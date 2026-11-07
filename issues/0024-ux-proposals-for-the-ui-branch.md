@@ -15,13 +15,12 @@ SPDX-License-Identifier: CC-BY-4.0
 
 ## Problem
 
-The research of 2026-10-24 on single-file and local-file web apps found UX practice that `docs/SPEC.md` doesn't have yet. The feasibility branch kept these proposals out of the spec because the maintainer hasn't seen them in detail (decision 8). They need a decision before or in the UI branch.
+The research of 2026-10-24 on single-file and local-file web apps found UX practice that `docs/SPEC.md` doesn't have yet. The feasibility branch kept these proposals out of the spec because the maintainer hasn't seen them in detail. They need a decision before or in the UI branch.
 
 ## Context
 
-- `docs/superpowers/specs/2026-10-24-feasibility-tests-design.md`, "UX proposals for the UI branch" (on the `feasibility` branch).
 - The research looked at TiddlyWiki, Feather Wiki, Excalidraw, draw.io, Photopea, Google's `browser-fs-access` and local-first software.
-- The crash recovery concept (decision 7 of the same design) covers parts of proposals 3 and 4.
+- The crash recovery in `docs/SPEC.md` ("File operations (editor behavior)", Restore) covers parts of proposals 3 and 4.
 
 ## Acceptance criteria
 

@@ -20,7 +20,7 @@ On a coarse-pointer screen at least 800 px wide (a landscape tablet), the toolba
 ## Context
 
 - `src/ui/screens/MainScreen.svelte`, `.panel`; `src/ui/calendar/SelectionBar.svelte`, `.bar`.
-- Found by the final review of branch `ui` (`final-review.md`, parked items).
+- Found at the end of branch `ui`.
 
 ## Acceptance criteria
 

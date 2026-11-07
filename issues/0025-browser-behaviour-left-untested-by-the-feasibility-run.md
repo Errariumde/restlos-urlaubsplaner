@@ -19,7 +19,7 @@ The version 1 feasibility tests ran automated and headless (2026-11-02). Some be
 
 ## Context
 
-`docs/superpowers/specs/2026-10-24-feasibility-tests-design.md`, section "Results (2026-11-02)", rows marked "Not tested". The calendar test (I4, `UID`s in Nextcloud's trash bin) is tracked in issue 0010.
+`docs/feasibility.md`, section "Not tested" and the rows marked so. The calendar test (I4, `UID`s in Nextcloud's trash bin) is tracked in issue 0010 (iCal import and export).
 
 ## Acceptance criteria
 
@@ -40,4 +40,4 @@ Each point below is checked in the browsers named, and `docs/SPEC.md` is updated
 
 - Open design question found by the branch review: does the built-in example plan get recovery copies? The spec says changes to it are not saved automatically.
 - The run's driver needed `remote.prefs.recommended = false` in Firefox profiles, or Firefox shares storage between all local files (see the design's Results). Use the same setting for any automated `file://` test.
-- WebKit from the dev shell paints in software at about two frames a second (2026-11-04, UI branch Task 11). With the month tiles on screen, opening a plan or resizing the window takes several seconds, so WebKit tests run in parallel timed out at random. `npm run test:e2e` now runs WebKit alone with one worker after Chromium and Firefox, and the WebKit project has longer timeouts (`playwright.config.ts`). The slowness is the headless software renderer, not the page: a real Safari with a GPU still needs checking (see Safari above).
+- WebKit from the dev shell paints in software at about two frames a second (2026-11-04, while the month tiles were built). With the month tiles on screen, opening a plan or resizing the window takes several seconds, so WebKit tests run in parallel timed out at random. `npm run test:e2e` now runs WebKit alone with one worker after Chromium and Firefox, and the WebKit project has longer timeouts (`playwright.config.ts`). The slowness is the headless software renderer, not the page: a real Safari with a GPU still needs checking (see Safari above).

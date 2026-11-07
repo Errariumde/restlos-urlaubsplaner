@@ -19,7 +19,7 @@ PDF templates may contain images such as a company logo (decided for the file-fo
 
 ## Context
 
-- `docs/superpowers/specs/2026-10-18-file-format-design.md`, "Plan file" (`templates`) and "Limits".
+- `docs/file-format.md`, "Templates" and "Limits".
 - `docs/SPEC.md`, "Output: .ics and PDF" and "Own templates: workflow and help".
 
 ## Acceptance criteria
@@ -32,4 +32,4 @@ PDF templates may contain images such as a company logo (decided for the file-fo
 
 Typst can read an SVG from a string in the `.typ` text itself (`image(bytes("<svg …>"))`), but a PNG or JPEG needs a file next to it.
 
-- Decided on 2026-10-23 to settle with this issue: today an invalid image, or one over its size limit, drops its whole template (ruling R21 of the file-format branch). When the export is built, decide whether only the image is dropped and the export reports it missing, in line with decision 2a of that day (an over-long optional text drops only the text).
+- Decided on 2026-10-23 to settle with this issue: today an invalid image, or one over its size limit, drops its whole template (`docs/file-format.md`, "Templates"). When the export is built, decide whether only the image is dropped and the export reports it missing, in line with `textTooLong`, where an over-long optional text drops only the text.

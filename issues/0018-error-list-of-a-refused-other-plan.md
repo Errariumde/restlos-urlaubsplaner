@@ -19,7 +19,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 ## Context
 
-`src/engine/file/other-plan.ts`, `importOtherPlan`: `if (!read.ok) return { ok: false, refusal: read.refusal };`. Noticed in Task 5 of the plan `docs/superpowers/plans/2026-10-20-open-check-and-perf-gate.md` ("A refused file lists every Error"), which changed `ReadResult` but not `OtherPlanImport`.
+`src/engine/file/other-plan.ts`, `importOtherPlan`: `if (!read.ok) return { ok: false, refusal: read.refusal };`. Noticed when a refused file started to list every Error: that change reached `ReadResult` but not `OtherPlanImport`.
 
 ## Acceptance criteria
 

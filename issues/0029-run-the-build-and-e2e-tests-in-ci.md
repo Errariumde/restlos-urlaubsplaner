@@ -34,4 +34,4 @@ The `ui` branch added `npm run build`, the size limit, the component gallery and
 
 ## Notes
 
-Found while closing the `ui` branch (Task 16 of `docs/superpowers/plans/2026-11-04-ui-main-screen.md`).
+Found while closing the `ui` branch.

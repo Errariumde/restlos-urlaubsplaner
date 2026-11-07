@@ -15,11 +15,11 @@ SPDX-License-Identifier: CC-BY-4.0
 
 ## Problem
 
-The final review of branch `ui` found small accessibility and UX gaps on the main screen. None blocks, but they cost little before more screens copy the patterns.
+Branch `ui` left small accessibility and UX gaps on the main screen. None blocks, but they cost little before more screens copy the patterns.
 
 ## Context
 
-- Final review of branch `ui` (`final-review.md`, Minor 2–9). axe-core reports none of them.
+- Found at the end of branch `ui`; axe-core reports none of them.
 
 ## Acceptance criteria
 

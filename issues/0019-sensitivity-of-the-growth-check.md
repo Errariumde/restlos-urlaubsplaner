@@ -17,14 +17,14 @@ SPDX-License-Identifier: CC-BY-4.0
 
 The approved growth check (`work16 / work8 <= 2.2`) assumed that linear code measures about 1.95x. At the plan's base sizes it measures less, because V8's fixed JIT and compile cost weighs on small inputs.
 
-- `read:earlyEasterRanges` at base 1000 grows 1.69x (801.0 M instructions at 8x, 1,355.0 M at 16x, in the Task 10 run).
+- `read:earlyEasterRanges` at base 1000 grows 1.69x (801.0 M instructions at 8x, 1,355.0 M at 16x, when the growth check was added).
 - A planted quadratic `indexOf` loop in a new scenario reached about 2.08 and passed. A quadratic step must be over roughly 22 % of a scenario's 8x work to fail growth.
 - The 5 % budget still catches such a regression in an existing scenario.
-- Growth of all seven scenarios in the final run of Task 11: `read:earlyEasterRanges` 1.67, `read:easterRangesJustOutOfReach` 1.65, `read:calendarRangesOffWeekday` 1.69, `readAndCompute:limitsPlan` 1.41, `check:earlyEasterRanges` 1.70, `check:calendarRangesOffWeekday` 1.54, `write:limitsPlan` 1.52.
+- Growth of all seven scenarios in the last run on branch `file-format`: `read:earlyEasterRanges` 1.67, `read:easterRangesJustOutOfReach` 1.65, `read:calendarRangesOffWeekday` 1.69, `readAndCompute:limitsPlan` 1.41, `check:earlyEasterRanges` 1.70, `check:calendarRangesOffWeekday` 1.54, `write:limitsPlan` 1.52.
 
 ## Context
 
-Branch `file-format`, Task 10 of `docs/superpowers/plans/2026-10-20-open-check-and-perf-gate.md`, and the decisions in issue 0015.
+Branch `file-format`, where the performance gate was built, and the decisions in issue 0015 (worst-case read time of crafted files).
 
 ## Acceptance criteria
 

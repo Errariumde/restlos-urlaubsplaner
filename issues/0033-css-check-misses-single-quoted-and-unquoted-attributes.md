@@ -20,7 +20,7 @@ The markup scan of the CSS check finds `style` and colour attributes (`fill`, `s
 ## Context
 
 - `scripts/css-rules.ts`, `COLOR_ATTRIBUTE` and `STYLE_ATTRIBUTE` (both match only `="…"`). `STYLE_DIRECTIVE` already handles `"…"`, `'…'` and `{…}`.
-- Parked during the `ui` branch and filed by its final review (`final-review.md`, parked items).
+- Parked during the `ui` branch.
 
 ## Acceptance criteria
 
