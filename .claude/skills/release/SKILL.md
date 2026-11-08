@@ -23,4 +23,5 @@ SPDX-License-Identifier: CC-BY-4.0
 5. Generate the SBOM: `reuse spdx -o dist/restlos.spdx`.
 6. Open `dist/*.html` from disk (file://) in the current Firefox ESR from the dev shell (`firefox-esr`) and check: open, save, PDF and .ics export, no network requests (devtools).
 6a. Largest file: `npm run perf -- --largest-file /tmp/largest.urlaub.json`; open it in the Firefox ESR from the dev shell and note the times for reading and checking (target: under 2 s together on the i7-8650U).
+6b. Screen reader: `npm run orca` prints the steps. Orca takes over the desktop it runs on, so never start it yourself: ask the maintainer to run the steps (speakers muted) and hand over the log, then run `npm run orca -- <log>` and report what it finds.
 7. Show the summary to the user. Tagging, pushing and publishing are done by the maintainer: the release workflow creates a draft release, attaches the HTML files, `SHA256SUMS` and the SBOM, adds provenance and then publishes it. Releases are immutable: once published, a release can't be changed and its tag can't be reused, so a mistake needs a new patch version.

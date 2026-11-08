@@ -18,7 +18,8 @@ SPDX-License-Identifier: EUPL-1.2
   });
 </script>
 
-<p class="status" aria-live="polite" aria-atomic="true">{text}</p>
+<!-- A div for Orca, like the hint line's live region (HintLine.svelte). -->
+<div class="status" aria-live="polite" aria-atomic="true">{text}</div>
 
 <style>
   @layer components {

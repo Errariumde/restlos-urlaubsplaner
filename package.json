@@ -18,6 +18,7 @@
     "test:e2e:update": "ulimit -c 0 && npm run build && npm run build:gallery && playwright test --project=chromium --project=firefox --update-snapshots=all && playwright test --project=webkit --workers=1 --update-snapshots=all",
     "test:e2e:file": "ulimit -c 0 && npm run build && npm run build:gallery && playwright test --workers=2",
     "plan": "node --import ./scripts/ts-hooks.js scripts/plan.js",
+    "orca": "node --import ./scripts/ts-hooks.js scripts/orca.js",
     "perf": "node --import ./scripts/ts-hooks.js scripts/perf.js",
     "nixos-release": "node --import ./scripts/ts-hooks.js scripts/nixos-release.js",
     "lint": "eslint .",

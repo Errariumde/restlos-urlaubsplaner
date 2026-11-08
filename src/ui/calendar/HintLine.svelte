@@ -70,7 +70,7 @@ SPDX-License-Identifier: EUPL-1.2
   <!-- Only real hints are announced: the idle text sits next to the live region, not in it. -->
   <div class="hint" class:active={app.hint !== undefined} class:with-end={end !== undefined} data-testid="hint-line" bind:offsetHeight={lineSize}>
     {#if end}
-      <span class="text">{@render words()}</span>
+      <div class="text">{@render words()}</div>
       {@render end()}
     {:else}
       {@render words()}
@@ -79,7 +79,12 @@ SPDX-License-Identifier: EUPL-1.2
 {/snippet}
 
 {#snippet words()}
-  <span aria-live="polite" aria-atomic="true">{text}</span>
+  <!--
+    A div, which Firefox reports as a section: Orca lets a live region's text change past its filter for changes
+    that come many at once only from a section, and a change updates many texts at the same time. Empty, it takes
+    no room beside the idle text.
+  -->
+  <div aria-live="polite" aria-atomic="true">{text}</div>
   {#if text === "" && idle !== ""}<span>{idle}</span>{/if}
 {/snippet}
 
