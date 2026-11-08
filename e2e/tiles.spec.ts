@@ -70,7 +70,7 @@ test.describe("in English at 1280 px", () => {
     await expect(hint(page)).toContainText(/^5\sworking days · /);
     await page.mouse.up();
     await expectLeave(page, 6, [14, 15, 16, 17, 18], FULL);
-    await expect(hint(page)).toHaveText("");
+    await expect(hint(page)).toHaveText("5 days changed. 3 days left.");
     await expectNoPageProblems(page);
   });
 
@@ -126,7 +126,7 @@ test.describe("in English at 1280 px", () => {
     await page.mouse.move(toolbar.x, toolbar.y);
     await page.mouse.up();
     await expectLeave(page, 4, [12, 13, 14], FULL);
-    await expect(hint(page)).toHaveText("");
+    await expect(hint(page)).toHaveText("3 days changed. 5 days left.");
     await undo.click();
     await expectLeave(page, 4, [12, 13, 14], NONE);
     await expect(undo).toBeDisabled();

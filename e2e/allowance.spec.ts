@@ -69,7 +69,9 @@ test.describe("in English at 1280 px", () => {
       await expect(page.getByTestId("planned")).toHaveText(String(PLANNED + planned));
     }
     await expect(page.getByTestId("remaining")).toHaveText(/^[−-]\d/);
-    await expect(page.getByText(/days? over the allowance/)).toBeVisible();
+    // The warning beside the bar, and the hint line's result after the last drag.
+    await expect(page.getByText(/^\d+(?:½)?\sdays? over the allowance$/)).toBeVisible();
+    await expect(page.getByTestId("hint-line")).toHaveText(/^5 days changed\. \d+(?:½)?\sdays? over the allowance\.\s*$/);
     const valuenow = Number(await page.getByRole("meter").getAttribute("aria-valuenow"));
     expect(valuenow).toBeGreaterThan(30 * 480);
     await expect(page.getByRole("meter")).toHaveAttribute("aria-valuetext", /^\d+ of 30 days planned/);
@@ -208,7 +210,8 @@ test.describe("the hint line stays in view during a drag", () => {
         await expect(hint).toContainText(/^3\sworking days · /);
         await expect(hint).toBeInViewport({ ratio: 1 });
         await page.mouse.up();
-        await expect(hint).toHaveText("");
+        // After the release the line says the result.
+        await expect(hint).toHaveText("3 days changed. 5 days left.");
         await expect(page.locator('[aria-live="polite"]')).toHaveCount(1);
         await expectNoPageProblems(page);
       });
