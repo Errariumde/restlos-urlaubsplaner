@@ -3,8 +3,8 @@ SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 SPDX-License-Identifier: EUPL-1.2
 -->
 <script lang="ts">
-  // The allowance, what is planned and what remains, the bar, the plan's problems, the stretches off and the totals
-  // per year.
+  // The allowance, what is planned and what remains, the bar, the plan's problems, the stretches off, the totals
+  // per year and the legend. All section headings look alike.
   import type { PlanTotals, Problem } from "../../engine/counting/plan.ts";
   import type { Stretch } from "../../engine/counting/stretches.ts";
   import type { DayNumber } from "../../engine/days.ts";
@@ -13,6 +13,8 @@ SPDX-License-Identifier: EUPL-1.2
   import { problemText } from "../calendar/problems.ts";
   import { i18n } from "../i18n/i18n.svelte.ts";
   import AllowanceBar from "./AllowanceBar.svelte";
+  import LegendList from "./Legend.svelte";
+  import type { Legend } from "./legend.ts";
 
   interface Props {
     allowance: Units;
@@ -25,14 +27,17 @@ SPDX-License-Identifier: EUPL-1.2
     /** Shows a day's detail; a problem of a day in the plan period offers it. */
     onproblem?: ((day: DayNumber) => void) | undefined;
     period?: { readonly from: DayNumber; readonly to: DayNumber } | undefined;
+    /** What the calendar draws in the plan period; the panel ends with it when there is anything. */
+    legend?: Legend | undefined;
   }
 
-  let { allowance, totals, stretches, showBar = true, problems = [], onproblem, period }: Props = $props();
+  let { allowance, totals, stretches, showBar = true, problems = [], onproblem, period, legend }: Props = $props();
 
   // Per instance: the gallery shows several panels on one page.
   const uid = $props.id();
   const headingId = `${uid}-stretches`;
   const problemsId = `${uid}-problems`;
+  const legendId = `${uid}-legend`;
 
   /** A problem's day can be shown when it lies in the calendar, which shows the plan period. */
   const showable = (day: DayNumber): boolean => onproblem !== undefined && period !== undefined && day >= period.from && day <= period.to;
@@ -132,6 +137,13 @@ SPDX-License-Identifier: EUPL-1.2
       {/each}
     </tbody>
   </table>
+
+  {#if legend && (legend.marks.length > 0 || legend.calendars.length > 0)}
+    <section class="stack" style:--gap="var(--space-2)">
+      <h3 id={legendId}>{i18n.t("legend.heading")}</h3>
+      <LegendList {legend} labelledby={legendId} />
+    </section>
+  {/if}
 </div>
 
 <style>
@@ -163,8 +175,12 @@ SPDX-License-Identifier: EUPL-1.2
       color: var(--r-overdraft);
     }
 
-    h3 {
+    /* One style for every section heading, the table's caption included. */
+    h3,
+    caption {
+      color: var(--r-text);
       font-size: var(--font-size-1);
+      font-weight: 700;
     }
 
     .muted {
@@ -218,9 +234,8 @@ SPDX-License-Identifier: EUPL-1.2
     }
 
     caption {
-      margin-block-end: var(--space-1);
+      margin-block-end: var(--space-2);
       text-align: start;
-      color: var(--r-text-muted);
     }
 
     th,

@@ -8,6 +8,7 @@ SPDX-License-Identifier: EUPL-1.2
   import type { DayNumber } from "../../engine/days.ts";
   import AllowanceBar from "../allowance/AllowanceBar.svelte";
   import AllowancePanel from "../allowance/AllowancePanel.svelte";
+  import { legendOf } from "../allowance/legend.ts";
   import DayDetail from "../calendar/DayDetail.svelte";
   import HintLine from "../calendar/HintLine.svelte";
   import MonthColumns from "../calendar/MonthColumns.svelte";
@@ -49,6 +50,8 @@ SPDX-License-Identifier: EUPL-1.2
   $effect(() => heading?.focus());
   const compact = $derived(width !== undefined && belowRem(width, COMPACT_BELOW, rem()));
   const sidebar = $derived(width !== undefined && !belowRem(width, SIDEBAR_FROM, rem()));
+  /** What the calendar draws, for the legend at the end of the allowance panel. */
+  const legend = $derived(app.state ? legendOf(app.state.result, app.state.meta) : undefined);
 
   // Crossing a threshold closes the details: they must neither pop up as a modal sheet when the app narrows
   // nor reappear when it narrows again after being wide. Only these two values are read here, so the effect
@@ -240,6 +243,7 @@ SPDX-License-Identifier: EUPL-1.2
                 problems={result.problems}
                 period={result.period}
                 onproblem={(day: DayNumber) => void showProblem(day)}
+                {legend}
               />
             {/if}
           </div>
@@ -259,6 +263,7 @@ SPDX-License-Identifier: EUPL-1.2
           problems={result.problems}
           period={result.period}
           onproblem={(day: DayNumber) => void showProblem(day)}
+          {legend}
         />
       </Sheet>
     {/if}
@@ -293,6 +298,7 @@ SPDX-License-Identifier: EUPL-1.2
           problems={app.state.result.problems}
           period={app.state.result.period}
           onproblem={(day: DayNumber) => void showProblem(day)}
+          {legend}
         />
       </aside>
     {/if}

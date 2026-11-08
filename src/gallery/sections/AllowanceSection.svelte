@@ -9,6 +9,7 @@ SPDX-License-Identifier: EUPL-1.2
   import { UNITS_PER_DAY } from "../../engine/weight.ts";
   import AllowanceBar from "../../ui/allowance/AllowanceBar.svelte";
   import AllowancePanel from "../../ui/allowance/AllowancePanel.svelte";
+  import type { Legend } from "../../ui/allowance/legend.ts";
   import { pluralCount, formatDays } from "../../ui/i18n/format.ts";
   import { i18n } from "../../ui/i18n/i18n.svelte.ts";
 
@@ -28,6 +29,15 @@ SPDX-License-Identifier: EUPL-1.2
   ];
   const totals: PlanTotals = { allowance: ALLOWANCE, planned: days(14), remaining: days(16), byYear: [{ year: 2027, planned: days(14) }] };
   const overTotals: PlanTotals = { allowance: ALLOWANCE, planned: days(32.5), remaining: days(-2.5), byYear: [{ year: 2027, planned: days(32.5) }] };
+  // Every mark, and a calendar in each line style.
+  const legend: Legend = {
+    marks: ["leave", "mandatory", "otherPlan", "weekend", "holiday", "halfRequired", "free", "problem"],
+    calendars: [
+      { source: { id: "school", name: { de: "Schulferien", en: "School holidays" }, type: "info", color: { slot: "accent-1" }, visible: true }, accent: 1, style: "solid" },
+      { source: { id: "project", name: { de: "Projektphase", en: "Project phase" }, type: "info", color: { slot: "accent-2" }, visible: true }, accent: 2, style: "dashed" },
+      { source: { id: "kita", name: "Kita", type: "needed", color: { slot: "accent-4" }, visible: true }, accent: 4, style: "dotted" },
+    ],
+  };
   const noneTotals: PlanTotals = { allowance: ALLOWANCE, planned: 0, remaining: ALLOWANCE, byYear: [{ year: 2027, planned: 0 }] };
 
   // Two problems in the period, whose rows show the day, and one after it, whose row is plain text.
@@ -49,7 +59,7 @@ SPDX-License-Identifier: EUPL-1.2
 
   <section class="stack frame" style:--gap="var(--space-2)">
     <h2>{i18n.t("gallery.allowance.panel")}</h2>
-    <AllowancePanel allowance={ALLOWANCE} {totals} {stretches} />
+    <AllowancePanel allowance={ALLOWANCE} {totals} {stretches} {legend} />
   </section>
 
   <section class="stack frame" style:--gap="var(--space-2)">

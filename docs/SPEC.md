@@ -379,11 +379,13 @@ Wireframe month tiles: calendar on the left, allowance always visible on the rig
 | [May]      [Jun] [Jul] [Aug]          | Plan allowance: 33           |
 | ... further months up to Jan 2028     | Planned 24 ½ · Remaining 8 ½ |
 |                                       | [#########......]            |
-| Legend: weekend, holiday,             | Stretches                    |
-| required ½ (diagonal), leave, ½ leave | 21 Dec-3 Jan: 3 ½ -> 16 off  |
+|                                       | Stretches                    |
+|                                       | 21 Dec-3 Jan: 3 ½ -> 16 off  |
 |                                       | 14-25 May: 6 -> 12 off       |
 |                                       | Per calendar year            |
 |                                       | 2027: 22 · 2028: 2 ½ (info)  |
+|                                       | Legend: leave, weekend,      |
+|                                       | holiday, half working day    |
 +----------------------------------------------------------------------+
 ```
 
@@ -470,6 +472,8 @@ With "From rule set", country, region, local rules and day rules come from the r
 - **Overdraft:** the bar is scaled to what is planned, with a tick at the allowance. The part over the allowance is hatched red (a pattern, not colour alone), and a warning line says by how much, with "Change allowance". Nothing is blocked.
 - List of **stretches**: a stretch is unbroken time off without any work in it (even 15 minutes of work ends it), including weekends, holidays, paid closures and days from "Leave from another plan". Its first and last day may be partial. It shows the cost (the leave charged inside it) and the days off from its start to its end (from noon counts ½ for that day). It is listed when it contains leave that costs something or a paid closure (a paid-closure source or a day rule that frees the whole day), so a paid closure without leave appears with cost 0; it may extend beyond the plan period.
 - **Totals per calendar year** as pure information.
+- **Legend** as the last block: only what the calendar draws in the plan period (own leave, mandatory leave, leave from another plan, weekend, holiday, half working day, day off, the problem mark), each drawn as the cells draw it, then each visible calendar with a day in the period, by name with its line. On narrow widths it is in the details with the rest of the panel.
+- All section headings of the panel (problems, stretches, totals per year, legend) look alike; only the problems heading has its own colour, the overdraft colour.
 - Bridge day hints (version 3): working days that yield many days off with little leave; can be turned off.
 
 ### Problems
