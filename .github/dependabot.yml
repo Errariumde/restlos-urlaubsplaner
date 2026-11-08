@@ -18,6 +18,10 @@ updates:
       # Pinned to the playwright-driver version of the Nix dev shell;
       # updated together with flake.lock.
       - dependency-name: "@playwright/test"
+      # Majors wait until typescript-eslint and svelte-check accept them; issue
+      # 0042 (TypeScript 7 waits for typescript-eslint and svelte-check).
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
     groups:
       npm-all:
         patterns: ["*"]
