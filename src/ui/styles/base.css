@@ -3,8 +3,8 @@
 
 @layer base {
   html {
-    /* The light tokens apply until the app sets data-scheme; scheme.ts then sets the same scheme here for native controls. */
-    color-scheme: light;
+    /* The light-dark() tokens need it. App.svelte sets the mode here: light, dark or this default for automatic. */
+    color-scheme: light dark;
   }
 
   body {

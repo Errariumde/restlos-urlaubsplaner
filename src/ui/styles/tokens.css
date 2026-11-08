@@ -2,82 +2,86 @@
 /* SPDX-License-Identifier: EUPL-1.2 */
 
 /* The design tokens. This file is the scheme "Standard"; user schemes overwrite the --r-* properties with style.setProperty().
-   Each role is a finished colour per mode: the light value on :root, the dark value under :root[data-scheme="dark"]. App.svelte
-   sets data-scheme on <html> from the mode (docs/SPEC.md, "Colors, light and dark mode"). Colours exist only in this file.
-   A switch only swaps plain values: no light-dark(), var() or color-mix() is left to resolve on every element (issue 0032,
-   light/dark switch not instant in Firefox ESR).
-   Neutrals are oklch(L calc(nk * C) nh) with one hue nh and one chroma factor nk for all of them; the values below bake
-   nh = 0 and nk = 0 (pure greys) and name each role's C as "C light / dark", so a tint stays a change of those two numbers.
+   Each role is light-dark(<light>, <dark>), so a scheme sets one value per role for both modes, and the mode is only
+   color-scheme on <html>: light, dark or "light dark", which follows prefers-color-scheme. App.svelte sets it from the mode
+   (docs/SPEC.md, "Colors, light and dark mode"). Colours exist only in this file.
+   The colours mixed from other roles stay color-mix() of those roles, so they follow a user scheme too.
+   A finished value per mode was tried: in Firefox ESR on a desktop the switch took as long as with these tokens. What made it
+   slow was the reduced-motion reset in reset.css (issue 0032, light/dark switch not instant in Firefox ESR).
+   Neutrals take one hue (--nh) and one chroma factor (--nk); --nk 0 gives pure greys.
    Blue is reserved for leave: the primary action is a darker, greyer navy. */
 @layer tokens {
   :root {
+    --nh: 0;
+    --nk: 0;
+
     /* Surfaces */
-    --r-surface: oklch(99.5% 0 0); /* C 0.003 / 0.007 */
-    --r-surface-raised: oklch(100% 0 0); /* C 0 / 0.008 */
-    --r-surface-sunken: oklch(96% 0 0); /* C 0.005 / 0.006 */
-    --r-border: oklch(86% 0 0); /* C 0.011 / 0.01 */
-    --r-border-strong: oklch(56% 0 0); /* C 0.014 / 0.012 */
+    --r-surface: light-dark(oklch(99.5% calc(var(--nk) * 0.003) var(--nh)), oklch(21.5% calc(var(--nk) * 0.007) var(--nh)));
+    --r-surface-raised: light-dark(oklch(100% 0 var(--nh)), oklch(25% calc(var(--nk) * 0.008) var(--nh)));
+    --r-surface-sunken: light-dark(oklch(96% calc(var(--nk) * 0.005) var(--nh)), oklch(17% calc(var(--nk) * 0.006) var(--nh)));
+    --r-border: light-dark(oklch(86% calc(var(--nk) * 0.011) var(--nh)), oklch(35% calc(var(--nk) * 0.01) var(--nh)));
+    --r-border-strong: light-dark(oklch(56% calc(var(--nk) * 0.014) var(--nh)), oklch(60% calc(var(--nk) * 0.012) var(--nh)));
 
     /* Text */
-    --r-text: oklch(22% 0 0); /* C 0.012 / 0.006 */
-    --r-text-muted: oklch(45% 0 0); /* C 0.014 / 0.01 */
+    --r-text: light-dark(oklch(22% calc(var(--nk) * 0.012) var(--nh)), oklch(93% calc(var(--nk) * 0.006) var(--nh)));
+    --r-text-muted: light-dark(oklch(45% calc(var(--nk) * 0.014) var(--nh)), oklch(73% calc(var(--nk) * 0.01) var(--nh)));
 
     /* Actions */
-    --r-primary: oklch(37% 0.11 258);
+    --r-primary: light-dark(oklch(37% 0.11 258), oklch(50% 0.1 258));
     --r-on-primary: white;
-    --r-primary-hover: oklch(31% 0.1 258);
-    --r-focus: oklch(45% 0.19 262);
+    --r-primary-hover: light-dark(oklch(31% 0.1 258), oklch(54% 0.1 258));
+    --r-focus: light-dark(oklch(45% 0.19 262), oklch(78% 0.13 262));
 
     /* Controls (docs/SPEC.md, "Controls, icons and fonts"): the fill is --r-surface-raised, one step lighter than the surface; the bottom edge is
        darker than --r-border-strong and disappears while pressed. */
-    --r-control-hover: oklch(96.5% 0 0); /* C 0.005 / 0.009 */
-    --r-control-edge: oklch(38% 0 0); /* C 0.014 / 0.012 */
+    --r-control-hover: light-dark(oklch(96.5% calc(var(--nk) * 0.005) var(--nh)), oklch(29% calc(var(--nk) * 0.009) var(--nh)));
+    --r-control-edge: light-dark(oklch(38% calc(var(--nk) * 0.014) var(--nh)), oklch(42% calc(var(--nk) * 0.012) var(--nh)));
 
     /* Overlays: the popover's shadow and the sheet's backdrop. */
-    --r-shadow: oklch(0% 0 0 / 0.16);
-    --r-backdrop: oklch(0% 0 0 / 0.35);
+    --r-shadow: light-dark(oklch(0% 0 0 / 0.16), oklch(0% 0 0 / 0.5));
+    --r-backdrop: light-dark(oklch(0% 0 0 / 0.35), oklch(0% 0 0 / 0.6));
 
     /* Day types */
-    --r-workday: oklch(99.5% 0 0); /* C 0.003 / 0.007 */
-    --r-weekend: oklch(92% 0 0); /* C 0.009 / 0.009 */
-    --r-holiday: oklch(90% 0.075 80);
-    --r-half-required: oklch(95.5% 0 0); /* C 0.006 / 0.008 */
+    --r-workday: light-dark(oklch(99.5% calc(var(--nk) * 0.003) var(--nh)), oklch(23.5% calc(var(--nk) * 0.007) var(--nh)));
+    --r-weekend: light-dark(oklch(92% calc(var(--nk) * 0.009) var(--nh)), oklch(29% calc(var(--nk) * 0.009) var(--nh)));
+    --r-holiday: light-dark(oklch(90% 0.075 80), oklch(38% 0.06 75));
+    --r-half-required: light-dark(oklch(95.5% calc(var(--nk) * 0.006) var(--nh)), oklch(26% calc(var(--nk) * 0.008) var(--nh)));
     /* One blue for full and half leave in each mode (maintainer, 2026-11-04: L2 light, D+ dark). */
-    --r-leave-full: oklch(64% 0.14 252);
-    --r-leave-half: oklch(64% 0.14 252);
-    --r-mandatory: oklch(48% 0.15 295);
-    /* The second stripe of mandatory leave: color-mix(in oklab, --r-mandatory 72%, --r-text), precomputed. */
-    --r-mandatory-stripe: oklch(40.72% 0.108 295);
+    --r-leave-full: light-dark(oklch(64% 0.14 252), oklch(52% 0.13 250));
+    --r-leave-half: light-dark(oklch(64% 0.14 252), oklch(52% 0.13 250));
+    --r-mandatory: light-dark(oklch(48% 0.15 295), oklch(72% 0.12 295));
+    /* The second stripe of mandatory leave. */
+    --r-mandatory-stripe: color-mix(in oklab, var(--r-mandatory) 72%, var(--r-text));
     /* The day number on leave, full or half: the text colour of the mode, about 5:1 on the leave blue in both. */
-    --r-on-leave: oklch(22% 0 0); /* C 0.012 / 0.006 */
+    --r-on-leave: light-dark(oklch(22% calc(var(--nk) * 0.012) var(--nh)), oklch(97% calc(var(--nk) * 0.006) var(--nh)));
     /* The day number on a mandatory leave fill; its dark-mode purple is light, so the digits stay dark. */
-    --r-on-mandatory: oklch(100% 0 0); /* C 0 / 0.006 */
+    --r-on-mandatory: light-dark(oklch(100% 0 var(--nh)), oklch(17% calc(var(--nk) * 0.006) var(--nh)));
     /* A halo in the surface colour around the digits on leave, in both modes: it keeps them clear of the blue's
        edges and readable where a half day's digits cross from the blue to the surface. */
     --r-leave-aura: var(--r-surface);
     /* The patterns that tell the day types apart besides their colour (weekend hatch, holiday dots). */
-    --r-day-pattern: oklch(22% 0 0 / 0.14); /* C 0.012 / 0.006 */
-    --r-other-plan: oklch(50% 0.17 320);
+    --r-day-pattern: light-dark(oklch(22% calc(var(--nk) * 0.012) var(--nh) / 0.14), oklch(93% calc(var(--nk) * 0.006) var(--nh) / 0.13));
+    --r-other-plan: light-dark(oklch(50% 0.17 320), oklch(75% 0.13 320));
 
     /* States */
-    --r-overdraft: oklch(50% 0.18 28);
-    /* The hatch of leave a drag removes: color-mix(in oklab, --r-overdraft 55%, transparent), precomputed. */
-    --r-overdraft-hatch: oklch(50% 0.18 28 / 0.55);
-    --r-today: oklch(55% 0.18 45);
-    --r-selection: oklch(45% 0.19 262);
-    /* The tint of a previewed range: color-mix(in oklab, --r-leave-full 35%, transparent), precomputed. */
-    --r-preview: oklch(64% 0.14 252 / 0.35);
-    --r-info-band: oklch(95.5% 0 0); /* C 0.012 / 0.012 */
+    --r-overdraft: light-dark(oklch(50% 0.18 28), oklch(74% 0.14 28));
+    /* The hatch of leave a drag removes. */
+    --r-overdraft-hatch: color-mix(in oklab, var(--r-overdraft) 55%, transparent);
+    --r-today: light-dark(oklch(55% 0.18 45), oklch(76% 0.14 50));
+    --r-selection: light-dark(oklch(45% 0.19 262), oklch(78% 0.13 262));
+    /* The tint of a previewed range. */
+    --r-preview: color-mix(in oklab, var(--r-leave-full) 35%, transparent);
+    --r-info-band: light-dark(oklch(95.5% calc(var(--nk) * 0.012) var(--nh)), oklch(25% calc(var(--nk) * 0.012) var(--nh)));
 
     /* Source colours */
-    --r-accent-1: oklch(55% 0.12 175);
-    --r-accent-2: oklch(58% 0.16 65);
-    --r-accent-3: oklch(55% 0.18 350);
-    --r-accent-4: oklch(55% 0.14 140);
-    --r-accent-5: oklch(55% 0.1 210);
-    --r-accent-6: oklch(55% 0.12 105);
-    --r-accent-7: oklch(50% 0.1 30);
-    --r-accent-8: oklch(50% 0.02 250);
+    --r-accent-1: light-dark(oklch(55% 0.12 175), oklch(78% 0.12 175));
+    --r-accent-2: light-dark(oklch(58% 0.16 65), oklch(80% 0.13 65));
+    --r-accent-3: light-dark(oklch(55% 0.18 350), oklch(76% 0.13 350));
+    --r-accent-4: light-dark(oklch(55% 0.14 140), oklch(78% 0.13 140));
+    --r-accent-5: light-dark(oklch(55% 0.1 210), oklch(78% 0.1 210));
+    --r-accent-6: light-dark(oklch(55% 0.12 105), oklch(80% 0.12 105));
+    --r-accent-7: light-dark(oklch(50% 0.1 30), oklch(72% 0.1 30));
+    --r-accent-8: light-dark(oklch(50% 0.02 250), oklch(75% 0.02 250));
 
     /* Scales */
     --space-1: 0.25rem;
@@ -93,55 +97,5 @@
     --font-size-2: 1rem;
     --font-size-3: 1.25rem;
     --font-size-4: 1.625rem;
-  }
-
-  :root[data-scheme="dark"] {
-    --r-surface: oklch(21.5% 0 0);
-    --r-surface-raised: oklch(25% 0 0);
-    --r-surface-sunken: oklch(17% 0 0);
-    --r-border: oklch(35% 0 0);
-    --r-border-strong: oklch(60% 0 0);
-
-    --r-text: oklch(93% 0 0);
-    --r-text-muted: oklch(73% 0 0);
-
-    --r-primary: oklch(50% 0.1 258);
-    --r-primary-hover: oklch(54% 0.1 258);
-    --r-focus: oklch(78% 0.13 262);
-
-    --r-control-hover: oklch(29% 0 0);
-    --r-control-edge: oklch(42% 0 0);
-
-    --r-shadow: oklch(0% 0 0 / 0.5);
-    --r-backdrop: oklch(0% 0 0 / 0.6);
-
-    --r-workday: oklch(23.5% 0 0);
-    --r-weekend: oklch(29% 0 0);
-    --r-holiday: oklch(38% 0.06 75);
-    --r-half-required: oklch(26% 0 0);
-    --r-leave-full: oklch(52% 0.13 250);
-    --r-leave-half: oklch(52% 0.13 250);
-    --r-mandatory: oklch(72% 0.12 295);
-    --r-mandatory-stripe: oklch(77.88% 0.0864 295);
-    --r-on-leave: oklch(97% 0 0);
-    --r-on-mandatory: oklch(17% 0 0);
-    --r-day-pattern: oklch(93% 0 0 / 0.13);
-    --r-other-plan: oklch(75% 0.13 320);
-
-    --r-overdraft: oklch(74% 0.14 28);
-    --r-overdraft-hatch: oklch(74% 0.14 28 / 0.55);
-    --r-today: oklch(76% 0.14 50);
-    --r-selection: oklch(78% 0.13 262);
-    --r-preview: oklch(52% 0.13 250 / 0.35);
-    --r-info-band: oklch(25% 0 0);
-
-    --r-accent-1: oklch(78% 0.12 175);
-    --r-accent-2: oklch(80% 0.13 65);
-    --r-accent-3: oklch(76% 0.13 350);
-    --r-accent-4: oklch(78% 0.13 140);
-    --r-accent-5: oklch(78% 0.1 210);
-    --r-accent-6: oklch(80% 0.12 105);
-    --r-accent-7: oklch(72% 0.1 30);
-    --r-accent-8: oklch(75% 0.02 250);
   }
 }
