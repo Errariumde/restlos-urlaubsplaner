@@ -18,6 +18,7 @@ SPDX-License-Identifier: EUPL-1.2
   import type { LeaveChange, PlanMeta } from "../worker/protocol.ts";
   import { lineStyle, sourceAccent } from "./cell-lanes.ts";
   import { dayDetail, detailActions, type Blocked, type DayDetailData } from "./detail.ts";
+  import { halfDayFits } from "./range.ts";
 
   interface Props {
     day: DayResult;
@@ -33,7 +34,8 @@ SPDX-License-Identifier: EUPL-1.2
   let { day, meta, problems, presentation, anchor, onclose = () => {} }: Props = $props();
 
   const detail = $derived(dayDetail(day, meta, problems, i18n.locale));
-  const actions = $derived(detailActions(day));
+  const actions = $derived(detailActions(day, meta.minUnit));
+  const halfDays = $derived(halfDayFits(meta.minUnit));
   const date = $derived(formatDate(day.day, i18n.locale, "long"));
   const label = $derived(i18n.t("detail.label", { date }));
   const id = $derived(`day-detail-${String(day.day)}`);
@@ -150,8 +152,11 @@ SPDX-License-Identifier: EUPL-1.2
     <div class="stack tight">
       <div class="actions" role="group" aria-label={i18n.t("detail.actions")}>
         <Button variant="primary" disabled={!actions.full} onclick={() => void run(actions.full)}>{i18n.t("detail.action.full")}</Button>
-        <Button disabled={!actions.morning} onclick={() => void run(actions.morning)}>{i18n.t("detail.action.morning")}</Button>
-        <Button disabled={!actions.afternoon} onclick={() => void run(actions.afternoon)}>{i18n.t("detail.action.afternoon")}</Button>
+        <!-- A plan without half days (smallest leave unit "1") has no half-day buttons at all. -->
+        {#if halfDays}
+          <Button disabled={!actions.morning} onclick={() => void run(actions.morning)}>{i18n.t("detail.action.morning")}</Button>
+          <Button disabled={!actions.afternoon} onclick={() => void run(actions.afternoon)}>{i18n.t("detail.action.afternoon")}</Button>
+        {/if}
         <Button disabled={!actions.remove} onclick={() => void run(actions.remove)}>{i18n.t("detail.action.remove")}</Button>
       </div>
       {#if actions.blocked}

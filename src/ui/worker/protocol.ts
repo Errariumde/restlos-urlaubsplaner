@@ -36,6 +36,8 @@ export interface PlanMeta {
   readonly weekend: readonly Weekday[];
   readonly period: PlanPeriod;
   readonly allowance: Units;
+  /** The smallest leave unit (contract.minUnit): the actions offer only amounts it divides, so no half day under "1". */
+  readonly minUnit: Units;
   readonly sources: readonly SourceMeta[];
   readonly rules: readonly RuleMeta[];
   readonly example: boolean;

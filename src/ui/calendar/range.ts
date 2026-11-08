@@ -4,7 +4,7 @@
 import type { DayResult, PlanResult } from "../../engine/counting/plan.ts";
 import type { LeavePiece } from "../../engine/counting/leave.ts";
 import type { DayNumber } from "../../engine/days.ts";
-import { UNITS_PER_DAY } from "../../engine/weight.ts";
+import { UNITS_PER_DAY, type Units } from "../../engine/weight.ts";
 import type { LeaveChange } from "../worker/protocol.ts";
 
 export type RangeAction = "full" | "half" | "remove";
@@ -14,6 +14,11 @@ const FULL = 480;
 const HALF = 240;
 
 type OwnPiece = Extract<LeavePiece, { kind: "own" | "mandatory" }> & { readonly kind: "own" };
+
+/** Whether half days fit a plan's smallest leave unit: ½ must be a multiple of it, so not under "1" or "1/3". */
+export function halfDayFits(minUnit: Units): boolean {
+  return (UNITS_PER_DAY / 2) % minUnit === 0;
+}
 
 /** The day's result; undefined outside the computed window. */
 function dayAt(result: PlanResult, day: DayNumber): DayResult | undefined {

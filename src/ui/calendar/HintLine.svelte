@@ -4,7 +4,8 @@ SPDX-License-Identifier: EUPL-1.2
 -->
 <script lang="ts">
   // What the gesture going on would do (docs/SPEC.md, "Calendar interaction"): the working days it changes,
-  // its cost, the resulting stretch and the remaining allowance. Without a hint it shows `idle`, else nothing.
+  // its cost, the resulting stretch and the remaining allowance, or why a key did nothing (`app.notice`).
+  // Without either it shows `idle`, else nothing.
   import type { Snippet } from "svelte";
   import { pluralCount, formatDate, formatDays } from "../i18n/format.ts";
   import { i18n } from "../i18n/i18n.svelte.ts";
@@ -32,6 +33,8 @@ SPDX-License-Identifier: EUPL-1.2
   const unbroken = (date: string): string => date.replaceAll(" ", "\u00a0");
 
   const text = $derived.by(() => {
+    // Why the last key did nothing goes before the hint; the next hint or change replaces it.
+    if (app.notice === "noHalfDays") return i18n.t("hint.noHalfDays");
     const hint = app.hint;
     if (hint === undefined) return "";
     const { stretch } = hint;

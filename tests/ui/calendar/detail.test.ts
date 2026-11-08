@@ -110,7 +110,7 @@ describe("dayDetail", () => {
 
 describe("detailActions", () => {
   it("offers every setting action on a free working day, but nothing to remove", () => {
-    const actions = detailActions(at(6, 14));
+    const actions = detailActions(at(6, 14), 240);
     const day = dayFromYmd(2027, 6, 14);
     expect(actions.full).toEqual({ day, take: 480 });
     expect(actions.morning).toEqual({ day, take: 240, part: "start" });
@@ -120,16 +120,25 @@ describe("detailActions", () => {
   });
 
   it("offers removing and halving a planned full day, not setting it again", () => {
-    const actions = detailActions(at(1, 7));
+    const actions = detailActions(at(1, 7), 240);
     expect(actions.full).toBeUndefined();
     expect(actions.morning).toBeDefined();
     expect(actions.remove).toEqual({ day: dayFromYmd(2027, 1, 7), take: 0 });
   });
 
+  it("offers no half day where the plan counts in whole days", () => {
+    const actions = detailActions(at(6, 14), 480);
+    expect(actions.full).toEqual({ day: dayFromYmd(2027, 6, 14), take: 480 });
+    expect(actions.morning).toBeUndefined();
+    expect(actions.afternoon).toBeUndefined();
+    // A unit finer than ½ keeps the half days.
+    expect(detailActions(at(6, 14), 120).morning).toBeDefined();
+  });
+
   it("explains why a day without required work, with mandatory leave or with another plan's leave can't be set", () => {
-    expect(detailActions(at(5, 27))).toEqual({ blocked: "noRequired" });
-    expect(detailActions(at(6, 19))).toEqual({ blocked: "noRequired" });
-    expect(detailActions(at(12, 27))).toEqual({ blocked: "mandatory" });
-    expect(detailActions(at(1, 4))).toEqual({ blocked: "otherPlan" });
+    expect(detailActions(at(5, 27), 240)).toEqual({ blocked: "noRequired" });
+    expect(detailActions(at(6, 19), 240)).toEqual({ blocked: "noRequired" });
+    expect(detailActions(at(12, 27), 240)).toEqual({ blocked: "mandatory" });
+    expect(detailActions(at(1, 4), 240)).toEqual({ blocked: "otherPlan" });
   });
 });

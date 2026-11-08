@@ -19,9 +19,17 @@ describe("Session", () => {
     expect(opened.meta.period).toEqual({ from: { year: 2027, month: 1 }, to: { year: 2027, month: 12 } });
     expect(opened.meta.allowance).toBe(30 * 480);
     expect(opened.meta).toMatchObject({ countryNameKey: "country.DE", regionNameKey: "region.DE.BY", weekStart: "mon", example: true });
+    // The smallest leave unit, ½ day in the example; the actions follow it.
+    expect(opened.meta.minUnit).toBe(240);
     expect(opened.canUndo).toBe(false);
     expect(opened.canRedo).toBe(false);
     expect(opened.changed).toBe(false);
+  });
+
+  it("passes on a plan's smallest leave unit", () => {
+    const wholeDays = example.replace('"minUnit": "1/2"', '"minUnit": "1"');
+    expect(wholeDays).not.toBe(example);
+    expect((new Session().open(wholeDays, true) as PlanState).meta.minUnit).toBe(480);
   });
 
   // e2e/allowance.spec.ts uses the same constant.

@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { dayFromYmd } from "../../../src/engine/days.ts";
 import type { PlanState } from "../../../src/ui/worker/protocol.ts";
 import { Session } from "../../../src/ui/worker/session.ts";
-import { actionForDrag, rangeChanges, toggleDay, weekChanges, weekSelection } from "../../../src/ui/calendar/range.ts";
+import { actionForDrag, halfDayFits, rangeChanges, toggleDay, weekChanges, weekSelection } from "../../../src/ui/calendar/range.ts";
 
 const example = readFileSync("examples/plans/beispiel-gmbh-2027.urlaub.json", "utf8");
 const d = (y: number, m: number, day: number): number => dayFromYmd(y, m, day);
@@ -15,6 +15,16 @@ function opened(): { session: Session; state: PlanState } {
   const session = new Session();
   return { session, state: session.open(example, true) as PlanState };
 }
+
+describe("halfDayFits", () => {
+  it("allows half days only where ½ is a multiple of the smallest leave unit", () => {
+    expect(halfDayFits(240)).toBe(true); // ½
+    expect(halfDayFits(120)).toBe(true); // ¼
+    expect(halfDayFits(15)).toBe(true); // 1/32
+    expect(halfDayFits(480)).toBe(false); // whole days
+    expect(halfDayFits(160)).toBe(false); // ⅓
+  });
+});
 
 describe("rangeChanges", () => {
   const r = opened().state.result;

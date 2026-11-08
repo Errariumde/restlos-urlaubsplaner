@@ -9,6 +9,7 @@ import { UNITS_PER_DAY, type Units } from "../../engine/weight.ts";
 import { formatDays } from "../i18n/format.ts";
 import { textLanguage, type Locale } from "../i18n/locale.ts";
 import type { LeaveChange, PlanMeta, SourceMeta } from "../worker/protocol.ts";
+import { halfDayFits } from "./range.ts";
 
 export type DetailLeave = "none" | "full" | "halfStart" | "halfEnd" | "mandatory" | "otherPlan" | "partial";
 
@@ -132,7 +133,8 @@ export interface DetailActions {
   readonly blocked?: Blocked;
 }
 
-export function detailActions(day: DayResult): DetailActions {
+/** `minUnit` is the plan's smallest leave unit: the half days are offered only where they fit it. */
+export function detailActions(day: DayResult, minUnit: Units): DetailActions {
   if (!day.inPeriod) return {};
   const own = day.leave.find((piece) => piece.kind === "own");
   const take = own?.kind === "own" ? own.take : 0;
@@ -146,10 +148,12 @@ export function detailActions(day: DayResult): DetailActions {
     take === UNITS_PER_DAY / 2 && part === side ? undefined : { day: day.day, take: 240, part: side };
   const actions: { -readonly [K in keyof DetailActions]: DetailActions[K] } = {};
   if (take !== UNITS_PER_DAY) actions.full = { day: day.day, take: 480 };
-  const morning = half("start");
-  if (morning) actions.morning = morning;
-  const afternoon = half("end");
-  if (afternoon) actions.afternoon = afternoon;
+  if (halfDayFits(minUnit)) {
+    const morning = half("start");
+    if (morning) actions.morning = morning;
+    const afternoon = half("end");
+    if (afternoon) actions.afternoon = afternoon;
+  }
   if (remove) actions.remove = remove;
   return actions;
 }
