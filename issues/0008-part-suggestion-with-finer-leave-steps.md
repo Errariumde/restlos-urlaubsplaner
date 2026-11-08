@@ -1,10 +1,10 @@
 ---
-status: next
+status: done
 priority:
 area: counting model
 branch: leave-on-working-time
 created: 2026-10-18
-closed:
+closed: 2026-11-08
 ---
 <!--
 SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors

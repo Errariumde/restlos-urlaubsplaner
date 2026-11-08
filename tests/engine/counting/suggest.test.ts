@@ -21,6 +21,11 @@ describe("suggestPart", () => {
     expect(suggest("2027-12-24", HALF, { contract: { ...BAVARIA, rules: [{ id: "closes-at-noon", match: fixed(12, 24), mandatory: HALF }] } })).toBe(
       "start",
     ));
+  it("prefers the side not covered by mandatory leave", () =>
+    expect(
+      suggest("2027-12-24", 120, { contract: { ...BAVARIA, rules: [{ id: "closes-at-noon", match: fixed(12, 24), mandatory: HALF }] } }),
+    ).toBe("start"));
+  it("lets the neighbours decide when both sides free work", () => expect(suggest("2027-05-10", 120)).toBe("start"));
   it("ignores own leave already on that day", () => expect(suggest("2027-05-10", HALF, { leave: [{ day: d("2027-05-10"), take: FULL }] })).toBe("start"));
   it("suggests the end for a full day", () => expect(suggest("2027-05-12", FULL)).toBe("end"));
   it("sees free days before the period", () =>

@@ -37,13 +37,18 @@ export function suggestParts(input: PlanInput, requests: readonly PartRequest[])
     const today = index === undefined ? undefined : plan.days[index];
     if (index === undefined || !today) throw new Error("The day is missing from the plan result"); // the period check above rules this out
 
-    const wholeWith = (part: Part): boolean =>
-      evaluateLeave(today.required, [...today.leave, { kind: "own", take, part }], today.inPeriod).whole;
-    const startWhole = wholeWith("start");
-    const endWhole = wholeWith("end");
-    if (startWhole && endWhole) return "end";
-    if (startWhole) return "start";
-    if (endWhole) return "end";
+    const evaluateWith = (part: Part) => evaluateLeave(today.required, [...today.leave, { kind: "own", take, part }], today.inPeriod);
+    const atStart = evaluateWith("start");
+    const atEnd = evaluateWith("end");
+    if (atStart.whole && atEnd.whole) return "end";
+    if (atStart.whole) return "start";
+    if (atEnd.whole) return "end";
+    // Leave that covers no work (already covered by mandatory leave, or on time without work) frees nothing.
+    const without = evaluateLeave(today.required, today.leave, today.inPeriod).remaining;
+    const startFrees = atStart.remaining < without;
+    const endFrees = atEnd.remaining < without;
+    if (startFrees && !endFrees) return "start";
+    if (endFrees && !startFrees) return "end";
 
     const previousFree = (plan.days[index - 1]?.evaluation.freeEnd ?? 0) > 0;
     const nextFree = (plan.days[index + 1]?.evaluation.freeStart ?? 0) > 0;
@@ -55,7 +60,8 @@ export function suggestParts(input: PlanInput, requests: readonly PartRequest[])
 
 /**
  * Where partial own leave of `take` on `day` should lie: "start", "end", or null when the user has to choose.
- * Prefers the side that frees the whole day, then the side that joins free time of a neighbouring day.
+ * Prefers the side that frees the whole day ("end" if both do), then the only side whose leave covers work not yet
+ * covered, then the side that joins free time of a neighbouring day.
  * Throws RangeError when `day` is outside the plan period or `take` is not an integer from 1 to 480.
  */
 export function suggestPart(input: PlanInput, day: DayNumber, take: Units): Part | null {
