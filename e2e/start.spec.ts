@@ -18,7 +18,7 @@ test.describe("in German", () => {
     await openApp(page);
 
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("restlos");
-    await expect(page.getByText("Urlaubsplaner für Brückentage und Feiertage")).toBeVisible();
+    await expect(page.getByText("Urlaub rund um Feiertage und Brückentage planen")).toBeVisible();
     const buttons = page.getByRole("button");
     await expect(buttons).toHaveCount(1);
     await expect(buttons).toHaveText("Beispiel ansehen");
