@@ -36,12 +36,13 @@ test.describe("a plan in whole days, in English", () => {
     await expectNoPageProblems(page);
   });
 
-  test("the detail offers a full day but no half day", async ({ page }) => {
+  test("the detail has one switch for the full day, no half days and no checkbox", async ({ page }) => {
     await cell(page, 6, 14).focus();
     await page.keyboard.press("Enter");
     const detail = page.getByRole("dialog", { name: /^Details for / });
     await expect(detail.getByRole("button", { name: "Full day", exact: true })).toBeVisible();
-    await expect(detail.getByRole("button", { name: /^Half day/ })).toHaveCount(0);
+    await expect(detail.getByRole("button", { name: /^(Morning|Afternoon)$/ })).toHaveCount(0);
+    await expect(detail.getByRole("checkbox")).toHaveCount(0);
     await expectNoPageProblems(page);
   });
 });

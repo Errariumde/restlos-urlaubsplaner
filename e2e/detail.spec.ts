@@ -19,35 +19,67 @@ test.describe("in English at 1280 px", () => {
     await expect(page.getByRole("grid", { name: "Calendar" })).toBeVisible();
   });
 
-  test("a right-click on 24 Dec shows the reason and the day rule's label", async ({ page }) => {
+  test("a right-click on 24 Dec shows the required work, its reasons and the day rule's label", async ({ page }) => {
     await cell(page, 12, 24).click({ button: "right" });
     const popover = detail(page);
     await expect(popover).toBeVisible();
     await expect(popover).toHaveAccessibleName(/^Details for Friday,? 24 December 2027$/);
-    await expect(popover).toContainText("Christmas Eve: afternoon off (day rule: at most ½)");
-    await expect(popover).toContainText("Required work: ½");
+    // The line says where the work lies to screen readers; the bar shows it.
+    await expect(popover).toContainText("Required work ½ day in the morning");
+    await expect(popover.getByRole("list", { name: "Reasons" }).getByRole("listitem")).toHaveText([
+      "Normal Friday: 1 day",
+      "Christmas Eve: afternoon off (day rule): at most ½ day",
+    ]);
     // Nothing else changed: the right-click doesn't toggle the day.
     await expect(cell(page, 12, 24)).toHaveAttribute("aria-label", /no leave/);
     await expectNoPageProblems(page);
   });
 
-  test("Half day – morning sets a half day in the morning, and Escape gives the focus back to the cell", async ({ page }) => {
+  test("the switches set and shrink the leave, each click one undo step; Escape gives the focus back to the cell", async ({ page }) => {
     const day = cell(page, 6, 14);
     await day.click({ button: "right" });
     const popover = detail(page);
-    await expect(popover.getByRole("button", { name: "Full day" })).toBeFocused();
-    await expect(popover.getByRole("button", { name: "Remove" })).toBeDisabled();
-    await popover.getByRole("button", { name: "Half day – morning" }).click();
+    const fullDay = popover.getByRole("checkbox", { name: "Full day" });
+    const morning = popover.getByRole("button", { name: "Morning", exact: true });
+    const afternoon = popover.getByRole("button", { name: "Afternoon", exact: true });
+    await expect(fullDay).toBeFocused();
+    await expect(fullDay).not.toBeChecked();
+    // At zero the lines show a dash, which screen readers hear in words.
+    await expect(popover).toContainText("No leave");
+    await expect(popover).toContainText("Costs nothing");
+    await morning.click();
     await expect(day).toHaveAttribute("aria-label", /leave half, morning/);
-    await expect(popover).toContainText("Half day, morning");
-    await expect(popover.getByRole("button", { name: "Half day – morning" })).toBeDisabled();
-    await expect(popover.getByRole("button", { name: "Remove" })).toBeEnabled();
+    await expect(morning).toHaveAttribute("aria-pressed", "true");
+    await expect(afternoon).toHaveAttribute("aria-pressed", "false");
+    await expect(fullDay).toHaveJSProperty("indeterminate", true);
+    await expect(popover).toContainText("Costs ½ day");
+    // The free half extends the leave to the full day; the morning then shrinks it to the afternoon.
+    await afternoon.click();
+    await expect(day).toHaveAttribute("aria-label", /leave full/);
+    await expect(fullDay).toBeChecked();
+    await morning.click();
+    await expect(day).toHaveAttribute("aria-label", /leave half, afternoon/);
+    await expect(morning).toHaveAttribute("aria-pressed", "false");
+    // The detail stays open and keeps the focus.
+    await expect(morning).toBeFocused();
     await page.keyboard.press("Escape");
     await expect(popover).toBeHidden();
     await expect(day).toBeFocused();
-    // One change, one undo step.
     await page.keyboard.press("Control+z");
+    await expect(day).toHaveAttribute("aria-label", /leave full/);
+    await expectNoPageProblems(page);
+  });
+
+  test("the full-day checkbox sets and takes away the whole day", async ({ page }) => {
+    const day = cell(page, 6, 14);
+    await day.click({ button: "right" });
+    const fullDay = detail(page).getByRole("checkbox", { name: "Full day" });
+    await fullDay.click();
+    await expect(day).toHaveAttribute("aria-label", /leave full/);
+    await expect(fullDay).toBeChecked();
+    await fullDay.click();
     await expect(day).toHaveAttribute("aria-label", /no leave/);
+    await expect(fullDay).not.toBeChecked();
     await expectNoPageProblems(page);
   });
 
@@ -57,10 +89,12 @@ test.describe("in English at 1280 px", () => {
     await page.keyboard.press("Enter");
     const popover = detail(page);
     await expect(popover).toBeVisible();
-    await expect(popover).toContainText("Leave 2026");
-    await expect(popover).toContainText("Leave in another plan");
-    await expect(popover).toContainText("This day is already off in another plan.");
-    await expect(popover.getByRole("button", { name: "Full day" })).toBeDisabled();
+    await expect(popover.getByRole("list", { name: "Calendars" })).toHaveText("Leave 2026");
+    // Another plan's leave fills the day: the bar shows it locked, with nothing to switch.
+    await expect(popover.getByRole("group", { name: "Leave on this day" })).toHaveText("From another plan");
+    await expect(popover.getByRole("checkbox")).toHaveCount(0);
+    await expect(popover.getByRole("button")).toHaveCount(0);
+    await expect(popover).toContainText("Leave from Leave 2026: counts there");
     await page.keyboard.press("Escape");
     await expect(popover).toBeHidden();
     await expect(day).toBeFocused();
@@ -68,6 +102,16 @@ test.describe("in English at 1280 px", () => {
     await expect(popover).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(day).toBeFocused();
+    await expectNoPageProblems(page);
+  });
+
+  test("a day without work has no leave part and says why", async ({ page }) => {
+    await cell(page, 6, 19).click({ button: "right" });
+    const popover = detail(page);
+    await expect(popover).toContainText("No required work");
+    await expect(popover).toContainText("No leave needed");
+    await expect(popover.getByRole("group", { name: "Leave on this day" })).toHaveCount(0);
+    await expect(popover).toContainText("Normal Saturday: off");
     await expectNoPageProblems(page);
   });
 
@@ -100,7 +144,7 @@ test.describe("in English at 1280 px", () => {
     await expect(detail(page)).toHaveAccessibleName(/^Details for Monday,? 14 June 2027$/);
     await cell(page, 5, 27).click({ button: "right" });
     await expect(detail(page)).toHaveAccessibleName(/^Details for Thursday,? 27 May 2027$/);
-    await expect(detail(page)).toContainText("Corpus Christi (public holiday)");
+    await expect(detail(page)).toContainText("Corpus Christi (public holiday): off");
     await expect(detail(page)).toHaveCount(1);
     await expectNoPageProblems(page);
   });
@@ -135,7 +179,7 @@ test.describe("on a narrow calendar", () => {
     const sheet = detail(page);
     await expect(sheet).toBeVisible();
     await expect(page.locator("dialog[open]")).toHaveCount(1);
-    await sheet.getByRole("button", { name: "Full day" }).click();
+    await sheet.getByRole("checkbox", { name: "Full day" }).click();
     await expect(day).toHaveAttribute("aria-label", /leave full/);
     await page.keyboard.press("Escape");
     await expect(sheet).toBeHidden();

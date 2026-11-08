@@ -69,7 +69,7 @@ test.describe("on a narrow calendar, in English", () => {
     await expect(sheet).toBeVisible();
     const status = sheet.locator('[aria-live="polite"]');
     await expect(status).toHaveText("");
-    await sheet.getByRole("button", { name: "Full day" }).click();
+    await sheet.getByRole("checkbox", { name: "Full day" }).click();
     await expect(status).toHaveText("14 Jun: leave full. 7 days left.");
     await expectNoPageProblems(page);
   });
