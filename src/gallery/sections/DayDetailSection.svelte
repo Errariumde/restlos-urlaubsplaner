@@ -3,54 +3,84 @@ SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 SPDX-License-Identifier: EUPL-1.2
 -->
 <script lang="ts">
-  import { onMount } from "svelte";
-  import { dayFromYmd } from "../../engine/days.ts";
+  import type { DayResult } from "../../engine/counting/plan.ts";
   import DayDetail from "../../ui/calendar/DayDetail.svelte";
-  import { app } from "../../ui/state/app.svelte.ts";
+  import { i18n } from "../../ui/i18n/i18n.svelte.ts";
+  import type { LeaveChange, PlanState } from "../../ui/worker/protocol.ts";
+  import { Session } from "../../ui/worker/session.ts";
+  import { situations, situationsPlan } from "./detail-situations.ts";
 
-  // The detail of a few days of the built-in example, computed by the real engine worker, shown inline
-  // (the content of the popover and the sheet).
-  const DAYS = [
-    dayFromYmd(2027, 6, 14), // a working day without leave
-    dayFromYmd(2027, 1, 7), // planned leave
-    dayFromYmd(2027, 12, 24), // a day rule halves the required work
-    dayFromYmd(2027, 5, 27), // a public holiday
-    dayFromYmd(2027, 1, 4), // leave in another plan
-    dayFromYmd(2027, 12, 27), // mandatory leave
-    dayFromYmd(2027, 9, 6), // an info source
-  ];
+  // Every situation of the day detail, shown inline (the content of the popover and the sheet). One plan holds them
+  // all; the real engine computes it here in the page, and the switches change it, so each detail can be tried.
+  const session = new Session();
+  const t = (key: string): string => i18n.t(key);
 
-  onMount(() => {
-    void app.openExample();
+  /** The plan as opened; a click replaces it with the changed plan, a change of language opens it again. */
+  let state = $derived.by((): PlanState | undefined => {
+    const example = document.getElementById("example-plan")?.textContent;
+    if (!example) return undefined;
+    const opened = session.open(situationsPlan(example, t), true);
+    return "refused" in opened ? undefined : opened;
   });
 
-  const shown = $derived.by(() => {
-    const state = app.state;
-    if (!state) return [];
-    const first = state.result.days[0]?.day ?? 0;
-    return DAYS.flatMap((day) => {
-      const result = state.result.days[day - first];
-      return result ? [result] : [];
-    });
-  });
+  const groups = $derived(situations(t));
+
+  function dayOf(current: PlanState, day: number): DayResult | undefined {
+    const first = current.result.days[0]?.day ?? 0;
+    return current.result.days[day - first];
+  }
+
+  function apply(change: LeaveChange): void {
+    state = session.apply([change]);
+  }
 </script>
 
-{#if app.state}
-  {@const { meta, result } = app.state}
-  <div class="samples">
-    {#each shown as day (day.day)}
-      <DayDetail {day} {meta} problems={result.problems} presentation="inline" />
+{#if state}
+  {@const current = state}
+  <div class="stack">
+    {#each groups as group (group.title)}
+      <section class="stack">
+        <h2>{group.title}</h2>
+        <div class="samples">
+          {#each group.samples as [caption, day] (day)}
+            {@const result = dayOf(current, day)}
+            {#if result}
+              <figure>
+                <figcaption>{caption}</figcaption>
+                <DayDetail day={result} meta={current.meta} problems={current.result.problems} presentation="inline" onapply={apply} />
+              </figure>
+            {/if}
+          {/each}
+        </div>
+      </section>
     {/each}
   </div>
 {/if}
 
 <style>
   @layer components {
+    h2 {
+      font-size: var(--font-size-2);
+      font-weight: 700;
+    }
+
     .samples {
-      display: flex;
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(20rem, 100%), 1fr));
       gap: var(--space-4);
       align-items: start;
+    }
+
+    figure {
+      display: grid;
+      gap: var(--space-1);
+      margin: 0;
+    }
+
+    figcaption {
+      color: var(--r-text-muted);
+      font-size: var(--font-size-1);
+      font-weight: 700;
     }
   }
 </style>
