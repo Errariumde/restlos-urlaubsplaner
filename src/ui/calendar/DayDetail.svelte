@@ -112,7 +112,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 {#snippet body()}
   {@const { required, leave, noLeave } = detail}
-  <div class="detail stack" bind:this={content} tabindex="-1">
+  <div class="detail stack" class:fixed={presentation === "popover"} bind:this={content} tabindex="-1">
     <h2>{date}</h2>
     <div class="part">
       <p>
@@ -221,7 +221,15 @@ SPDX-License-Identifier: EUPL-1.2
   @layer components {
     .detail {
       --gap: var(--space-3);
-      min-inline-size: min(18rem, 100%);
+    }
+
+    /*
+     * The popover takes the width of its content, so the detail sets one: the same as in the gallery, so the
+     * popover doesn't change its size when a value in it does. A narrow window narrows it.
+     */
+    .detail.fixed {
+      inline-size: 20rem;
+      max-inline-size: 100%;
     }
 
     .detail:focus {

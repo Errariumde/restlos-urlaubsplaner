@@ -70,6 +70,18 @@ test.describe("in English at 1280 px", () => {
     await expectNoPageProblems(page);
   });
 
+  test("the popover keeps its width when the values in it change", async ({ page }) => {
+    const day = cell(page, 6, 14);
+    await day.click({ button: "right" });
+    const popover = detail(page);
+    const width = async (): Promise<number> => (await popover.boundingBox())?.width ?? 0;
+    const before = await width();
+    await popover.getByRole("checkbox", { name: "Full day" }).click();
+    await expect(day).toHaveAttribute("aria-label", /leave full/);
+    expect(await width()).toBe(before);
+    await expectNoPageProblems(page);
+  });
+
   test("the full-day checkbox sets and takes away the whole day", async ({ page }) => {
     const day = cell(page, 6, 14);
     await day.click({ button: "right" });
