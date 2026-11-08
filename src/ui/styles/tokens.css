@@ -62,6 +62,17 @@
     /* The patterns that tell the day types apart besides their colour (weekend hatch, holiday dots). */
     --r-day-pattern: light-dark(oklch(22% calc(var(--nk) * 0.012) var(--nh) / 0.14), oklch(93% calc(var(--nk) * 0.006) var(--nh) / 0.13));
     --r-other-plan: light-dark(oklch(50% 0.17 320), oklch(75% 0.13 320));
+    /*
+     * The fills of the day types and of mandatory leave, pattern and colour: the cells, the detail's bars and the
+     * legend draw them alike (docs/SPEC.md, "Day cell: what is shown how").
+     */
+    --r-fill-weekend: repeating-linear-gradient(in srgb 135deg, transparent 0 4px, var(--r-day-pattern) 4px 5px), var(--r-weekend);
+    --r-fill-holiday: radial-gradient(circle, var(--r-day-pattern) 0 1px, transparent 1.5px) 0 0 / 6px 6px, var(--r-holiday);
+    --r-fill-half-required: repeating-linear-gradient(in srgb 135deg, transparent 0 4px, var(--r-day-pattern) 4px 5px), var(--r-half-required);
+    --r-fill-free:
+      repeating-linear-gradient(in srgb 45deg, transparent 0 4px, var(--r-day-pattern) 4px 5px),
+      repeating-linear-gradient(in srgb 135deg, transparent 0 4px, var(--r-day-pattern) 4px 5px), var(--r-weekend);
+    --r-fill-mandatory: repeating-linear-gradient(in srgb 45deg, var(--r-mandatory) 0 4px, var(--r-mandatory-stripe) 4px 7px);
 
     /* States */
     --r-overdraft: light-dark(oklch(50% 0.18 28), oklch(74% 0.14 28));

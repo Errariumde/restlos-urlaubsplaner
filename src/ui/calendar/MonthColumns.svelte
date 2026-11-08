@@ -8,7 +8,7 @@ SPDX-License-Identifier: EUPL-1.2
   // column stays at the inline start. All columns, scrolling, 6 or 3 visible by the width of the calendar
   // area (container queries, "Screen sizes").
   import type { Attachment } from "svelte/attachments";
-  import type { PlanResult } from "../../engine/counting/plan.ts";
+  import type { PlanResult, Problem } from "../../engine/counting/plan.ts";
   import type { DayNumber } from "../../engine/days.ts";
   import { formatDate } from "../i18n/format.ts";
   import { i18n } from "../i18n/i18n.svelte.ts";
@@ -18,6 +18,7 @@ SPDX-License-Identifier: EUPL-1.2
   import DayCell from "./DayCell.svelte";
   import { calendarGestures, dragPreview } from "./gestures.svelte.ts";
   import { calendarKeyboard } from "./keyboard.svelte.ts";
+  import { problemsByDay } from "./problems.ts";
   import { columnRows, columnWeekMarker, offsetInWeek, periodMonths } from "./months.ts";
   import { rangeChanges, weekChanges, weekSelection } from "./range.ts";
 
@@ -33,6 +34,7 @@ SPDX-License-Identifier: EUPL-1.2
   let { meta, result, today, onDetail }: Props = $props();
 
   const NO_LANES: readonly CellLane[] = [];
+  const NO_PROBLEMS: readonly Problem["code"][] = [];
 
   let grid = $state<HTMLElement>();
 
@@ -45,6 +47,8 @@ SPDX-License-Identifier: EUPL-1.2
 
   /** The source lanes of every day; in a column every day follows the one above. */
   const lanes = $derived(periodCellLanes(months, result, meta.sources, meta.weekStart, "column"));
+  /** The codes of each day's problems, for the mark on the day number and the label. */
+  const problems = $derived(problemsByDay(result.problems));
 
   const firstDay = $derived(result.days[0]?.day ?? 0);
   const focusDay = $derived(app.focusDay ?? result.period.from);
@@ -155,6 +159,7 @@ SPDX-License-Identifier: EUPL-1.2
               selected={isSelected(day)}
               today={day === today}
               previewed={dragPreview.range?.days.has(day) ?? false}
+              problems={problems.get(day) ?? NO_PROBLEMS}
             >
               {#snippet marker()}
                 {#if week}

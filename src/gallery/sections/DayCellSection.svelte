@@ -5,7 +5,7 @@ SPDX-License-Identifier: EUPL-1.2
 <script lang="ts">
   import { onMount } from "svelte";
   import { evaluateLeave, type LeavePiece } from "../../engine/counting/leave.ts";
-  import type { DayResult } from "../../engine/counting/plan.ts";
+  import type { DayResult, Problem } from "../../engine/counting/plan.ts";
   import type { Part } from "../../engine/counting/types.ts";
   import { dayFromYmd, type DayNumber } from "../../engine/days.ts";
   import type { CellLane } from "../../ui/calendar/cell-lanes.ts";
@@ -64,6 +64,7 @@ SPDX-License-Identifier: EUPL-1.2
     selected?: boolean;
     previewed?: boolean;
     removing?: boolean;
+    problems?: Problem["code"][];
   }
 
   const required = $derived<Sample[]>([
@@ -104,16 +105,32 @@ SPDX-License-Identifier: EUPL-1.2
     { caption: i18n.t("gallery.cell.todaySelected"), day: stub({ day: may(31), leave: [own(480, "end")] }), today: true, selected: true },
   ]);
 
+  // The problem mark on the kinds of day it must stay legible on.
+  const need: Problem["code"][] = ["uncoveredNeed"];
+  const problems = $derived<Sample[]>([
+    { caption: i18n.t("gallery.cell.workday"), day: stub({ day: may(4) }), problems: need },
+    { caption: i18n.t("gallery.cell.full"), day: stub({ day: may(11), leave: [own(480, "end")] }), problems: need },
+    { caption: i18n.t("gallery.cell.halfStart"), day: stub({ day: may(13), leave: [own(240, "start")] }), problems: need },
+    { caption: i18n.t("gallery.cell.mandatory"), day: stub({ day: may(14), leave: [mandatory(480, "end")] }), problems: need },
+    { caption: i18n.t("gallery.cell.holiday"), day: stub({ day: may(6), required: 0, holiday: "holiday.ascension-day" }), problems: need },
+    { caption: i18n.t("gallery.cell.otherPlan"), day: stub({ day: may(17), leave: [{ kind: "otherPlan", from: 0, to: 480 }] }), problems: need },
+    { caption: i18n.t("gallery.cell.lanes", { count: 1 }), day: stub({ day: may(18) }), lanes: lanes(1), problems: need },
+    { caption: i18n.t("gallery.cell.today"), day: stub({ day: may(24) }), today: true, problems: need },
+    { caption: i18n.t("gallery.cell.selected"), day: stub({ day: may(26), leave: [own(480, "end")] }), selected: true, problems: need },
+  ]);
+
   const groups = $derived([
     { title: i18n.t("gallery.cell.group.required"), samples: required },
     { title: i18n.t("gallery.cell.group.leave"), samples: leave },
     { title: i18n.t("gallery.cell.group.sources"), samples: sources },
     { title: i18n.t("gallery.cell.group.states"), samples: states },
+    { title: i18n.t("gallery.cell.group.problems"), samples: problems },
   ]);
 
   const columnSamples = $derived<Sample[]>([
     { caption: i18n.t("gallery.cell.full"), day: stub({ day: may(11), leave: [own(480, "end")] }), lanes: lanes(2) },
     { caption: i18n.t("gallery.cell.weekend"), day: stub({ day: may(8), required: 0 }), lanes: lanes(1) },
+    { caption: i18n.t("gallery.cell.group.problems"), day: stub({ day: may(12), leave: [own(240, "end")] }), problems: need },
   ]);
 
   let section = $state<HTMLElement>();
@@ -140,6 +157,7 @@ SPDX-License-Identifier: EUPL-1.2
                   selected={sample.selected ?? false}
                   today={sample.today ?? false}
                   previewed={sample.previewed ?? false}
+                  problems={sample.problems ?? []}
                 />
               </div>
             </div>
@@ -163,6 +181,7 @@ SPDX-License-Identifier: EUPL-1.2
             selected={false}
             today={false}
             previewed={false}
+            problems={sample.problems ?? []}
           />
         </div>
       {/each}

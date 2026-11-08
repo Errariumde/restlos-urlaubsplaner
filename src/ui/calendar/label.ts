@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 // The accessible label of a calendar cell (docs/SPEC.md, "Accessibility").
-import type { DayResult } from "../../engine/counting/plan.ts";
+import type { DayResult, Problem } from "../../engine/counting/plan.ts";
 import type { SourceDay } from "../../engine/counting/types.ts";
 import { weekdayOf } from "../../engine/days.ts";
 import { textFor } from "../../engine/file/text.ts";
@@ -11,6 +11,7 @@ import { formatDate, formatDays, formatList } from "../i18n/format.ts";
 import { textLanguage, type Locale } from "../i18n/locale.ts";
 import type { PlanMeta } from "../worker/protocol.ts";
 import { dayLeave, type DayLeaveView } from "./day-leave.ts";
+import { problemText } from "./problems.ts";
 
 export type Translate = (key: string, args?: Record<string, string | number>) => string;
 
@@ -79,10 +80,16 @@ export function leaveText(view: DayLeaveView, i18n: { t: Translate; locale: Loca
 }
 
 /**
- * The screen-reader text of a day: date, kind, leave, cost and the calendar sources that include it.
+ * The screen-reader text of a day: date, kind, leave, cost, the calendar sources that include it and its problems.
  * `sourceNames` are the names of those sources, already resolved to the UI language.
  */
-export function cellLabel(day: DayResult, meta: PlanMeta, i18n: { t: Translate; locale: Locale }, sourceNames: readonly string[] = []): string {
+export function cellLabel(
+  day: DayResult,
+  meta: PlanMeta,
+  i18n: { t: Translate; locale: Locale },
+  sourceNames: readonly string[] = [],
+  problems: readonly Problem["code"][] = [],
+): string {
   const { t, locale } = i18n;
   const cost = day.evaluation.cost;
   return t("day.label", {
@@ -94,5 +101,8 @@ export function cellLabel(day: DayResult, meta: PlanMeta, i18n: { t: Translate; 
     cost: formatDays(cost, locale),
     hasSources: sourceNames.length > 0 ? "yes" : "no",
     sources: formatList(sourceNames, locale),
+    problemCount: problems.length,
+    // Full sentences, each ending with its own full stop.
+    problems: problems.map((code) => problemText(code, t)).join(" "),
   });
 }

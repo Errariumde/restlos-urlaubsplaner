@@ -7,7 +7,7 @@ SPDX-License-Identifier: EUPL-1.2
   // free time; the leave as a line and a bar of switches with the "Full day" checkbox, its cost and the work left;
   // the calendars as bars; the reasons; the problems. A popover next to the cell; a bottom sheet on a narrow calendar
   // or a touch screen; inline in the gallery.
-  import { tick, untrack } from "svelte";
+  import { tick } from "svelte";
   import type { DayResult, Problem } from "../../engine/counting/plan.ts";
   import { textFor } from "../../engine/file/text.ts";
   import { UNITS_PER_DAY, type Units } from "../../engine/weight.ts";
@@ -20,7 +20,8 @@ SPDX-License-Identifier: EUPL-1.2
   import type { LeaveChange, PlanMeta } from "../worker/protocol.ts";
   import { lineStyle, sourceAccent } from "./cell-lanes.ts";
   import { amountText, dayDetail, reasonText, type DaySpan } from "./detail.ts";
-  import { announced, statusText } from "./status.ts";
+  import { problemText } from "./problems.ts";
+  import SheetStatus from "./SheetStatus.svelte";
 
   interface Props {
     day: DayResult;
@@ -55,30 +56,7 @@ SPDX-License-Identifier: EUPL-1.2
     }),
   );
 
-  function problemText(code: Problem["code"]): string {
-    switch (code) {
-      case "leaveOutsidePeriod":
-        return i18n.t("detail.problem.leaveOutsidePeriod");
-      case "leaveWithoutRequiredWork":
-        return i18n.t("detail.problem.leaveWithoutRequiredWork");
-      case "leaveTakenInOtherPlan":
-        return i18n.t("detail.problem.leaveTakenInOtherPlan");
-      case "conflictingForcedRules":
-        return i18n.t("detail.problem.conflictingForcedRules");
-      case "uncoveredNeed":
-        return i18n.t("detail.problem.uncoveredNeed");
-    }
-  }
-
   let content = $state<HTMLElement>();
-
-  // The bottom sheet makes the page inert, so the hint line can't announce what an action here did: the sheet says
-  // it in its own live line, for the statuses reported while it is open.
-  const openedAt = untrack(() => app.statusCount);
-  const sheetStatus = $derived.by(() => {
-    if (app.status === undefined || app.statusCount <= openedAt) return "";
-    return announced(statusText(app.status, app.state, words), app.statusCount);
-  });
 
   /** One click, one change, one undo step. The detail stays open and shows the day as it is now. */
   async function run(change: LeaveChange | undefined): Promise<void> {
@@ -195,7 +173,7 @@ SPDX-License-Identifier: EUPL-1.2
     {#if detail.problems.length > 0}
       <ul class="part problems" aria-label={i18n.t("detail.problems")}>
         {#each detail.problems as code, index (index)}
-          <li>{problemText(code)}</li>
+          <li>{problemText(code, words.t)}</li>
         {/each}
       </ul>
     {/if}
@@ -209,7 +187,7 @@ SPDX-License-Identifier: EUPL-1.2
 {:else if presentation === "sheet"}
   <Sheet {id} {anchor} open={true} {onclose} {label}>
     {@render body()}
-    <p class="status" aria-live="polite" aria-atomic="true">{sheetStatus}</p>
+    <SheetStatus />
   </Sheet>
 {:else}
   <section class="inline" aria-label={label}>
@@ -320,22 +298,19 @@ SPDX-License-Identifier: EUPL-1.2
     }
 
     .off-weekend .block:not(.work) {
-      background: repeating-linear-gradient(in srgb 135deg, transparent 0 4px, var(--r-day-pattern) 4px 5px), var(--r-weekend);
+      background: var(--r-fill-weekend);
     }
 
     .off-holiday .block:not(.work) {
-      background: radial-gradient(circle, var(--r-day-pattern) 0 1px, transparent 1.5px) 0 0 / 6px 6px, var(--r-holiday);
+      background: var(--r-fill-holiday);
     }
 
     .off-halfRequired .block:not(.work) {
-      background: repeating-linear-gradient(in srgb 135deg, transparent 0 4px, var(--r-day-pattern) 4px 5px), var(--r-half-required);
+      background: var(--r-fill-half-required);
     }
 
     .off-free .block:not(.work) {
-      background:
-        repeating-linear-gradient(in srgb 45deg, transparent 0 4px, var(--r-day-pattern) 4px 5px),
-        repeating-linear-gradient(in srgb 135deg, transparent 0 4px, var(--r-day-pattern) 4px 5px),
-        var(--r-weekend);
+      background: var(--r-fill-free);
     }
 
     /* The leave switches: grey where no leave is taken, the leave drawn inside as the cell draws it. */
@@ -386,7 +361,7 @@ SPDX-License-Identifier: EUPL-1.2
 
     .stretch.mandatory,
     .locked.mandatory {
-      background: repeating-linear-gradient(in srgb 45deg, var(--r-mandatory) 0 4px, var(--r-mandatory-stripe) 4px 7px);
+      background: var(--r-fill-mandatory);
     }
 
     .locked.mandatory {
@@ -437,18 +412,6 @@ SPDX-License-Identifier: EUPL-1.2
       color: var(--r-overdraft);
       font-size: var(--font-size-1);
       font-weight: 600;
-    }
-
-    /* What an action in the sheet did, quiet like the hint line; empty until then. */
-    .status {
-      margin-block-start: var(--space-3);
-      color: var(--r-text-muted);
-      font-size: var(--font-size-1);
-    }
-
-    /* Kept in the accessibility tree while empty, so its first text is announced too. */
-    .status:empty {
-      margin: 0;
     }
 
     .inline {

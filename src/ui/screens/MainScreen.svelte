@@ -8,11 +8,13 @@ SPDX-License-Identifier: EUPL-1.2
   import type { DayNumber } from "../../engine/days.ts";
   import AllowanceBar from "../allowance/AllowanceBar.svelte";
   import AllowancePanel from "../allowance/AllowancePanel.svelte";
+  import { legendOf } from "../allowance/legend.ts";
   import DayDetail from "../calendar/DayDetail.svelte";
   import HintLine from "../calendar/HintLine.svelte";
   import MonthColumns from "../calendar/MonthColumns.svelte";
   import MonthTiles from "../calendar/MonthTiles.svelte";
   import SelectionBar from "../calendar/SelectionBar.svelte";
+  import SheetStatus from "../calendar/SheetStatus.svelte";
   import Button from "../controls/Button.svelte";
   import Sheet from "../controls/Sheet.svelte";
   import { pluralCount, formatDays } from "../i18n/format.ts";
@@ -49,6 +51,8 @@ SPDX-License-Identifier: EUPL-1.2
   $effect(() => heading?.focus());
   const compact = $derived(width !== undefined && belowRem(width, COMPACT_BELOW, rem()));
   const sidebar = $derived(width !== undefined && !belowRem(width, SIDEBAR_FROM, rem()));
+  /** What the calendar draws, for the legend at the end of the allowance panel. */
+  const legend = $derived(app.state ? legendOf(app.state.result, app.state.meta) : undefined);
 
   // Crossing a threshold closes the details: they must neither pop up as a modal sheet when the app narrows
   // nor reappear when it narrows again after being wide. Only these two values are read here, so the effect
@@ -145,6 +149,31 @@ SPDX-License-Identifier: EUPL-1.2
     detail = { day, anchor, sheet };
   }
 
+  /**
+   * A problem's row in the allowance panel (docs/SPEC.md, "Problems"): the details close where they cover the
+   * calendar (the bar's details, the phone's sheet), the day scrolls into view and takes the focus, and its detail
+   * opens next to it.
+   */
+  async function showProblem(day: DayNumber): Promise<void> {
+    if (!sidebar) detailsOpen = false;
+    app.focusDay = day;
+    await tick();
+    const cell = calendar?.querySelector<HTMLElement>(`[data-day="${String(day)}"]`);
+    if (!cell) return;
+    cell.scrollIntoView({ block: "nearest", inline: "nearest" });
+    cell.focus({ preventScroll: true });
+    openDetail(day, cell);
+  }
+
+  /**
+   * Removes the leave of a day outside the plan period from its problem's row (docs/SPEC.md, "Problems"): the
+   * calendar can't show that day. One change and one undo step, said like any other.
+   */
+  async function removeLeave(day: DayNumber): Promise<void> {
+    if (app.applying) return;
+    await app.apply([{ day, take: 0 }]);
+  }
+
   /** Only the request that is shown closes it: a popover replaced by the next one reports its close late. */
   function closeDetail(request: DetailRequest): void {
     if (detail === request) detail = undefined;
@@ -203,6 +232,10 @@ SPDX-License-Identifier: EUPL-1.2
       <section class="compact-bar stack" aria-label={i18n.t("allowance.label")} style:--gap="var(--space-2)">
         <div class="cluster compact-head">
           <p class="left">{i18n.t("allowance.left", { days: formatDays(result.totals.remaining, i18n.locale), count: pluralCount(result.totals.remaining) })}</p>
+          {#if result.problems.length > 0}
+            <!-- The list is in the details. -->
+            <p class="problem-count">{i18n.t("allowance.problemCount", { count: result.problems.length })}</p>
+          {/if}
           <Button bind:element={detailsButton} expanded={detailsOpen} controls="allowance-details" onclick={() => (detailsOpen = !detailsOpen)}>
             {i18n.t("allowance.details")}
           </Button>
@@ -212,7 +245,17 @@ SPDX-License-Identifier: EUPL-1.2
           <!-- Always there, so aria-controls points at something; the Sheet takes this id below 520 px. -->
           <div id="allowance-details" hidden={!detailsOpen}>
             {#if detailsOpen}
-              <AllowancePanel allowance={meta.allowance} totals={result.totals} stretches={result.stretches} showBar={false} />
+              <AllowancePanel
+                allowance={meta.allowance}
+                totals={result.totals}
+                stretches={result.stretches}
+                showBar={false}
+                problems={result.problems}
+                period={result.period}
+                onproblem={(day: DayNumber) => void showProblem(day)}
+                onremove={removeLeave}
+                {legend}
+              />
             {/if}
           </div>
         {/if}
@@ -223,7 +266,18 @@ SPDX-License-Identifier: EUPL-1.2
     </div>
     {#if compact}
       <Sheet id="allowance-details" anchor={detailsButton} open={detailsOpen} onclose={() => (detailsOpen = false)} label={i18n.t("allowance.label")}>
-        <AllowancePanel allowance={meta.allowance} totals={result.totals} stretches={result.stretches} showBar={false} />
+        <AllowancePanel
+          allowance={meta.allowance}
+          totals={result.totals}
+          stretches={result.stretches}
+          showBar={false}
+          problems={result.problems}
+          period={result.period}
+          onproblem={(day: DayNumber) => void showProblem(day)}
+          onremove={removeLeave}
+          {legend}
+        />
+        {#if detailsOpen}<SheetStatus />{/if}
       </Sheet>
     {/if}
   {/if}
@@ -250,7 +304,16 @@ SPDX-License-Identifier: EUPL-1.2
       -->
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
       <aside class="panel" aria-label={i18n.t("allowance.label")} tabindex={panelScrolls ? 0 : undefined} {@attach watchPanel}>
-        <AllowancePanel allowance={app.state.meta.allowance} totals={app.state.result.totals} stretches={app.state.result.stretches} />
+        <AllowancePanel
+          allowance={app.state.meta.allowance}
+          totals={app.state.result.totals}
+          stretches={app.state.result.stretches}
+          problems={app.state.result.problems}
+          period={app.state.result.period}
+          onproblem={(day: DayNumber) => void showProblem(day)}
+          onremove={removeLeave}
+          {legend}
+        />
       </aside>
     {/if}
   </div>
@@ -318,6 +381,13 @@ SPDX-License-Identifier: EUPL-1.2
     }
 
     .left {
+      font-weight: 600;
+    }
+
+    /* Pushes the Details button to the end, as the remaining days do without it. */
+    .problem-count {
+      margin-inline-end: auto;
+      color: var(--r-overdraft);
       font-weight: 600;
     }
 

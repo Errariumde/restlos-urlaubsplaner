@@ -22,7 +22,7 @@ In forced colours (Windows contrast themes, Firefox's contrast control set to cu
 
 ## Context
 
-- `src/ui/calendar/DayCell.svelte`, the `@media (forced-colors: active)` block; `src/ui/allowance/AllowanceBar.svelte`.
+- `src/ui/calendar/DayCell.svelte`, the `@media (forced-colors: active)` block; `src/ui/allowance/AllowanceBar.svelte`; the legend's swatches in `src/ui/allowance/Legend.svelte`, which draw the day types as the cells do and lose them in the same way.
 - `e2e/gallery.spec.ts`, "in forced colours": screenshots of the controls, the toolbar, the day cells and the main screen in Chromium and Firefox, with Playwright's `forcedColors` emulation.
 - `docs/SPEC.md`, "Accessibility".
 
@@ -30,6 +30,7 @@ In forced colours (Windows contrast themes, Firefox's contrast control set to cu
 
 - [ ] In forced colours, weekend, holiday, half working day and paid closure can be told apart from a working day and from each other, with system colours only (for example patterns in CanvasText or GrayText), and planned leave stays the strongest mark.
 - [ ] The allowance bar shows the planned share and an overdraft in forced colours.
+- [ ] The legend's swatches show the same day types as the cells.
 - [ ] The forced-colour screenshots show both; checked once in a real contrast theme (Windows or Firefox's contrast control).
 
 ## Notes

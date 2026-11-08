@@ -379,11 +379,13 @@ Wireframe month tiles: calendar on the left, allowance always visible on the rig
 | [May]      [Jun] [Jul] [Aug]          | Plan allowance: 33           |
 | ... further months up to Jan 2028     | Planned 24 ½ · Remaining 8 ½ |
 |                                       | [#########......]            |
-| Legend: weekend, holiday,             | Stretches                    |
-| required ½ (diagonal), leave, ½ leave | 21 Dec-3 Jan: 3 ½ -> 16 off  |
+|                                       | Stretches                    |
+|                                       | 21 Dec-3 Jan: 3 ½ -> 16 off  |
 |                                       | 14-25 May: 6 -> 12 off       |
 |                                       | Per calendar year            |
 |                                       | 2027: 22 · 2028: 2 ½ (info)  |
+|                                       | Legend: leave, weekend,      |
+|                                       | holiday, half working day    |
 +----------------------------------------------------------------------+
 ```
 
@@ -417,7 +419,7 @@ A cell in the month columns is only about 75 px wide on desktop, so a fixed rank
 4. **Lanes:** calendar sources as thin bars at the bottom of the cell, each on its own thin surface-coloured band that is drawn only where a line is (in month columns, vertically at the right edge). The day number moves to the top, so they never overlap. Consecutive days join into one bar. Lanes are packed per month: each run of days gets the lowest lane that no overlapping run uses. Each source has a colour and a line style (solid, dashed, dotted), which the sources list shows. Up to three lanes; beyond that, a "+" pattern marks the cell and the detail view lists all sources. The cell's label and the detail view name the sources; the detail view adds the names of the day's entries ("School holidays: Autumn break").
 5. **Overlay:** today, focus, selection.
 
-Day number and weekday abbreviation are always shown; the detail view shows everything else.
+Day number and weekday abbreviation are always shown; the detail view shows everything else. A day with a problem has its number on a filled box (see Problems).
 
 ### Screen sizes
 
@@ -470,7 +472,20 @@ With "From rule set", country, region, local rules and day rules come from the r
 - **Overdraft:** the bar is scaled to what is planned, with a tick at the allowance. The part over the allowance is hatched red (a pattern, not colour alone), and a warning line says by how much, with "Change allowance". Nothing is blocked.
 - List of **stretches**: a stretch is unbroken time off without any work in it (even 15 minutes of work ends it), including weekends, holidays, paid closures and days from "Leave from another plan". Its first and last day may be partial. It shows the cost (the leave charged inside it) and the days off from its start to its end (from noon counts ½ for that day). It is listed when it contains leave that costs something or a paid closure (a paid-closure source or a day rule that frees the whole day), so a paid closure without leave appears with cost 0; it may extend beyond the plan period.
 - **Totals per calendar year** as pure information.
+- **Legend** as the last block: only what the calendar draws in the plan period (own leave, mandatory leave, leave from another plan, weekend, holiday, half working day, day off, the problem mark), each drawn as the cells draw it, then each visible calendar with a day in the period, by name with its line. On narrow widths it is in the details with the rest of the panel.
+- All section headings of the panel (problems, stretches, totals per year, legend) look alike; only the problems heading has its own colour, the overdraft colour.
 - Bridge day hints (version 3): working days that yield many days off with little leave; can be turned off.
+
+### Problems
+
+A problem is something on a day that can't be right; like the overdraft, it is only marked, nothing is blocked. The plan reports own leave outside the plan period, own leave on a day without required work, own leave on a day that another plan already has as leave, day rules that force contradicting values, and time off needed that is not covered. Each kind has one sentence ("Dieser Urlaub liegt auf einem freien Tag."), the same wherever it shows:
+
+- **Day cell:** the day number on a filled box in the overdraft colour, the digit in the surface colour with a thin ring in the surface colour, so it stays legible on every fill, pattern and overlay; in forced colours the box takes the text colour. A mark in a corner would clash with small shares of leave there, and a frame around the number would vanish under the today and focus rings. The cell's label ends with the sentences ("…, Problem: Dieser Urlaub liegt auf einem freien Tag.").
+- **Allowance panel:** a list "Probleme (n)" above the stretches, only while there are problems, in the order of the days: "13. Feb.: Dieser Urlaub liegt auf einem freien Tag." The row of a day in the plan period is a button: the details close where they cover the calendar (the compact bar's details and the bottom sheet), the day scrolls into view, takes the focus and opens its detail. A day outside the plan period isn't in the calendar, and own leave there is the only problem it can have: its row ends with "Urlaub entfernen", which removes that leave as one change and one undo step, said like any other change (in the bottom sheet by its own live line). The focus then moves to the row in its place, else to the row before, else to the stretches heading.
+- **Compact bar:** "n Probleme" in the overdraft colour beside the remaining days; the list is in the details.
+- **Detail view:** the day's problems as sentences in the overdraft colour.
+
+Dismissing a problem of time off needed for one day is not built yet: issue 0043 (dismiss a time-off need for one day).
 
 ### Colors, light and dark mode
 
