@@ -40,10 +40,11 @@ SPDX-License-Identifier: EUPL-1.2
   };
   const noneTotals: PlanTotals = { allowance: ALLOWANCE, planned: 0, remaining: ALLOWANCE, byYear: [{ year: 2027, planned: 0 }] };
 
-  // Two problems in the period, whose rows show the day, and one after it, whose row is plain text.
+  // Three problems in the period, whose rows show the day, and one after it, whose row is plain text.
   const period = { from: dayFromYmd(2027, 1, 1), to: dayFromYmd(2027, 12, 31) };
   const problems: Problem[] = [
     { code: "leaveWithoutRequiredWork", day: dayFromYmd(2027, 2, 13) },
+    { code: "leaveOnFreeTime", day: dayFromYmd(2027, 12, 24) },
     { code: "uncoveredNeed", day: dayFromYmd(2027, 6, 4), sourceIds: ["need"] },
     { code: "leaveOutsidePeriod", day: dayFromYmd(2028, 1, 3) },
   ];

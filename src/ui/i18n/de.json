@@ -109,6 +109,7 @@
   "detail.problems": "Probleme",
   "detail.problem.leaveOutsidePeriod": "Dieser Urlaub liegt außerhalb des Planzeitraums.",
   "detail.problem.leaveWithoutRequiredWork": "Dieser Urlaub liegt auf einem freien Tag.",
+  "detail.problem.leaveOnFreeTime": "Dieser Urlaub liegt auf ohnehin freier Zeit.",
   "detail.problem.leaveTakenInOtherPlan": "Dieser Urlaub steht schon in einem anderen Plan.",
   "detail.problem.conflictingForcedRules": "Diese Tagesregeln widersprechen sich.",
   "detail.problem.uncoveredNeed": "An diesem Tag brauchst du noch frei.",

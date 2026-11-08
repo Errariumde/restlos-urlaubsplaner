@@ -112,6 +112,41 @@ describe("computePlan: problems", () => {
     expect(result.problems).toEqual([{ code: "leaveWithoutRequiredWork", day: d("2027-05-09") }, { code: "leaveOutsidePeriod", day: d("2028-02-01") }]);
     expect(result.totals.planned).toBe(0);
   });
+  it("reports own leave on the free afternoon of 24 December", () => {
+    const result = plan({ contract: withRules(...CHRISTMAS_EVE_RULES), leave: [leave("2027-12-24", HALF, "end")] });
+    expect(result.problems).toEqual([{ code: "leaveOnFreeTime", day: d("2027-12-24") }]);
+    expect(dayOf(result, "2027-12-24").evaluation.ownCost).toBe(0);
+    expect(dayOf(result, "2027-12-24").evaluation.remaining).toBe(HALF);
+  });
+  it("reports a half day a later work-week entry puts on free time", () => {
+    const week = [
+      { from: d("2020-01-01"), required: FULL_TIME },
+      { from: d("2027-05-03"), required: { ...FULL_TIME, fri: HALF } },
+    ];
+    const result = plan({ contract: { ...BAVARIA, week }, leave: [leave("2027-05-07", HALF, "end")] });
+    expect(result.problems).toEqual([{ code: "leaveOnFreeTime", day: d("2027-05-07") }]);
+    expect(dayOf(result, "2027-05-07").evaluation.ownCost).toBe(0);
+  });
+  it("keeps leave on a day off as its own problem", () => {
+    const codes = plan({ leave: [leave("2027-05-08")] }).problems.map((p) => p.code);
+    expect(codes).toEqual(["leaveWithoutRequiredWork"]);
+  });
+  it("gives no leaveOnFreeTime for leave that overlaps the work", () => {
+    const contract = withRules(...CHRISTMAS_EVE_RULES);
+    expect(plan({ contract, leave: [leave("2027-12-24")] }).problems).toEqual([]);
+    expect(plan({ contract, leave: [leave("2027-12-24", HALF, "start")] }).problems).toEqual([]);
+  });
+  it("leave on free time changes neither stretches nor time off needed", () => {
+    const contract = withRules(...CHRISTMAS_EVE_RULES);
+    const sources = [need("2027-12-24", HALF, "end")];
+    const without = plan({ contract, sources });
+    const withLeave = plan({ contract, sources, leave: [leave("2027-12-24", HALF, "end")] });
+    expect(without.problems).toEqual([]);
+    expect(withLeave.problems.map((p) => p.code)).toEqual(["leaveOnFreeTime"]);
+    const starting = (r: PlanResult) => r.stretches.find((s) => s.start.day === d("2027-12-24") && s.start.offset === HALF);
+    expect(starting(without)).toBeDefined();
+    expect(starting(withLeave)).toEqual(starting(without));
+  });
   it("charges nothing for 24 and 31 December on a Sunday", () => {
     const result = plan({ contract: withRules(...CHRISTMAS_EVE_RULES), period: { from: month(2028, 1), to: month(2028, 12) }, leave: [leave("2028-12-24"), leave("2028-12-31")] });
     expect([result.totals.planned, result.problems.map((p) => p.code)]).toEqual([0, ["leaveWithoutRequiredWork", "leaveWithoutRequiredWork"]]);

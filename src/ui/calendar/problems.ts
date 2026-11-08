@@ -25,6 +25,8 @@ export function problemText(code: Problem["code"], t: Translate): string {
       return t("detail.problem.leaveOutsidePeriod");
     case "leaveWithoutRequiredWork":
       return t("detail.problem.leaveWithoutRequiredWork");
+    case "leaveOnFreeTime":
+      return t("detail.problem.leaveOnFreeTime");
     case "leaveTakenInOtherPlan":
       return t("detail.problem.leaveTakenInOtherPlan");
     case "conflictingForcedRules":

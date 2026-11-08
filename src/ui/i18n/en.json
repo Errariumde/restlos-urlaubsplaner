@@ -109,6 +109,7 @@
   "detail.problems": "Problems",
   "detail.problem.leaveOutsidePeriod": "This leave lies outside the plan period.",
   "detail.problem.leaveWithoutRequiredWork": "This leave lies on a day off.",
+  "detail.problem.leaveOnFreeTime": "This leave lies on time that is off anyway.",
   "detail.problem.leaveTakenInOtherPlan": "This leave is already in another plan.",
   "detail.problem.conflictingForcedRules": "These day rules contradict each other.",
   "detail.problem.uncoveredNeed": "You still need time off on this day.",
