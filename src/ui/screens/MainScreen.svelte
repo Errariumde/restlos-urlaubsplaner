@@ -145,6 +145,22 @@ SPDX-License-Identifier: EUPL-1.2
     detail = { day, anchor, sheet };
   }
 
+  /**
+   * A problem's row in the allowance panel (docs/SPEC.md, "Problems"): the details close where they cover the
+   * calendar (the bar's details, the phone's sheet), the day scrolls into view and takes the focus, and its detail
+   * opens next to it.
+   */
+  async function showProblem(day: DayNumber): Promise<void> {
+    if (!sidebar) detailsOpen = false;
+    app.focusDay = day;
+    await tick();
+    const cell = calendar?.querySelector<HTMLElement>(`[data-day="${String(day)}"]`);
+    if (!cell) return;
+    cell.scrollIntoView({ block: "nearest", inline: "nearest" });
+    cell.focus({ preventScroll: true });
+    openDetail(day, cell);
+  }
+
   /** Only the request that is shown closes it: a popover replaced by the next one reports its close late. */
   function closeDetail(request: DetailRequest): void {
     if (detail === request) detail = undefined;
@@ -203,6 +219,10 @@ SPDX-License-Identifier: EUPL-1.2
       <section class="compact-bar stack" aria-label={i18n.t("allowance.label")} style:--gap="var(--space-2)">
         <div class="cluster compact-head">
           <p class="left">{i18n.t("allowance.left", { days: formatDays(result.totals.remaining, i18n.locale), count: pluralCount(result.totals.remaining) })}</p>
+          {#if result.problems.length > 0}
+            <!-- The list is in the details. -->
+            <p class="problem-count">{i18n.t("allowance.problemCount", { count: result.problems.length })}</p>
+          {/if}
           <Button bind:element={detailsButton} expanded={detailsOpen} controls="allowance-details" onclick={() => (detailsOpen = !detailsOpen)}>
             {i18n.t("allowance.details")}
           </Button>
@@ -212,7 +232,15 @@ SPDX-License-Identifier: EUPL-1.2
           <!-- Always there, so aria-controls points at something; the Sheet takes this id below 520 px. -->
           <div id="allowance-details" hidden={!detailsOpen}>
             {#if detailsOpen}
-              <AllowancePanel allowance={meta.allowance} totals={result.totals} stretches={result.stretches} showBar={false} />
+              <AllowancePanel
+                allowance={meta.allowance}
+                totals={result.totals}
+                stretches={result.stretches}
+                showBar={false}
+                problems={result.problems}
+                period={result.period}
+                onproblem={(day: DayNumber) => void showProblem(day)}
+              />
             {/if}
           </div>
         {/if}
@@ -223,7 +251,15 @@ SPDX-License-Identifier: EUPL-1.2
     </div>
     {#if compact}
       <Sheet id="allowance-details" anchor={detailsButton} open={detailsOpen} onclose={() => (detailsOpen = false)} label={i18n.t("allowance.label")}>
-        <AllowancePanel allowance={meta.allowance} totals={result.totals} stretches={result.stretches} showBar={false} />
+        <AllowancePanel
+          allowance={meta.allowance}
+          totals={result.totals}
+          stretches={result.stretches}
+          showBar={false}
+          problems={result.problems}
+          period={result.period}
+          onproblem={(day: DayNumber) => void showProblem(day)}
+        />
       </Sheet>
     {/if}
   {/if}
@@ -250,7 +286,14 @@ SPDX-License-Identifier: EUPL-1.2
       -->
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
       <aside class="panel" aria-label={i18n.t("allowance.label")} tabindex={panelScrolls ? 0 : undefined} {@attach watchPanel}>
-        <AllowancePanel allowance={app.state.meta.allowance} totals={app.state.result.totals} stretches={app.state.result.stretches} />
+        <AllowancePanel
+          allowance={app.state.meta.allowance}
+          totals={app.state.result.totals}
+          stretches={app.state.result.stretches}
+          problems={app.state.result.problems}
+          period={app.state.result.period}
+          onproblem={(day: DayNumber) => void showProblem(day)}
+        />
       </aside>
     {/if}
   </div>
@@ -318,6 +361,13 @@ SPDX-License-Identifier: EUPL-1.2
     }
 
     .left {
+      font-weight: 600;
+    }
+
+    /* Pushes the Details button to the end, as the remaining days do without it. */
+    .problem-count {
+      margin-inline-end: auto;
+      color: var(--r-overdraft);
       font-weight: 600;
     }
 

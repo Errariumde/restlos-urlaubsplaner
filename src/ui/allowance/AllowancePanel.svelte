@@ -3,11 +3,14 @@ SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 SPDX-License-Identifier: EUPL-1.2
 -->
 <script lang="ts">
-  // The allowance, what is planned and what remains, the bar, the stretches off and the totals per year.
-  import type { PlanTotals } from "../../engine/counting/plan.ts";
+  // The allowance, what is planned and what remains, the bar, the plan's problems, the stretches off and the totals
+  // per year.
+  import type { PlanTotals, Problem } from "../../engine/counting/plan.ts";
   import type { Stretch } from "../../engine/counting/stretches.ts";
+  import type { DayNumber } from "../../engine/days.ts";
   import type { Units } from "../../engine/weight.ts";
   import { pluralCount, formatDate, formatDays } from "../i18n/format.ts";
+  import { problemText } from "../calendar/problems.ts";
   import { i18n } from "../i18n/i18n.svelte.ts";
   import AllowanceBar from "./AllowanceBar.svelte";
 
@@ -17,13 +20,29 @@ SPDX-License-Identifier: EUPL-1.2
     stretches: readonly Stretch[];
     /** The compact layout shows the bar above the details, so the details leave it out. */
     showBar?: boolean;
+    /** The plan's problems (docs/SPEC.md, "Problems"), listed only when there are any. */
+    problems?: readonly Problem[];
+    /** Shows a day's detail; a problem of a day in the plan period offers it. */
+    onproblem?: ((day: DayNumber) => void) | undefined;
+    period?: { readonly from: DayNumber; readonly to: DayNumber } | undefined;
   }
 
-  let { allowance, totals, stretches, showBar = true }: Props = $props();
+  let { allowance, totals, stretches, showBar = true, problems = [], onproblem, period }: Props = $props();
 
   // Per instance: the gallery shows several panels on one page.
   const uid = $props.id();
   const headingId = `${uid}-stretches`;
+  const problemsId = `${uid}-problems`;
+
+  /** A problem's day can be shown when it lies in the calendar, which shows the plan period. */
+  const showable = (day: DayNumber): boolean => onproblem !== undefined && period !== undefined && day >= period.from && day <= period.to;
+
+  function problemRow(problem: Problem): string {
+    return i18n.t("allowance.problem", {
+      date: formatDate(problem.day, i18n.locale, "dayMonth"),
+      problem: problemText(problem.code, (key) => i18n.t(key)),
+    });
+  }
 
   const listed = $derived(stretches.filter((stretch) => stretch.listed));
 
@@ -64,6 +83,23 @@ SPDX-License-Identifier: EUPL-1.2
 
   {#if showBar}
     <AllowanceBar {allowance} planned={totals.planned} />
+  {/if}
+
+  {#if problems.length > 0}
+    <section class="stack" style:--gap="var(--space-2)">
+      <h3 id={problemsId} class="problems-heading">{i18n.t("allowance.problems", { count: problems.length })}</h3>
+      <ul class="problems" aria-labelledby={problemsId}>
+        {#each problems as problem, index (index)}
+          <li>
+            {#if showable(problem.day)}
+              <button type="button" class="jump" onclick={() => onproblem?.(problem.day)}>{problemRow(problem)}</button>
+            {:else}
+              {problemRow(problem)}
+            {/if}
+          </li>
+        {/each}
+      </ul>
+    </section>
   {/if}
 
   <section class="stack" style:--gap="var(--space-2)">
@@ -136,6 +172,12 @@ SPDX-License-Identifier: EUPL-1.2
       font-size: var(--font-size-1);
     }
 
+    .problems-heading {
+      color: var(--r-overdraft);
+    }
+
+    /* One row per problem; a row that can show its day is a button that reads like a link. */
+    .problems,
     .stretches {
       display: flex;
       flex-direction: column;
@@ -145,6 +187,29 @@ SPDX-License-Identifier: EUPL-1.2
       font-size: var(--font-size-1);
       /* Long words (long translations) wrap instead of running past the sidebar, which scrolls. */
       overflow-wrap: anywhere;
+    }
+
+    .jump {
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: inherit;
+      font: inherit;
+      text-align: start;
+      text-decoration: underline;
+      text-underline-offset: 0.15em;
+      cursor: pointer;
+    }
+
+    .jump:hover {
+      text-decoration-thickness: 2px;
+    }
+
+    .jump:focus-visible {
+      border-radius: 2px;
+      outline: 2px solid var(--r-focus);
+      outline-offset: 2px;
     }
 
     .years {

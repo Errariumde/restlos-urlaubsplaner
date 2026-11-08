@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 SPDX-License-Identifier: EUPL-1.2
 -->
 <script lang="ts">
-  import type { PlanTotals } from "../../engine/counting/plan.ts";
+  import type { PlanTotals, Problem } from "../../engine/counting/plan.ts";
   import type { Stretch } from "../../engine/counting/stretches.ts";
   import { dayFromYmd } from "../../engine/days.ts";
   import { UNITS_PER_DAY } from "../../engine/weight.ts";
@@ -29,6 +29,14 @@ SPDX-License-Identifier: EUPL-1.2
   const totals: PlanTotals = { allowance: ALLOWANCE, planned: days(14), remaining: days(16), byYear: [{ year: 2027, planned: days(14) }] };
   const overTotals: PlanTotals = { allowance: ALLOWANCE, planned: days(32.5), remaining: days(-2.5), byYear: [{ year: 2027, planned: days(32.5) }] };
   const noneTotals: PlanTotals = { allowance: ALLOWANCE, planned: 0, remaining: ALLOWANCE, byYear: [{ year: 2027, planned: 0 }] };
+
+  // Two problems in the period, whose rows show the day, and one after it, whose row is plain text.
+  const period = { from: dayFromYmd(2027, 1, 1), to: dayFromYmd(2027, 12, 31) };
+  const problems: Problem[] = [
+    { code: "leaveWithoutRequiredWork", day: dayFromYmd(2027, 2, 13) },
+    { code: "uncoveredNeed", day: dayFromYmd(2027, 6, 4), sourceIds: ["need"] },
+    { code: "leaveOutsidePeriod", day: dayFromYmd(2028, 1, 3) },
+  ];
 </script>
 
 <div class="stack" style:--gap="var(--space-5)">
@@ -47,6 +55,11 @@ SPDX-License-Identifier: EUPL-1.2
   <section class="stack frame" style:--gap="var(--space-2)">
     <h2>{i18n.t("gallery.allowance.panelOver")}</h2>
     <AllowancePanel allowance={ALLOWANCE} totals={overTotals} {stretches} />
+  </section>
+
+  <section class="stack frame" style:--gap="var(--space-2)">
+    <h2>{i18n.t("gallery.allowance.problems")}</h2>
+    <AllowancePanel allowance={ALLOWANCE} {totals} {stretches} {problems} {period} onproblem={() => {}} />
   </section>
 
   <section class="stack frame" style:--gap="var(--space-2)">
