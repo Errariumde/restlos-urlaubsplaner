@@ -17,7 +17,7 @@ class App {
   /** The last state from the worker. */
   state = $state.raw<PlanState | undefined>(undefined);
   view = $state<"tiles" | "columns">("tiles");
-  /** Sets `data-scheme` and `color-scheme` on `<html>` (App.svelte, scheme.ts); "auto" follows `prefers-color-scheme`. */
+  /** Sets `color-scheme` on `<html>` (App.svelte); "auto" is `light dark`, which follows `prefers-color-scheme`. */
   mode = $state<"light" | "dark" | "auto">("auto");
   /** Calendar weeks. */
   weeks = $state(true);

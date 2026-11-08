@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { expectNoPageProblems, openApp, openExampleFromStart } from "./helpers.ts";
 
 test.describe("in English", () => {
@@ -24,24 +24,27 @@ test.describe("in English", () => {
     await expectNoPageProblems(page);
   });
 
-  test("the mode switch sets data-scheme and color-scheme", async ({ page }) => {
+  // The mode is color-scheme on <html> (docs/SPEC.md, "Colors, light and dark mode"): light, dark or "light dark",
+  // with which the light-dark() tokens follow prefers-color-scheme without a script.
+  const surface = (page: Page): Promise<string> => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+
+  test("the mode switch sets color-scheme, and the tokens follow it", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "light" });
     await openApp(page);
     await openExampleFromStart(page);
     const html = page.locator("html");
+    const body = page.locator("body");
+    const lightSurface = await surface(page);
     await page.getByRole("button", { name: "Dark", exact: true }).click();
     await expect(page.getByRole("button", { name: "Dark", exact: true })).toHaveAttribute("aria-pressed", "true");
-    await expect(html).toHaveAttribute("data-scheme", "dark");
     await expect(html).toHaveCSS("color-scheme", "dark");
-    // The tokens follow: the page surface changes with the scheme.
-    const darkSurface = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    await expect(body).not.toHaveCSS("background-color", lightSurface);
     await page.getByRole("button", { name: "Light", exact: true }).click();
-    await expect(html).toHaveAttribute("data-scheme", "light");
     await expect(html).toHaveCSS("color-scheme", "light");
-    await expect(page.locator("body")).not.toHaveCSS("background-color", darkSurface);
+    await expect(body).toHaveCSS("background-color", lightSurface);
     await page.getByRole("button", { name: "Auto", exact: true }).click();
-    await expect(html).toHaveAttribute("data-scheme", "light");
-    await expect(html).toHaveCSS("color-scheme", "light");
+    await expect(html).toHaveCSS("color-scheme", "light dark");
+    await expect(body).toHaveCSS("background-color", lightSurface);
     await expectNoPageProblems(page);
   });
 
@@ -51,12 +54,10 @@ test.describe("in English", () => {
     await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
     await openApp(page);
     await openExampleFromStart(page);
-    await expect(page.locator("html")).toHaveAttribute("data-scheme", "light");
+    await expect(page.locator("html")).toHaveCSS("color-scheme", "light dark");
     // Switch and count in one task: transitions of 0.01ms would be over before a second evaluate.
     const started = await page.evaluate(() => {
-      const root = document.documentElement;
-      root.dataset.scheme = "dark";
-      root.style.colorScheme = "dark";
+      document.documentElement.style.colorScheme = "dark";
       void document.body.offsetHeight;
       return document.getAnimations().length;
     });
@@ -64,30 +65,34 @@ test.describe("in English", () => {
   });
 
   test("auto follows prefers-color-scheme, also when it changes", async ({ page }) => {
-    await page.emulateMedia({ colorScheme: "dark" });
+    await page.emulateMedia({ colorScheme: "light" });
     await openApp(page);
     const html = page.locator("html");
+    const body = page.locator("body");
+    const auto = page.getByRole("button", { name: "Auto", exact: true });
+    const lightSurface = await surface(page);
     // The start screen already follows the system.
-    await expect(html).toHaveAttribute("data-scheme", "dark");
-    await expect(html).toHaveCSS("color-scheme", "dark");
-    await openExampleFromStart(page);
-    await expect(page.getByRole("button", { name: "Auto", exact: true })).toHaveAttribute("aria-pressed", "true");
-    await page.emulateMedia({ colorScheme: "light" });
-    await expect(html).toHaveAttribute("data-scheme", "light");
-    await expect(html).toHaveCSS("color-scheme", "light");
     await page.emulateMedia({ colorScheme: "dark" });
-    await expect(html).toHaveAttribute("data-scheme", "dark");
+    await expect(html).toHaveCSS("color-scheme", "light dark");
+    await expect(body).not.toHaveCSS("background-color", lightSurface);
+    const darkSurface = await surface(page);
+    await openExampleFromStart(page);
+    await expect(auto).toHaveAttribute("aria-pressed", "true");
+    await page.emulateMedia({ colorScheme: "light" });
+    await expect(body).toHaveCSS("background-color", lightSurface);
+    await page.emulateMedia({ colorScheme: "dark" });
+    await expect(body).toHaveCSS("background-color", darkSurface);
 
     // A fixed mode ignores the system until the mode is auto again.
     await page.getByRole("button", { name: "Light", exact: true }).click();
-    await expect(html).toHaveAttribute("data-scheme", "light");
+    await expect(html).toHaveCSS("color-scheme", "light");
+    await expect(body).toHaveCSS("background-color", lightSurface);
     await page.emulateMedia({ colorScheme: "light" });
     await page.emulateMedia({ colorScheme: "dark" });
-    await expect(html).toHaveAttribute("data-scheme", "light");
-    await expect(html).toHaveCSS("color-scheme", "light");
-    await page.getByRole("button", { name: "Auto", exact: true }).click();
-    await expect(html).toHaveAttribute("data-scheme", "dark");
-    await expect(html).toHaveCSS("color-scheme", "dark");
+    await expect(body).toHaveCSS("background-color", lightSurface);
+    await auto.click();
+    await expect(html).toHaveCSS("color-scheme", "light dark");
+    await expect(body).toHaveCSS("background-color", darkSurface);
     await expectNoPageProblems(page);
   });
 
