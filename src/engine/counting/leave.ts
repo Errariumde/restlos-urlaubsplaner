@@ -35,6 +35,13 @@ export interface ChargedSpan {
   readonly kind: "leave" | "mandatory";
 }
 
+/** A span of a day where one kind of leave lies, in day positions. */
+export interface PlacedSpan {
+  readonly from: Units;
+  readonly to: Units;
+  readonly kind: LeaveKind;
+}
+
 export interface DayLeave {
   readonly cost: Units; // ownCost + mandatoryCost
   readonly ownCost: Units;
@@ -52,6 +59,13 @@ export interface DayLeave {
    * rest of the charged own leave. Empty when the day is not charged.
    */
   readonly charged: readonly ChargedSpan[];
+  /**
+   * Where each kind of leave lies, in day positions, charged or not (also outside the plan period), sorted by
+   * `from`, non-overlapping: mandatory leave where no other plan's leave lies, own leave where no such mandatory
+   * leave lies (with charging, the spans of `charged`), another plan's leave where neither lies. Only inside the
+   * work block, so empty on a day without required work.
+   */
+  readonly placed: readonly PlacedSpan[];
 }
 
 /** Half-open interval [from, to). Entries of a list have from < to. */
@@ -134,6 +148,11 @@ function spans(list: readonly Interval[], a: Units, kind: ChargedSpan["kind"]): 
   return list.map(([from, to]) => ({ from: from + a, to: to + a, kind }));
 }
 
+/** Block intervals as placed spans in day positions. */
+function placedSpans(list: readonly Interval[], a: Units, kind: LeaveKind): PlacedSpan[] {
+  return list.map(([from, to]) => ({ from: from + a, to: to + a, kind }));
+}
+
 /** IDs of the other-plan pieces that overlap own leave, each once, in input order. Throws RangeError for units or spans out of range. */
 export function overlappingOtherPlanIds(required: Pick<RequiredWork, "value" | "freePart">, pieces: readonly LeavePiece[]): string[] {
   const r = required.value;
@@ -182,8 +201,11 @@ export function evaluateLeave(
   const remaining = r - measure(free);
   const whole = remaining === 0;
 
-  const mandCharged = charge ? difference(mand, other) : [];
-  const ownCharged = charge ? difference(own, mandCharged) : [];
+  const mandPlaced = mand.length === 0 ? mand : difference(mand, other);
+  const ownPlaced = own.length === 0 ? own : difference(own, mandPlaced);
+  const otherPlaced = other.length === 0 ? other : difference(other, ownPlaced);
+  const mandCharged = charge ? mandPlaced : [];
+  const ownCharged = charge ? ownPlaced : [];
   const chargedBlock = union(ownCharged, mandCharged);
   const mandatoryCost = measure(mandCharged);
   const ownCost = measure(ownCharged);
@@ -201,5 +223,12 @@ export function evaluateLeave(
     costEnd: whole ? 0 : measureWithin(chargedBlock, r - q, r),
     ownCoveredByOtherPlan: measure(own) > measure(difference(own, other)),
     charged: [...spans(ownCharged, a, "leave"), ...spans(mandCharged, a, "mandatory")].toSorted((x, y) => x.from - y.from),
+    // Most days have no leave; they skip building the list.
+    placed:
+      free.length === 0
+        ? []
+        : [...placedSpans(ownPlaced, a, "own"), ...placedSpans(mandPlaced, a, "mandatory"), ...placedSpans(otherPlaced, a, "otherPlan")].toSorted(
+            (x, y) => x.from - y.from,
+          ),
   };
 }

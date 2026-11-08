@@ -4,6 +4,7 @@
 import { readFileSync } from "node:fs";
 import { IntlMessageFormat } from "intl-messageformat";
 import { describe, expect, it } from "vitest";
+import { evaluateLeave, type LeavePiece } from "../../../src/engine/counting/leave.ts";
 import type { DayResult } from "../../../src/engine/counting/plan.ts";
 import { dayFromYmd } from "../../../src/engine/days.ts";
 import { cellLabel } from "../../../src/ui/calendar/label.ts";
@@ -31,33 +32,34 @@ interface Options {
   day: number;
   required?: number;
   holiday?: string;
-  leave?: unknown[];
-  cost?: number;
+  sources?: unknown[];
+  leave?: LeavePiece[];
 }
 
-function result({ day, required = 480, holiday, leave = [], cost = 0 }: Options): DayResult {
+/** A day result whose leave the engine evaluates (work in the morning when the day is partly free). */
+function result({ day, required = 480, holiday, sources = [], leave = [] }: Options): DayResult {
   return {
     day,
     inPeriod: true,
-    facts: { day, holidays: holiday ? [{ day, ruleId: "r", nameKey: holiday, substitute: false }] : [] },
-    required: { value: required },
+    facts: { day, holidays: holiday ? [{ day, ruleId: "r", nameKey: holiday, substitute: false }] : [], sources },
+    required: { value: required, freePart: "end" },
     leave,
-    evaluation: { cost, ownCost: leave.some((p) => (p as { kind: string }).kind === "own") ? cost : 0 },
+    evaluation: evaluateLeave({ value: required, freePart: "end" }, leave, true),
   } as unknown as DayResult;
 }
 
 const friday = dayFromYmd(2027, 5, 7);
-const own = { kind: "own", take: 480, part: "end" };
+const own: LeavePiece = { kind: "own", take: 480, part: "end" };
 
 describe("cellLabel", () => {
-  const planned = result({ day: friday, leave: [own], cost: 480 });
+  const planned = result({ day: friday, leave: [own] });
 
   it("reads a planned working day in English", () => {
     expect(cellLabel(planned, meta, i18n("en"))).toBe("Friday, 7 May 2027, working day, leave full, costs 1");
   });
 
   it("reads a planned working day in German", () => {
-    expect(cellLabel(planned, meta, i18n("de"))).toBe("Freitag, 7. Mai 2027, Arbeitstag, Urlaub ganz, kostet 1");
+    expect(cellLabel(planned, meta, i18n("de"))).toBe("Freitag, 7. Mai 2027, Arbeitstag, ganzer Tag Urlaub, kostet 1");
   });
 
   it("leaves out the cost when nothing is taken", () => {
@@ -75,14 +77,38 @@ describe("cellLabel", () => {
   });
 
   it("tells half, mandatory and other-plan leave apart", () => {
-    const half = result({ day: friday, leave: [{ kind: "own", take: 240, part: "end" }], cost: 240 });
+    const half = result({ day: friday, leave: [{ kind: "own", take: 240, part: "end" }] });
     expect(cellLabel(half, meta, i18n("en"))).toContain(", leave half, afternoon, costs ½");
-    expect(cellLabel(half, meta, i18n("de"))).toContain(", Urlaub halb, nachmittags, kostet ½");
-    const morning = result({ day: friday, leave: [{ kind: "own", take: 240, part: "start" }], cost: 240 });
+    expect(cellLabel(half, meta, i18n("de"))).toContain(", halber Tag Urlaub, nachmittags, kostet ½");
+    const morning = result({ day: friday, leave: [{ kind: "own", take: 240, part: "start" }] });
     expect(cellLabel(morning, meta, i18n("en"))).toContain(", leave half, morning, costs ½");
-    expect(cellLabel(morning, meta, i18n("de"))).toContain(", Urlaub halb, vormittags, kostet ½");
-    expect(cellLabel(result({ day: friday, leave: [{ kind: "mandatory", take: 480, part: "end" }], cost: 480 }), meta, i18n("en"))).toContain(", mandatory leave, ");
-    expect(cellLabel(result({ day: friday, leave: [{ kind: "otherPlan", from: 0, to: 480 }] }), meta, i18n("en"))).toContain(", leave in another plan");
+    expect(cellLabel(morning, meta, i18n("de"))).toContain(", halber Tag Urlaub, vormittags, kostet ½");
+    expect(cellLabel(result({ day: friday, leave: [{ kind: "mandatory", take: 480, part: "end" }] }), meta, i18n("en"))).toContain(", mandatory leave, ");
+    expect(cellLabel(result({ day: friday, leave: [{ kind: "mandatory", take: 480, part: "end" }] }), meta, i18n("de"))).toContain(", Pflichturlaub, ");
+    const other = result({ day: friday, leave: [{ kind: "otherPlan", from: 0, to: 480 }] });
+    expect(cellLabel(other, meta, i18n("en"))).toContain(", leave in another plan");
+    expect(cellLabel(other, meta, i18n("de"))).toContain(", Urlaub aus anderem Plan");
+  });
+
+  it("says how much leave other than a half day there is and where it lies", () => {
+    const quarter = result({ day: friday, leave: [{ kind: "own", take: 120, part: "start" }] });
+    expect(cellLabel(quarter, meta, i18n("en"))).toContain(", leave ¼, at the start of the day, costs ¼");
+    expect(cellLabel(quarter, meta, i18n("de"))).toContain(", ¼ Tag Urlaub, am Anfang des Tages, kostet ¼");
+    const threeQuarters = result({ day: friday, leave: [{ kind: "own", take: 360, part: "end" }] });
+    expect(cellLabel(threeQuarters, meta, i18n("en"))).toContain(", leave ¾, at the end of the day, costs ¾");
+    expect(cellLabel(threeQuarters, meta, i18n("de"))).toContain(", ¾ Tag Urlaub, am Ende des Tages, kostet ¾");
+  });
+
+  it("names own and mandatory leave on the same day, each with its share", () => {
+    // A full day of own leave beside an afternoon of mandatory leave counts as own leave only in the morning.
+    const both = result({ day: friday, leave: [own, { kind: "mandatory", take: 240, part: "end", ruleId: "m" }] });
+    expect(cellLabel(both, meta, i18n("en"))).toContain(", leave half, morning and mandatory leave half, afternoon, costs 1");
+    expect(cellLabel(both, meta, i18n("de"))).toContain(", halber Tag Urlaub, vormittags und halber Tag Pflichturlaub, nachmittags, kostet 1");
+    const alone = result({ day: friday, leave: [{ kind: "mandatory", take: 240, part: "end", ruleId: "m" }] });
+    expect(cellLabel(alone, meta, i18n("en"))).toContain(", mandatory leave half, afternoon, costs ½");
+    // Another plan's leave is named too.
+    const shared = result({ day: friday, leave: [{ kind: "own", take: 240, part: "start" }, { kind: "otherPlan", from: 240, to: 480 }] });
+    expect(cellLabel(shared, meta, i18n("en"))).toContain(", leave half, morning and leave in another plan, costs ½");
   });
 
   it("decides the kind from the required work first", () => {
@@ -104,13 +130,6 @@ describe("cellLabel", () => {
     expect(cellLabel(result({ day: friday, required: 0 }), meta, i18n("de"))).toContain(", arbeitsfrei, ");
   });
 
-  it("reports own leave when mandatory leave is there too, and not full without own leave", () => {
-    const both = result({ day: friday, leave: [{ kind: "mandatory", take: 240, part: "start" }, own], cost: 480 });
-    expect(cellLabel(both, meta, i18n("en"))).toContain(", leave full, ");
-    const zero = result({ day: friday, leave: [{ kind: "own", take: 0, part: "end" }] });
-    expect(cellLabel(zero, meta, i18n("en"))).toContain(", no leave");
-  });
-
   it("adds nothing for an empty source list", () => {
     expect(cellLabel(planned, meta, i18n("en"), [])).toBe("Friday, 7 May 2027, working day, leave full, costs 1");
   });
@@ -118,6 +137,48 @@ describe("cellLabel", () => {
   it("appends the source names", () => {
     const label = cellLabel(planned, meta, i18n("en"), ["School holidays", "Team trip"]);
     expect(label).toBe("Friday, 7 May 2027, working day, leave full, costs 1, calendars School holidays and Team trip");
-    expect(cellLabel(planned, meta, i18n("de"), ["A", "B", "C"])).toBe("Freitag, 7. Mai 2027, Arbeitstag, Urlaub ganz, kostet 1, Kalender A, B und C");
+    expect(cellLabel(planned, meta, i18n("de"), ["A", "B", "C"])).toBe("Freitag, 7. Mai 2027, Arbeitstag, ganzer Tag Urlaub, kostet 1, Kalender A, B und C");
+  });
+});
+
+describe("a day of a holiday calendar", () => {
+  const cityMeta = {
+    weekend: ["sat", "sun"],
+    sources: [{ id: "city", name: { de: "Stadtfeiertage", en: "City holidays" }, type: "holiday", color: { slot: "accent-1" }, visible: true }],
+  } as unknown as PlanMeta;
+  const tuesday = dayFromYmd(2027, 2, 9);
+  const shrove = { de: "Faschingsdienstag", en: "Shrove Tuesday" };
+  const entry = (required: number, name: unknown = shrove) => ({ type: "holiday", day: tuesday, sourceId: "city", required, ...(name ? { name } : {}) });
+
+  it("is a holiday named after its entry", () => {
+    const day = result({ day: tuesday, required: 0, sources: [entry(0)] });
+    expect(cellLabel(day, cityMeta, i18n("en"))).toBe("Tuesday, 9 February 2027, holiday Shrove Tuesday, no leave");
+    expect(cellLabel(day, cityMeta, i18n("de"))).toBe("Dienstag, 9. Februar 2027, Feiertag Faschingsdienstag, kein Urlaub");
+  });
+
+  it("is named after its calendar when the entry has no name", () => {
+    const day = result({ day: tuesday, required: 0, sources: [entry(0, null)] });
+    expect(cellLabel(day, cityMeta, i18n("en"))).toContain(", holiday City holidays, ");
+  });
+
+  it("is a half working day with the holiday's name when it frees part of the day", () => {
+    const day = result({ day: tuesday, required: 240, sources: [entry(240)] });
+    expect(cellLabel(day, cityMeta, i18n("en"))).toContain(", half working day, Shrove Tuesday, ");
+  });
+
+  it("stays a working day when it is worked", () => {
+    const day = result({ day: tuesday, required: 480, sources: [entry(0)] });
+    expect(cellLabel(day, cityMeta, i18n("en"))).toContain(", working day, ");
+  });
+
+  it("is no holiday when its entry keeps the full day", () => {
+    const saturday = dayFromYmd(2027, 2, 13);
+    const day = result({ day: saturday, required: 0, sources: [{ ...entry(480), day: saturday }] });
+    expect(cellLabel(day, cityMeta, i18n("en"))).toContain(", weekend, ");
+  });
+
+  it("gives way to a public holiday's name", () => {
+    const day = result({ day: tuesday, required: 0, holiday: "holiday.christmas-day", sources: [entry(0)] });
+    expect(cellLabel(day, cityMeta, i18n("en"))).toContain(", holiday Christmas Day, ");
   });
 });

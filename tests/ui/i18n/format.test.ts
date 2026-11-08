@@ -4,7 +4,7 @@
 import { IntlMessageFormat } from "intl-messageformat";
 import { describe, expect, it } from "vitest";
 import { dayFromYmd } from "../../../src/engine/days";
-import { formatDate, formatDays, pluralCount } from "../../../src/ui/i18n/format";
+import { formatDate, formatDays, formatList, pluralCount } from "../../../src/ui/i18n/format";
 
 describe("formatDays", () => {
   it("formats day amounts with ½", () => {
@@ -15,15 +15,27 @@ describe("formatDays", () => {
     expect(formatDays(0, "de")).toBe("0");
   });
 
-  it("falls back to up to two decimals for other fractions", () => {
-    expect(formatDays(160, "en")).toBe("0.33");
-    expect(formatDays(160, "de")).toBe("0,33");
-    expect(formatDays(-160, "en")).toBe("−0.33");
+  it("writes other fractions with their glyph where Unicode has one", () => {
+    expect(formatDays(120, "en")).toBe("¼");
+    expect(formatDays(360, "de")).toBe("¾");
+    expect(formatDays(160, "en")).toBe("⅓");
+    expect(formatDays(60, "en")).toBe("⅛");
+    expect(formatDays(48, "en")).toBe("⅒");
+    expect(formatDays(600, "de")).toBe("1¼");
+    expect(formatDays(-160, "en")).toBe("−⅓");
+  });
+
+  it("writes a fraction without a glyph as numerator/denominator, apart from the whole days", () => {
+    expect(formatDays(45, "en")).toBe("3/32");
+    expect(formatDays(30, "de")).toBe("1/16");
+    expect(formatDays(144, "en")).toBe("3/10");
+    expect(formatDays(525, "en")).toBe("1\u00a03/32");
+    expect(formatDays(-45, "de")).toBe("−3/32");
   });
 
   it("formats the pseudo-locales like English", () => {
     expect(formatDays(720, "en-XA")).toBe("1½");
-    expect(formatDays(160, "en-XB")).toBe("0.33");
+    expect(formatDays(160, "en-XB")).toBe("⅓");
   });
 });
 
@@ -80,5 +92,13 @@ describe("formatDate", () => {
 
   it("formats the pseudo-locales like English", () => {
     expect(formatDate(dayFromYmd(2027, 5, 7), "en-XA", "long")).toBe("Friday, 7 May 2027");
+  });
+});
+
+describe("formatList", () => {
+  it("joins items with the language's conjunction", () => {
+    expect(formatList(["A", "B", "C"], "en")).toBe("A, B and C");
+    expect(formatList(["A", "B", "C"], "de")).toBe("A, B und C");
+    expect(formatList(["A"], "en-XA")).toBe("A");
   });
 });

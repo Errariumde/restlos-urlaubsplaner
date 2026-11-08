@@ -86,6 +86,7 @@ function metaOf(file: PlanFile, example: boolean): PlanMeta {
     weekend: country.weekend,
     period: file.plan.range,
     allowance: file.plan.allowance,
+    minUnit: file.contract.minUnit,
     sources: file.sources.map(({ id, name, type, color, visible }) => ({ id, name, type, color, visible })),
     rules: file.contract.rules.map(({ id, label }) => ({ id, label })),
     example,

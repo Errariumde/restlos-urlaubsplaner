@@ -43,8 +43,11 @@ export interface Contract {
   readonly rules: readonly DayRule[];
 }
 
+/** A text for display: one string, or a map from language code to text (the file's Text). */
+export type DisplayText = string | Readonly<Record<string, string>>;
+
 /** One day of a calendar source, already resolved from its iCal or plan file. */
-export type SourceDay =
+export type SourceDay = (
   | {
       readonly type: "holiday";
       readonly day: DayNumber;
@@ -78,7 +81,11 @@ export type SourceDay =
       readonly to: Units;
       /** What the other plan charged it as; for display only. */
       readonly kind: "leave" | "mandatory";
-    };
+    }
+) & {
+  /** The name of the entry the day comes from, for display only ("Faschingsdienstag"); absent when the entry has none. */
+  readonly name?: DisplayText;
+};
 
 export interface LeaveDay {
   readonly day: DayNumber;

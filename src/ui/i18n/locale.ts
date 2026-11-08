@@ -11,3 +11,8 @@ export type Catalog = Record<string, string>;
 export function localeForLanguage(language: string): Locale {
   return /^de(?:-|$)/i.test(language) ? "de" : "en";
 }
+
+/** The language a file's texts are read in for a UI locale; the pseudo-locales read the English texts. */
+export function textLanguage(locale: Locale): string {
+  return locale === "de" ? "de" : "en";
+}

@@ -4,14 +4,17 @@ SPDX-License-Identifier: EUPL-1.2
 -->
 <script lang="ts">
   import { onMount } from "svelte";
+  import { evaluateLeave, type LeavePiece } from "../../engine/counting/leave.ts";
   import type { DayResult } from "../../engine/counting/plan.ts";
+  import type { Part } from "../../engine/counting/types.ts";
   import { dayFromYmd, type DayNumber } from "../../engine/days.ts";
   import type { CellLane } from "../../ui/calendar/cell-lanes.ts";
   import DayCell from "../../ui/calendar/DayCell.svelte";
   import { i18n } from "../../ui/i18n/i18n.svelte.ts";
   import type { PlanMeta } from "../../ui/worker/protocol.ts";
 
-  // Every layer and state of a day cell. The day results are stubs with just what the cell reads.
+  // Every layer and state of a day cell. The day results are stubs with just what the cell reads; the engine
+  // evaluates their leave, so each fill is drawn as the app draws it.
   const meta = $derived({
     weekend: ["sat", "sun"],
     sources: [
@@ -25,25 +28,25 @@ SPDX-License-Identifier: EUPL-1.2
   interface Stub {
     day: DayNumber;
     required?: number;
+    freePart?: Part;
     holiday?: string;
-    leave?: unknown[];
-    cost?: number;
-    ownCost?: number;
+    leave?: LeavePiece[];
   }
 
-  function stub({ day, required = 480, holiday, leave = [], cost = 0, ownCost = cost }: Stub): DayResult {
+  function stub({ day, required = 480, freePart = "end", holiday, leave = [] }: Stub): DayResult {
     return {
       day,
       inPeriod: true,
       facts: { holidays: holiday ? [{ nameKey: holiday }] : [], sources: [] },
-      required: { value: required },
+      required: { value: required, freePart },
       leave,
-      evaluation: { cost, ownCost },
+      evaluation: evaluateLeave({ value: required, freePart }, leave, true),
     } as unknown as DayResult;
   }
 
   const may = (day: number): DayNumber => dayFromYmd(2027, 5, day);
-  const own = (take: number, part: "start" | "end") => ({ kind: "own", take, part });
+  const own = (take: number, part: Part): LeavePiece => ({ kind: "own", take, part });
+  const mandatory = (take: number, part: Part): LeavePiece => ({ kind: "mandatory", take, part, ruleId: "closure" });
   const lanes = (count: number): CellLane[] =>
     ["project", "school", "fair", "kita"].slice(0, count).map((sourceId, i) => ({
       sourceId,
@@ -69,24 +72,26 @@ SPDX-License-Identifier: EUPL-1.2
     { caption: i18n.t("gallery.cell.holiday"), day: stub({ day: may(6), required: 0, holiday: "holiday.ascension-day" }) },
     { caption: i18n.t("gallery.cell.halfRequired"), day: stub({ day: dayFromYmd(2027, 12, 24), required: 240 }) },
     { caption: i18n.t("gallery.cell.halfRequiredHoliday"), day: stub({ day: may(5), required: 240, holiday: "holiday.labour-day" }) },
+    { caption: i18n.t("gallery.cell.halfRequiredStart"), day: stub({ day: may(7), required: 240, freePart: "start" }) },
     { caption: i18n.t("gallery.cell.free"), day: stub({ day: may(10), required: 0 }) },
   ]);
 
   const leave = $derived<Sample[]>([
-    { caption: i18n.t("gallery.cell.full"), day: stub({ day: may(11), leave: [own(480, "end")], cost: 480 }) },
-    { caption: i18n.t("gallery.cell.halfEnd"), day: stub({ day: may(12), leave: [own(240, "end")], cost: 240 }) },
-    { caption: i18n.t("gallery.cell.halfStart"), day: stub({ day: may(13), leave: [own(240, "start")], cost: 240 }) },
-    {
-      caption: i18n.t("gallery.cell.mandatory"),
-      day: stub({ day: may(14), leave: [{ kind: "mandatory", take: 480, part: "end" }], cost: 480, ownCost: 0 }),
-    },
+    { caption: i18n.t("gallery.cell.full"), day: stub({ day: may(11), leave: [own(480, "end")] }) },
+    { caption: i18n.t("gallery.cell.halfEnd"), day: stub({ day: may(12), leave: [own(240, "end")] }) },
+    { caption: i18n.t("gallery.cell.halfStart"), day: stub({ day: may(13), leave: [own(240, "start")] }) },
+    { caption: i18n.t("gallery.cell.quarterStart"), day: stub({ day: may(3), leave: [own(120, "start")] }) },
+    { caption: i18n.t("gallery.cell.threeQuartersEnd"), day: stub({ day: may(4), leave: [own(360, "end")] }) },
+    { caption: i18n.t("gallery.cell.mandatory"), day: stub({ day: may(14), leave: [mandatory(480, "end")] }) },
+    { caption: i18n.t("gallery.cell.mandatoryHalf"), day: stub({ day: may(15), leave: [mandatory(240, "end")] }) },
+    { caption: i18n.t("gallery.cell.ownAndMandatory"), day: stub({ day: may(16), leave: [own(480, "end"), mandatory(240, "end")] }) },
     { caption: i18n.t("gallery.cell.otherPlan"), day: stub({ day: may(17), leave: [{ kind: "otherPlan", from: 0, to: 480 }] }) },
   ]);
 
   const sources = $derived<Sample[]>([
     { caption: i18n.t("gallery.cell.lanes", { count: 1 }), day: stub({ day: may(18) }), lanes: lanes(1) },
     { caption: i18n.t("gallery.cell.lanes", { count: 2 }), day: stub({ day: may(19) }), lanes: lanes(2) },
-    { caption: i18n.t("gallery.cell.lanes", { count: 3 }), day: stub({ day: may(20), leave: [own(480, "end")], cost: 480 }), lanes: lanes(3) },
+    { caption: i18n.t("gallery.cell.lanes", { count: 3 }), day: stub({ day: may(20), leave: [own(480, "end")] }), lanes: lanes(3) },
     { caption: i18n.t("gallery.cell.lanesMore"), day: stub({ day: may(21) }), lanes: lanes(4) },
   ]);
 
@@ -95,8 +100,8 @@ SPDX-License-Identifier: EUPL-1.2
     { caption: i18n.t("gallery.cell.focus"), day: stub({ day: may(25) }), focused: true },
     { caption: i18n.t("gallery.cell.selected"), day: stub({ day: may(26) }), selected: true },
     { caption: i18n.t("gallery.cell.previewed"), day: stub({ day: may(27) }), previewed: true },
-    { caption: i18n.t("gallery.cell.removing"), day: stub({ day: may(28), leave: [own(480, "end")], cost: 480 }), previewed: true, removing: true },
-    { caption: i18n.t("gallery.cell.todaySelected"), day: stub({ day: may(31), leave: [own(480, "end")], cost: 480 }), today: true, selected: true },
+    { caption: i18n.t("gallery.cell.removing"), day: stub({ day: may(28), leave: [own(480, "end")] }), previewed: true, removing: true },
+    { caption: i18n.t("gallery.cell.todaySelected"), day: stub({ day: may(31), leave: [own(480, "end")] }), today: true, selected: true },
   ]);
 
   const groups = $derived([
@@ -107,7 +112,7 @@ SPDX-License-Identifier: EUPL-1.2
   ]);
 
   const columnSamples = $derived<Sample[]>([
-    { caption: i18n.t("gallery.cell.full"), day: stub({ day: may(11), leave: [own(480, "end")], cost: 480 }), lanes: lanes(2) },
+    { caption: i18n.t("gallery.cell.full"), day: stub({ day: may(11), leave: [own(480, "end")] }), lanes: lanes(2) },
     { caption: i18n.t("gallery.cell.weekend"), day: stub({ day: may(8), required: 0 }), lanes: lanes(1) },
   ]);
 

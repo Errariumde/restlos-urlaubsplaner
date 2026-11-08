@@ -5,14 +5,15 @@ SPDX-License-Identifier: EUPL-1.2
 <script lang="ts">
   // The action bar of the touch selection mode (docs/SPEC.md, "Calendar interaction"), kept at the block
   // end of the window: the hint line for the selection with the button that leaves the mode, and Full day,
-  // Half day, Remove and Clear selection. Each action goes through the range rules as one undo step and ends
-  // the selection; the mode stays on. The bar looks the same with and without a selection.
+  // Half day (only where the plan's smallest leave unit has half days), Remove and Clear selection. Each action
+  // goes through the range rules as one undo step and ends the selection; the mode stays on. The bar looks the
+  // same with and without a selection.
   import Button from "../controls/Button.svelte";
   import IconButton from "../controls/IconButton.svelte";
   import { i18n } from "../i18n/i18n.svelte.ts";
   import { app } from "../state/app.svelte.ts";
   import HintLine from "./HintLine.svelte";
-  import { rangeChanges, type RangeAction } from "./range.ts";
+  import { halfDayFits, rangeChanges, type RangeAction } from "./range.ts";
 
   interface Props {
     /** The bar's height in px: a day reached with the keyboard stops above it. */
@@ -22,6 +23,7 @@ SPDX-License-Identifier: EUPL-1.2
   let { size = $bindable(0) }: Props = $props();
 
   const disabled = $derived(app.selection === undefined || app.applying);
+  const halfDays = $derived(app.state !== undefined && halfDayFits(app.state.meta.minUnit));
 
   let bar = $state<HTMLElement>();
 
@@ -70,7 +72,9 @@ SPDX-License-Identifier: EUPL-1.2
   </HintLine>
   <div class="actions cluster">
     <Button variant="primary" {disabled} onclick={() => apply("full")}>{i18n.t("selection.full")}</Button>
-    <Button {disabled} onclick={() => apply("half")}>{i18n.t("selection.half")}</Button>
+    {#if halfDays}
+      <Button {disabled} onclick={() => apply("half")}>{i18n.t("selection.half")}</Button>
+    {/if}
     <Button {disabled} onclick={() => apply("remove")}>{i18n.t("selection.remove")}</Button>
     <Button {disabled} onclick={clear}>{i18n.t("selection.clear")}</Button>
   </div>

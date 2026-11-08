@@ -12,12 +12,13 @@ SPDX-License-Identifier: EUPL-1.2
   import Button from "../controls/Button.svelte";
   import Popover from "../controls/Popover.svelte";
   import Sheet from "../controls/Sheet.svelte";
-  import { pluralCount, formatDate, formatDays } from "../i18n/format.ts";
+  import { pluralCount, formatDate, formatDays, formatList } from "../i18n/format.ts";
   import { i18n } from "../i18n/i18n.svelte.ts";
   import { app } from "../state/app.svelte.ts";
   import type { LeaveChange, PlanMeta } from "../worker/protocol.ts";
   import { lineStyle, sourceAccent } from "./cell-lanes.ts";
   import { dayDetail, detailActions, type Blocked, type DayDetailData } from "./detail.ts";
+  import { halfDayFits } from "./range.ts";
 
   interface Props {
     day: DayResult;
@@ -33,7 +34,8 @@ SPDX-License-Identifier: EUPL-1.2
   let { day, meta, problems, presentation, anchor, onclose = () => {} }: Props = $props();
 
   const detail = $derived(dayDetail(day, meta, problems, i18n.locale));
-  const actions = $derived(detailActions(day));
+  const actions = $derived(detailActions(day, meta.minUnit));
+  const halfDays = $derived(halfDayFits(meta.minUnit));
   const date = $derived(formatDate(day.day, i18n.locale, "long"));
   const label = $derived(i18n.t("detail.label", { date }));
   const id = $derived(`day-detail-${String(day.day)}`);
@@ -63,9 +65,12 @@ SPDX-License-Identifier: EUPL-1.2
   const reason = $derived(reasonText(detail.requiredReason));
 
   const sources = $derived(
-    detail.sources.map((source) => {
+    detail.sources.map(({ source, entries }) => {
       const index = meta.sources.indexOf(source);
-      return { id: source.id, name: textFor(source.name, i18n.lang), accent: sourceAccent(source, index), style: lineStyle(index) };
+      const name = textFor(source.name, i18n.lang);
+      // The calendar, and the names of its entries on this day after it: "School holidays: Autumn break".
+      const text = entries.length === 0 ? name : i18n.t("detail.sourceEntries", { source: name, entries: formatList(entries, i18n.locale) });
+      return { id: source.id, text, accent: sourceAccent(source, index), style: lineStyle(index) };
     }),
   );
 
@@ -124,7 +129,7 @@ SPDX-License-Identifier: EUPL-1.2
           {#each sources as source (source.id)}
             <li>
               <span class="swatch {source.style}" style:--accent="var(--r-accent-{source.accent})" aria-hidden="true"></span>
-              {source.name}
+              {source.text}
             </li>
           {/each}
         </ul>
@@ -147,8 +152,11 @@ SPDX-License-Identifier: EUPL-1.2
     <div class="stack tight">
       <div class="actions" role="group" aria-label={i18n.t("detail.actions")}>
         <Button variant="primary" disabled={!actions.full} onclick={() => void run(actions.full)}>{i18n.t("detail.action.full")}</Button>
-        <Button disabled={!actions.morning} onclick={() => void run(actions.morning)}>{i18n.t("detail.action.morning")}</Button>
-        <Button disabled={!actions.afternoon} onclick={() => void run(actions.afternoon)}>{i18n.t("detail.action.afternoon")}</Button>
+        <!-- A plan without half days (smallest leave unit "1") has no half-day buttons at all. -->
+        {#if halfDays}
+          <Button disabled={!actions.morning} onclick={() => void run(actions.morning)}>{i18n.t("detail.action.morning")}</Button>
+          <Button disabled={!actions.afternoon} onclick={() => void run(actions.afternoon)}>{i18n.t("detail.action.afternoon")}</Button>
+        {/if}
         <Button disabled={!actions.remove} onclick={() => void run(actions.remove)}>{i18n.t("detail.action.remove")}</Button>
       </div>
       {#if actions.blocked}

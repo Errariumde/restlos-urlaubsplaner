@@ -14,7 +14,7 @@ import { i18n } from "../i18n/i18n.svelte.ts";
 import type { app as appState } from "../state/app.svelte.ts";
 import type { LeaveChange } from "../worker/protocol.ts";
 import { navKeyOf, nextDay } from "./grid-nav.ts";
-import { rangeChanges, toggleDay, type RangeAction } from "./range.ts";
+import { halfDayFits, rangeChanges, toggleDay, type RangeAction } from "./range.ts";
 
 export interface KeyboardOptions {
   readonly view: () => "tiles" | "columns";
@@ -66,8 +66,14 @@ export function calendarKeyboard(node: HTMLElement, initial: KeyboardOptions): {
 
   function apply(action: RangeAction | "toggle", day: DayNumber): void {
     const app = options.app;
-    const result = app.state?.result;
-    if (result === undefined) return;
+    const state = app.state;
+    if (state === undefined) return;
+    const { result } = state;
+    // A plan in whole days has no half day: H keeps the days and the selection, and the hint line says why.
+    if (action === "half" && !halfDayFits(state.meta.minUnit)) {
+      app.notice = "noHalfDays";
+      return;
+    }
     const selection = app.selection;
     let changes: LeaveChange[];
     if (selection !== undefined) changes = rangeChanges(result, selection.anchor, selection.head, action === "toggle" ? "full" : action);

@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { dayFromYmd } from "../../../src/engine/days.ts";
 import type { PlanState } from "../../../src/ui/worker/protocol.ts";
 import { Session } from "../../../src/ui/worker/session.ts";
-import { actionForDrag, rangeChanges, toggleDay, weekChanges, weekSelection } from "../../../src/ui/calendar/range.ts";
+import { actionForDrag, halfDayFits, rangeChanges, toggleDay, weekChanges, weekSelection } from "../../../src/ui/calendar/range.ts";
 
 const example = readFileSync("examples/plans/beispiel-gmbh-2027.urlaub.json", "utf8");
 const d = (y: number, m: number, day: number): number => dayFromYmd(y, m, day);
@@ -15,6 +15,16 @@ function opened(): { session: Session; state: PlanState } {
   const session = new Session();
   return { session, state: session.open(example, true) as PlanState };
 }
+
+describe("halfDayFits", () => {
+  it("allows half days only where ½ is a multiple of the smallest leave unit", () => {
+    expect(halfDayFits(240)).toBe(true); // ½
+    expect(halfDayFits(120)).toBe(true); // ¼
+    expect(halfDayFits(15)).toBe(true); // 1/32
+    expect(halfDayFits(480)).toBe(false); // whole days
+    expect(halfDayFits(160)).toBe(false); // ⅓
+  });
+});
 
 describe("rangeChanges", () => {
   const r = opened().state.result;
@@ -219,5 +229,56 @@ describe("toggleDay", () => {
 
   it("sets a full day on a day with half required work", () => {
     expect(toggleDay(state.result, d(2027, 12, 24))).toEqual([{ day: d(2027, 12, 24), take: 480 }]);
+  });
+});
+
+// Days that mandatory leave or another plan's leave covers in part: setting fills the free rest of the work, at the
+// free side, as long as it is one stretch at an edge; a span in the middle that leaves two gaps is left alone.
+describe("partly covered days", () => {
+  const file = JSON.parse(example) as { contract: { rules: unknown[] }; sources: { entries: unknown[] }[] };
+  file.contract.rules.push(
+    { id: "half-closure", match: { type: "fixed", month: 3, day: 4 }, mandatory: "1/2", part: "end" },
+    { id: "quarter-closure", match: { type: "fixed", month: 3, day: 5 }, mandatory: "1/4", part: "end" },
+  );
+  file.sources[1]!.entries.push({ date: "2027-03-02", from: "0", to: "1/2", kind: "leave" }, { date: "2027-03-03", from: "1/4", to: "3/4", kind: "leave" });
+  const session = new Session();
+  const r = (session.open(JSON.stringify(file), true) as PlanState).result;
+  const march = (day: number): number => d(2027, 3, day);
+
+  it("fills the free rest beside mandatory leave or another plan's leave", () => {
+    expect(rangeChanges(r, march(4), march(4), "full")).toEqual([{ day: march(4), take: 240, part: "start" }]);
+    expect(rangeChanges(r, march(5), march(5), "full")).toEqual([{ day: march(5), take: 360, part: "start" }]);
+    expect(rangeChanges(r, march(2), march(2), "full")).toEqual([{ day: march(2), take: 240, part: "end" }]);
+  });
+
+  it("leaves a day alone whose free time lies on both sides of another plan's leave", () => {
+    expect(rangeChanges(r, march(3), march(3), "full")).toEqual([]);
+    expect(rangeChanges(r, march(3), march(3), "half")).toEqual([]);
+  });
+
+  it("sets half a day at the free side where the rest is larger, else the rest", () => {
+    expect(rangeChanges(r, march(5), march(5), "half")).toEqual([{ day: march(5), take: 240, part: "start" }]);
+    expect(rangeChanges(r, march(4), march(4), "half")).toEqual([{ day: march(4), take: 240, part: "start" }]);
+    expect(rangeChanges(r, march(2), march(2), "half")).toEqual([{ day: march(2), take: 240, part: "end" }]);
+  });
+
+  it("goes through the same rule for a range, a click and the hint", () => {
+    expect(rangeChanges(r, march(1), march(5), "full")).toEqual([
+      { day: march(1), take: 480 },
+      { day: march(2), take: 240, part: "end" },
+      { day: march(4), take: 240, part: "start" },
+      { day: march(5), take: 360, part: "start" },
+    ]);
+    expect(toggleDay(r, march(4))).toEqual([{ day: march(4), take: 240, part: "start" }]);
+    const hint = session.preview(rangeChanges(r, march(4), march(4), "full"));
+    expect(hint).toMatchObject({ days: 1, cost: 240 });
+  });
+
+  it("changes nothing once the rest is set, and removes the own leave again", () => {
+    const after = new Session();
+    after.open(JSON.stringify(file), true);
+    const filled = after.apply(rangeChanges(r, march(4), march(4), "full")).result;
+    expect(rangeChanges(filled, march(4), march(4), "full")).toEqual([]);
+    expect(toggleDay(filled, march(4))).toEqual([{ day: march(4), take: 0 }]);
   });
 });

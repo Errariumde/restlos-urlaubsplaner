@@ -40,3 +40,8 @@ Leave is charged only where it overlaps the working time of the day. On 24 Decem
 - [ ] Plan files written before the change load unchanged; the changed cost is reported where it differs, if the design wants that.
 
 ## Notes
+
+- The UI reads where each kind of leave lies from the engine (`DayLeave.placed` in `src/engine/counting/leave.ts`, read by `src/ui/calendar/day-leave.ts`), so a change of where leave lies shows in the cell, its label and the detail without UI work.
+- Today own and mandatory leave are both placed inside the work block. On 24 December (work in the morning) own ½ at the end lies at day positions 0–240, own ¼ at the end at 120–240, and mandatory ½ at the end at 0–240. Once leave on free time lies where it is, the cell draws it there, as it draws own leave on a Saturday.
+- On the acceptance criterion "not offered or shown as such": the maintainer chose "shown as such" on 2026-11-07; the detail shows such leave with no cost ("–").
+- `part` then means "of the day" instead of "of the working time"; the Data model row of `docs/SPEC.md`, "Finer granularity: prepared, not implemented", says the latter and changes with it.

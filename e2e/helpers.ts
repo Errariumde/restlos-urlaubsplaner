@@ -85,6 +85,27 @@ export async function openExampleFromStart(page: Page): Promise<void> {
   await expect(page.getByRole("heading", { level: 1 })).not.toHaveText("restlos");
 }
 
+/**
+ * Opens the app and the example with some of its file's values replaced: the keys of `edits.contract`, `edits.plan`
+ * and `edits.root` overwrite those of the example's contract, plan and top level (the file is the page's data block).
+ */
+export async function openEditedExample(
+  page: Page,
+  edits: { contract?: Record<string, unknown>; plan?: Record<string, unknown>; root?: Record<string, unknown> },
+): Promise<void> {
+  await openApp(page);
+  await page.evaluate((changes) => {
+    const block = document.getElementById("example-plan");
+    if (!block?.textContent) throw new Error("The page has no example data block");
+    const file = JSON.parse(block.textContent) as Record<string, unknown> & { contract: object; plan: object };
+    Object.assign(file.contract, changes.contract);
+    Object.assign(file.plan, changes.plan);
+    Object.assign(file, changes.root);
+    block.textContent = JSON.stringify(file);
+  }, edits);
+  await openExampleFromStart(page);
+}
+
 /** Opens the built gallery on one section, locale and mode (`?section=…&locale=…&mode=…`), or on the overview. */
 export async function openGallery(page: Page, params: { section: string; locale: string; mode: string } | undefined): Promise<void> {
   const search = params ? `?${new URLSearchParams(params).toString()}` : "";

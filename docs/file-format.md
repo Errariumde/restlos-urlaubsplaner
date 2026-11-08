@@ -110,7 +110,7 @@ A rule set fixes as much of the region as it knows: an agreement valid everywher
 
 ### Smallest leave unit
 
-`minUnit` is a weight that divides one day into whole units: `"1"`, `"1/2"`, `"1/4"`, … `"1/32"`, or any other `1/n` where `n` divides 480. Version 1 of the app offers only `"1"` and `"1/2"`. Leave and overrides that are not a multiple of it are kept and reported (`notMultipleOfMinUnit`).
+`minUnit` is a weight that divides one day into whole units: `"1"`, `"1/2"`, `"1/4"`, … `"1/32"`, or any other `1/n` where `n` divides 480. The contract dialog of version 1 offers only `"1"` and `"1/2"`; with any other unit from a handwritten file, the app plans in that unit (half days only where ½ is a multiple of it). Leave and overrides that are not a multiple of it are kept and reported (`notMultipleOfMinUnit`).
 
 ### Work week
 

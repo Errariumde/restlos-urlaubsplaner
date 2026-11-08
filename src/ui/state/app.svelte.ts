@@ -26,6 +26,11 @@ class App {
   focusDay = $state<DayNumber | undefined>(undefined);
   selection = $state<{ anchor: DayNumber; head: DayNumber } | undefined>(undefined);
   hint = $state.raw<Hint | undefined>(undefined);
+  /**
+   * Why a key did nothing, for the hint line, which shows it instead of the hint: "noHalfDays" after H in a plan
+   * whose smallest leave unit has no half days. The next hint or change replaces it.
+   */
+  notice = $state<"noHalfDays" | undefined>(undefined);
   #selectMode = $state(false);
 
   /**
@@ -99,6 +104,7 @@ class App {
 
   /** Sets the plan's own leave; no worker call when nothing changes. */
   async apply(changes: readonly LeaveChange[]): Promise<void> {
+    this.notice = undefined;
     if (changes.length === 0) return;
     const copy = $state.snapshot(changes);
     await this.#change(() => this.#engineNow().apply(copy));
@@ -110,7 +116,10 @@ class App {
    */
   async preview(changes: readonly LeaveChange[], current: () => boolean = () => true): Promise<void> {
     const hint = await this.#engineNow().preview($state.snapshot(changes));
-    if (hint !== undefined && current()) this.hint = hint;
+    if (hint !== undefined && current()) {
+      this.hint = hint;
+      this.notice = undefined;
+    }
   }
 
   /**
@@ -126,10 +135,12 @@ class App {
   }
 
   async undo(): Promise<void> {
+    this.notice = undefined;
     await this.#change(() => this.#engineNow().undo());
   }
 
   async redo(): Promise<void> {
+    this.notice = undefined;
     await this.#change(() => this.#engineNow().redo());
   }
 }

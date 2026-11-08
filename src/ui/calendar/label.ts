@@ -3,21 +3,47 @@
 
 // The accessible label of a calendar cell (docs/SPEC.md, "Accessibility").
 import type { DayResult } from "../../engine/counting/plan.ts";
-import type { Part } from "../../engine/counting/types.ts";
+import type { SourceDay } from "../../engine/counting/types.ts";
 import { weekdayOf } from "../../engine/days.ts";
-import { UNITS_PER_DAY } from "../../engine/weight.ts";
-import { formatDate, formatDays } from "../i18n/format.ts";
-import type { Locale } from "../i18n/locale.ts";
+import { textFor } from "../../engine/file/text.ts";
+import { UNITS_PER_DAY, type Units } from "../../engine/weight.ts";
+import { formatDate, formatDays, formatList } from "../i18n/format.ts";
+import { textLanguage, type Locale } from "../i18n/locale.ts";
 import type { PlanMeta } from "../worker/protocol.ts";
+import { dayLeave, type DayLeaveView } from "./day-leave.ts";
 
 export type Translate = (key: string, args?: Record<string, string | number>) => string;
 
 export type CellKind = "workday" | "weekend" | "holiday" | "halfRequired" | "halfRequiredHoliday" | "free";
-export type CellLeave = "none" | "full" | "half" | "mandatory" | "otherPlan";
 
-/** The kind follows the required work: a holiday that is worked is a working day, a working Saturday too. */
+type HolidaySourceDay = Extract<SourceDay, { type: "holiday" }>;
+
+/** The first day of a holiday calendar on the day that frees time, if any; one that keeps the full day is no holiday. */
+function holidaySourceDay(day: DayResult): HolidaySourceDay | undefined {
+  return day.facts.sources.find((source): source is HolidaySourceDay => source.type === "holiday" && source.required < UNITS_PER_DAY);
+}
+
+/**
+ * The name of the day's holiday: a public holiday's message key resolved, else the entry of a holiday calendar,
+ * or that calendar's name when the entry has none; "" when the day has no holiday.
+ */
+export function holidayName(day: DayResult, meta: PlanMeta, i18n: { t: Translate; locale: Locale }): string {
+  const publicHoliday = day.facts.holidays[0];
+  if (publicHoliday) return i18n.t(publicHoliday.nameKey);
+  const source = holidaySourceDay(day);
+  if (source === undefined) return "";
+  const lang = textLanguage(i18n.locale);
+  if (source.name !== undefined) return textFor(source.name, lang);
+  const calendar = meta.sources.find((candidate) => candidate.id === source.sourceId);
+  return calendar ? textFor(calendar.name, lang) : source.sourceId;
+}
+
+/**
+ * The kind follows the required work: a holiday that is worked is a working day, a working Saturday too. A day of
+ * a holiday calendar counts as a holiday like a public holiday.
+ */
 export function kindOf(day: DayResult, meta: PlanMeta): CellKind {
-  const holiday = day.facts.holidays.length > 0;
+  const holiday = day.facts.holidays.length > 0 || holidaySourceDay(day) !== undefined;
   const required = day.required.value;
   if (required === 0) {
     if (holiday) return "holiday";
@@ -28,32 +54,28 @@ export function kindOf(day: DayResult, meta: PlanMeta): CellKind {
   return "workday";
 }
 
-/** The leave a cell shows: own leave wins over mandatory leave, which wins over leave from another plan. */
-export function leaveOf(day: DayResult): CellLeave {
-  if (day.leave.some((piece) => piece.kind === "own" && piece.take > 0)) {
-    return day.evaluation.ownCost >= day.required.value ? "full" : "half";
-  }
-  if (day.leave.some((piece) => piece.kind === "mandatory")) return "mandatory";
-  if (day.leave.some((piece) => piece.kind === "otherPlan")) return "otherPlan";
-  return "none";
+/** A share's amount for the catalog's select: a full or a half day by name, any other share as its number. */
+function amountOf(units: Units): "full" | "half" | "other" {
+  if (units === UNITS_PER_DAY) return "full";
+  return units * 2 === UNITS_PER_DAY ? "half" : "other";
 }
 
-/** Where the plan's own leave lies on the day; "end" when it has none. */
-export function ownPart(day: DayResult): Part {
-  const piece = day.leave.find((candidate) => candidate.kind === "own");
-  return piece?.kind === "own" ? piece.part : "end";
-}
-
-const listFormats = new Map<string, Intl.ListFormat>();
-
-function listFormat(locale: Locale): Intl.ListFormat {
-  const tag = locale === "de" ? "de" : "en-GB";
-  let format = listFormats.get(tag);
-  if (!format) {
-    format = new Intl.ListFormat(tag, { style: "long", type: "conjunction" });
-    listFormats.set(tag, format);
+/**
+ * The day's leave in words: own and mandatory leave with their amount and where they lie ("leave ¼, at the start of
+ * the day"), then leave from another plan; "no leave" without any.
+ */
+export function leaveText(view: DayLeaveView, i18n: { t: Translate; locale: Locale }): string {
+  const { t, locale } = i18n;
+  const items: string[] = [];
+  const full = { amount: "full", share: "", where: "none" };
+  if (view.fill === "full") items.push(t("day.leave.own", full));
+  else if (view.fill === "mandatory") items.push(t("day.leave.mandatory", full));
+  for (const share of view.shares) {
+    const args = { amount: amountOf(share.units), share: formatDays(share.units, locale), where: share.where === "spread" ? "none" : share.where };
+    items.push(share.kind === "own" ? t("day.leave.own", args) : t("day.leave.mandatory", args));
   }
-  return format;
+  if (view.otherPlan) items.push(t("day.leave.otherPlan"));
+  return items.length === 0 ? t("day.leave.none") : formatList(items, locale);
 }
 
 /**
@@ -63,18 +85,14 @@ function listFormat(locale: Locale): Intl.ListFormat {
 export function cellLabel(day: DayResult, meta: PlanMeta, i18n: { t: Translate; locale: Locale }, sourceNames: readonly string[] = []): string {
   const { t, locale } = i18n;
   const cost = day.evaluation.cost;
-  const holiday = day.facts.holidays[0];
-  const list = listFormat(locale);
-  const leave = leaveOf(day);
   return t("day.label", {
     date: formatDate(day.day, locale, "long"),
     kind: kindOf(day, meta),
-    name: holiday ? t(holiday.nameKey) : "",
-    // A half day says where the leave lies: in the morning (the start of the work block) or the afternoon.
-    leave: leave === "half" ? (ownPart(day) === "start" ? "halfStart" : "halfEnd") : leave,
+    name: holidayName(day, meta, i18n),
+    leave: leaveText(dayLeave(day), i18n),
     hasCost: cost > 0 ? "yes" : "no",
     cost: formatDays(cost, locale),
     hasSources: sourceNames.length > 0 ? "yes" : "no",
-    sources: list.format(sourceNames),
+    sources: formatList(sourceNames, locale),
   });
 }

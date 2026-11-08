@@ -32,7 +32,7 @@ export function expandSources(
   for (const source of sources) {
     for (const entry of source.entries) {
       for (const day of entryDays(entry, from, to)) {
-        const base = { day, sourceId: source.id };
+        const base = entry.name === undefined ? { day, sourceId: source.id } : { day, sourceId: source.id, name: entry.name };
         switch (source.type) {
           case "holiday": {
             const { required, part } = entry as { required: number; part?: "start" | "end" };
