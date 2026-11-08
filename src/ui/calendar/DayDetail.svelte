@@ -320,22 +320,19 @@ SPDX-License-Identifier: EUPL-1.2
     }
 
     .off-weekend .block:not(.work) {
-      background: repeating-linear-gradient(in srgb 135deg, transparent 0 4px, var(--r-day-pattern) 4px 5px), var(--r-weekend);
+      background: var(--r-fill-weekend);
     }
 
     .off-holiday .block:not(.work) {
-      background: radial-gradient(circle, var(--r-day-pattern) 0 1px, transparent 1.5px) 0 0 / 6px 6px, var(--r-holiday);
+      background: var(--r-fill-holiday);
     }
 
     .off-halfRequired .block:not(.work) {
-      background: repeating-linear-gradient(in srgb 135deg, transparent 0 4px, var(--r-day-pattern) 4px 5px), var(--r-half-required);
+      background: var(--r-fill-half-required);
     }
 
     .off-free .block:not(.work) {
-      background:
-        repeating-linear-gradient(in srgb 45deg, transparent 0 4px, var(--r-day-pattern) 4px 5px),
-        repeating-linear-gradient(in srgb 135deg, transparent 0 4px, var(--r-day-pattern) 4px 5px),
-        var(--r-weekend);
+      background: var(--r-fill-free);
     }
 
     /* The leave switches: grey where no leave is taken, the leave drawn inside as the cell draws it. */
@@ -386,7 +383,7 @@ SPDX-License-Identifier: EUPL-1.2
 
     .stretch.mandatory,
     .locked.mandatory {
-      background: repeating-linear-gradient(in srgb 45deg, var(--r-mandatory) 0 4px, var(--r-mandatory-stripe) 4px 7px);
+      background: var(--r-fill-mandatory);
     }
 
     .locked.mandatory {

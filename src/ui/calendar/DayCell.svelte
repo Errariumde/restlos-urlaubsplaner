@@ -145,12 +145,12 @@ SPDX-License-Identifier: EUPL-1.2
 
     /* Layer 1: the required work. Each day type has its own pattern, not only its own colour. */
     .weekend {
-      background: repeating-linear-gradient(in srgb 135deg, transparent 0 4px, var(--r-day-pattern) 4px 5px), var(--r-weekend);
+      background: var(--r-fill-weekend);
       color: var(--r-text-muted);
     }
 
     .holiday {
-      background: radial-gradient(circle, var(--r-day-pattern) 0 1px, transparent 1.5px) 0 0 / 6px 6px, var(--r-holiday);
+      background: var(--r-fill-holiday);
       font-weight: 700;
     }
 
@@ -169,25 +169,16 @@ SPDX-License-Identifier: EUPL-1.2
     }
 
     .halfRequired {
-      background:
-        var(--work),
-        repeating-linear-gradient(in srgb 135deg, transparent 0 4px, var(--r-day-pattern) 4px 5px),
-        var(--r-half-required);
+      background: var(--work), var(--r-fill-half-required);
     }
 
     .halfRequiredHoliday {
-      background:
-        var(--work),
-        radial-gradient(circle, var(--r-day-pattern) 0 1px, transparent 1.5px) 0 0 / 6px 6px,
-        var(--r-holiday);
+      background: var(--work), var(--r-fill-holiday);
     }
 
     /* No work for another reason (a paid closure): crossed hatch. */
     .free {
-      background:
-        repeating-linear-gradient(in srgb 45deg, transparent 0 4px, var(--r-day-pattern) 4px 5px),
-        repeating-linear-gradient(in srgb 135deg, transparent 0 4px, var(--r-day-pattern) 4px 5px),
-        var(--r-weekend);
+      background: var(--r-fill-free);
       color: var(--r-text-muted);
     }
 
@@ -215,7 +206,7 @@ SPDX-License-Identifier: EUPL-1.2
 
     .leave-mandatory .fill,
     .mandatory-fill {
-      background: repeating-linear-gradient(in srgb 45deg, var(--r-mandatory) 0 4px, var(--r-mandatory-stripe) 4px 7px);
+      background: var(--r-fill-mandatory);
     }
 
     .mandatory-fill {
