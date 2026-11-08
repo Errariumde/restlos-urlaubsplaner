@@ -40,12 +40,14 @@ test.describe("a half-day closure on Thursday 4 March, in English", () => {
     await expectNoPageProblems(page);
   });
 
-  test("the detail's Full day sets the same rest", async ({ page }) => {
+  test("the detail's full-day checkbox sets the same rest, beside the locked closure", async ({ page }) => {
     const thursday = cell(page, 3, 4);
     await thursday.focus();
     await page.keyboard.press("Enter");
     const detail = page.getByRole("dialog", { name: /^Details for / });
-    await detail.getByRole("button", { name: "Full day", exact: true }).click();
+    await expect(detail.getByRole("group", { name: "Leave on this day" })).toContainText("Mandatory leave");
+    await expect(detail.getByRole("button", { name: "Afternoon", exact: true })).toHaveCount(0);
+    await detail.getByRole("checkbox", { name: "Full day" }).click();
     await expect(thursday).toHaveAttribute("aria-label", /, leave half, morning and mandatory leave half, afternoon, costs 1$/);
     await expectNoPageProblems(page);
   });

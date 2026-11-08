@@ -4,12 +4,13 @@ SPDX-License-Identifier: EUPL-1.2
 -->
 <script lang="ts">
   // What the gesture going on would do (docs/SPEC.md, "Calendar interaction"): the working days it changes,
-  // its cost, the resulting stretch and the remaining allowance, or why a key did nothing (`app.notice`).
-  // Without either it shows `idle`, else nothing.
+  // its cost, the resulting stretch and the remaining allowance, on a band. Without a gesture it says, quietly,
+  // what the last change did or why a key did nothing (`app.status`, status.ts); without either it shows `idle`.
   import type { Snippet } from "svelte";
   import { pluralCount, formatDate, formatDays } from "../i18n/format.ts";
   import { i18n } from "../i18n/i18n.svelte.ts";
   import { app } from "../state/app.svelte.ts";
+  import { announced, statusText } from "./status.ts";
 
   interface Props {
     /** What the line says while there is no hint (the selection bar's instruction). */
@@ -33,10 +34,11 @@ SPDX-License-Identifier: EUPL-1.2
   const unbroken = (date: string): string => date.replaceAll(" ", "\u00a0");
 
   const text = $derived.by(() => {
-    // Why the last key did nothing goes before the hint; the next hint or change replaces it.
-    if (app.notice === "noHalfDays") return i18n.t("hint.noHalfDays");
     const hint = app.hint;
-    if (hint === undefined) return "";
+    if (hint === undefined) {
+      if (app.status === undefined) return "";
+      return announced(statusText(app.status, app.state, { t: (key, args) => i18n.t(key, args), locale: i18n.locale }), app.statusCount);
+    }
     const { stretch } = hint;
     const locale = i18n.locale;
     // The stretch's end is exclusive: offset 0 means it ends with the day before.
@@ -66,7 +68,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 {#snippet line()}
   <!-- Only real hints are announced: the idle text sits next to the live region, not in it. -->
-  <div class="hint" class:active={text !== ""} class:with-end={end !== undefined} data-testid="hint-line" bind:offsetHeight={lineSize}>
+  <div class="hint" class:active={app.hint !== undefined} class:with-end={end !== undefined} data-testid="hint-line" bind:offsetHeight={lineSize}>
     {#if end}
       <span class="text">{@render words()}</span>
       {@render end()}

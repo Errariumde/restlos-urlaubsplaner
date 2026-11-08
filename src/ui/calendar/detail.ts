@@ -1,52 +1,127 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-// What the detail popover of a day shows (docs/SPEC.md, "Detail view"), and the changes its actions make.
+// What the detail of a day shows (docs/SPEC.md, "Detail view"): the required work as a bar of work and free time,
+// the leave as a bar of switches with its cost and the work left, the calendars as bars, the reasons for the
+// required work and the leave, and the day's problems.
 import type { DayResult, Problem } from "../../engine/counting/plan.ts";
 import type { RequiredLayer } from "../../engine/counting/required.ts";
+import type { SourceDay } from "../../engine/counting/types.ts";
 import { textFor } from "../../engine/file/text.ts";
 import { UNITS_PER_DAY, type Units } from "../../engine/weight.ts";
-import { formatDays } from "../i18n/format.ts";
+import { formatDate, formatDays, pluralCount } from "../i18n/format.ts";
 import { textLanguage, type Locale } from "../i18n/locale.ts";
-import type { LeaveChange, PlanMeta, SourceMeta } from "../worker/protocol.ts";
-import { dayLeave } from "./day-leave.ts";
-import { changeFor, freeRest, halfDayFits } from "./range.ts";
+import type { PlanMeta, SourceMeta } from "../worker/protocol.ts";
+import { kindOf, type Translate } from "./label.ts";
+import { leaveSwitch, type LeaveSwitch } from "./leave-switch.ts";
 
-export type DetailLeave = "none" | "full" | "halfStart" | "halfEnd" | "mandatory" | "otherPlan" | "partial";
+/** The pattern of the free time, as the cell draws the day. */
+export type OffKind = "weekend" | "holiday" | "halfRequired" | "free";
 
-/** The message keys of what decided the required work, one per kind of RequiredLayer. */
-export type RequiredReasonKey =
-  | "detail.required.workWeek"
-  | "detail.required.publicHoliday"
-  | "detail.required.holidaySource"
-  | "detail.required.paidClosure"
-  | "detail.required.ruleAtMost"
-  | "detail.required.ruleExactly"
-  | "detail.required.override";
-
-/** A calendar of the day and the names of its entries on that day, each once, in the UI language; empty when they have none. */
-export interface DetailSource {
-  readonly source: SourceMeta;
-  readonly entries: readonly string[];
+/** A stretch of a day in day positions. */
+export interface DaySpan {
+  readonly from: Units;
+  readonly to: Units;
 }
+
+export interface RequiredView {
+  readonly value: Units;
+  /** The work block and the free time beside it, in the order of the day. */
+  readonly blocks: readonly (DaySpan & { readonly work: boolean })[];
+  readonly off: OffKind;
+  /** Where the work lies on a day with less than a full day of it and more than none. */
+  readonly where?: "morning" | "afternoon" | "start" | "end";
+}
+
+export interface DetailCalendar {
+  readonly source: SourceMeta;
+  /** The source's place in the sources list, which picks its line style. */
+  readonly index: number;
+  /** The names of its entries on the day, each once, in the UI language. */
+  readonly entries: readonly string[];
+  /** Where its entries lie in the day. */
+  readonly spans: readonly DaySpan[];
+}
+
+export type Reason =
+  | { readonly kind: "normalDay" }
+  | { readonly kind: "workWeek"; readonly weekday: string; readonly value: Units }
+  | { readonly kind: "publicHoliday"; readonly nameKey: string }
+  | { readonly kind: "holidaySource"; readonly name: string; readonly value: Units }
+  | { readonly kind: "paidClosure"; readonly source: string }
+  | { readonly kind: "ruleAtMost" | "ruleExactly"; readonly label: string; readonly value: Units }
+  | { readonly kind: "override"; readonly value: Units }
+  | { readonly kind: "mandatory"; readonly source: string; readonly value: Units }
+  | { readonly kind: "otherPlan"; readonly plan: string };
 
 export interface DayDetailData {
-  /**
-   * The message that says what decided the required work. A `nameKey` argument (a public holiday) is a
-   * message key itself: the caller passes its text as `name`.
-   */
-  readonly requiredReason: { readonly key: RequiredReasonKey; readonly args: Record<string, string | number> };
-  /** Every calendar source of the day, in the order of the sources list, with the names of its entries on the day. */
-  readonly sources: readonly DetailSource[];
-  readonly leave: DetailLeave;
-  readonly cost: Units;
-  readonly problems: Problem["code"][];
+  readonly required: RequiredView;
+  /** The leave part; undefined on a day without work and without leave, where `noLeave` says why. */
+  readonly leave?: LeaveSwitch & { readonly cost: Units; readonly remaining: Units };
+  readonly noLeave?: "notNeeded" | "outsidePeriod";
+  readonly calendars: readonly DetailCalendar[];
+  /** What decided the required work, in the order of its layers, then the mandatory leave and other plans' leave. */
+  readonly reasons: readonly Reason[];
+  readonly problems: readonly Problem["code"][];
 }
 
-function reasonOf(day: DayResult, meta: PlanMeta, locale: Locale): DayDetailData["requiredReason"] {
-  const layer: RequiredLayer = day.required.decidedBy;
+const FULL = UNITS_PER_DAY;
+
+function requiredView(day: DayResult, meta: PlanMeta): RequiredView {
+  const { value, freePart } = day.required;
+  const kind = kindOf(day, meta);
+  const off: OffKind = kind === "holiday" || kind === "halfRequiredHoliday" ? "holiday" : kind === "workday" ? "weekend" : kind;
+  if (value <= 0 || value >= FULL) return { value, blocks: [{ from: 0, to: FULL, work: value > 0 }], off };
+  const half = value * 2 === FULL;
+  if (freePart === "end") {
+    return { value, blocks: [{ from: 0, to: value, work: true }, { from: value, to: FULL, work: false }], off, where: half ? "morning" : "start" };
+  }
+  const start = FULL - value;
+  return { value, blocks: [{ from: 0, to: start, work: false }, { from: start, to: FULL, work: true }], off, where: half ? "afternoon" : "end" };
+}
+
+/** Where a calendar's entry lies in the day: a holiday calendar's free time, a share of the day, or all of it. */
+function spanOf(entry: SourceDay): DaySpan {
+  switch (entry.type) {
+    case "holiday": {
+      if (entry.required >= FULL) return { from: 0, to: FULL };
+      return entry.part === "start" ? { from: 0, to: FULL - entry.required } : { from: entry.required, to: FULL };
+    }
+    case "mandatory":
+    case "needed": {
+      const take = Math.min(entry.take, FULL);
+      return entry.part === "start" ? { from: 0, to: take } : { from: FULL - take, to: FULL };
+    }
+    case "otherPlan":
+      return { from: entry.from, to: entry.to };
+    default:
+      return { from: 0, to: FULL };
+  }
+}
+
+/** Sorted, merged spans. */
+function merged(spans: readonly DaySpan[]): DaySpan[] {
+  const out: { from: Units; to: Units }[] = [];
+  for (const { from, to } of spans.toSorted((a, b) => a.from - b.from)) {
+    const last = out.at(-1);
+    if (last !== undefined && from <= last.to) last.to = Math.max(last.to, to);
+    else out.push({ from, to });
+  }
+  return out;
+}
+
+function calendarsOf(day: DayResult, meta: PlanMeta, locale: Locale): DetailCalendar[] {
   const lang = textLanguage(locale);
-  const days = formatDays(layer.value, locale);
+  return meta.sources.flatMap((source, index) => {
+    const entries = day.facts.sources.filter((entry) => entry.sourceId === source.id);
+    if (entries.length === 0) return [];
+    const names = new Set(entries.flatMap((entry) => (entry.name === undefined ? [] : [textFor(entry.name, lang)])));
+    return [{ source, index, entries: [...names], spans: merged(entries.map(spanOf)) }];
+  });
+}
+
+function reasonsOf(day: DayResult, meta: PlanMeta, locale: Locale): Reason[] {
+  const lang = textLanguage(locale);
   const sourceName = (id: string): string => {
     const source = meta.sources.find((candidate) => candidate.id === id);
     return source ? textFor(source.name, lang) : id;
@@ -55,112 +130,87 @@ function reasonOf(day: DayResult, meta: PlanMeta, locale: Locale): DayDetailData
     const label = meta.rules.find((candidate) => candidate.id === id)?.label;
     return label === undefined ? id : textFor(label, lang);
   };
-  switch (layer.kind) {
-    case "workWeek":
-      return { key: "detail.required.workWeek", args: {} };
-    case "publicHoliday":
-      return { key: "detail.required.publicHoliday", args: { nameKey: layer.nameKey } };
-    case "holidaySource": {
-      // The entry's name ("Faschingsdienstag"), else the calendar's.
-      const entry = day.facts.sources.find((source) => source.type === "holiday" && source.sourceId === layer.sourceId && source.name !== undefined);
-      return { key: "detail.required.holidaySource", args: { name: entry?.name === undefined ? sourceName(layer.sourceId) : textFor(entry.name, lang) } };
+  const { layers } = day.required;
+  const onlyWorkWeek = layers.length === 1 && layers[0]?.kind === "workWeek" && layers[0].value >= FULL;
+  const reasons: Reason[] = onlyWorkWeek
+    ? [{ kind: "normalDay" }]
+    : layers.map((layer: RequiredLayer): Reason => {
+        switch (layer.kind) {
+          case "workWeek":
+            return { kind: "workWeek", weekday: formatDate(day.day, locale, "weekdayLong"), value: layer.value };
+          case "publicHoliday":
+            return { kind: "publicHoliday", nameKey: layer.nameKey };
+          case "holidaySource": {
+            // The entry's name ("Rosenmontag"), else the calendar's.
+            const entry = day.facts.sources.find((source) => source.type === "holiday" && source.sourceId === layer.sourceId && source.name !== undefined);
+            return { kind: "holidaySource", name: entry?.name === undefined ? sourceName(layer.sourceId) : textFor(entry.name, lang), value: layer.value };
+          }
+          case "paidClosure":
+            return { kind: "paidClosure", source: sourceName(layer.sourceId) };
+          case "ruleAtMost":
+          case "ruleExactly":
+            return { kind: layer.kind, label: ruleLabel(layer.ruleId), value: layer.value };
+          case "override":
+            return { kind: "override", value: layer.value };
+        }
+      });
+  const plans = new Set<string>();
+  for (const piece of day.leave) {
+    if (piece.kind === "mandatory") {
+      const source = piece.sourceId === undefined ? ruleLabel(piece.ruleId ?? "") : sourceName(piece.sourceId);
+      reasons.push({ kind: "mandatory", source, value: piece.take });
+    } else if (piece.kind === "otherPlan") {
+      plans.add(piece.sourceId === undefined ? "" : sourceName(piece.sourceId));
     }
-    case "paidClosure":
-      return { key: "detail.required.paidClosure", args: { source: sourceName(layer.sourceId) } };
-    case "ruleAtMost":
-      return { key: "detail.required.ruleAtMost", args: { label: ruleLabel(layer.ruleId), days } };
-    case "ruleExactly":
-      return { key: "detail.required.ruleExactly", args: { label: ruleLabel(layer.ruleId), days } };
-    case "override":
-      return { key: "detail.required.override", args: { days } };
   }
-}
-
-/** The leave of the day as the cell reads it (dayLeave): for own leave beside mandatory leave, the own share. */
-function leaveOf(day: DayResult): DetailLeave {
-  const view = dayLeave(day);
-  if (view.fill === "full") return "full";
-  if (view.fill === "mandatory") return "mandatory";
-  const own = view.shares.find((share) => share.kind === "own");
-  if (own !== undefined) return own.where === "morning" ? "halfStart" : own.where === "afternoon" ? "halfEnd" : "partial";
-  if (view.shares.length > 0) return "mandatory";
-  return view.otherPlan ? "otherPlan" : "none";
+  for (const plan of plans) reasons.push({ kind: "otherPlan", plan });
+  return reasons;
 }
 
 /** The detail of a day. `problems` is the result's list; only those of this day are kept. */
 export function dayDetail(day: DayResult, meta: PlanMeta, problems: readonly Problem[], locale: Locale): DayDetailData {
-  const lang = textLanguage(locale);
-  const entries = new Map<string, Set<string>>();
-  const namesOf = (sourceId: string): Set<string> => {
-    let names = entries.get(sourceId);
-    if (names === undefined) {
-      names = new Set();
-      entries.set(sourceId, names);
-    }
-    return names;
-  };
-  for (const entry of day.facts.sources) {
-    const names = namesOf(entry.sourceId);
-    if (entry.name !== undefined) names.add(textFor(entry.name, lang));
-  }
-  for (const piece of day.leave) if (piece.sourceId !== undefined) namesOf(piece.sourceId);
-  return {
-    requiredReason: reasonOf(day, meta, locale),
-    sources: meta.sources.flatMap((source) => {
-      const names = entries.get(source.id);
-      return names === undefined ? [] : [{ source, entries: [...names] }];
-    }),
-    leave: leaveOf(day),
-    cost: day.evaluation.cost,
+  const base = {
+    required: requiredView(day, meta),
+    calendars: calendarsOf(day, meta, locale),
+    reasons: reasonsOf(day, meta, locale),
     problems: problems.filter((problem) => problem.day === day.day).map((problem) => problem.code),
   };
+  // The leave part goes only where there is neither work nor leave of any kind; own leave on a free day stays removable.
+  if (day.leave.length === 0 && !(day.inPeriod && day.required.value > 0)) return { ...base, noLeave: day.inPeriod ? "notNeeded" : "outsidePeriod" };
+  const { cost, remaining } = day.evaluation;
+  return { ...base, leave: { ...leaveSwitch(day, meta.minUnit), cost, remaining } };
 }
 
-/** Why no leave can be set on a day. */
-export type Blocked = "noRequired" | "mandatory" | "otherPlan";
-
-/**
- * The one change each action of the detail makes, or undefined when it changes nothing or isn't possible;
- * `blocked` says why none of the setting actions is possible. The actions follow the range rules
- * (range.ts): only days in the period with required work; beside mandatory or other-plan leave, the full day
- * fills the work they leave free, and there is no half day.
- */
-export interface DetailActions {
-  readonly full?: LeaveChange;
-  readonly morning?: LeaveChange;
-  readonly afternoon?: LeaveChange;
-  readonly remove?: LeaveChange;
-  readonly blocked?: Blocked;
+/** A day amount with its unit: "½ Tag", "1 Tag", "1½ Tage". */
+export function amountText(units: Units, i18n: { t: Translate; locale: Locale }): string {
+  return i18n.t("detail.amount", { count: pluralCount(units), days: formatDays(units, i18n.locale) });
 }
 
-/** `minUnit` is the plan's smallest leave unit: the half days are offered only where they fit it. */
-export function detailActions(day: DayResult, minUnit: Units): DetailActions {
-  if (!day.inPeriod) return {};
-  const own = day.leave.find((piece) => piece.kind === "own");
-  const take = own?.kind === "own" ? own.take : 0;
-  const part = own?.kind === "own" ? own.part : undefined;
-  const remove: LeaveChange | undefined = take > 0 ? { day: day.day, take: 0 } : undefined;
-  const removeOnly = (blocked: Blocked): DetailActions => (remove ? { remove, blocked } : { blocked });
-  if (day.required.value <= 0) return removeOnly("noRequired");
-  const rest = freeRest(day);
-  if (rest === undefined) return removeOnly(day.leave.some((piece) => piece.kind === "mandatory") ? "mandatory" : "otherPlan");
-  if (rest !== "whole") {
-    const full = changeFor(day, "full");
-    const partly: { -readonly [K in keyof DetailActions]: DetailActions[K] } = {};
-    if (full) partly.full = full;
-    if (remove) partly.remove = remove;
-    return partly;
+/** A reason in words, "Name (kind): value", with "free" for no work. */
+export function reasonText(reason: Reason, i18n: { t: Translate; locale: Locale }): string {
+  const { t } = i18n;
+  const value = (units: Units): string => (units <= 0 ? t("detail.off") : amountText(units, i18n));
+  const zero = (units: Units): string => (units <= 0 ? "yes" : "no");
+  switch (reason.kind) {
+    case "normalDay":
+      return t("detail.reason.normalDay");
+    case "workWeek":
+      return t("detail.reason.workWeek", { weekday: reason.weekday, value: value(reason.value) });
+    case "publicHoliday":
+      return t("detail.reason.publicHoliday", { name: t(reason.nameKey), value: value(0) });
+    case "holidaySource":
+      return t("detail.reason.holidaySource", { name: reason.name, value: value(reason.value) });
+    case "paidClosure":
+      return t("detail.reason.paidClosure", { source: reason.source, value: value(0) });
+    case "ruleAtMost":
+      return t("detail.reason.ruleAtMost", { label: reason.label, zero: zero(reason.value), value: value(reason.value) });
+    case "ruleExactly":
+      return t("detail.reason.ruleExactly", { label: reason.label, zero: zero(reason.value), value: value(reason.value) });
+    case "override":
+      return t("detail.reason.override", { value: value(reason.value) });
+    case "mandatory":
+      return t("detail.reason.mandatory", { source: reason.source, value: value(reason.value) });
+    case "otherPlan":
+      return t("detail.reason.otherPlan", { plan: reason.plan });
   }
-  const half = (side: "start" | "end"): LeaveChange | undefined =>
-    take === UNITS_PER_DAY / 2 && part === side ? undefined : { day: day.day, take: 240, part: side };
-  const actions: { -readonly [K in keyof DetailActions]: DetailActions[K] } = {};
-  if (take !== UNITS_PER_DAY) actions.full = { day: day.day, take: 480 };
-  if (halfDayFits(minUnit)) {
-    const morning = half("start");
-    if (morning) actions.morning = morning;
-    const afternoon = half("end");
-    if (afternoon) actions.afternoon = afternoon;
-  }
-  if (remove) actions.remove = remove;
-  return actions;
 }

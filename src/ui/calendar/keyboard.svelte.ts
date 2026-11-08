@@ -71,7 +71,7 @@ export function calendarKeyboard(node: HTMLElement, initial: KeyboardOptions): {
     const { result } = state;
     // A plan in whole days has no half day: H keeps the days and the selection, and the hint line says why.
     if (action === "half" && !halfDayFits(state.meta.minUnit)) {
-      app.notice = "noHalfDays";
+      app.report({ kind: "noHalfDays" });
       return;
     }
     const selection = app.selection;

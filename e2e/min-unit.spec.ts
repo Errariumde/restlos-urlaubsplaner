@@ -22,19 +22,27 @@ test.describe("a plan in whole days, in English", () => {
     await page.keyboard.press("h");
     await expect(page.getByTestId("hint-line")).toHaveText("This plan has no half days.");
     await expect(monday).toHaveAttribute("aria-label", /no leave/);
+    // H again: the same words, but a new text for the live region (a trailing no-break space), so screen
+    // readers announce it again.
+    const live = page.locator('[aria-live="polite"]');
+    const first = await live.textContent();
+    await page.keyboard.press("h");
+    await expect.poll(() => live.textContent()).not.toBe(first);
+    await expect(page.getByTestId("hint-line")).toHaveText("This plan has no half days.");
     // Space still sets a full day, and the message gives way.
     await page.keyboard.press(" ");
     await expect(monday).toHaveAttribute("aria-label", /leave full/);
-    await expect(page.getByTestId("hint-line")).toHaveText("");
+    await expect(page.getByTestId("hint-line")).toHaveText("14 Jun: leave full. 7 days left.");
     await expectNoPageProblems(page);
   });
 
-  test("the detail offers a full day but no half day", async ({ page }) => {
+  test("the detail has one switch for the full day, no half days and no checkbox", async ({ page }) => {
     await cell(page, 6, 14).focus();
     await page.keyboard.press("Enter");
     const detail = page.getByRole("dialog", { name: /^Details for / });
     await expect(detail.getByRole("button", { name: "Full day", exact: true })).toBeVisible();
-    await expect(detail.getByRole("button", { name: /^Half day/ })).toHaveCount(0);
+    await expect(detail.getByRole("button", { name: /^(Morning|Afternoon)$/ })).toHaveCount(0);
+    await expect(detail.getByRole("checkbox")).toHaveCount(0);
     await expectNoPageProblems(page);
   });
 });

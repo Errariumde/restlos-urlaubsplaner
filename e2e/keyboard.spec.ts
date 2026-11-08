@@ -79,7 +79,7 @@ test("the arrows move the focus, and Shift+→ four times then Space plans five 
   await page.keyboard.press("Space");
   await expectLeave(page, 6, [14, 15, 16, 17, 18], FULL);
   await expect(selected(page)).toHaveCount(0);
-  await expect(hint(page)).toHaveText("");
+  await expect(hint(page)).toHaveText("5 days changed. 3 days left.");
   // Space did not scroll the page.
   await expect(cell(page, 6, 18)).toBeFocused();
   expect(await page.evaluate(() => window.scrollY)).toBe(scrollBefore);
