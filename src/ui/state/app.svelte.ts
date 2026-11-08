@@ -5,6 +5,7 @@
 // view settings. Every change of the plan goes through the worker; the page never computes costs itself.
 import workerSource from "virtual:restlos-worker";
 import type { DayNumber } from "../../engine/days.ts";
+import type { Status } from "../calendar/status.ts";
 import { startEngine, type Engine } from "../worker/client.ts";
 import type { Hint, LeaveChange, PlanState } from "../worker/protocol.ts";
 import { initialFocusDay, today } from "./today.ts";
@@ -27,10 +28,12 @@ class App {
   selection = $state<{ anchor: DayNumber; head: DayNumber } | undefined>(undefined);
   hint = $state.raw<Hint | undefined>(undefined);
   /**
-   * Why a key did nothing, for the hint line, which shows it instead of the hint: "noHalfDays" after H in a plan
-   * whose smallest leave unit has no half days. The next hint or change replaces it.
+   * What the hint line says while there is no hint: the result of the last change, or why a key did nothing
+   * (status.ts). The next preview or change replaces it; there is no timer, so it stays true.
    */
-  notice = $state<"noHalfDays" | undefined>(undefined);
+  status = $state.raw<Status | undefined>(undefined);
+  /** Counts the statuses reported, so the hint line can announce the same text again. */
+  statusCount = $state(0);
   #selectMode = $state(false);
 
   /**
@@ -74,6 +77,7 @@ class App {
       this.focusDay = initialFocusDay(state.meta.period, today());
       this.selection = undefined;
       this.hint = undefined;
+      this.status = undefined;
       this.screen = "main";
     } catch (error) {
       this.openFailed = true;
@@ -102,12 +106,21 @@ class App {
     }
   }
 
-  /** Sets the plan's own leave; no worker call when nothing changes. */
+  /** Shows a status in the hint line in place of the last one, announced also when its text is the same. */
+  report(status: Status | undefined): void {
+    this.status = status;
+    this.statusCount += 1;
+  }
+
+  /** Sets the plan's own leave and then says what changed; no worker call when nothing changes. */
   async apply(changes: readonly LeaveChange[]): Promise<void> {
-    this.notice = undefined;
     if (changes.length === 0) return;
+    this.status = undefined;
     const copy = $state.snapshot(changes);
+    const days = new Set(changes.map((change) => change.day));
     await this.#change(() => this.#engineNow().apply(copy));
+    const [day] = days;
+    this.report(days.size === 1 && day !== undefined ? { kind: "day", day } : { kind: "days", count: days.size });
   }
 
   /**
@@ -118,7 +131,7 @@ class App {
     const hint = await this.#engineNow().preview($state.snapshot(changes));
     if (hint !== undefined && current()) {
       this.hint = hint;
-      this.notice = undefined;
+      this.status = undefined;
     }
   }
 
@@ -134,14 +147,19 @@ class App {
     void this.preview(changes, () => this.selection === mine);
   }
 
+  /** Undoes the last change and says so; nothing is said when there is nothing to undo. */
   async undo(): Promise<void> {
-    this.notice = undefined;
+    if (this.state?.canUndo !== true) return;
+    this.status = undefined;
     await this.#change(() => this.#engineNow().undo());
+    this.report({ kind: "undo" });
   }
 
   async redo(): Promise<void> {
-    this.notice = undefined;
+    if (this.state?.canRedo !== true) return;
+    this.status = undefined;
     await this.#change(() => this.#engineNow().redo());
+    this.report({ kind: "redo" });
   }
 }
 

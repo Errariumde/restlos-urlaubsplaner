@@ -6,7 +6,7 @@ SPDX-License-Identifier: EUPL-1.2
   // The detail of a day (docs/SPEC.md, "Detail view"): the date, the required work and what decided it,
   // the calendar sources, the leave, its cost and the day's problems, with one action per kind of leave.
   // A popover next to the cell; a bottom sheet on a narrow calendar or a touch screen; inline in the gallery.
-  import { tick } from "svelte";
+  import { tick, untrack } from "svelte";
   import type { DayResult, Problem } from "../../engine/counting/plan.ts";
   import { textFor } from "../../engine/file/text.ts";
   import Button from "../controls/Button.svelte";
@@ -19,6 +19,7 @@ SPDX-License-Identifier: EUPL-1.2
   import { lineStyle, sourceAccent } from "./cell-lanes.ts";
   import { dayDetail, detailActions, type Blocked, type DayDetailData } from "./detail.ts";
   import { halfDayFits } from "./range.ts";
+  import { announced, statusText } from "./status.ts";
 
   interface Props {
     day: DayResult;
@@ -102,6 +103,14 @@ SPDX-License-Identifier: EUPL-1.2
 
   let content = $state<HTMLElement>();
 
+  // The bottom sheet makes the page inert, so the hint line can't announce what an action here did: the sheet says
+  // it in its own live line, for the statuses reported while it is open.
+  const openedAt = untrack(() => app.statusCount);
+  const sheetStatus = $derived.by(() => {
+    if (app.status === undefined || app.statusCount <= openedAt) return "";
+    return announced(statusText(app.status, app.state, { t: (key, args) => i18n.t(key, args), locale: i18n.locale }), app.statusCount);
+  });
+
   /** One action, one change, one undo step. The detail stays open and shows the day as it is now. */
   async function run(change: LeaveChange | undefined): Promise<void> {
     if (change === undefined || app.applying) return;
@@ -173,6 +182,7 @@ SPDX-License-Identifier: EUPL-1.2
 {:else if presentation === "sheet"}
   <Sheet {id} {anchor} open={true} {onclose} {label}>
     {@render body()}
+    <p class="status" aria-live="polite" aria-atomic="true">{sheetStatus}</p>
   </Sheet>
 {:else}
   <section class="inline" aria-label={label}>
@@ -185,6 +195,18 @@ SPDX-License-Identifier: EUPL-1.2
     .detail {
       --gap: var(--space-3);
       min-inline-size: min(18rem, 100%);
+    }
+
+    /* What an action in the sheet did, quiet like the hint line; empty until then. */
+    .status {
+      margin-block-start: var(--space-3);
+      color: var(--r-text-muted);
+      font-size: var(--font-size-1);
+    }
+
+    /* Kept in the accessibility tree while empty, so its first text is announced too. */
+    .status:empty {
+      margin: 0;
     }
 
     .detail:focus {

@@ -39,6 +39,7 @@
   "selection.clear": "Auswahl aufheben",
   "selection.exit": "Auswahlmodus beenden",
   "hint.noHalfDays": "In diesem Plan gibt es keine halben Tage.",
+  "status.text": "{kind, select, day {{date}: {leave}.} days {{count, plural, one {1 Tag geändert.} other {{count} Tage geändert.}}} undo {Rückgängig.} redo {Wiederholt.} other {}} {over, select, yes {{amountCount, plural, one {{amount}\u00a0Tag über dem Kontingent.} other {{amount}\u00a0Tage über dem Kontingent.}}} other {{amountCount, plural, one {{amount}\u00a0Tag übrig.} other {{amount}\u00a0Tage übrig.}}}}",
   "hint.range": "{days, plural, =0 {Nichts ändert sich} other {{days, plural, one {1\u00a0Arbeitstag} other {{days}\u00a0Arbeitstage}} · {costCount, plural, one {{cost}\u00a0Urlaubstag} other {{cost}\u00a0Urlaubstage}} · {hasStretch, select, yes {{from} – {to}: {daysOffCount, plural, one {{daysOff}\u00a0Tag frei} other {{daysOff}\u00a0Tage frei}}} other {kein freier Block}} · {remainingCount, plural, one {{remaining}\u00a0Tag übrig} other {{remaining}\u00a0Tage übrig}}}}",
   "allowance.label": "Kontingent",
   "allowance.allowance": "Kontingent (Tage)",

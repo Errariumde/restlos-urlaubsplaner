@@ -22,10 +22,17 @@ test.describe("a plan in whole days, in English", () => {
     await page.keyboard.press("h");
     await expect(page.getByTestId("hint-line")).toHaveText("This plan has no half days.");
     await expect(monday).toHaveAttribute("aria-label", /no leave/);
+    // H again: the same words, but a new text for the live region (a trailing no-break space), so screen
+    // readers announce it again.
+    const live = page.locator('[aria-live="polite"]');
+    const first = await live.textContent();
+    await page.keyboard.press("h");
+    await expect.poll(() => live.textContent()).not.toBe(first);
+    await expect(page.getByTestId("hint-line")).toHaveText("This plan has no half days.");
     // Space still sets a full day, and the message gives way.
     await page.keyboard.press(" ");
     await expect(monday).toHaveAttribute("aria-label", /leave full/);
-    await expect(page.getByTestId("hint-line")).toHaveText("");
+    await expect(page.getByTestId("hint-line")).toHaveText("14 Jun: leave full. 7 days left.");
     await expectNoPageProblems(page);
   });
 
