@@ -112,6 +112,8 @@ test.describe("the problems on a phone", () => {
     await page.keyboard.press("Escape");
     await expect(detail(page)).toBeHidden();
     await expect(cell(page, 2, 13)).toBeFocused();
+    // Closed by a key, so the day shows the focus ring; Firefox wouldn't show it after the dialog's own refocus.
+    await expect.poll(() => cell(page, 2, 13).evaluate((element) => element.matches(":focus-visible"))).toBe(true);
     await expect(cell(page, 2, 13)).toBeInViewport();
     await expectNoPageProblems(page);
   });

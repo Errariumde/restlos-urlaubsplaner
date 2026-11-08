@@ -23,21 +23,34 @@ SPDX-License-Identifier: EUPL-1.2
 
   let dialog = $state<HTMLDialogElement>();
 
+  /** Whether a key was the last input in the sheet: then the focus that goes back to the anchor shows its ring. */
+  let byKey = false;
+
   $effect(() => {
     if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
-    else if (!open && dialog.open) dialog.close();
+    if (open && !dialog.open) {
+      byKey = false;
+      dialog.showModal();
+    } else if (!open && dialog.open) dialog.close();
   });
 
+  /**
+   * The dialog gives the focus back to the element that had it before, and Firefox doesn't show the ring for that
+   * even after Escape; focusing an element that has the focus changes nothing. So the anchor lets go of the focus and
+   * takes it again, with the ring when a key closed the sheet.
+   */
   function handleClose(): void {
     onclose();
-    anchor?.focus();
+    if (!anchor) return;
+    if (document.activeElement === anchor) anchor.blur();
+    anchor.focus({ focusVisible: byKey });
   }
 
   /** Whether the last press started on the backdrop; a drag that starts in the content and ends outside doesn't close. */
   let pressedOnBackdrop = false;
 
   function handlePointerDown(event: PointerEvent): void {
+    byKey = false;
     pressedOnBackdrop = event.target === dialog;
   }
 
@@ -49,7 +62,7 @@ SPDX-License-Identifier: EUPL-1.2
 </script>
 
 <!-- The backdrop click is a pointer shortcut; Escape and the close button do the same from the keyboard. -->
-<dialog bind:this={dialog} {id} class="sheet" aria-label={label} onclose={handleClose} onpointerdown={handlePointerDown} onclick={handleClick}>
+<dialog bind:this={dialog} {id} class="sheet" aria-label={label} onclose={handleClose} onpointerdown={handlePointerDown} onclick={handleClick} onkeydown={() => (byKey = true)}>
   <div class="content">
     <div class="close">
       <IconButton icon="close" label={i18n.t("dialog.close")} onclick={() => dialog?.close()} />
