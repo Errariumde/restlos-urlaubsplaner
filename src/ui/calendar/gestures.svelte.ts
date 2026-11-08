@@ -3,9 +3,10 @@
 
 // Planning leave with the pointer (docs/SPEC.md, "Calendar interaction"): drag to paint a range, click to
 // toggle a day, Shift-click to extend from the last clicked day; on touch a tap toggles and a long press
-// opens the detail. Every gesture ends in exactly one `apply` (one undo step) or none (Review Focus 1).
+// opens the detail. Every gesture ends in exactly one `apply` (one undo step) or none.
 // In the selection mode (`app.selectMode`) a drag or two taps only select a range (`app.selection`, with its
-// hint); the selection bar applies it. A long press still opens the detail there.
+// hint); the selection bar applies it. A long press still opens the detail there. A drag held near the edge of
+// the visible calendar scrolls it, and the range follows the day under the pointer as the calendar moves.
 import type { PlanResult } from "../../engine/counting/plan.ts";
 import type { DayNumber } from "../../engine/days.ts";
 import type { app as appState } from "../state/app.svelte.ts";
@@ -15,6 +16,18 @@ import { actionForDrag, rangeChanges, toggleDay } from "./range.ts";
 /** How long a touch must rest on a day to open its detail, and how far it may move meanwhile. */
 const LONG_PRESS_MS = 500;
 const TOUCH_SLOP_PX = 10;
+
+/** How close to an edge of the visible calendar a drag scrolls, and its step per frame right at the edge. */
+const EDGE_ZONE_PX = 40;
+const EDGE_STEP_PX = 24;
+
+/** The scroll step for a pointer `inside` px inside an edge (negative beyond it): faster closer to the edge. */
+function edgeStep(inside: number): number {
+  if (inside >= EDGE_ZONE_PX) return 0;
+  return Math.ceil(Math.min(1, (EDGE_ZONE_PX - inside) / EDGE_ZONE_PX) * EDGE_STEP_PX);
+}
+
+const clamp = (value: number, min: number, max: number): number => Math.min(Math.max(value, min), max);
 
 /** The range a drag is painting: the days that would change, so the cells follow the pointer at once. */
 class DragPreview {
@@ -42,6 +55,11 @@ interface MousePress {
   readonly shift: boolean;
   /** Where a Shift-click extends from: the last plain-clicked day, else the focused day. */
   readonly anchor: DayNumber | undefined;
+  readonly x: number;
+  readonly y: number;
+  /** The pointer's last position, where the day is looked up again when the calendar scrolls under it. */
+  lastX: number;
+  lastY: number;
   current: DayNumber;
   moved: boolean;
 }
@@ -70,6 +88,8 @@ interface SelectPress {
   readonly y: number;
   /** The long press of a finger; undefined for a mouse or a pen, and once the finger has moved. */
   timer: ReturnType<typeof setTimeout> | undefined;
+  lastX: number;
+  lastY: number;
   current: DayNumber;
   moved: boolean;
   /** The long press opened the detail: lifting the finger selects nothing. */
@@ -107,6 +127,62 @@ export function calendarGestures(node: HTMLElement, initial: GestureOptions): { 
   let generation = 0;
   /** Stops waiting for the release of the button that asked for a detail. */
   let stopWaiting: (() => void) | undefined;
+  /** The next frame of the edge autoscroll, while one is going. */
+  let frame: number | undefined;
+
+  /**
+   * The part of the window where the calendar shows: below the sticky region and above the selection bar (the
+   * cells' scroll margins, which follow their real heights), and in the month columns beside the sticky day
+   * column. `sideways` tells whether the grid scrolls sideways itself.
+   */
+  function visibleArea(): { top: number; bottom: number; left: number; right: number; sideways: boolean } {
+    const box = node.getBoundingClientRect();
+    const sample = node.querySelector("[data-day]");
+    const cell = sample ? getComputedStyle(sample) : undefined;
+    const grid = getComputedStyle(node);
+    const sideways = node.scrollWidth > node.clientWidth;
+    const dayColumn = sideways ? parseFloat(grid.scrollPaddingInlineStart) || 0 : 0;
+    const rtl = grid.direction === "rtl";
+    return {
+      top: Math.max(0, box.top, parseFloat(cell?.scrollMarginBlockStart ?? "") || 0),
+      bottom: Math.min(window.innerHeight - (parseFloat(cell?.scrollMarginBlockEnd ?? "") || 0), box.bottom),
+      left: Math.max(0, box.left + (rtl ? 0 : dayColumn)),
+      right: Math.min(window.innerWidth, box.right - (rtl ? dayColumn : 0)),
+      sideways,
+    };
+  }
+
+  /** The day under the pointer's last position, held inside the visible calendar (the pointer may be past it). */
+  function dayUnderPointer(drag: MousePress | SelectPress): DayNumber | undefined {
+    const area = visibleArea();
+    const x = clamp(drag.lastX, area.left + 1, area.right - 1);
+    const y = clamp(drag.lastY, area.top + 1, area.bottom - 1);
+    return dayOf(node, document.elementFromPoint(x, y));
+  }
+
+  /** One frame of the edge autoscroll; it goes on while the pointer stays near an edge. */
+  function autoscroll(): void {
+    frame = undefined;
+    const drag = press;
+    if (drag === undefined || drag.kind === "touch" || (drag.kind === "select" && drag.done)) return;
+    const area = visibleArea();
+    const down = edgeStep(area.bottom - drag.lastY);
+    const up = edgeStep(drag.lastY - area.top);
+    const right = area.sideways ? edgeStep(area.right - drag.lastX) : 0;
+    const left = area.sideways ? edgeStep(drag.lastX - area.left) : 0;
+    if (down === 0 && up === 0 && right === 0 && left === 0) return;
+    // The scroll event that follows looks up the day under the pointer again (onScroll).
+    if (down !== up) window.scrollBy(0, down - up);
+    if (right !== left) node.scrollBy(right - left, 0);
+    frame = requestAnimationFrame(autoscroll);
+  }
+
+  /** Starts the autoscroll once the pointer has left the spot where it was pressed. */
+  function autoscrollFrom(drag: MousePress | SelectPress): void {
+    if (frame !== undefined) return;
+    if (!drag.moved && Math.hypot(drag.lastX - drag.x, drag.lastY - drag.y) <= TOUCH_SLOP_PX) return;
+    frame = requestAnimationFrame(autoscroll);
+  }
 
   /**
    * Opens the detail once the mouse button is up. A popover shown while the button is still down (the
@@ -185,6 +261,9 @@ export function calendarGestures(node: HTMLElement, initial: GestureOptions): { 
     press = undefined;
     generation += 1;
     window.removeEventListener("keydown", onKeyDown, true);
+    window.removeEventListener("scroll", onScroll, true);
+    if (frame !== undefined) cancelAnimationFrame(frame);
+    frame = undefined;
     if (ended.kind !== "mouse") clearTimeout(ended.timer);
     if (node.hasPointerCapture(ended.id)) node.releasePointerCapture(ended.id);
     if (ended.kind === "select") return;
@@ -209,12 +288,15 @@ export function calendarGestures(node: HTMLElement, initial: GestureOptions): { 
       x: event.clientX,
       y: event.clientY,
       timer: touch ? setTimeout(onLongPress, LONG_PRESS_MS) : undefined,
+      lastX: event.clientX,
+      lastY: event.clientY,
       current: day,
       moved: false,
       done: false,
     };
     generation += 1;
     window.addEventListener("keydown", onKeyDown, true);
+    window.addEventListener("scroll", onScroll, { capture: true, passive: true });
   }
 
   function onPointerDown(event: PointerEvent): void {
@@ -260,12 +342,17 @@ export function calendarGestures(node: HTMLElement, initial: GestureOptions): { 
       action: actionForDrag(options.getResult(), day),
       shift: event.shiftKey,
       anchor,
+      x: event.clientX,
+      y: event.clientY,
+      lastX: event.clientX,
+      lastY: event.clientY,
       current: day,
       moved: false,
     };
     generation += 1;
     node.setPointerCapture(event.pointerId);
     window.addEventListener("keydown", onKeyDown, true);
+    window.addEventListener("scroll", onScroll, { capture: true, passive: true });
   }
 
   function onPointerMove(event: PointerEvent): void {
@@ -281,24 +368,37 @@ export function calendarGestures(node: HTMLElement, initial: GestureOptions): { 
         clearTimeout(current.timer);
         current.timer = undefined;
       }
-      const day = dayOf(node, document.elementFromPoint(event.clientX, event.clientY));
-      if (day === undefined || day === current.current) return;
-      // On another day the press is a drag, never a long press any more.
-      clearTimeout(current.timer);
-      current.timer = undefined;
-      current.current = day;
-      current.moved = true;
-      if (!options.app.selectMode) return;
-      select(current.start, day);
-      return;
     }
-    // The capture sends every move to the grid; the day under the pointer decides. Between tiles there is
-    // none, so the last day found stays.
-    const day = dayOf(node, document.elementFromPoint(event.clientX, event.clientY));
+    current.lastX = event.clientX;
+    current.lastY = event.clientY;
+    follow(current);
+    autoscrollFrom(current);
+  }
+
+  /**
+   * Moves the drag to the day under the pointer. The capture sends every move to the grid; between tiles there
+   * is no day, so the last day found stays.
+   */
+  function follow(current: MousePress | SelectPress): void {
+    if (current.kind === "select" && current.done) return;
+    const day = dayUnderPointer(current);
     if (day === undefined || day === current.current) return;
     current.current = day;
     current.moved = true;
-    showPreview(current);
+    if (current.kind === "mouse") {
+      showPreview(current);
+      return;
+    }
+    // On another day the press is a drag, never a long press any more.
+    clearTimeout(current.timer);
+    current.timer = undefined;
+    if (!options.app.selectMode) return;
+    select(current.start, day);
+  }
+
+  /** The calendar moved under a still pointer (the autoscroll, a wheel turn): the range follows. */
+  function onScroll(): void {
+    if (press !== undefined && press.kind !== "touch") follow(press);
   }
 
   function onPointerUp(event: PointerEvent): void {
