@@ -81,6 +81,10 @@ SPDX-License-Identifier: EUPL-1.2
   });
   const stuckBlockStart = $derived(stuckSize === undefined ? undefined : `${String(stuckSize)}px`);
 
+  /** The selection bar's height: it covers the bottom of the window over the calendar in the selection mode. */
+  let selectionBarSize = $state(0);
+  const stuckBlockEnd = $derived(app.selectMode ? `${String(selectionBarSize)}px` : undefined);
+
   /** The sidebar's content is taller than the window, so the sidebar scrolls itself. */
   let panelScrolls = $state(false);
 
@@ -186,7 +190,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 <svelte:window {onkeydown} />
 
-<div class="screen" bind:clientWidth={width} style:--stuck-block-start={stuckBlockStart}>
+<div class="screen" bind:clientWidth={width} style:--stuck-block-start={stuckBlockStart} style:--stuck-block-end={stuckBlockEnd}>
   <Toolbar {compact} {selectable} onview={(view: "tiles" | "columns") => void switchView(view)} bind:heading />
   <!--
     The hint line is the drag's feedback (docs/SPEC.md, "Calendar interaction"), so it sticks with the
@@ -269,7 +273,7 @@ SPDX-License-Identifier: EUPL-1.2
   {/if}
   {#if app.state && app.selectMode}
     <!-- Last in the screen: it sticks to the bottom of the window and ends the page below the calendar. -->
-    <SelectionBar />
+    <SelectionBar bind:size={selectionBarSize} />
   {/if}
 </div>
 
@@ -300,9 +304,13 @@ SPDX-License-Identifier: EUPL-1.2
       background: var(--r-surface);
     }
 
-    /* A cell scrolled into view (keyboard, view switch) stops below the sticky region and a wrapped hint line. */
+    /*
+     * A cell scrolled into view (keyboard, view switch) stops below the sticky region and a wrapped hint line,
+     * and above the selection bar.
+     */
     .calendar :global([data-day]) {
       scroll-margin-block-start: var(--stuck-block-start, 0);
+      scroll-margin-block-end: var(--stuck-block-end, 0);
     }
 
     .compact-head {

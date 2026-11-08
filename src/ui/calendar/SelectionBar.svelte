@@ -4,13 +4,22 @@ SPDX-License-Identifier: EUPL-1.2
 -->
 <script lang="ts">
   // The action bar of the touch selection mode (docs/SPEC.md, "Calendar interaction"), kept at the block
-  // end of the window: the hint line for the selection, and Full day, Half day, Remove and Cancel. Each action
-  // goes through the range rules as one undo step and ends the selection; the mode stays on.
+  // end of the window: the hint line for the selection with the button that leaves the mode, and Full day,
+  // Half day, Remove and Clear selection. Each action goes through the range rules as one undo step and ends
+  // the selection; the mode stays on. The bar looks the same with and without a selection.
   import Button from "../controls/Button.svelte";
+  import IconButton from "../controls/IconButton.svelte";
   import { i18n } from "../i18n/i18n.svelte.ts";
   import { app } from "../state/app.svelte.ts";
   import HintLine from "./HintLine.svelte";
   import { rangeChanges, type RangeAction } from "./range.ts";
+
+  interface Props {
+    /** The bar's height in px: a day reached with the keyboard stops above it. */
+    size?: number;
+  }
+
+  let { size = $bindable(0) }: Props = $props();
 
   const disabled = $derived(app.selection === undefined || app.applying);
 
@@ -23,6 +32,24 @@ SPDX-License-Identifier: EUPL-1.2
     if (bar?.contains(document.activeElement)) document.querySelector<HTMLElement>('[role="grid"] [tabindex="0"]')?.focus({ preventScroll: true });
   }
 
+  /** Leaves the mode, which drops the selection; the focus goes from the bar, which goes too, to the calendar. */
+  function exit(): void {
+    const focusHere = bar?.contains(document.activeElement) ?? false;
+    app.selectMode = false;
+    if (focusHere) document.querySelector<HTMLElement>('[role="grid"] [tabindex="0"]')?.focus({ preventScroll: true });
+  }
+
+  /**
+   * Escape clears the selection, and with nothing selected leaves the mode, like the exit button. The grid
+   * clears its own selection first (keyboard.svelte.ts); an open popover or sheet takes its own Escape.
+   */
+  function onkeydown(event: KeyboardEvent): void {
+    if (event.key !== "Escape" || event.defaultPrevented || document.querySelector(":popover-open, dialog[open]")) return;
+    event.preventDefault();
+    if (app.selection !== undefined) clear();
+    else exit();
+  }
+
   function apply(action: RangeAction): void {
     const selection = app.selection;
     const result = app.state?.result;
@@ -33,13 +60,19 @@ SPDX-License-Identifier: EUPL-1.2
   }
 </script>
 
-<section bind:this={bar} class="bar" aria-label={i18n.t("selection.label")}>
-  <HintLine idle={i18n.t("selection.prompt")} />
+<svelte:window {onkeydown} />
+
+<section bind:this={bar} class="bar" aria-label={i18n.t("selection.label")} bind:offsetHeight={size}>
+  <HintLine idle={i18n.t("selection.prompt")}>
+    {#snippet end()}
+      <IconButton icon="close" label={i18n.t("selection.exit")} onclick={exit} />
+    {/snippet}
+  </HintLine>
   <div class="actions cluster">
     <Button variant="primary" {disabled} onclick={() => apply("full")}>{i18n.t("selection.full")}</Button>
     <Button {disabled} onclick={() => apply("half")}>{i18n.t("selection.half")}</Button>
     <Button {disabled} onclick={() => apply("remove")}>{i18n.t("selection.remove")}</Button>
-    <Button {disabled} onclick={clear}>{i18n.t("selection.cancel")}</Button>
+    <Button {disabled} onclick={clear}>{i18n.t("selection.clear")}</Button>
   </div>
 </section>
 

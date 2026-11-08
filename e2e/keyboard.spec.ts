@@ -209,6 +209,53 @@ test("Home and End go to the week across a month's edge, Ctrl+Home and Ctrl+End 
   await expectNoPageProblems(page);
 });
 
+test.describe("in the selection mode at 700 px", () => {
+  test.use({ viewport: { width: 700, height: 800 } });
+
+  test.beforeEach(async ({ page }) => {
+    const select = page.getByRole("button", { name: "Select", exact: true });
+    await select.click();
+    await expect(select).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("Escape clears the selection and stays in the mode; the next Escape leaves it", async ({ page }) => {
+    const select = page.getByRole("button", { name: "Select", exact: true });
+    const bar = page.getByRole("region", { name: "Selection" });
+    await cell(page, 6, 14).focus();
+    await page.keyboard.press("Shift+ArrowRight");
+    await expect(selected(page)).toHaveCount(2);
+    await page.keyboard.press("Escape");
+    await expect(selected(page)).toHaveCount(0);
+    await expect(select).toHaveAttribute("aria-pressed", "true");
+    await expect(bar).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(select).toHaveAttribute("aria-pressed", "false");
+    await expect(bar).toHaveCount(0);
+    await expect(cell(page, 6, 15)).toBeFocused();
+    await expectNoPageProblems(page);
+  });
+
+  test("Escape on the bar's exit button leaves the mode and gives the focus to the calendar", async ({ page }) => {
+    await page.getByRole("button", { name: "Exit selection mode", exact: true }).focus();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("region", { name: "Selection" })).toHaveCount(0);
+    await expect(page.locator('[role="gridcell"][tabindex="0"]')).toBeFocused();
+    await expectNoPageProblems(page);
+  });
+
+  test("a day reached with the arrows stops above the selection bar, not under it", async ({ page }) => {
+    const bar = page.getByRole("region", { name: "Selection" });
+    await cell(page, 6, 14).focus();
+    // The week below sits at the bottom of the window, under the bar.
+    await cell(page, 6, 21).evaluate((element) => window.scrollBy(0, element.getBoundingClientRect().bottom - window.innerHeight + 10));
+    await page.keyboard.press("ArrowDown");
+    await expect(cell(page, 6, 21)).toBeFocused();
+    const box = (await cell(page, 6, 21).boundingBox())!;
+    expect(box.y + box.height).toBeLessThanOrEqual((await bar.boundingBox())!.y + 1);
+    await expectNoPageProblems(page);
+  });
+});
+
 test("the letter shortcuts still work from a cell, and H doesn't trigger one", async ({ page }) => {
   await cell(page, 6, 14).focus();
   const weeks = page.getByRole("button", { name: "Week 24", exact: true });
