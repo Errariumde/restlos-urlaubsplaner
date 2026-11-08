@@ -9,6 +9,7 @@ import { UNITS_PER_DAY, type Units } from "../../engine/weight.ts";
 import { formatDays } from "../i18n/format.ts";
 import { textLanguage, type Locale } from "../i18n/locale.ts";
 import type { LeaveChange, PlanMeta, SourceMeta } from "../worker/protocol.ts";
+import { dayLeave } from "./day-leave.ts";
 import { halfDayFits } from "./range.ts";
 
 export type DetailLeave = "none" | "full" | "halfStart" | "halfEnd" | "mandatory" | "otherPlan" | "partial";
@@ -75,17 +76,15 @@ function reasonOf(day: DayResult, meta: PlanMeta, locale: Locale): DayDetailData
   }
 }
 
+/** The leave of the day as the cell reads it (dayLeave): for own leave beside mandatory leave, the own share. */
 function leaveOf(day: DayResult): DetailLeave {
-  const own = day.leave.find((piece) => piece.kind === "own");
-  if (own?.kind === "own" && own.take > 0) {
-    // As in the cell: leave that covers all the required work is a full day, wherever it lies.
-    if (day.evaluation.ownCost >= day.required.value) return "full";
-    if (own.take === UNITS_PER_DAY / 2) return own.part === "start" ? "halfStart" : "halfEnd";
-    return "partial";
-  }
-  if (day.leave.some((piece) => piece.kind === "mandatory")) return "mandatory";
-  if (day.leave.some((piece) => piece.kind === "otherPlan")) return "otherPlan";
-  return "none";
+  const view = dayLeave(day);
+  if (view.fill === "full") return "full";
+  if (view.fill === "mandatory") return "mandatory";
+  const own = view.shares.find((share) => share.kind === "own");
+  if (own !== undefined) return own.where === "morning" ? "halfStart" : own.where === "afternoon" ? "halfEnd" : "partial";
+  if (view.shares.length > 0) return "mandatory";
+  return view.otherPlan ? "otherPlan" : "none";
 }
 
 /** The detail of a day. `problems` is the result's list; only those of this day are kept. */

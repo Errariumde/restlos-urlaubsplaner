@@ -140,6 +140,9 @@ describe("evaluateLeave", () => {
         let ownCovered = false;
         // Runs of slots charged with the same kind, in day positions.
         const charged: { from: number; to: number; kind: ChargedSpan["kind"] }[] = [];
+        // Runs of slots where one kind lies, charged or not: mandatory where no other plan's leave is, own where no
+        // mandatory leave lies, another plan's where neither does.
+        const placed: { from: number; to: number; kind: LeaveKind }[] = [];
         for (let i = 0; i < r; i++) {
           const mandCharged = covered.mandatory[i] && !covered.otherPlan[i];
           const isCharged = charge && (covered.own[i] || mandCharged);
@@ -153,6 +156,12 @@ describe("evaluateLeave", () => {
             const last = charged.at(-1);
             if (last && last.to === a + i && last.kind === kind) last.to++;
             else charged.push({ from: a + i, to: a + i + 1, kind });
+          }
+          const placedKind: LeaveKind | undefined = mandCharged ? "mandatory" : covered.own[i] ? "own" : covered.otherPlan[i] ? "otherPlan" : undefined;
+          if (placedKind !== undefined) {
+            const last = placed.at(-1);
+            if (last && last.to === a + i && last.kind === placedKind) last.to++;
+            else placed.push({ from: a + i, to: a + i + 1, kind: placedKind });
           }
         }
         const remaining = free.filter((isFree) => !isFree).length;
@@ -171,6 +180,7 @@ describe("evaluateLeave", () => {
           costEnd: whole ? 0 : costEnd,
           ownCoveredByOtherPlan: ownCovered,
           charged,
+          placed,
         });
       }),
       { numRuns: 500 },
@@ -194,6 +204,28 @@ describe("other-plan pieces with a position", () => {
     expect(evaluateLeave(at(240, "start"), [own(240, "start")], true).charged).toEqual([{ from: 240, to: 480, kind: "leave" }]));
   it("splits own and mandatory spans as mandatoryCost counts them", () =>
     expect(evaluateLeave(at(480), [own(240, "start"), mand(480, "end")], true).charged).toEqual([{ from: 0, to: 480, kind: "mandatory" }]));
+  it("places each kind where it lies, charged or not", () => {
+    // Own leave gives way to mandatory leave, which gives way to another plan's.
+    expect(evaluateLeave(at(480), [own(480), mand(240)], true).placed).toEqual([
+      { from: 0, to: 240, kind: "own" },
+      { from: 240, to: 480, kind: "mandatory" },
+    ]);
+    expect(evaluateLeave(at(480), [mand(480), other(0, 240)], true).placed).toEqual([
+      { from: 0, to: 240, kind: "otherPlan" },
+      { from: 240, to: 480, kind: "mandatory" },
+    ]);
+    expect(evaluateLeave(at(480), [own(240, "start"), other(0, 480)], true).placed).toEqual([
+      { from: 0, to: 240, kind: "own" },
+      { from: 240, to: 480, kind: "otherPlan" },
+    ]);
+    // Outside the period nothing is charged, but the leave still lies where it does.
+    expect(evaluateLeave(at(480), [own(120, "start")], false).placed).toEqual([{ from: 0, to: 120, kind: "own" }]);
+    // A half day with the free time at the start: the work block, and so the leave, lies in the afternoon.
+    expect(evaluateLeave(at(240, "start"), [own(120, "end")], true).placed).toEqual([{ from: 360, to: 480, kind: "own" }]);
+    // Without required work there is no block for the leave to lie in.
+    expect(evaluateLeave(at(0), [own(480)], true).placed).toEqual([]);
+  });
+
   it("charges nothing outside the period", () =>
     expect(evaluateLeave(at(480), [own(480, "end")], false).charged).toEqual([]));
 });

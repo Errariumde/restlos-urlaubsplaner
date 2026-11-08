@@ -3,18 +3,18 @@
 
 // The accessible label of a calendar cell (docs/SPEC.md, "Accessibility").
 import type { DayResult } from "../../engine/counting/plan.ts";
-import type { Part, SourceDay } from "../../engine/counting/types.ts";
+import type { SourceDay } from "../../engine/counting/types.ts";
 import { weekdayOf } from "../../engine/days.ts";
 import { textFor } from "../../engine/file/text.ts";
-import { UNITS_PER_DAY } from "../../engine/weight.ts";
+import { UNITS_PER_DAY, type Units } from "../../engine/weight.ts";
 import { formatDate, formatDays, formatList } from "../i18n/format.ts";
 import { textLanguage, type Locale } from "../i18n/locale.ts";
 import type { PlanMeta } from "../worker/protocol.ts";
+import { dayLeave, type DayLeaveView } from "./day-leave.ts";
 
 export type Translate = (key: string, args?: Record<string, string | number>) => string;
 
 export type CellKind = "workday" | "weekend" | "holiday" | "halfRequired" | "halfRequiredHoliday" | "free";
-export type CellLeave = "none" | "full" | "half" | "mandatory" | "otherPlan";
 
 type HolidaySourceDay = Extract<SourceDay, { type: "holiday" }>;
 
@@ -54,20 +54,28 @@ export function kindOf(day: DayResult, meta: PlanMeta): CellKind {
   return "workday";
 }
 
-/** The leave a cell shows: own leave wins over mandatory leave, which wins over leave from another plan. */
-export function leaveOf(day: DayResult): CellLeave {
-  if (day.leave.some((piece) => piece.kind === "own" && piece.take > 0)) {
-    return day.evaluation.ownCost >= day.required.value ? "full" : "half";
-  }
-  if (day.leave.some((piece) => piece.kind === "mandatory")) return "mandatory";
-  if (day.leave.some((piece) => piece.kind === "otherPlan")) return "otherPlan";
-  return "none";
+/** A share's amount for the catalog's select: a full or a half day by name, any other share as its number. */
+function amountOf(units: Units): "full" | "half" | "other" {
+  if (units === UNITS_PER_DAY) return "full";
+  return units * 2 === UNITS_PER_DAY ? "half" : "other";
 }
 
-/** Where the plan's own leave lies on the day; "end" when it has none. */
-export function ownPart(day: DayResult): Part {
-  const piece = day.leave.find((candidate) => candidate.kind === "own");
-  return piece?.kind === "own" ? piece.part : "end";
+/**
+ * The day's leave in words: own and mandatory leave with their amount and where they lie ("leave ¼, at the start of
+ * the day"), then leave from another plan; "no leave" without any.
+ */
+export function leaveText(view: DayLeaveView, i18n: { t: Translate; locale: Locale }): string {
+  const { t, locale } = i18n;
+  const items: string[] = [];
+  const full = { amount: "full", share: "", where: "none" };
+  if (view.fill === "full") items.push(t("day.leave.own", full));
+  else if (view.fill === "mandatory") items.push(t("day.leave.mandatory", full));
+  for (const share of view.shares) {
+    const args = { amount: amountOf(share.units), share: formatDays(share.units, locale), where: share.where === "spread" ? "none" : share.where };
+    items.push(share.kind === "own" ? t("day.leave.own", args) : t("day.leave.mandatory", args));
+  }
+  if (view.otherPlan) items.push(t("day.leave.otherPlan"));
+  return items.length === 0 ? t("day.leave.none") : formatList(items, locale);
 }
 
 /**
@@ -77,13 +85,11 @@ export function ownPart(day: DayResult): Part {
 export function cellLabel(day: DayResult, meta: PlanMeta, i18n: { t: Translate; locale: Locale }, sourceNames: readonly string[] = []): string {
   const { t, locale } = i18n;
   const cost = day.evaluation.cost;
-  const leave = leaveOf(day);
   return t("day.label", {
     date: formatDate(day.day, locale, "long"),
     kind: kindOf(day, meta),
     name: holidayName(day, meta, i18n),
-    // A half day says where the leave lies: in the morning (the start of the work block) or the afternoon.
-    leave: leave === "half" ? (ownPart(day) === "start" ? "halfStart" : "halfEnd") : leave,
+    leave: leaveText(dayLeave(day), i18n),
     hasCost: cost > 0 ? "yes" : "no",
     cost: formatDays(cost, locale),
     hasSources: sourceNames.length > 0 ? "yes" : "no",

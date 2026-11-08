@@ -3,6 +3,7 @@
 
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { evaluateLeave, type LeavePiece } from "../../../src/engine/counting/leave.ts";
 import type { DayResult } from "../../../src/engine/counting/plan.ts";
 import { dayFromYmd } from "../../../src/engine/days.ts";
 import { dayDetail, detailActions } from "../../../src/ui/calendar/detail.ts";
@@ -62,12 +63,20 @@ describe("dayDetail", () => {
   it("tells full days, mandatory leave and half days apart", () => {
     expect(detailOf(1, 7).leave).toBe("full");
     expect(detailOf(12, 27).leave).toBe("mandatory");
-    const half = { ...at(6, 14), leave: [{ kind: "own", take: 240, part: "start" }], evaluation: { ...at(6, 14).evaluation, cost: 240, ownCost: 240 } } as DayResult;
-    expect(dayDetail(half, state.meta, [], "en").leave).toBe("halfStart");
-    const end = { ...half, leave: [{ kind: "own", take: 240, part: "end" }] } as DayResult;
-    expect(dayDetail(end, state.meta, [], "en").leave).toBe("halfEnd");
-    const quarter = { ...half, leave: [{ kind: "own", take: 120, part: "end" }], evaluation: { ...half.evaluation, cost: 120, ownCost: 120 } } as DayResult;
-    expect(dayDetail(quarter, state.meta, [], "en").leave).toBe("partial");
+    // The working day 14 June with other leave, which the engine evaluates.
+    const withLeave = (leave: LeavePiece[]): DayResult => {
+      const day = at(6, 14);
+      return { ...day, leave, evaluation: evaluateLeave(day.required, leave, true) };
+    };
+    expect(dayDetail(withLeave([{ kind: "own", take: 240, part: "start" }]), state.meta, [], "en").leave).toBe("halfStart");
+    expect(dayDetail(withLeave([{ kind: "own", take: 240, part: "end" }]), state.meta, [], "en").leave).toBe("halfEnd");
+    expect(dayDetail(withLeave([{ kind: "own", take: 120, part: "end" }]), state.meta, [], "en").leave).toBe("partial");
+    // A full day of own leave beside an afternoon of mandatory leave is own leave in the morning, as in the cell.
+    const both = withLeave([
+      { kind: "own", take: 480, part: "end" },
+      { kind: "mandatory", take: 240, part: "end", ruleId: "m" },
+    ]);
+    expect(dayDetail(both, state.meta, [], "en").leave).toBe("halfStart");
   });
 
   it("keeps only the problems of its day", () => {

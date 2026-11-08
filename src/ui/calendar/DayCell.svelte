@@ -13,7 +13,8 @@ SPDX-License-Identifier: EUPL-1.2
   import { i18n } from "../i18n/i18n.svelte.ts";
   import type { PlanMeta } from "../worker/protocol.ts";
   import { lineStyle, sourceAccent, type CellLane } from "./cell-lanes.ts";
-  import { cellLabel, kindOf, leaveOf, ownPart } from "./label.ts";
+  import { dayLeave, maskStops, workStops } from "./day-leave.ts";
+  import { cellLabel, kindOf } from "./label.ts";
 
   interface Props {
     day: DayResult;
@@ -34,9 +35,18 @@ SPDX-License-Identifier: EUPL-1.2
   let { day, meta, lanes, orientation, focused, selected, today, previewed, marker }: Props = $props();
 
   const kind = $derived(kindOf(day, meta));
-  const leave = $derived(leaveOf(day));
-  const part = $derived(ownPart(day));
-  const otherPlan = $derived(day.leave.some((piece) => piece.kind === "otherPlan"));
+  const leave = $derived(dayLeave(day));
+  // A share is drawn where it lies: a mask along the diagonal lets its spans through.
+  const ownMask = $derived.by(() => {
+    const share = leave.shares.find((candidate) => candidate.kind === "own");
+    return share === undefined ? undefined : maskStops(share.spans);
+  });
+  const mandatoryMask = $derived.by(() => {
+    const share = leave.shares.find((candidate) => candidate.kind === "mandatory");
+    return share === undefined ? undefined : maskStops(share.spans);
+  });
+  // A partly free day: where its work block lies on the diagonal; the rest shows the free time's pattern.
+  const work = $derived(kind === "halfRequired" || kind === "halfRequiredHoliday" ? workStops(day.required) : undefined);
 
   /** The sources of the lanes, in the order of the sources list, with their accent and line style. */
   const drawn = $derived(
@@ -59,8 +69,8 @@ SPDX-License-Identifier: EUPL-1.2
 
 <div
   role="gridcell"
-  class="cell {kind} leave-{leave} part-{part} {orientation}"
-  class:other-plan={otherPlan}
+  class="cell {kind} leave-{leave.fill} {orientation}"
+  class:other-plan={leave.otherPlan}
   class:today
   class:selected
   class:previewed
@@ -69,9 +79,12 @@ SPDX-License-Identifier: EUPL-1.2
   aria-selected={selected}
   aria-label={label}
   title={label}
+  style:--work-from={work?.from}
+  style:--work-to={work?.to}
 >
-  <span class="fill"></span>
-  {#if otherPlan}<span class="border"></span>{/if}
+  <span class="fill" class:own={ownMask !== undefined} style:--mask={ownMask}></span>
+  {#if mandatoryMask !== undefined}<span class="mandatory-fill" style:--mask={mandatoryMask}></span>{/if}
+  {#if leave.otherPlan}<span class="border"></span>{/if}
   <span class="number">
     {ymdFromDay(day.day).day}
     {#if orientation === "column"}<span class="weekday">{formatDate(day.day, i18n.locale, "weekday")}</span>{/if}
@@ -110,6 +123,12 @@ SPDX-License-Identifier: EUPL-1.2
       cursor: pointer;
       user-select: none;
       -webkit-user-select: none;
+      /* The direction of the day on the cell: from the start corner to the end corner. */
+      --diagonal: 135deg;
+    }
+
+    .cell:dir(rtl) {
+      --diagonal: 225deg;
     }
 
     @media (pointer: coarse) {
@@ -135,32 +154,30 @@ SPDX-License-Identifier: EUPL-1.2
       font-weight: 700;
     }
 
-    /* Half required work: the free half (below the diagonal) carries the weekend hatch or the holiday dots. */
+    /*
+     * Partly required work: the work block is the working-day colour where it lies on the diagonal (in the morning
+     * unless the free time is at the start); the free time carries the weekend hatch or the holiday dots.
+     */
+    .halfRequired,
+    .halfRequiredHoliday {
+      --work: linear-gradient(
+        var(--diagonal),
+        transparent var(--work-from, 0%),
+        var(--r-workday) var(--work-from, 0%) var(--work-to, 50%),
+        transparent var(--work-to, 50%)
+      );
+    }
+
     .halfRequired {
       background:
-        linear-gradient(135deg, var(--r-workday) 50%, transparent 50%),
+        var(--work),
         repeating-linear-gradient(in srgb 135deg, transparent 0 4px, var(--r-day-pattern) 4px 5px),
         var(--r-half-required);
     }
 
     .halfRequiredHoliday {
       background:
-        linear-gradient(135deg, var(--r-workday) 50%, transparent 50%),
-        radial-gradient(circle, var(--r-day-pattern) 0 1px, transparent 1.5px) 0 0 / 6px 6px,
-        var(--r-holiday);
-    }
-
-    /* Right to left: the split mirrors, so the free half stays at the end of the day (the inline end). */
-    .halfRequired:dir(rtl) {
-      background:
-        linear-gradient(225deg, var(--r-workday) 50%, transparent 50%),
-        repeating-linear-gradient(in srgb 135deg, transparent 0 4px, var(--r-day-pattern) 4px 5px),
-        var(--r-half-required);
-    }
-
-    .halfRequiredHoliday:dir(rtl) {
-      background:
-        linear-gradient(225deg, var(--r-workday) 50%, transparent 50%),
+        var(--work),
         radial-gradient(circle, var(--r-day-pattern) 0 1px, transparent 1.5px) 0 0 / 6px 6px,
         var(--r-holiday);
     }
@@ -174,8 +191,13 @@ SPDX-License-Identifier: EUPL-1.2
       color: var(--r-text-muted);
     }
 
-    /* Layer 2: the leave. */
-    .fill {
+    /*
+     * Layer 2: the leave. A kind that is the day's only leave and leaves no work fills the cell; otherwise each
+     * share is masked to where it lies on the diagonal (--mask, from day-leave.ts), own leave in blue and
+     * mandatory leave in its stripes.
+     */
+    .fill,
+    .mandatory-fill {
       position: absolute;
       inset: 3px;
       border-radius: 2px;
@@ -186,35 +208,29 @@ SPDX-License-Identifier: EUPL-1.2
       background: var(--r-leave-full);
     }
 
-    .leave-half.part-end .fill {
-      background: linear-gradient(135deg, transparent 50%, var(--r-leave-half) 50%);
+    .leave-part .fill.own {
+      background: var(--r-leave-half);
+      mask-image: linear-gradient(var(--diagonal), var(--mask));
     }
 
-    .leave-half.part-start .fill {
-      background: linear-gradient(135deg, var(--r-leave-half) 50%, transparent 50%);
+    .leave-mandatory .fill,
+    .mandatory-fill {
+      background: repeating-linear-gradient(in srgb 45deg, var(--r-mandatory) 0 4px, var(--r-mandatory-stripe) 4px 7px);
     }
 
-    .leave-half.part-end:dir(rtl) .fill {
-      background: linear-gradient(225deg, transparent 50%, var(--r-leave-half) 50%);
+    .mandatory-fill {
+      mask-image: linear-gradient(var(--diagonal), var(--mask));
     }
 
-    .leave-half.part-start:dir(rtl) .fill {
-      background: linear-gradient(225deg, var(--r-leave-half) 50%, transparent 50%);
-    }
-
-    /* Digits on leave, full or half, follow one rule in both modes: the mode's text colour with a surface halo. */
+    /* Digits on leave that isn't wholly mandatory follow one rule in both modes: the mode's text colour with a surface halo. */
     .leave-full,
-    .leave-half {
+    .leave-part {
       color: var(--r-on-leave);
     }
 
     .leave-full .number,
-    .leave-half .number {
+    .leave-part .number {
       text-shadow: 0 0 2px var(--r-leave-aura), 0 0 1px var(--r-leave-aura);
-    }
-
-    .leave-mandatory .fill {
-      background: repeating-linear-gradient(in srgb 45deg, var(--r-mandatory) 0 4px, var(--r-mandatory-stripe) 4px 7px);
     }
 
     .leave-full,
@@ -404,13 +420,16 @@ SPDX-License-Identifier: EUPL-1.2
       box-shadow: inset 0 0 0 2px var(--r-selection), inset 0 0 0 3px var(--r-surface);
     }
 
+    /* The preview tints the whole cell, also one with a share of leave. */
     .cell.previewed:not(.leave-full, .leave-mandatory) .fill {
       background: var(--r-preview);
+      mask-image: none;
     }
 
     /* A drag that removes leave (the grid has .removing) hatches what goes. */
     :global(.removing) .cell.previewed .fill {
       background: repeating-linear-gradient(in srgb -45deg, transparent 0 3px, var(--r-overdraft-hatch) 3px 5px);
+      mask-image: none;
     }
 
     :global(.removing) .previewed {
@@ -419,6 +438,7 @@ SPDX-License-Identifier: EUPL-1.2
 
     @media (forced-colors: active) {
       .fill,
+      .mandatory-fill,
       .ring,
       .lane::before {
         forced-color-adjust: none;
@@ -430,23 +450,13 @@ SPDX-License-Identifier: EUPL-1.2
         background: Highlight;
       }
 
-      .leave-half.part-end .fill {
-        background: linear-gradient(135deg, transparent 50%, Highlight 50%);
+      /* A share keeps its mask, in Highlight. */
+      .leave-part .fill.own {
+        background: Highlight;
       }
 
-      .leave-half.part-start .fill {
-        background: linear-gradient(135deg, Highlight 50%, transparent 50%);
-      }
-
-      .leave-half.part-end:dir(rtl) .fill {
-        background: linear-gradient(225deg, transparent 50%, Highlight 50%);
-      }
-
-      .leave-half.part-start:dir(rtl) .fill {
-        background: linear-gradient(225deg, Highlight 50%, transparent 50%);
-      }
-
-      .leave-mandatory .fill {
+      .leave-mandatory .fill,
+      .mandatory-fill {
         background: repeating-linear-gradient(in srgb 45deg, Highlight 0 4px, Canvas 4px 7px);
       }
 
