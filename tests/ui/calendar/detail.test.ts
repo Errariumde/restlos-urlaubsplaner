@@ -151,3 +151,27 @@ describe("detailActions", () => {
     expect(detailActions(at(1, 4), 240)).toEqual({ blocked: "otherPlan" });
   });
 });
+
+describe("detailActions on a day partly covered by mandatory leave or another plan's leave", () => {
+  const file = JSON.parse(example) as { contract: { rules: unknown[] }; sources: { entries: unknown[] }[] };
+  file.contract.rules.push({ id: "half-closure", match: { type: "fixed", month: 3, day: 4 }, mandatory: "1/2", part: "end" });
+  file.sources[1]!.entries.push({ date: "2027-03-03", from: "1/4", to: "3/4", kind: "leave" });
+  const session = new Session();
+  const partly = session.open(JSON.stringify(file), true) as PlanState;
+  const march = (day: number): DayResult => partly.result.days[dayFromYmd(2027, 3, day) - partly.result.days[0]!.day]!;
+
+  it("offers the free rest as the full day, and no half day", () => {
+    const actions = detailActions(march(4), 240);
+    expect(actions).toEqual({ full: { day: dayFromYmd(2027, 3, 4), take: 240, part: "start" } });
+  });
+
+  it("offers only removing once the rest is set", () => {
+    const filled = session.apply([{ day: dayFromYmd(2027, 3, 4), take: 240, part: "start" }]);
+    const day = filled.result.days[dayFromYmd(2027, 3, 4) - filled.result.days[0]!.day]!;
+    expect(detailActions(day, 240)).toEqual({ remove: { day: dayFromYmd(2027, 3, 4), take: 0 } });
+  });
+
+  it("explains a day whose free time lies on both sides of another plan's leave", () => {
+    expect(detailActions(march(3), 240)).toEqual({ blocked: "otherPlan" });
+  });
+});

@@ -10,7 +10,7 @@ import { formatDays } from "../i18n/format.ts";
 import { textLanguage, type Locale } from "../i18n/locale.ts";
 import type { LeaveChange, PlanMeta, SourceMeta } from "../worker/protocol.ts";
 import { dayLeave } from "./day-leave.ts";
-import { halfDayFits } from "./range.ts";
+import { changeFor, freeRest, halfDayFits } from "./range.ts";
 
 export type DetailLeave = "none" | "full" | "halfStart" | "halfEnd" | "mandatory" | "otherPlan" | "partial";
 
@@ -122,7 +122,8 @@ export type Blocked = "noRequired" | "mandatory" | "otherPlan";
 /**
  * The one change each action of the detail makes, or undefined when it changes nothing or isn't possible;
  * `blocked` says why none of the setting actions is possible. The actions follow the range rules
- * (range.ts): only days in the period with required work and without mandatory or other-plan leave.
+ * (range.ts): only days in the period with required work; beside mandatory or other-plan leave, the full day
+ * fills the work they leave free, and there is no half day.
  */
 export interface DetailActions {
   readonly full?: LeaveChange;
@@ -140,9 +141,16 @@ export function detailActions(day: DayResult, minUnit: Units): DetailActions {
   const part = own?.kind === "own" ? own.part : undefined;
   const remove: LeaveChange | undefined = take > 0 ? { day: day.day, take: 0 } : undefined;
   const removeOnly = (blocked: Blocked): DetailActions => (remove ? { remove, blocked } : { blocked });
-  if (day.leave.some((piece) => piece.kind === "mandatory")) return removeOnly("mandatory");
-  if (day.leave.some((piece) => piece.kind === "otherPlan")) return removeOnly("otherPlan");
   if (day.required.value <= 0) return removeOnly("noRequired");
+  const rest = freeRest(day);
+  if (rest === undefined) return removeOnly(day.leave.some((piece) => piece.kind === "mandatory") ? "mandatory" : "otherPlan");
+  if (rest !== "whole") {
+    const full = changeFor(day, "full");
+    const partly: { -readonly [K in keyof DetailActions]: DetailActions[K] } = {};
+    if (full) partly.full = full;
+    if (remove) partly.remove = remove;
+    return partly;
+  }
   const half = (side: "start" | "end"): LeaveChange | undefined =>
     take === UNITS_PER_DAY / 2 && part === side ? undefined : { day: day.day, take: 240, part: side };
   const actions: { -readonly [K in keyof DetailActions]: DetailActions[K] } = {};

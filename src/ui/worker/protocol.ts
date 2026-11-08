@@ -10,8 +10,8 @@ import type { DayNumber, Weekday } from "../../engine/days.ts";
 import type { Color, FileSource, Text } from "../../engine/file/types.ts";
 import type { Units } from "../../engine/weight.ts";
 
-/** One day of the plan's own leave to set; `take: 0` removes it. `part` only counts for 240. */
-export type LeaveChange = { readonly day: DayNumber; readonly take: 0 | 240 | 480; readonly part?: Part };
+/** One day of the plan's own leave to set; `take: 0` removes it. `part` says where leave below a full day lies. */
+export type LeaveChange = { readonly day: DayNumber; readonly take: Units; readonly part?: Part };
 
 export interface SourceMeta {
   readonly id: string;
