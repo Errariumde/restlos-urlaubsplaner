@@ -1,10 +1,10 @@
 ---
-status: open
+status: wontfix
 priority:
 area: build
 branch:
 created: 2026-11-04
-closed:
+closed: 2026-11-08
 ---
 <!--
 SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
@@ -28,3 +28,5 @@ Found when the UI branch added the single-file build (into `dist/restlos-urlaubs
 - `.gitignore` and the ESLint ignores list the chosen directory.
 
 ## Notes
+
+- Closed as wontfix on 2026-11-08: the feasibility test pages were removed (commit c080a69, "Remove the feasibility test pages"), so no build or script writes into `dist/feasibility` any more and the clash can no longer happen.

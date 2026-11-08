@@ -1,8 +1,8 @@
 ---
-status: open
+status: next
 priority:
 area: counting model
-branch:
+branch: leave-on-working-time
 created: 2026-10-18
 closed:
 ---

@@ -1,8 +1,8 @@
 ---
-status: open
+status: next
 priority:
 area: engine (counting model), spec
-branch:
+branch: leave-on-working-time
 created: 2026-11-04
 closed:
 ---
