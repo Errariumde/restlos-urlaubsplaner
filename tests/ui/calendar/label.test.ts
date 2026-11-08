@@ -31,15 +31,16 @@ interface Options {
   day: number;
   required?: number;
   holiday?: string;
+  sources?: unknown[];
   leave?: unknown[];
   cost?: number;
 }
 
-function result({ day, required = 480, holiday, leave = [], cost = 0 }: Options): DayResult {
+function result({ day, required = 480, holiday, sources = [], leave = [], cost = 0 }: Options): DayResult {
   return {
     day,
     inPeriod: true,
-    facts: { day, holidays: holiday ? [{ day, ruleId: "r", nameKey: holiday, substitute: false }] : [] },
+    facts: { day, holidays: holiday ? [{ day, ruleId: "r", nameKey: holiday, substitute: false }] : [], sources },
     required: { value: required },
     leave,
     evaluation: { cost, ownCost: leave.some((p) => (p as { kind: string }).kind === "own") ? cost : 0 },
@@ -119,5 +120,47 @@ describe("cellLabel", () => {
     const label = cellLabel(planned, meta, i18n("en"), ["School holidays", "Team trip"]);
     expect(label).toBe("Friday, 7 May 2027, working day, leave full, costs 1, calendars School holidays and Team trip");
     expect(cellLabel(planned, meta, i18n("de"), ["A", "B", "C"])).toBe("Freitag, 7. Mai 2027, Arbeitstag, Urlaub ganz, kostet 1, Kalender A, B und C");
+  });
+});
+
+describe("a day of a holiday calendar", () => {
+  const cityMeta = {
+    weekend: ["sat", "sun"],
+    sources: [{ id: "city", name: { de: "Stadtfeiertage", en: "City holidays" }, type: "holiday", color: { slot: "accent-1" }, visible: true }],
+  } as unknown as PlanMeta;
+  const tuesday = dayFromYmd(2027, 2, 9);
+  const shrove = { de: "Faschingsdienstag", en: "Shrove Tuesday" };
+  const entry = (required: number, name: unknown = shrove) => ({ type: "holiday", day: tuesday, sourceId: "city", required, ...(name ? { name } : {}) });
+
+  it("is a holiday named after its entry", () => {
+    const day = result({ day: tuesday, required: 0, sources: [entry(0)] });
+    expect(cellLabel(day, cityMeta, i18n("en"))).toBe("Tuesday, 9 February 2027, holiday Shrove Tuesday, no leave");
+    expect(cellLabel(day, cityMeta, i18n("de"))).toBe("Dienstag, 9. Februar 2027, Feiertag Faschingsdienstag, kein Urlaub");
+  });
+
+  it("is named after its calendar when the entry has no name", () => {
+    const day = result({ day: tuesday, required: 0, sources: [entry(0, null)] });
+    expect(cellLabel(day, cityMeta, i18n("en"))).toContain(", holiday City holidays, ");
+  });
+
+  it("is a half working day with the holiday's name when it frees part of the day", () => {
+    const day = result({ day: tuesday, required: 240, sources: [entry(240)] });
+    expect(cellLabel(day, cityMeta, i18n("en"))).toContain(", half working day, Shrove Tuesday, ");
+  });
+
+  it("stays a working day when it is worked", () => {
+    const day = result({ day: tuesday, required: 480, sources: [entry(0)] });
+    expect(cellLabel(day, cityMeta, i18n("en"))).toContain(", working day, ");
+  });
+
+  it("is no holiday when its entry keeps the full day", () => {
+    const saturday = dayFromYmd(2027, 2, 13);
+    const day = result({ day: saturday, required: 0, sources: [{ ...entry(480), day: saturday }] });
+    expect(cellLabel(day, cityMeta, i18n("en"))).toContain(", weekend, ");
+  });
+
+  it("gives way to a public holiday's name", () => {
+    const day = result({ day: tuesday, required: 0, holiday: "holiday.christmas-day", sources: [entry(0)] });
+    expect(cellLabel(day, cityMeta, i18n("en"))).toContain(", holiday Christmas Day, ");
   });
 });

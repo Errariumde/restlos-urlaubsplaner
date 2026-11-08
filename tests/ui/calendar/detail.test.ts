@@ -40,7 +40,8 @@ describe("dayDetail", () => {
 
   it("lists the other-plan source of 4 January and its leave", () => {
     const detail = detailOf(1, 4);
-    expect(detail.sources.map((source) => source.id)).toEqual(["previous-year"]);
+    expect(detail.sources.map(({ source }) => source.id)).toEqual(["previous-year"]);
+    expect(detail.sources[0]?.entries).toEqual([]);
     expect(detail.leave).toBe("otherPlan");
     expect(detail.cost).toBe(0);
   });
@@ -53,7 +54,9 @@ describe("dayDetail", () => {
   });
 
   it("lists the info source of a day in the project phase", () => {
-    expect(detailOf(9, 6).sources.map((source) => source.id)).toEqual(["project"]);
+    expect(detailOf(9, 6).sources.map(({ source }) => source.id)).toEqual(["project"]);
+    // The entry's name comes with its calendar.
+    expect(detailOf(9, 6).sources[0]?.entries).toEqual(["Release 3"]);
   });
 
   it("tells full days, mandatory leave and half days apart", () => {
@@ -77,10 +80,24 @@ describe("dayDetail", () => {
     expect(dayDetail(day, state.meta, problems, "en").problems).toEqual(["uncoveredNeed", "leaveTakenInOtherPlan"]);
   });
 
+  it("names the entry of a holiday calendar in the reason and beside the calendar", () => {
+    const day = at(6, 14);
+    const bridge = { type: "holiday", day: day.day, sourceId: "project", required: 0, name: { de: "Brückentag", en: "Bridge day" } };
+    const freed = {
+      ...day,
+      facts: { ...day.facts, sources: [bridge] },
+      required: { ...day.required, value: 0, decidedBy: { kind: "holidaySource", value: 0, sourceId: "project" } },
+    } as DayResult;
+    const english = dayDetail(freed, state.meta, [], "en");
+    expect(english.requiredReason).toEqual({ key: "detail.required.holidaySource", args: { name: "Bridge day" } });
+    expect(english.sources.map(({ source, entries }) => [source.id, entries])).toEqual([["project", ["Bridge day"]]]);
+    expect(dayDetail(freed, state.meta, [], "de").requiredReason.args).toEqual({ name: "Brückentag" });
+  });
+
   it("maps every kind of required layer to a catalog key", () => {
     const day = at(6, 14);
     const reason = (decidedBy: unknown) => dayDetail({ ...day, required: { ...day.required, decidedBy } } as DayResult, state.meta, [], "en").requiredReason;
-    expect(reason({ kind: "holidaySource", value: 0, sourceId: "project" })).toEqual({ key: "detail.required.holidaySource", args: { source: "Project phase" } });
+    expect(reason({ kind: "holidaySource", value: 0, sourceId: "project" })).toEqual({ key: "detail.required.holidaySource", args: { name: "Project phase" } });
     expect(reason({ kind: "paidClosure", value: 0, sourceId: "project" })).toEqual({ key: "detail.required.paidClosure", args: { source: "Project phase" } });
     expect(reason({ kind: "ruleExactly", value: 240, ruleId: "new-years-eve" })).toEqual({
       key: "detail.required.ruleExactly",

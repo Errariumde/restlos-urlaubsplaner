@@ -4,7 +4,7 @@
 import { IntlMessageFormat } from "intl-messageformat";
 import { describe, expect, it } from "vitest";
 import { dayFromYmd } from "../../../src/engine/days";
-import { formatDate, formatDays, pluralCount } from "../../../src/ui/i18n/format";
+import { formatDate, formatDays, formatList, pluralCount } from "../../../src/ui/i18n/format";
 
 describe("formatDays", () => {
   it("formats day amounts with ½", () => {
@@ -80,5 +80,13 @@ describe("formatDate", () => {
 
   it("formats the pseudo-locales like English", () => {
     expect(formatDate(dayFromYmd(2027, 5, 7), "en-XA", "long")).toBe("Friday, 7 May 2027");
+  });
+});
+
+describe("formatList", () => {
+  it("joins items with the language's conjunction", () => {
+    expect(formatList(["A", "B", "C"], "en")).toBe("A, B and C");
+    expect(formatList(["A", "B", "C"], "de")).toBe("A, B und C");
+    expect(formatList(["A"], "en-XA")).toBe("A");
   });
 });

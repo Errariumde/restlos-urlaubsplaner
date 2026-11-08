@@ -17,6 +17,7 @@ function intlTag(locale: Locale): string {
 
 const numberFormats = new Map<string, Intl.NumberFormat>();
 const dateFormats = new Map<string, Intl.DateTimeFormat>();
+const listFormats = new Map<string, Intl.ListFormat>();
 
 function numberFormat(locale: Locale, maximumFractionDigits: number): Intl.NumberFormat {
   const tag = intlTag(locale);
@@ -61,6 +62,17 @@ export function formatDate(day: DayNumber, locale: Locale, style: DateStyle): st
     dateFormats.set(key, format);
   }
   return format.format(day * MS_PER_DAY); // day 0 is 1970-01-01
+}
+
+/** Items joined as a list in the UI language: "A, B and C", "A, B und C". */
+export function formatList(items: readonly string[], locale: Locale): string {
+  const tag = intlTag(locale);
+  let format = listFormats.get(tag);
+  if (!format) {
+    format = new Intl.ListFormat(tag, { style: "long", type: "conjunction" });
+    listFormats.set(tag, format);
+  }
+  return format.format(items);
 }
 
 /**

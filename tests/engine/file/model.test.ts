@@ -41,6 +41,7 @@ const sources: FileSource[] = [
         validFrom: 2027,
         validUntil: 2027,
         except: [d("2027-12-28")],
+        name: { de: "Kita zu", en: "Kita closed" },
         take: FULL,
       },
     ],
@@ -87,7 +88,7 @@ describe("planInput", () => {
     const { from, to } = computationWindow(range);
     const tuesdays: SourceDay[] = [];
     for (let day = d("2027-09-07"); day <= to; day += 7) {
-      if (day !== d("2027-12-28")) tuesdays.push({ type: "needed", day, sourceId: "kita", take: FULL });
+      if (day !== d("2027-12-28")) tuesdays.push({ type: "needed", day, sourceId: "kita", take: FULL, name: { de: "Kita zu", en: "Kita closed" } });
     }
     const expected: PlanInput = {
       country: countries["DE"]!,
@@ -100,7 +101,8 @@ describe("planInput", () => {
         ],
       },
       sources: [
-        { type: "holiday", day: d("2027-10-29"), sourceId: "school", required: HALF, part: "start" },
+        // An entry's name stays on its days, for display.
+        { type: "holiday", day: d("2027-10-29"), sourceId: "school", required: HALF, part: "start", name: "Bridge" },
         { type: "holiday", day: d("2027-11-02"), sourceId: "school", required: 0 },
         ...tuesdays,
         { type: "otherPlan", day: d("2027-10-05"), sourceId: "partner", from: 0, to: HALF, kind: "leave" },

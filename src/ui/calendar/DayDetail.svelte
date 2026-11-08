@@ -12,7 +12,7 @@ SPDX-License-Identifier: EUPL-1.2
   import Button from "../controls/Button.svelte";
   import Popover from "../controls/Popover.svelte";
   import Sheet from "../controls/Sheet.svelte";
-  import { pluralCount, formatDate, formatDays } from "../i18n/format.ts";
+  import { pluralCount, formatDate, formatDays, formatList } from "../i18n/format.ts";
   import { i18n } from "../i18n/i18n.svelte.ts";
   import { app } from "../state/app.svelte.ts";
   import type { LeaveChange, PlanMeta } from "../worker/protocol.ts";
@@ -63,9 +63,12 @@ SPDX-License-Identifier: EUPL-1.2
   const reason = $derived(reasonText(detail.requiredReason));
 
   const sources = $derived(
-    detail.sources.map((source) => {
+    detail.sources.map(({ source, entries }) => {
       const index = meta.sources.indexOf(source);
-      return { id: source.id, name: textFor(source.name, i18n.lang), accent: sourceAccent(source, index), style: lineStyle(index) };
+      const name = textFor(source.name, i18n.lang);
+      // The calendar, and the names of its entries on this day after it: "School holidays: Autumn break".
+      const text = entries.length === 0 ? name : i18n.t("detail.sourceEntries", { source: name, entries: formatList(entries, i18n.locale) });
+      return { id: source.id, text, accent: sourceAccent(source, index), style: lineStyle(index) };
     }),
   );
 
@@ -124,7 +127,7 @@ SPDX-License-Identifier: EUPL-1.2
           {#each sources as source (source.id)}
             <li>
               <span class="swatch {source.style}" style:--accent="var(--r-accent-{source.accent})" aria-hidden="true"></span>
-              {source.name}
+              {source.text}
             </li>
           {/each}
         </ul>

@@ -411,10 +411,10 @@ One month per column, days 1–31 as rows, weekday abbreviation in every cell, l
 
 A cell in the month columns is only about 75 px wide on desktop, so a fixed ranking of the layers applies:
 
-1. **Background:** required work (working day, weekend, holiday, required work ½ as a diagonal split).
+1. **Background:** required work (working day, weekend, holiday, required work ½ as a diagonal split). A day that a holiday calendar frees, wholly or in part, counts as a holiday like a public holiday; the label names it after its entry, or after the calendar when the entry has no name. A worked one stays a working day.
 2. **Fill:** own leave (full or half), mandatory leave with a pattern.
 3. **Border:** days from sources of type "Leave from another plan" (dashed, no deduction).
-4. **Lanes:** calendar sources as thin bars at the bottom of the cell, each on its own thin surface-coloured band that is drawn only where a line is (in month columns, vertically at the right edge). The day number moves to the top, so they never overlap. Consecutive days join into one bar. Lanes are packed per month: each run of days gets the lowest lane that no overlapping run uses. Each source has a colour and a line style (solid, dashed, dotted), which the sources list shows. Up to three lanes; beyond that, a "+" pattern marks the cell and the detail view lists all sources. The cell's label and the detail view name the sources.
+4. **Lanes:** calendar sources as thin bars at the bottom of the cell, each on its own thin surface-coloured band that is drawn only where a line is (in month columns, vertically at the right edge). The day number moves to the top, so they never overlap. Consecutive days join into one bar. Lanes are packed per month: each run of days gets the lowest lane that no overlapping run uses. Each source has a colour and a line style (solid, dashed, dotted), which the sources list shows. Up to three lanes; beyond that, a "+" pattern marks the cell and the detail view lists all sources. The cell's label and the detail view name the sources; the detail view adds the names of the day's entries ("School holidays: Autumn break").
 5. **Overlay:** today, focus, selection.
 
 Day number and weekday abbreviation are always shown; the detail view shows everything else.
