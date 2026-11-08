@@ -4,7 +4,6 @@ SPDX-License-Identifier: EUPL-1.2
 -->
 <script lang="ts">
   import { i18n } from "../ui/i18n/i18n.svelte.ts";
-  import { applyMode } from "../ui/scheme.ts";
   import { allCombinations, SECTIONS, searchFor, type Combination, type Mode, type SectionId } from "./params.ts";
   import AllowanceSection from "./sections/AllowanceSection.svelte";
   import ControlsSection from "./sections/ControlsSection.svelte";
@@ -24,11 +23,10 @@ SPDX-License-Identifier: EUPL-1.2
     const root = document.documentElement;
     root.lang = i18n.lang;
     root.dir = i18n.dir;
+    // One combination in its mode; the overview follows the system.
+    root.style.colorScheme = combination ? combination.mode : "light dark";
     document.title = i18n.t("gallery.title");
   });
-
-  // One combination in its mode; the overview follows the system.
-  $effect(() => applyMode(document.documentElement, combination ? combination.mode : "auto"));
 
   function sectionTitle(section: SectionId): string {
     switch (section) {

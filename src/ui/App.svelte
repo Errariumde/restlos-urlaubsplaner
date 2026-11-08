@@ -6,16 +6,20 @@ SPDX-License-Identifier: EUPL-1.2
   import { i18n } from "./i18n/i18n.svelte.ts";
   import MainScreen from "./screens/MainScreen.svelte";
   import StartScreen from "./screens/StartScreen.svelte";
-  import { applyMode } from "./scheme.ts";
   import { app } from "./state/app.svelte.ts";
+
+  // The mode is color-scheme on <html> (docs/SPEC.md, "Colors, light and dark mode"); with "light dark" the
+  // light-dark() tokens follow prefers-color-scheme, also when it changes.
+  const COLOR_SCHEME = { light: "light", dark: "dark", auto: "light dark" } as const;
 
   $effect(() => {
     document.documentElement.lang = i18n.lang;
     document.documentElement.dir = i18n.dir;
   });
 
-  // Returns the cleanup, which stops following prefers-color-scheme when the mode leaves "auto".
-  $effect(() => applyMode(document.documentElement, app.mode));
+  $effect(() => {
+    document.documentElement.style.colorScheme = COLOR_SCHEME[app.mode];
+  });
 </script>
 
 {#if app.screen === "start"}
