@@ -5,7 +5,7 @@ import type { DayNumber, Weekday } from "../days";
 import type { CountryData, DateRule, RegionSelection } from "../holidays/types";
 import type { Units } from "../weight";
 
-/** Where in the day a partial piece lies: at the start or at the end of the working time. */
+/** Where in the day a partial piece lies: at the start or the end of the day. */
 export type Part = "start" | "end";
 
 export interface RangeMatch {
@@ -72,7 +72,7 @@ export type SourceDay = (
       readonly part?: Part; // default "end"
     }
   | {
-      /** A span another plan charged on this day; covers leave here but never costs. */
+      /** A span another plan charged on this day. Frees the work time it covers and the mandatory leave there; never costs in this plan. */
       readonly type: "otherPlan";
       readonly day: DayNumber;
       readonly sourceId: string;

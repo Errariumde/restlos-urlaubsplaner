@@ -160,12 +160,12 @@ A rule set fixes as much of the region as it knows: an agreement valid everywher
 | --- | --- | --- | --- |
 | `holiday` | lowers the required work | `required` (`"0"` … `"1"`), `part` | lowering layer: the required work is at most `required` |
 | `paidClosure` | paid closure | – | required work 0 |
-| `mandatory` | mandatory leave | `take` (`"1/480"` … `"1"`), `part` | that share of the day is taken and charged, like a `mandatory` day rule |
+| `mandatory` | mandatory leave | `take` (`"1/480"` … `"1"`), `part` | that share of the day is taken and charged where it overlaps the working time, like a `mandatory` day rule |
 | `info` | background band, e.g. school holidays | – | none |
 | `needed` | time off needed: the user must be free, e.g. the Kita closes | `take` (`"1/480"` … `"1"`), `part` | never costs; a problem on every day of the plan period where that much time is not free, see [Time off needed](#time-off-needed) |
 | `otherPlan` | leave from another plan | `from`, `to`, `kind` | never costs; see [Leave from another plan](#leave-from-another-plan) |
 
-`part` means the same in leave, overrides, rules and source entries: where in the day the free time lies, `"start"` or `"end"` of the working time. A rule set never contains `otherPlan` or `needed` sources: both are personal.
+`part` means the same in leave, overrides, rules and source entries: `"start"` or `"end"` of the day. For leave days, mandatory leave (`mandatory` rules and entries) and time off needed it is where that time lies; for required work (overrides, `holiday` entries, `requiredAtMost` and `requiredExactly` rules) it is where the free time lies, and the work lies at the other end of the day. Leave is charged only where it overlaps the working time: own leave of ½ at the end of a day whose afternoon is free costs nothing. A rule set never contains `otherPlan` or `needed` sources: both are personal.
 
 ### Entries
 
@@ -203,23 +203,23 @@ A need of `take` at the `"end"` is covered on a day that is entirely free or who
 
 ### Leave from another plan
 
-An `otherPlan` source holds the days another plan charged, as spans of its working time:
+An `otherPlan` source holds the days another plan charged, as the spans it charged, in positions of the day:
 
 | Key | Required | Meaning |
 | --- | --- | --- |
 | `date` | yes | The day. |
 | `name` | no | Text up to 200 characters. |
-| `from`, `to` | yes | Weights: shares of a full day measured from the start of the working time, `from` < `to`. `"0"` to `"1/2"` is the morning, `"1/2"` to `"1"` the afternoon, `"0"` to `"1"` the whole day. |
+| `from`, `to` | yes | Weights: shares of a full day measured from the start of the day, `from` < `to`. `"0"` to `"1/2"` is the morning, `"1/2"` to `"1"` the afternoon, `"0"` to `"1"` the whole day. |
 | `kind` | yes | `"leave"` or `"mandatory"`: what the other plan charged it as, for display only. |
 
-A day can have several entries, one per span. A span can lie in the middle of the working time once steps are finer than ½ (`"1/4"` to `"2/4"`), which a `take` with a `part` can't express. The app writes both ends with their smallest shared denominator (`"1/4"` and `"2/4"`, `"2/8"` and `"3/8"`), so the length can be read off; `"0"` and `"1"` stay as they are. The reader accepts any weights.
+A day can have several entries, one per span. A span can lie in the middle of the day once steps are finer than ½ (`"1/4"` to `"2/4"`), which a `take` with a `part` can't express. The app writes both ends with their smallest shared denominator (`"1/4"` and `"2/4"`, `"2/8"` and `"3/8"`), so the length can be read off; `"0"` and `"1"` stay as they are. The reader accepts any weights.
 
-In the plan that holds the source, a span is free time that never costs. Mandatory leave on it is not charged, because the other plan charged it; own leave on it is charged and reported (`leaveTakenInOtherPlan`).
+In the plan that holds the source, a span is free time that never costs. Mandatory leave on it is not charged, because the other plan charged it; own leave on it is charged and reported (`leaveTakenInOtherPlan`) as far as it overlaps this plan's working time.
 
 **Import.** `importOtherPlan` in `src/engine/file/other-plan.ts` reads a `.urlaub.json` with the same reader, computes it with its own stored sources, and keeps only:
 
 - `plan`: its `id`, its `contract.name` (its `id` when it has no name) and its `revision`;
-- `entries`: for every day of its period with a cost above 0, one entry per span it charged. A span is `"mandatory"` where mandatory leave was charged, also where own leave lies on the same part of the day, and `"leave"` for the rest of the charged own leave.
+- `entries`: for every day of its period with a cost above 0, one entry per span it charged, that is where its leave overlaps its working time. A span is `"mandatory"` where mandatory leave was charged, also where own leave lies on the same part of the day, and `"leave"` for the rest of the charged own leave.
 
 Nothing else of the other plan is stored: no notes, contract or allowance. Because each plan stores what the other actually charged, a shared day is charged in exactly one plan, also when two plans import each other. The import is refused with the reader's refusal, with `notAPlan` for a rule set, and with `limitExceeded` (`entriesPerSource`) when the plan charged more than 2000 spans. For "Update source" it gives notices: `differentPlan` when the file has another `id` than the plan imported before, `olderRevision` when its `revision` is lower than before, and `outdatedCopyOfCurrent` when it contains an older copy of the current plan as a source of its own.
 
@@ -269,7 +269,7 @@ Each list has at most one entry per date and is sorted by date. The three lists 
 | --- | --- | --- | --- |
 | leave day | `date` | yes | ISO date. |
 | leave day | `take` | yes | The leave taken, `"1/480"` … `"1"`. |
-| leave day | `part` | no | Where the leave lies, `"start"` or `"end"`. Partial leave without it is kept with a suggested part and reported (`partSuggested`). |
+| leave day | `part` | no | Where the leave lies, `"start"` or `"end"` of the day. Partial leave without it is kept with a suggested part and reported (`partSuggested`). |
 | override | `date` | yes | ISO date. |
 | override | `required` | yes | The required work, `"0"` … `"1"`. |
 | override | `part` | no, `"end"` | Where the free time lies. |

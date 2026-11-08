@@ -49,13 +49,13 @@ Each value is a share of a day, written as a weight string: `"1"`, `"1/2"`, `"0"
 | --- | --- |
 | `requiredAtMost` | Lowers the required work to at most this value. A day that already needs less is left alone. |
 | `requiredExactly` | Forces the required work to exactly this value, after all lowering effects (public holidays, calendar sources, `requiredAtMost` rules). Only a manual change of a single date comes later. If several `requiredExactly` rules match one day with different values, the lower value wins and the day is reported as a problem. |
-| `mandatory` | Mandatory leave: this share of the day is taken automatically and charges the allowance. |
+| `mandatory` | Mandatory leave: this share of the day is taken automatically and charges the allowance where it overlaps the working time. |
 
 The two required-work effects accept `"0"` (no work on that day). `mandatory` must be above 0, from `"1/480"` to `"1"`.
 
 ## Part
 
-`part` states where the free time lies when the value is below a full day. `"end"` (the default) means the work comes first and the free time is at the end, as on 24 December when the work stops at noon. `"start"` means the free time is at the start of the day. It matters for stretches (which days off form an unbroken block) and, where pieces of leave meet on one day, for cost: own and mandatory leave on the same part of the day count once, and mandatory leave is not charged on the part that leave from another plan already covers. Example: mandatory `"1/2"` with `part: "end"` next to another plan's half day in the morning costs ½; with `part: "start"` it costs nothing.
+`part` says where in the day the value lies when it is below a full day: at the `"start"` or the `"end"` of the day. For `requiredAtMost` and `requiredExactly` it is where the free time lies. `"end"` (the default) means the work comes first and the free time is at the end, as on 24 December when the work stops at noon. `"start"` means the free time is at the start of the day. For `mandatory` it is where the mandatory leave lies. It matters for stretches (which days off form an unbroken block) and for cost, because leave is charged only where it overlaps the working time: on 24 December with the work in the morning, ½ of leave at the end lies on the free afternoon and costs nothing, ½ at the start costs ½ and frees the whole day. Where pieces of leave meet on one day, own and mandatory leave on the same part of the day count once, and mandatory leave is not charged on the part that leave from another plan already covers. Example: mandatory `"1/2"` with `part: "end"` next to another plan's half day in the morning costs ½; with `part: "start"` it costs nothing.
 
 If several layers give the same lowest required work on a day, the first of them with an explicit `part` decides where the free time lies; if none has one, it lies at the end. The layers are compared in this order: the work week, public holidays, calendar sources in their list order, then `requiredAtMost` rules in rule-list order. If `requiredExactly` rules apply, only they are compared (in rule-list order), and a manual change of the single date replaces all of them.
 

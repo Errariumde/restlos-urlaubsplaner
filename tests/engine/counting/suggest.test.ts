@@ -15,8 +15,8 @@ describe("suggestPart", () => {
     ["2027-05-07", null], // Ascension before, Saturday after
     ["2027-05-12", null], // working days on both sides
   ] as [string, Part | null][])("on %s suggests %j", (iso, expected) => expect(suggest(iso)).toBe(expected));
-  it("suggests the end when the leave covers all work either way", () =>
-    expect(suggest("2027-12-24", HALF, { contract: { ...BAVARIA, rules: CHRISTMAS_EVE_RULES } })).toBe("end"));
+  it("suggests the morning of 24 December, which frees the day, not its free afternoon", () =>
+    expect(suggest("2027-12-24", HALF, { contract: { ...BAVARIA, rules: CHRISTMAS_EVE_RULES } })).toBe("start"));
   it("suggests the side that frees the whole day", () =>
     expect(suggest("2027-12-24", HALF, { contract: { ...BAVARIA, rules: [{ id: "closes-at-noon", match: fixed(12, 24), mandatory: HALF }] } })).toBe(
       "start",

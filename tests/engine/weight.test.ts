@@ -3,7 +3,7 @@
 
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { formatAmount, formatSpan, formatWeight, parseAmount, parseWeight, WeightError } from "../../src/engine/weight";
+import { checkSpan, formatAmount, formatSpan, formatWeight, parseAmount, parseWeight, WeightError } from "../../src/engine/weight";
 
 const code = (s: string) => {
   try {
@@ -109,4 +109,15 @@ describe("formatSpan", () => {
       }
     }
   });
+});
+
+describe("checkSpan", () => {
+  it("accepts a span of day positions", () => expect(() => checkSpan(0, 480, "x")).not.toThrow());
+  it.each([
+    ["an empty span", 240, 240],
+    ["a reversed span", 240, 120],
+    ["a span starting before 0", -15, 240],
+    ["a span ending after 480", 240, 495],
+    ["a span at 1.5", 1.5, 240],
+  ])("rejects %s", (_, from, to) => expect(() => checkSpan(from, to, "x")).toThrow(RangeError));
 });

@@ -13,6 +13,13 @@ export function checkUnits(value: number, what: string, min = 0): void {
   }
 }
 
+/** Throws RangeError unless `from` and `to` are day positions, whole units with 0 ≤ from < to ≤ 480. */
+export function checkSpan(from: number, to: number, what: string): void {
+  checkUnits(from, `The start of ${what}`);
+  checkUnits(to, `The end of ${what}`);
+  if (from >= to) throw new RangeError(`The start of ${what} must lie before its end`);
+}
+
 export type WeightErrorCode = "syntax" | "range" | "inexact";
 
 export class WeightError extends Error {

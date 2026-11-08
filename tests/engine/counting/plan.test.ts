@@ -32,8 +32,11 @@ describe("computePlan: stretches from the design", () => {
   it("Christmas with 24 and 31 December at most ½", () => {
     const christmas = ["2027-12-27", "2027-12-28", "2027-12-29", "2027-12-30"].map((x) => leave(x));
     const contract = withRules(...CHRISTMAS_EVE_RULES);
-    expect(listed(plan({ contract, leave: [...christmas, leave("2027-12-31", HALF, "end")] }))).toEqual(["2027-12-24@240 2028-01-02@480 2160/4560"]);
-    expect(listed(plan({ contract, leave: [leave("2027-12-24", HALF, "end"), ...christmas, leave("2027-12-31", HALF, "end")] })))
+    // The afternoon of 31 December is free anyway: leave there costs nothing and frees none of the morning's work.
+    expect(listed(plan({ contract, leave: [...christmas, leave("2027-12-31", HALF, "end")] }))).toEqual(["2027-12-24@240 2027-12-30@480 1920/3120"]);
+    // The mornings free the whole days.
+    expect(listed(plan({ contract, leave: [...christmas, leave("2027-12-31", HALF, "start")] }))).toEqual(["2027-12-24@240 2028-01-02@480 2160/4560"]);
+    expect(listed(plan({ contract, leave: [leave("2027-12-24", HALF, "start"), ...christmas, leave("2027-12-31", HALF, "start")] })))
       .toEqual(["2027-12-24@0 2028-01-02@480 2400/4800"]);
   });
   it("the maintainer's example: own ½ in the morning, mandatory ½ in the afternoon", () => {
