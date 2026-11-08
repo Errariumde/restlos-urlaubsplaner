@@ -177,7 +177,7 @@ test.describe("in the selection mode", () => {
     await expectLeave(page, 8, [3, 4, 5], FULL);
     await tap(page, cell(page, 8, 3));
     await tap(page, cell(page, 8, 5));
-    await page.getByRole("button", { name: "Remove", exact: true }).tap();
+    await page.getByRole("button", { name: "Remove leave", exact: true }).tap();
     await expectLeave(page, 8, [3, 4, 5], NONE);
     await expectLeave(page, 8, [2, 6], FULL);
     await expectNoPageProblems(page);
@@ -218,7 +218,7 @@ test.describe("in the selection mode", () => {
 
   test("the bar keeps its buttons and its height with and without a selection", async ({ page }) => {
     const bar = page.getByRole("region", { name: "Selection" });
-    const names = ["Exit selection mode", "Full day", "Half day", "Remove", "Clear selection"];
+    const names = ["Exit selection mode", "Full day", "Half day", "Remove leave", "Clear selection"];
     const enabled = async (): Promise<boolean[]> => Promise.all(names.map((name) => bar.getByRole("button", { name, exact: true }).isEnabled()));
     expect(await enabled()).toEqual([true, false, false, false, false]);
     const before = (await bar.boundingBox())!.height;

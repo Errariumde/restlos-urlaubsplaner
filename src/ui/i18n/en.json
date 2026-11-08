@@ -35,7 +35,7 @@
   "selection.prompt": "Drag over the days, or tap the first and the last day",
   "selection.full": "Full day",
   "selection.half": "Half day",
-  "selection.remove": "Remove",
+  "selection.remove": "Remove leave",
   "selection.clear": "Clear selection",
   "selection.exit": "Exit selection mode",
   "hint.noHalfDays": "This plan has no half days.",
