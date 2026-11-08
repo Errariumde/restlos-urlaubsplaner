@@ -66,12 +66,24 @@ SPDX-License-Identifier: EUPL-1.2
   let barSize = $state<number>();
   /** The height of the hint line that sticks to the top of the calendar area beside the sidebar. */
   let hintSize = $state<number>();
+  /** The hint line's height and its one-line slot's: a wrapped line grows past the slot over the calendar. */
+  let hintLine = $state(0);
+  let hintSlot = $state(0);
   /**
-   * What covers the top of the window over the calendar. Each binding keeps its last value once its element
-   * goes, so only the one that is shown counts; in the selection mode the sidebar layout has nothing there.
+   * What covers the top of the window over the calendar, with a wrapped hint line. Each binding keeps its
+   * last value once its element goes, so only the one that is shown counts; in the selection mode the hint
+   * line is in the selection bar, and the sidebar layout has nothing there.
    */
-  const stuckSize = $derived(barShown ? barSize : app.selectMode ? undefined : hintSize);
+  const stuckSize = $derived.by(() => {
+    if (app.selectMode) return barShown ? barSize : undefined;
+    const size = barShown ? barSize : hintSize;
+    return size === undefined ? undefined : size + Math.max(0, hintLine - hintSlot);
+  });
   const stuckBlockStart = $derived(stuckSize === undefined ? undefined : `${String(stuckSize)}px`);
+
+  /** The selection bar's height: it covers the bottom of the window over the calendar in the selection mode. */
+  let selectionBarSize = $state(0);
+  const stuckBlockEnd = $derived(app.selectMode ? `${String(selectionBarSize)}px` : undefined);
 
   /** The sidebar's content is taller than the window, so the sidebar scrolls itself. */
   let panelScrolls = $state(false);
@@ -94,20 +106,23 @@ SPDX-License-Identifier: EUPL-1.2
   const coarse = new MediaQuery("(pointer: coarse)");
   const selectable = $derived(coarse.current || (width !== undefined && belowRem(width, SELECT_BELOW, rem())));
   /**
-   * Switches the view (V and the toolbar). The detail closes first, since its anchor cell goes with the old
-   * view. The focused day stays: it is scrolled into view in the new view and keeps the focus if the old grid
-   * or the detail had it.
+   * Changes the grid's layout: the view (V and the toolbar) or the alignment by weekday (W). The detail closes
+   * first, since its anchor cell goes with the old layout. The focused day stays: it is scrolled into view in
+   * the new layout and keeps the focus if the old grid or the detail had it.
    */
-  async function switchView(view: "tiles" | "columns"): Promise<void> {
-    if (view === app.view) return;
+  async function relayout(change: () => void): Promise<void> {
     const active = document.activeElement;
     const refocus = (calendar?.contains(active) ?? false) || (detail !== undefined && active?.closest("[popover], dialog") != null);
     detail = undefined;
-    app.view = view;
+    change();
     await tick();
     const cell = calendar?.querySelector<HTMLElement>(`[data-day="${String(app.focusDay)}"]`);
     cell?.scrollIntoView({ block: "nearest", inline: "nearest" });
     if (refocus) cell?.focus({ preventScroll: true });
+  }
+
+  function switchView(view: "tiles" | "columns"): Promise<void> {
+    return view === app.view ? Promise.resolve() : relayout(() => (app.view = view));
   }
 
   interface DetailRequest {
@@ -164,7 +179,7 @@ SPDX-License-Identifier: EUPL-1.2
         void switchView(app.view === "tiles" ? "columns" : "tiles");
         break;
       case "align":
-        if (app.view === "columns") app.align = !app.align;
+        if (app.view === "columns") void relayout(() => (app.align = !app.align));
         break;
       case "weeks":
         app.weeks = !app.weeks;
@@ -175,7 +190,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 <svelte:window {onkeydown} />
 
-<div class="screen" bind:clientWidth={width} style:--stuck-block-start={stuckBlockStart}>
+<div class="screen" bind:clientWidth={width} style:--stuck-block-start={stuckBlockStart} style:--stuck-block-end={stuckBlockEnd}>
   <Toolbar {compact} {selectable} onview={(view: "tiles" | "columns") => void switchView(view)} bind:heading />
   <!--
     The hint line is the drag's feedback (docs/SPEC.md, "Calendar interaction"), so it sticks with the
@@ -203,7 +218,7 @@ SPDX-License-Identifier: EUPL-1.2
         {/if}
       </section>
       {#if !app.selectMode}
-        <HintLine />
+        <HintLine overlay bind:lineSize={hintLine} bind:slotSize={hintSlot} />
       {/if}
     </div>
     {#if compact}
@@ -216,7 +231,7 @@ SPDX-License-Identifier: EUPL-1.2
     <div class="area">
       {#if !barShown && !app.selectMode}
         <div class="stuck" bind:offsetHeight={hintSize}>
-          <HintLine />
+          <HintLine overlay bind:lineSize={hintLine} bind:slotSize={hintSlot} />
         </div>
       {/if}
       <main bind:this={calendar} class="calendar" bind:clientWidth={calendarWidth}>
@@ -258,7 +273,7 @@ SPDX-License-Identifier: EUPL-1.2
   {/if}
   {#if app.state && app.selectMode}
     <!-- Last in the screen: it sticks to the bottom of the window and ends the page below the calendar. -->
-    <SelectionBar />
+    <SelectionBar bind:size={selectionBarSize} />
   {/if}
 </div>
 
@@ -289,9 +304,13 @@ SPDX-License-Identifier: EUPL-1.2
       background: var(--r-surface);
     }
 
-    /* A cell scrolled into view (keyboard, view switch) stops below the sticky region, not under it. */
+    /*
+     * A cell scrolled into view (keyboard, view switch) stops below the sticky region and a wrapped hint line,
+     * and above the selection bar.
+     */
     .calendar :global([data-day]) {
       scroll-margin-block-start: var(--stuck-block-start, 0);
+      scroll-margin-block-end: var(--stuck-block-end, 0);
     }
 
     .compact-head {

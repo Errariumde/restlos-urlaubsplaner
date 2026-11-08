@@ -401,7 +401,7 @@ Day | Jan | Feb | Mar | Apr | May | Jun | Jul ...
 Narrow width: scroll horizontally, the day column stays fixed.
 ```
 
-One month per column, days 1–31 as rows, weekday abbreviation in every cell, like a wall year planner. Good for an overview of 13 months and as the model for the year band PDF. Both views share selection, keyboard and context menu; switching keeps focus and scroll position on the current date.
+One month per column, days 1–31 as rows, weekday abbreviation in every cell, like a wall year planner. Good for an overview of 13 months and as the model for the year band PDF. The month names repeat in a row after the last row, so the end of a long column has them too; screen readers skip that row, since the column headers already name the months. Both views share selection, keyboard and context menu; switching keeps focus and scroll position on the current date.
 
 **Option "Align by weekday":** instead of days 1–31, the rows show weeks (repeated from the configured week start, up to 6 weeks or 37 rows), so that all Mondays are at the same height and bridge days become comparable across months. A single toggle in the view menu, no additional control in the calendar. The setting is a personal display preference and is stored in the **device settings**, not in the plan file; the year band template gets the same switch as a template parameter.
 
@@ -425,12 +425,12 @@ The **views** switch on the **width of the calendar area** (container queries), 
 
 | Width (views: calendar area; allowance: app) | Month tiles | Month columns | Allowance |
 | --- | --- | --- | --- |
-| ≥ 1100 px | 4 months per row | all columns (up to 13) | sidebar at the inline end |
+| ≥ 1100 px | 4 months per row | all columns that fit, at least 13; more scroll horizontally | sidebar at the inline end |
 | 800–1099 px | 3 per row | scroll horizontally, day column fixed | sidebar at the inline end |
 | 520–799 px | 2 per row | 6 columns visible | compact bar at the top, expandable |
 | < 520 px | 1 per row (**default on phones**) | 3 columns visible | compact bar at the top, details as a bottom sheet |
 
-The allowance and the hint line stay in view while the page scrolls: the compact bar with the hint line under it sticks to the top of the window; beside the sidebar, which sticks too, the hint line sticks to the top of the calendar area. In the selection mode the hint line moves into the action bar at the bottom.
+The allowance and the hint line stay in view while the page scrolls: the compact bar with the hint line under it sticks to the top of the window; beside the sidebar, which sticks too, the hint line sticks to the top of the calendar area. The hint line keeps room for one line; a longer text grows over the calendar instead of pushing it down, so the cells stay under the pointer during a drag, and a day reached with the keyboard stops below the whole text. Dates and amounts in it don't break inside. In the selection mode the hint line moves into the action bar at the bottom.
 
 Minimum size for tap targets on touch devices: 40 × 40 px.
 
@@ -449,18 +449,18 @@ With "From rule set", country, region, local rules and day rules come from the r
 
 - **Mouse:**
   - Click = full leave day on/off; Shift-click = range up to the last clicked day.
-  - **Drag to paint a range:** pressing on a day and dragging previews the range, and the hint line shows the working days, the cost, the resulting stretch and the remaining allowance. Releasing applies it. Starting on a day with own leave removes leave instead.
+  - **Drag to paint a range:** pressing on a day and dragging previews the range, and the hint line shows the working days, the cost, the resulting stretch and the remaining allowance. Releasing applies it. Starting on a day with own leave removes leave instead. A drag held near an edge of the visible calendar scrolls it, faster closer to the edge: the page below the sticky region and above the selection bar, and the month columns sideways at their ends. The range follows the day under the pointer while the calendar moves, also when the wheel scrolls it; the same goes for a drag in the selection mode.
   - A click on a **week number** sets the days of that week with required work, clipped to the plan period, or removes them when all are set.
   - Right-click = detail view (see below), with half day, note and change of required work for this date.
-- **Touch:** tap = full on/off; long press = detail view. Ranges only in the **selection mode** (button in the bar), so that swiping to scroll and dragging to select don't collide. In it, both a drag and two taps (first and last day) select a range, and a tap on a week number selects that week's days with required work in the plan period. Nothing changes until an action bar confirms it: Full day, Half day, Remove, Cancel. In the mode only the day cells take the touch, so the headers, the day column and the gaps still scroll the page.
-- **Keyboard:** the calendar is one widget with one Tab stop (ARIA grid, roving tabindex); arrow keys, Home/End and PageUp/PageDown move inside it. Shift+arrow grows a visible selection; Space sets full days, H half days and Delete removes leave on the selection (on a single cell: Space = full, H = half). Ctrl+Z/Ctrl+Y. In the month columns, Up and Down stop at the first and the last day of a month, since a month is one column; the other keys move between months. When there is no month in that direction inside the plan period, PageUp and PageDown, and Left and Right in the month columns, leave the focus where it is. Week numbers are buttons for the pointer; with the keyboard a week is selected with Shift+arrows and then planned with Space, H or Delete.
+- **Touch:** tap = full on/off; long press = detail view. Ranges only in the **selection mode** (button in the bar), so that swiping to scroll and dragging to select don't collide. In it, both a drag and two taps (first and last day) select a range, and a tap on a week number selects that week's days with required work in the plan period. Nothing changes until an action bar confirms it: Full day, Half day, Remove, Clear selection. The bar looks the same with and without a selection; an X button at the end of its hint line leaves the mode. Escape clears the selection and, with nothing selected, leaves the mode. A day reached with the keyboard stops above the bar. In the mode only the day cells take the touch, so the headers, the day column and the gaps still scroll the page.
+- **Keyboard:** the calendar is one widget with one Tab stop (ARIA grid, roving tabindex); arrow keys, Home/End and PageUp/PageDown move inside it. Home and End go to the start and the end of the week, in both views and also into the neighbouring month; Ctrl+Home and Ctrl+End (Cmd on macOS) go to the first and the last day of the month. No key moves the focus out of the plan period. Shift+arrow grows a visible selection; Space sets full days, H half days and Delete removes leave on the selection (on a single cell: Space = full, H = half). Ctrl+Z/Ctrl+Y. In the month columns, Up and Down stop at the first and the last day of a month, since a month is one column; the other keys move between months. When there is no month in that direction inside the plan period, PageUp and PageDown, and Left and Right in the month columns, leave the focus where it is. Week numbers are buttons for the pointer; with the keyboard a week is selected with Shift+arrows and then planned with Space, H or Delete. Switching the view (V) or the alignment by weekday (W) keeps the focused day: an open detail closes, and the day is scrolled into view in the new layout and keeps the focus.
 - **Range rules** (one function for drag, Shift-click, week click, keyboard and touch ranges):
   - **Setting** puts a full day on every day in the range that has required work above 0, lies in the plan period, is not mandatory leave and is not covered by "Leave from another plan". Half days in the range become full days. Days with ½ required work (24 and 31 Dec) get a full day and cost ½, the same as a click.
   - **Removing** removes all own leave in the range, full or half.
   - Days that wouldn't change are left alone, so the hint line counts only real changes. A gesture that changes nothing adds no undo step. One undo step undoes a range.
   - A week-number click covers the whole ISO week (starting on the country's week start), not just the visible row, and goes through the range rules. It removes leave instead when every day the rules would set already has a full day.
   - Every pointer action has a single-pointer alternative (WCAG 2.5.7): clicks, Shift-click, the keyboard and the touch taps.
-- **Detail view:** date, required work and where it comes from, all sources, cost. On desktop a **popover** opened on demand by right-click, the context-menu key, Enter or a long press; on narrow widths a bottom sheet (a modal `<dialog>`). The hover title only repeats the cell's label and is not interactive: a hover tooltip that holds actions fails WCAG 1.4.13 and can't be reached reliably by keyboard.
+- **Detail view:** date, required work and where it comes from, all sources, cost. On desktop a **popover** opened on demand by right-click, the context-menu key, Enter or a long press; on narrow widths a bottom sheet (a modal `<dialog>`). The popover doesn't shade the calendar, which stays usable while it is open: a click on free space only closes it, and a click on a day or a week number closes it and acts on that day or week. The bottom sheet shades the page and blocks it until it is closed. The hover title only repeats the cell's label and is not interactive: a hover tooltip that holds actions fails WCAG 1.4.13 and can't be reached reliably by keyboard.
 
 ### Allowance display
 
@@ -518,7 +518,7 @@ With "From rule set", country, region, local rules and day rules come from the r
 
 ### Accessibility
 
-Contrast according to WCAG AA for the built-in schemes, a screen reader label per day ("Friday, 7 May 2027, working day, leave full, costs 1"), fully operable by keyboard, focus visible in both modes. Each view is an ARIA grid with a roving tabindex (one Tab stop, not 365); the selection is `aria-selected` and the leave state is part of the label. The slots before the first and after the last day of a month are empty grid cells, so every cell sits under its header. The allowance panel follows the calendar in the document, because the calendar is the main content. To be tested once with NVDA + Firefox and with Orca. axe-core checks the component gallery and the main screens.
+Contrast according to WCAG AA for the built-in schemes, a screen reader label per day ("Friday, 7 May 2027, working day, leave full, costs 1"), fully operable by keyboard, focus visible in both modes. Each view is an ARIA grid with a roving tabindex (one Tab stop, not 365); the selection is `aria-selected` and the leave state is part of the label. The slots before the first and after the last day of a month are empty grid cells, so every cell sits under its header. The allowance panel follows the calendar in the document, because the calendar is the main content. In forced colours (Windows contrast themes) the system colours replace the tokens; planned days and pressed buttons draw Highlight with HighlightText themselves, because the browser's backplate behind their text would hide it. To be tested once with NVDA + Firefox and with Orca. axe-core checks the component gallery and the main screens.
 
 ### Built-in help
 
@@ -529,6 +529,9 @@ Offline, bilingual, context-sensitive ("?" on every dialog). Chapters: Getting s
 | Key | Action |
 | --- | --- |
 | Arrow keys | move focus in the calendar |
+| Home / End | start / end of the week |
+| Ctrl+Home / Ctrl+End | first / last day of the month |
+| PageUp / PageDown | same day in the previous / next month |
 | Space / H | set or remove leave full / half |
 | Shift + click or Shift + arrow key | extend range |
 | Ctrl+Z / Ctrl+Y | undo / redo |
@@ -549,7 +552,7 @@ No component or icon library.
 
 **Look and structure**
 
-- **Styles:** our own CSS, no framework. Svelte's scoped component CSS on top of one token file, ordered with `@layer reset, tokens, base, layout, components`. A small check script (no package) fails on literal colours outside the token file, on physical properties and on `text-transform: uppercase`.
+- **Styles:** our own CSS, no framework. Svelte's scoped component CSS on top of one token file, ordered with `@layer reset, tokens, base, layout, components`. A small check script (no package) fails on literal colours outside the token file, on physical properties, on `text-transform: uppercase` and on repeating gradients without `in srgb`: the tokens are oklch, so a gradient would interpolate in oklab, and Firefox without hardware rendering (headless, for example) drew the day patterns wrong that way.
 - **Sizes follow the text size:** rem for font sizes, spacing, anything that holds text, and breakpoints, also the width limits in code; px only for what must not grow with the text (borders, outlines, shadows, patterns, marks up to 16 px). Users who raise the browser's text size need the boxes and breakpoints to grow with it, or text overflows fixed boxes. The check script fails on font sizes and breakpoints in px and on px boxes over 16 px.
 - **Buttons:** tactile. A 1 px border at 3:1 contrast, a fill one step lighter than the surface, a 1 px darker bottom edge and a 6 px radius; pressing removes the edge. One filled primary button per area. A filled or pressed button keeps its strong 1 px border, so in dark mode the primary colour is never the only sign of its state.
 - **File commands:** Open and Save are visible buttons, everything else is in a "File" menu button. No menubar (a `role="menubar"` would collide with the browser's Alt menu). On the phone the File menu merges into the menu button; Save stays visible.

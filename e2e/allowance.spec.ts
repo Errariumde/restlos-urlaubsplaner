@@ -200,12 +200,12 @@ test.describe("the hint line stays in view during a drag", () => {
         await page.mouse.down();
         const next = await centre(cell(page, 12, 21));
         await page.mouse.move(next.x, next.y, { steps: 3 });
-        await expect(hint).toContainText(/^2 working days · /);
+        await expect(hint).toContainText(/^2\sworking days · /);
         // The hint text may wrap and grow the sticky region; WebKit has no scroll anchoring, so the cells can
         // move under the pointer. Measure the last day again once the hint is there.
         const end = await centre(to);
         await page.mouse.move(end.x, end.y, { steps: 3 });
-        await expect(hint).toContainText(/^3 working days · /);
+        await expect(hint).toContainText(/^3\sworking days · /);
         await expect(hint).toBeInViewport({ ratio: 1 });
         await page.mouse.up();
         await expect(hint).toHaveText("");
@@ -228,6 +228,63 @@ test.describe("the hint line stays in view during a drag", () => {
       });
     });
   }
+});
+
+// The hint line keeps a one-line slot; a longer text grows over the calendar, so the cells don't move under the
+// pointer when a drag makes it wrap (WebKit has no scroll anchoring, and Firefox none at the top of the page).
+test.describe("a hint that wraps at 375 px", () => {
+  test.use({ locale: "en-GB", viewport: { width: 375, height: 700 } });
+
+  test.beforeEach(async ({ page }) => {
+    await openApp(page);
+    await openExampleFromStart(page);
+  });
+
+  for (const scrolled of [false, true]) {
+    test(`leaves the cells in place during a drag${scrolled ? " on a scrolled page" : " at the top of the page"}`, async ({ page }) => {
+      const hint = page.getByTestId("hint-line");
+      const slot = (await hint.boundingBox())!.height;
+      const [from, to] = scrolled ? [cell(page, 3, 1), cell(page, 3, 2)] : [cell(page, 1, 11), cell(page, 1, 12)];
+      if (scrolled) await from.evaluate((element) => window.scrollBy(0, element.getBoundingClientRect().top - 300));
+      const before = await from.boundingBox();
+      const start = await centre(from);
+      await page.mouse.move(start.x, start.y);
+      await page.mouse.down();
+      const end = await centre(to);
+      await page.mouse.move(end.x, end.y, { steps: 3 });
+      await expect(hint).toContainText(/^2\sworking days · /);
+      // The text takes more than one line here, so it would have grown the sticky region.
+      expect((await hint.boundingBox())!.height).toBeGreaterThan(slot + 8);
+      // It breaks between its parts, never between a number and its unit or inside a date.
+      expect(await hint.textContent()).toMatch(/^2\u00a0working days · 2\u00a0days of leave · \d+\u00a0[A-Z][a-z]{2} – \d+\u00a0[A-Z][a-z]{2}: /);
+      expect((await from.boundingBox())!.y).toBeCloseTo(before!.y, 0);
+      await page.mouse.up();
+      await expectNoPageProblems(page);
+    });
+  }
+
+  test("a day reached with Shift and the arrows stops below the whole hint, not under its second line", async ({ page }) => {
+    await cell(page, 3, 10).focus();
+    await page.keyboard.press("Shift+ArrowRight");
+    const hint = page.getByTestId("hint-line");
+    await expect(hint).toContainText(/^2\sworking days · /);
+    // The week above sits at the top of the window, under the sticky region.
+    await cell(page, 3, 3).evaluate((element) => window.scrollBy(0, element.getBoundingClientRect().top - 10));
+    // The cells' scroll margin takes the wrapped hint in once its size is measured, a few frames later in WebKit.
+    await expect
+      .poll(async () => {
+        const line = (await hint.boundingBox())!;
+        const margin = await cell(page, 3, 4).evaluate((element) => parseFloat(getComputedStyle(element).scrollMarginBlockStart));
+        return margin - (line.y + line.height);
+      })
+      .toBeGreaterThanOrEqual(-1);
+    await page.keyboard.press("Shift+ArrowUp");
+    const focused = cell(page, 3, 4);
+    await expect(focused).toBeFocused();
+    const line = await hint.boundingBox();
+    expect((await focused.boundingBox())!.y).toBeGreaterThanOrEqual(line!.y + line!.height - 1);
+    await expectNoPageProblems(page);
+  });
 });
 
 test.describe("at 600 px", () => {

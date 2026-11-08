@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 // The CSS rules of the UI (docs/SPEC.md, "Controls, icons and fonts" and "Multilingual support"): colours only
-// as tokens, logical properties only, no uppercase text, and rem for what follows the text size.
+// as tokens, logical properties only, no uppercase text, rem for what follows the text size, and repeating
+// gradients interpolated in srgb.
 // Checks declarations, not substrings. Run through `npm run check` (scripts/check-css.js).
 
 export interface CssFile {
@@ -42,6 +43,12 @@ const PX = /(?<![\w.-])(\d*\.?\d+)px\b/g;
 const MAX_PX_BOX = 16;
 const SIZE_RULE =
   "text sizes, boxes that hold text and breakpoints use rem, so they follow the browser's text size (1rem is 16px by default); px only for borders, shadows, patterns and marks up to 16px";
+
+/** Each repeating gradient with its first argument (angle, shape or interpolation method), up to the first comma. */
+const REPEATING_GRADIENT = /\brepeating-(?:linear|radial|conic)-gradient\(([^,]*),/gi;
+const IN_SRGB = /(?:^|\s)in\s+srgb(?:\s|$)/i;
+const GRADIENT_RULE =
+  'repeating gradient without "in srgb" before its first comma; with the oklch tokens it would interpolate in oklab, and Firefox without hardware rendering (headless, for example) drew these patterns wrong';
 
 interface Block {
   /** Text of one stylesheet (a .css file, a `<style>` block, or an inline style wrapped in a rule). */
@@ -139,6 +146,7 @@ function declarationErrors(block: Block, path: string, isTokenFile: boolean): st
       const color = literalColor(value, !NO_COLOR_WORDS.test(name));
       if (color) report(`literal colour "${color}" in "${name}"; use a token from tokens.css`);
     }
+    for (const gradient of value.matchAll(REPEATING_GRADIENT)) if (!IN_SRGB.test(gradient[1]!.trim())) report(GRADIENT_RULE);
     if (name.startsWith("--")) continue;
 
     if (PHYSICAL_BARE.test(name) || PHYSICAL_SIDE.test(name)) report(`physical property "${name}"; use the logical one`);

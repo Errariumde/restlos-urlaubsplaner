@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 // The month columns (docs/SPEC.md, "View 2"): one column per month with a fixed day column, the drag, the
-// alignment by weekday, the week markers, the view switch that keeps the focused day, and right-to-left text.
+// alignment by weekday and the view switch, which both keep the focused day, the week markers, and
+// right-to-left text.
 // The example plan runs from January to December 2027.
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { dayFromYmd } from "../src/engine/days.ts";
@@ -60,6 +61,21 @@ test.describe("in English at 1920 px", () => {
     await expectNoPageProblems(page);
   });
 
+  test("the month names repeat below the last row, under their columns, hidden from screen readers", async ({ page }) => {
+    const foot = grid(page).locator(":scope > :last-child");
+    await expect(foot).toHaveAttribute("aria-hidden", "true");
+    await expect(foot.locator(".month")).toHaveText(MONTHS, { useInnerText: true });
+    const headers = await grid(page).getByRole("row").first().locator(".month").evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().left));
+    const repeated = await foot.locator(".month").evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().left));
+    expect(repeated).toEqual(headers);
+    // Below row 31, and not one more column header or row for a screen reader.
+    const lastRow = await grid(page).getByRole("row").last().boundingBox();
+    expect((await foot.boundingBox())!.y).toBeGreaterThanOrEqual(lastRow!.y + lastRow!.height);
+    await expect(grid(page).getByRole("row")).toHaveCount(32);
+    await expect(grid(page).getByRole("columnheader")).toHaveCount(13);
+    await expectNoPageProblems(page);
+  });
+
   test("dragging down the column from 14 to 18 June plans five days", async ({ page }) => {
     await expectLeave(page, 6, [14, 15, 16, 17, 18], NONE);
     const start = await centre(cell(page, 6, 14));
@@ -69,7 +85,7 @@ test.describe("in English at 1920 px", () => {
     await page.mouse.move(start.x, start.y);
     await page.mouse.down();
     await page.mouse.move(end.x, end.y, { steps: 8 });
-    await expect(page.locator('[aria-live="polite"]')).toContainText(/^5 working days · /);
+    await expect(page.locator('[aria-live="polite"]')).toContainText(/^5\sworking days · /);
     await page.mouse.up();
     await expectLeave(page, 6, [14, 15, 16, 17, 18], FULL);
     await expectNoPageProblems(page);
@@ -119,6 +135,27 @@ test.describe("in English at 1920 px", () => {
     await expect(detail).toHaveCount(0);
     await expect(cell(page, 6, 14)).toBeFocused();
     await expect(cell(page, 6, 14)).toBeInViewport();
+    await expectNoPageProblems(page);
+  });
+
+  test("W keeps the focused day: 15 January stays focused, and Space plans it", async ({ page }) => {
+    await cell(page, 1, 15).focus();
+    await page.keyboard.press("w");
+    await expect(page.getByRole("checkbox", { name: "Align by weekday" })).toBeChecked();
+    await expect(cell(page, 1, 15)).toBeFocused();
+    await expect(cell(page, 1, 15)).toHaveAttribute("tabindex", "0");
+    await page.keyboard.press("Space");
+    await expectLeave(page, 1, [15], FULL);
+    await expectLeave(page, 1, [14, 16, 11], NONE);
+
+    await page.keyboard.press("Enter");
+    const detail = page.getByRole("dialog", { name: /^Details for / });
+    await expect(detail).toBeVisible();
+    await page.keyboard.press("w");
+    await expect(page.getByRole("checkbox", { name: "Align by weekday" })).not.toBeChecked();
+    await expect(detail).toHaveCount(0);
+    await expect(cell(page, 1, 15)).toBeFocused();
+    await expect(cell(page, 1, 15)).toBeInViewport();
     await expectNoPageProblems(page);
   });
 
@@ -205,6 +242,55 @@ for (const width of [552, 873, 1453]) {
     }
   });
 }
+
+/** Opens the built-in example with its plan period stretched to end in `to` (a month, "2029-12"). */
+async function openLongerExample(page: Page, to: string): Promise<void> {
+  await openApp(page);
+  await page.evaluate((end) => {
+    const block = document.getElementById("example-plan");
+    if (!block?.textContent) throw new Error("The page has no example data block");
+    const file = JSON.parse(block.textContent) as { plan: { range: { to: string } } };
+    file.plan.range.to = end;
+    block.textContent = JSON.stringify(file);
+  }, to);
+  await openExampleFromStart(page);
+  await page.getByRole("button", { name: "Columns", exact: true }).click();
+}
+
+const monthHeaders = (page: Page): Locator => grid(page).getByRole("row").first().getByRole("columnheader").filter({ hasNotText: /^Day$/ });
+
+// A wide calendar shows all the columns that fit, each at least 4.875rem (78 px) wide, so the month names and
+// the week markers keep their room; the rest scroll sideways. 13 months still fit at a calendar of 1100 px
+// (an app of about 1450 px with the sidebar).
+test.describe("a plan longer than a year, in English", () => {
+  test.use({ locale: "en-GB" });
+
+  test.describe("at 1920 px", () => {
+    test.use({ viewport: { width: 1920, height: 1000 } });
+
+    test("36 months scroll sideways instead of squeezing their columns", async ({ page }) => {
+      await openLongerExample(page, "2029-12");
+      await expect(monthHeaders(page)).toHaveCount(36);
+      expect(await grid(page).evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+      for (const box of await monthHeaders(page).evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().width))) {
+        expect(box).toBeGreaterThanOrEqual(77.5);
+      }
+      expect(await markersOverText(page)).toEqual([]);
+      await expectNoPageProblems(page);
+    });
+  });
+
+  test.describe("at 1453 px", () => {
+    test.use({ viewport: { width: 1453, height: 800 } });
+
+    test("13 months fit without scrolling", async ({ page }) => {
+      await openLongerExample(page, "2028-01");
+      await expect(monthHeaders(page)).toHaveCount(13);
+      expect(await grid(page).evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+      await expectNoPageProblems(page);
+    });
+  });
+});
 
 test.describe("in right-to-left text", () => {
   test.skip(({ browserName }) => browserName === "webkit", "The gallery is checked in Chromium and Firefox.");

@@ -71,7 +71,7 @@ SPDX-License-Identifier: EUPL-1.2
     .over {
       position: absolute;
       inset-block: 0;
-      background: repeating-linear-gradient(135deg, var(--r-overdraft) 0 4px, var(--r-surface-sunken) 4px 8px);
+      background: repeating-linear-gradient(in srgb 135deg, var(--r-overdraft) 0 4px, var(--r-surface-sunken) 4px 8px);
       border-inline-start: 1px solid var(--r-overdraft);
     }
 

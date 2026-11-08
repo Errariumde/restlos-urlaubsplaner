@@ -34,7 +34,7 @@ Each point below is checked in the browsers named, and `docs/SPEC.md` is updated
 - **A real move or rename of the HTML file in Firefox** starts with empty storage (the run only used a copy).
 - **Safari (macOS) and iOS:** storage on `file://`, and the Pages version's offline mode.
 - **Private windows:** the app works with empty or throwing storage.
-- **Safari, mouse drag at compact widths:** when the hint line's text wraps at the start of a drag, the sticky region grows and the calendar below it moves down. Chromium and Firefox keep the cells in place with scroll anchoring; WebKit has none, so the cells move under the pointer (seen in the dev shell's WebKit, `e2e/allowance.spec.ts`, "the hint line stays in view during a drag", 375 px, 2026-11-04). Check it in a real Safari; if it shows, give the hint line a fixed height at compact widths or let it overlay the calendar.
+- **Safari, mouse drag at compact widths:** the hint line now keeps a one-line slot and a longer text grows over the calendar, so the cells stay in place when a drag makes it wrap (`e2e/allowance.spec.ts`, "a hint that wraps at 375 px", passes in the dev shell's WebKit). Before, the sticky region grew and the calendar moved down: Chromium kept the cells in place with scroll anchoring, Firefox only on a scrolled page and not at its very top, and WebKit not at all (seen 2026-11-04 and 2026-11-08). Check once in a real Safari that the cells stay under the pointer.
 
 ## Notes
 

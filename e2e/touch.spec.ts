@@ -26,7 +26,8 @@ async function expectLeave(page: Page, month: number, days: readonly number[], l
 }
 
 async function tap(page: Page, locator: Locator): Promise<void> {
-  await locator.scrollIntoViewIfNeeded();
+  // Into the middle of the window: Playwright's own scrolling can leave a day under the sticky selection bar.
+  await locator.evaluate((element) => element.scrollIntoView({ block: "center", inline: "center" }));
   const { x, y } = await centre(locator);
   await page.touchscreen.tap(x, y);
 }
@@ -108,7 +109,7 @@ test.describe("in the selection mode", () => {
     await expectLeave(page, 6, [14], NONE);
     await tap(page, cell(page, 6, 18));
     for (const day of [14, 15, 16, 17, 18]) await expect(cell(page, 6, day)).toHaveAttribute("aria-selected", "true");
-    await expect(hint(page)).toContainText(/^5 working days · /);
+    await expect(hint(page)).toContainText(/^5\sworking days · /);
     await expectLeave(page, 6, [14, 15, 16, 17, 18], NONE);
     await page.getByRole("button", { name: "Full day", exact: true }).tap();
     await expectLeave(page, 6, [14, 15, 16, 17, 18], FULL);
@@ -130,7 +131,7 @@ test.describe("in the selection mode", () => {
     await week.tap();
     for (const day of [14, 15, 16, 17, 18]) await expect(cell(page, 6, day)).toHaveAttribute("aria-selected", "true");
     await expect(page.locator('[aria-selected="true"]')).toHaveCount(5);
-    await expect(hint(page)).toContainText(/^5 working days · /);
+    await expect(hint(page)).toContainText(/^5\sworking days · /);
     await expectLeave(page, 6, [14, 15, 16, 17, 18], NONE);
     await expect(undo).toBeDisabled();
     await page.getByRole("button", { name: "Full day", exact: true }).tap();
@@ -182,12 +183,13 @@ test.describe("in the selection mode", () => {
     await expectNoPageProblems(page);
   });
 
-  test("Cancel changes nothing", async ({ page }) => {
+  test("Clear selection changes nothing and keeps the mode", async ({ page }) => {
     await tap(page, cell(page, 6, 14));
     await tap(page, cell(page, 6, 18));
-    await expect(hint(page)).toContainText(/^5 working days · /);
-    await page.getByRole("button", { name: "Cancel", exact: true }).tap();
+    await expect(hint(page)).toContainText(/^5\sworking days · /);
+    await page.getByRole("button", { name: "Clear selection", exact: true }).tap();
     await expect(page.locator('[aria-selected="true"]')).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Select", exact: true })).toHaveAttribute("aria-pressed", "true");
     await expect(hint(page)).not.toContainText("working days");
     await expectLeave(page, 6, [14, 15, 16, 17, 18], NONE);
     await expect(page.getByRole("button", { name: "Undo", exact: true })).toBeDisabled();
@@ -200,6 +202,30 @@ test.describe("in the selection mode", () => {
     await page.getByRole("button", { name: "Select", exact: true }).tap();
     await expect(page.locator('[aria-selected="true"]')).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Full day", exact: true })).toHaveCount(0);
+    await expectNoPageProblems(page);
+  });
+
+  test("the exit button leaves the mode and drops the selection", async ({ page }) => {
+    await tap(page, cell(page, 6, 14));
+    await expect(cell(page, 6, 14)).toHaveAttribute("aria-selected", "true");
+    await page.getByRole("button", { name: "Exit selection mode", exact: true }).tap();
+    await expect(page.getByRole("button", { name: "Select", exact: true })).toHaveAttribute("aria-pressed", "false");
+    await expect(page.locator('[aria-selected="true"]')).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Selection" })).toHaveCount(0);
+    await expectLeave(page, 6, [14], NONE);
+    await expectNoPageProblems(page);
+  });
+
+  test("the bar keeps its buttons and its height with and without a selection", async ({ page }) => {
+    const bar = page.getByRole("region", { name: "Selection" });
+    const names = ["Exit selection mode", "Full day", "Half day", "Remove", "Clear selection"];
+    const enabled = async (): Promise<boolean[]> => Promise.all(names.map((name) => bar.getByRole("button", { name, exact: true }).isEnabled()));
+    expect(await enabled()).toEqual([true, false, false, false, false]);
+    const before = (await bar.boundingBox())!.height;
+    await tap(page, cell(page, 6, 14));
+    await expect(hint(page)).toContainText(/^1\sworking day · /);
+    expect(await enabled()).toEqual([true, true, true, true, true]);
+    expect((await bar.boundingBox())!.height).toBe(before);
     await expectNoPageProblems(page);
   });
 

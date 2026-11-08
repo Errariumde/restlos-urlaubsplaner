@@ -102,14 +102,14 @@ export const BROWSER_ENV: Record<string, string> = Object.fromEntries(
   Object.entries(process.env).filter((entry): entry is [string, string] => entry[0] !== "LD_LIBRARY_PATH" && entry[1] !== undefined),
 );
 
-/** How the month columns' scroller sits around its last row (row 31). */
+/** How the month columns' scroller sits around its last row, the month names repeated below the days. */
 export interface ColumnsScroller {
   /** The months scroll sideways. */
   scrolls: boolean;
   /** The room a classic scrollbar takes below the content; 0 for an overlay scrollbar. */
   scrollbar: number;
   paddingEnd: number;
-  /** From the block end of the lowest cell to the block end of the scroller's client area (scrollbar excluded). */
+  /** From the block end of the last row to the block end of the scroller's client area (scrollbar excluded). */
   roomBelowLastRow: number;
 }
 
@@ -118,7 +118,7 @@ export async function columnsScroller(page: Page): Promise<ColumnsScroller> {
   return page.getByRole("grid").evaluate((element: HTMLElement) => {
     const box = element.getBoundingClientRect();
     const clientEnd = box.top + element.clientTop + element.clientHeight;
-    const cells = [...element.querySelectorAll('[role="row"]:last-child > *')];
+    const cells = [...element.querySelectorAll(":scope > :last-child > *")];
     const lastEnd = Math.max(...cells.map((cell) => cell.getBoundingClientRect().bottom));
     return {
       scrolls: element.scrollWidth > element.clientWidth,

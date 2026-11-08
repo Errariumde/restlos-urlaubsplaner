@@ -67,7 +67,7 @@ test.describe("in English at 1280 px", () => {
   test("dragging from Mon 14 Jun to Fri 18 Jun plans five days", async ({ page }) => {
     await expectLeave(page, 6, [14, 15, 16, 17, 18], NONE);
     await dragTo(page, cell(page, 6, 14), cell(page, 6, 18));
-    await expect(hint(page)).toContainText(/^5 working days · /);
+    await expect(hint(page)).toContainText(/^5\sworking days · /);
     await page.mouse.up();
     await expectLeave(page, 6, [14, 15, 16, 17, 18], FULL);
     await expect(hint(page)).toHaveText("");
@@ -163,7 +163,7 @@ test.describe("in English at 1280 px", () => {
 
   test("Escape during a drag discards it", async ({ page }) => {
     await dragTo(page, cell(page, 6, 14), cell(page, 6, 16));
-    await expect(hint(page)).toContainText(/^3 working days · /);
+    await expect(hint(page)).toContainText(/^3\sworking days · /);
     await page.keyboard.press("Escape");
     await expect(hint(page)).toHaveText("");
     await page.mouse.up();

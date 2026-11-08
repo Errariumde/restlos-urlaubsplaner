@@ -121,6 +121,21 @@ describe("checkCss", () => {
     expect(css(".a { inline-size: 1.125rem; block-size: calc(100% - 2px) }")).toEqual([]);
   });
 
+  it("requires repeating gradients to interpolate in srgb, and names the reason", () => {
+    const errors = css(".a { background: repeating-linear-gradient(135deg, transparent 0 4px, var(--r-day-pattern) 4px 5px) }");
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("in srgb");
+    expect(errors[0]).toContain("Firefox");
+    expect(css(".a { background: repeating-radial-gradient(circle, var(--x) 0 2px, transparent 2px 4px) } .b { --p: repeating-conic-gradient(var(--x) 0 10deg, transparent 10deg 20deg) }")).toHaveLength(2);
+  });
+
+  it("checks each gradient of a layered background, with in srgb before or after the angle", () => {
+    expect(css(".a { background: repeating-linear-gradient(in srgb 45deg, var(--x) 0 4px, transparent 4px 5px), repeating-linear-gradient(135deg in srgb, var(--x) 0 4px, transparent 4px 5px), var(--y) }")).toEqual([]);
+    expect(css(".a {\n  background:\n    repeating-linear-gradient(in srgb 45deg, var(--x) 0 4px, transparent 4px 5px),\n    repeating-linear-gradient(135deg, var(--x) 0 4px, transparent 4px 5px);\n}")).toHaveLength(1);
+    expect(css(".a { background: repeating-linear-gradient(in oklab 90deg, var(--x) 0 3px, transparent 3px 6px) }")).toHaveLength(1);
+    expect(css(".a { background: linear-gradient(135deg, var(--x) 50%, transparent 50%) }")).toEqual([]);
+  });
+
   it("requires Svelte style blocks to be inside @layer components", () => {
     const file = (text: string) => checkCss([{ path: "src/ui/A.svelte", text }]);
     expect(file("<style>.a { color: var(--r-text) }</style>")).toHaveLength(1);

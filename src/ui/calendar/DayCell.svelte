@@ -126,7 +126,7 @@ SPDX-License-Identifier: EUPL-1.2
 
     /* Layer 1: the required work. Each day type has its own pattern, not only its own colour. */
     .weekend {
-      background: repeating-linear-gradient(135deg, transparent 0 4px, var(--r-day-pattern) 4px 5px), var(--r-weekend);
+      background: repeating-linear-gradient(in srgb 135deg, transparent 0 4px, var(--r-day-pattern) 4px 5px), var(--r-weekend);
       color: var(--r-text-muted);
     }
 
@@ -139,7 +139,7 @@ SPDX-License-Identifier: EUPL-1.2
     .halfRequired {
       background:
         linear-gradient(135deg, var(--r-workday) 50%, transparent 50%),
-        repeating-linear-gradient(135deg, transparent 0 4px, var(--r-day-pattern) 4px 5px),
+        repeating-linear-gradient(in srgb 135deg, transparent 0 4px, var(--r-day-pattern) 4px 5px),
         var(--r-half-required);
     }
 
@@ -154,7 +154,7 @@ SPDX-License-Identifier: EUPL-1.2
     .halfRequired:dir(rtl) {
       background:
         linear-gradient(225deg, var(--r-workday) 50%, transparent 50%),
-        repeating-linear-gradient(135deg, transparent 0 4px, var(--r-day-pattern) 4px 5px),
+        repeating-linear-gradient(in srgb 135deg, transparent 0 4px, var(--r-day-pattern) 4px 5px),
         var(--r-half-required);
     }
 
@@ -168,8 +168,8 @@ SPDX-License-Identifier: EUPL-1.2
     /* No work for another reason (a paid closure): crossed hatch. */
     .free {
       background:
-        repeating-linear-gradient(45deg, transparent 0 4px, var(--r-day-pattern) 4px 5px),
-        repeating-linear-gradient(135deg, transparent 0 4px, var(--r-day-pattern) 4px 5px),
+        repeating-linear-gradient(in srgb 45deg, transparent 0 4px, var(--r-day-pattern) 4px 5px),
+        repeating-linear-gradient(in srgb 135deg, transparent 0 4px, var(--r-day-pattern) 4px 5px),
         var(--r-weekend);
       color: var(--r-text-muted);
     }
@@ -214,7 +214,7 @@ SPDX-License-Identifier: EUPL-1.2
     }
 
     .leave-mandatory .fill {
-      background: repeating-linear-gradient(45deg, var(--r-mandatory) 0 4px, var(--r-mandatory-stripe) 4px 7px);
+      background: repeating-linear-gradient(in srgb 45deg, var(--r-mandatory) 0 4px, var(--r-mandatory-stripe) 4px 7px);
     }
 
     .leave-full,
@@ -279,11 +279,11 @@ SPDX-License-Identifier: EUPL-1.2
     }
 
     .lane.dashed::before {
-      background: repeating-linear-gradient(90deg, var(--lane-color) 0 7px, transparent 7px 10px);
+      background: repeating-linear-gradient(in srgb 90deg, var(--lane-color) 0 7px, transparent 7px 10px);
     }
 
     .lane.dotted::before {
-      background: repeating-linear-gradient(90deg, var(--lane-color) 0 3px, transparent 3px 6px);
+      background: repeating-linear-gradient(in srgb 90deg, var(--lane-color) 0 3px, transparent 3px 6px);
     }
 
     .l0 {
@@ -329,11 +329,11 @@ SPDX-License-Identifier: EUPL-1.2
     }
 
     .column .lane.dashed::before {
-      background: repeating-linear-gradient(180deg, var(--lane-color) 0 7px, transparent 7px 10px);
+      background: repeating-linear-gradient(in srgb 180deg, var(--lane-color) 0 7px, transparent 7px 10px);
     }
 
     .column .lane.dotted::before {
-      background: repeating-linear-gradient(180deg, var(--lane-color) 0 3px, transparent 3px 6px);
+      background: repeating-linear-gradient(in srgb 180deg, var(--lane-color) 0 3px, transparent 3px 6px);
     }
 
     .column .l0 {
@@ -410,7 +410,7 @@ SPDX-License-Identifier: EUPL-1.2
 
     /* A drag that removes leave (the grid has .removing) hatches what goes. */
     :global(.removing) .cell.previewed .fill {
-      background: repeating-linear-gradient(-45deg, transparent 0 3px, var(--r-overdraft-hatch) 3px 5px);
+      background: repeating-linear-gradient(in srgb -45deg, transparent 0 3px, var(--r-overdraft-hatch) 3px 5px);
     }
 
     :global(.removing) .previewed {
@@ -424,8 +424,9 @@ SPDX-License-Identifier: EUPL-1.2
         forced-color-adjust: none;
       }
 
+      /* The preview's selector matches the token rule above, so it wins by coming later. */
       .leave-full .fill,
-      .previewed .fill {
+      .cell.previewed:not(.leave-full, .leave-mandatory) .fill {
         background: Highlight;
       }
 
@@ -446,12 +447,30 @@ SPDX-License-Identifier: EUPL-1.2
       }
 
       .leave-mandatory .fill {
-        background: repeating-linear-gradient(45deg, Highlight 0 4px, Canvas 4px 7px);
+        background: repeating-linear-gradient(in srgb 45deg, Highlight 0 4px, Canvas 4px 7px);
       }
 
-      .leave-full,
-      .leave-mandatory {
+      /*
+       * Digits on a Highlight fill draw their own HighlightText on Highlight: the browser would put a Canvas
+       * backplate behind them, and the halo of the normal modes goes.
+       */
+      .leave-full .number,
+      .leave-mandatory .number,
+      .previewed .number {
+        forced-color-adjust: none;
+        background: Highlight;
         color: HighlightText;
+        text-shadow: none;
+      }
+
+      /* A drag that removes leave hatches in system colours; its digits stay on Canvas. */
+      :global(.removing) .cell.previewed .fill {
+        background: repeating-linear-gradient(in srgb -45deg, Canvas 0 3px, CanvasText 3px 5px);
+      }
+
+      :global(.removing) .previewed .number {
+        background: Canvas;
+        color: CanvasText;
       }
 
       .lane::before {

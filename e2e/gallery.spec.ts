@@ -99,13 +99,17 @@ test("the day cells mirror their diagonal splits in right-to-left text", async (
   await expect(page).toHaveScreenshot("day-cell-rtl-light.png", { fullPage: true });
 });
 
-test("buttons keep a visible border in forced colours", async ({ page }) => {
-  await page.emulateMedia({ forcedColors: "active" });
-  await show(page, { section: "controls", locale: "de", mode: "light" });
-  expect(await page.evaluate(() => matchMedia("(forced-colors: active)").matches)).toBe(true);
-  const button = page.getByRole("button", { name: "Speichern", exact: true }).first();
-  const width = await button.evaluate((element) => parseFloat(getComputedStyle(element).borderBlockStartWidth));
-  expect(width).toBeGreaterThanOrEqual(1);
+// Forced colours (Windows contrast themes): the system colours replace the tokens. Pressed buttons and the
+// digits on planned days draw their own Highlight and HighlightText, the rest is left to the browser.
+test.describe("in forced colours", () => {
+  for (const section of ["controls", "toolbar", "day-cell", "main-tiles"] as const) {
+    test(`${section}, screenshot`, async ({ page }) => {
+      await page.emulateMedia({ forcedColors: "active" });
+      await show(page, { section, locale: "de", mode: "light" });
+      expect(await page.evaluate(() => matchMedia("(forced-colors: active)").matches)).toBe(true);
+      await expect(page).toHaveScreenshot(`${section}-forced-colors.png`, { fullPage: true });
+    });
+  }
 });
 
 test("the popover opens below its anchor, closes on Escape and gives the focus back", async ({ page, browserName }) => {
