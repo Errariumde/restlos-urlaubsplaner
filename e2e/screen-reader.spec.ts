@@ -188,6 +188,10 @@ test.describe("beside the calendar", () => {
     await expect(live).toHaveAttribute("aria-live", "polite");
     await expect(live).toHaveAttribute("aria-atomic", "true");
     await expect(page.getByTestId("hint-line").locator("[aria-live]")).toHaveCount(1);
+    // A div, which Firefox reports as a section: Orca 50 lets a live region's text change past its filter for
+    // changes that come many at once only from a section, and a change updates many texts at the same time. From a
+    // span or a paragraph the result was never spoken.
+    expect(await live.evaluate((element) => element.tagName)).toBe("DIV");
     await cell(page, 6, 17).focus();
     await page.keyboard.press("Space");
     await expect(live).toHaveText("17. Juni: ganzer Tag Urlaub. 23½ Tage übrig.");
@@ -207,6 +211,8 @@ test.describe("on a phone", () => {
     const own = sheet.locator("[aria-live]");
     await expect(own).toHaveAttribute("aria-live", "polite");
     await expect(own).toHaveAttribute("aria-atomic", "true");
+    // A div for Orca, as the hint line's.
+    expect(await own.evaluate((element) => element.tagName)).toBe("DIV");
     await sheet.getByRole("button", { name: "Urlaub entfernen, 3. Jan." }).click();
     await expect(own).toHaveText("3. Jan.: kein Urlaub. 24½ Tage übrig.");
     await expectNoPageProblems(page);
