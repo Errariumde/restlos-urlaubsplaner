@@ -386,12 +386,13 @@ SPDX-License-Identifier: EUPL-1.2
     }
 
     /* More than three sources: a "+" in the corner; the label and the detail name them all. */
+    /* An even box, so the 2 px bars centre on whole pixels and stay sharp; 3 px keeps it off the cell's frame. */
     .more {
       position: absolute;
-      inset-block-start: 2px;
-      inset-inline-end: 2px;
-      inline-size: 7px;
-      block-size: 7px;
+      inset-block-start: 3px;
+      inset-inline-end: 3px;
+      inline-size: 8px;
+      block-size: 8px;
       background:
         linear-gradient(var(--r-text), var(--r-text)) center / 100% 2px no-repeat,
         linear-gradient(var(--r-text), var(--r-text)) center / 2px 100% no-repeat;
