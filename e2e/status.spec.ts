@@ -11,6 +11,21 @@ import { expectNoPageProblems, openApp, openExampleFromStart } from "./helpers.t
 const cell = (page: Page, month: number, day: number): Locator => page.locator(`[data-day="${String(dayFromYmd(2027, month, day))}"]`);
 const hintLine = (page: Page): Locator => page.getByTestId("hint-line");
 
+/** Records every text the element gets from now on, as the page's `texts`, with its white space normalized as toHaveText does. */
+async function recordTexts(locator: Locator): Promise<void> {
+  await locator.evaluate((element) => {
+    const texts: string[] = [];
+    Object.assign(window, { texts });
+    new MutationObserver(() => texts.push(element.textContent.replace(/\s+/g, " ").trim())).observe(element, { childList: true, characterData: true, subtree: true });
+  });
+}
+
+/** The texts recorded since recordTexts, each once in a row. */
+async function recorded(page: Page): Promise<string[]> {
+  const texts = await page.evaluate(() => (window as unknown as { texts: string[] }).texts);
+  return texts.filter((text, index) => text !== texts[index - 1]);
+}
+
 async function centre(locator: Locator): Promise<{ x: number; y: number }> {
   const box = await locator.boundingBox();
   if (!box) throw new Error("The element has no box");
@@ -29,8 +44,11 @@ test.describe("in English at 1280 px", () => {
     await cell(page, 6, 14).focus();
     await page.keyboard.press(" ");
     await expect(hintLine(page)).toHaveText("14 Jun: leave full. 7 days left.");
+    // The line goes from one result straight to the next, without an empty or a mixed text in between.
+    await recordTexts(hintLine(page));
     await page.keyboard.press("Control+z");
     await expect(hintLine(page)).toHaveText("Undone. 8 days left.");
+    expect(await recorded(page)).toEqual(["Undone. 8 days left."]);
     await page.keyboard.press("Control+y");
     await expect(hintLine(page)).toHaveText("Redone. 7 days left.");
     // The words follow the language, also after the change.
@@ -71,6 +89,11 @@ test.describe("on a narrow calendar, in English", () => {
     await expect(status).toHaveText("");
     await sheet.getByRole("checkbox", { name: "Full day" }).click();
     await expect(status).toHaveText("14 Jun: leave full. 7 days left.");
+    // A second change replaces the text directly: an empty line in between would make the sheet jump.
+    await recordTexts(status);
+    await sheet.getByRole("button", { name: "Morning", exact: true }).click();
+    await expect(status).toHaveText("14 Jun: leave half, afternoon. 7½ days left.");
+    expect(await recorded(page)).toEqual(["14 Jun: leave half, afternoon. 7½ days left."]);
     await expectNoPageProblems(page);
   });
 });

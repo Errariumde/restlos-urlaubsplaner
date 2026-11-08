@@ -94,12 +94,17 @@ class App {
   applying = $state(false);
   #inFlight = 0;
 
-  /** Waits for a new state from the worker, with `applying` set meanwhile. */
-  async #change(request: () => Promise<PlanState>): Promise<void> {
+  /**
+   * Waits for a new state from the worker, with `applying` set meanwhile, and reports `status` in the same step:
+   * no render shows the new plan with the old status, and the hint line goes from one result straight to the
+   * next, without an empty or a mixed text that screen readers would hear and the sheet's line would jump for.
+   */
+  async #change(request: () => Promise<PlanState>, status: Status): Promise<void> {
     this.#inFlight += 1;
     this.applying = true;
     try {
       this.state = await request();
+      this.report(status);
     } finally {
       this.#inFlight -= 1;
       this.applying = this.#inFlight > 0;
@@ -115,12 +120,10 @@ class App {
   /** Sets the plan's own leave and then says what changed; no worker call when nothing changes. */
   async apply(changes: readonly LeaveChange[]): Promise<void> {
     if (changes.length === 0) return;
-    this.status = undefined;
     const copy = $state.snapshot(changes);
     const days = new Set(changes.map((change) => change.day));
-    await this.#change(() => this.#engineNow().apply(copy));
     const [day] = days;
-    this.report(days.size === 1 && day !== undefined ? { kind: "day", day } : { kind: "days", count: days.size });
+    await this.#change(() => this.#engineNow().apply(copy), days.size === 1 && day !== undefined ? { kind: "day", day } : { kind: "days", count: days.size });
   }
 
   /**
@@ -150,16 +153,12 @@ class App {
   /** Undoes the last change and says so; nothing is said when there is nothing to undo. */
   async undo(): Promise<void> {
     if (this.state?.canUndo !== true) return;
-    this.status = undefined;
-    await this.#change(() => this.#engineNow().undo());
-    this.report({ kind: "undo" });
+    await this.#change(() => this.#engineNow().undo(), { kind: "undo" });
   }
 
   async redo(): Promise<void> {
     if (this.state?.canRedo !== true) return;
-    this.status = undefined;
-    await this.#change(() => this.#engineNow().redo());
-    this.report({ kind: "redo" });
+    await this.#change(() => this.#engineNow().redo(), { kind: "redo" });
   }
 }
 
