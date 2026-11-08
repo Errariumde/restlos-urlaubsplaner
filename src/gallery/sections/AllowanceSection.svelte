@@ -69,7 +69,7 @@ SPDX-License-Identifier: EUPL-1.2
 
   <section class="stack frame" style:--gap="var(--space-2)">
     <h2>{i18n.t("gallery.allowance.problems")}</h2>
-    <AllowancePanel allowance={ALLOWANCE} {totals} {stretches} {problems} {period} onproblem={() => {}} />
+    <AllowancePanel allowance={ALLOWANCE} {totals} {stretches} {problems} {period} onproblem={() => {}} onremove={() => {}} />
   </section>
 
   <section class="stack frame" style:--gap="var(--space-2)">

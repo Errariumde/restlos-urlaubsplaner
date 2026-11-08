@@ -53,6 +53,8 @@
   "allowance.problems": "Probleme ({count})",
   "allowance.problem": "{date}: {problem}",
   "allowance.problemCount": "{count, plural, one {1 Problem} other {{count} Probleme}}",
+  "allowance.removeLeave": "Urlaub entfernen",
+  "allowance.removeLeaveOn": "Urlaub entfernen, {date}",
   "allowance.stretches": "Am Stück frei",
   "allowance.noStretches": "Noch nichts am Stück frei",
   "allowance.stretch": "{fromNoon, select, yes {{from}, ab Mittag} other {{from}}} – {untilNoon, select, yes {{to}, bis Mittag} other {{to}}}: {costCount, plural, one {{cost} Urlaubstag} other {{cost} Urlaubstage}}, {daysOffCount, plural, one {{daysOff} Tag frei} other {{daysOff} Tage frei}}",

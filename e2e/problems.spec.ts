@@ -59,10 +59,10 @@ test.describe("the problems list beside the calendar", () => {
     await expect(list).toHaveAccessibleName("Problems (2)");
     await expect(list.getByRole("listitem")).toHaveText([
       /^13 Feb\S*: This leave lies on a day off\.$/,
-      /^3 Jan\S*: This leave lies outside the plan period\.$/,
+      /^3 Jan\S*: This leave lies outside the plan period\.\s+Remove leave$/,
     ]);
-    // The day after the period is not in the calendar, so its row is plain text.
-    await expect(list.getByRole("button")).toHaveCount(1);
+    // The day after the period is not in the calendar: its row offers to remove the leave instead.
+    await expect(list.getByRole("button")).toHaveCount(2);
     await list.getByRole("button", { name: /^13 Feb/ }).click();
     await expect(detail(page)).toHaveAccessibleName(/^Details for Saturday,? 13 February 2027$/);
     await expect(detail(page)).toContainText("This leave lies on a day off.");
@@ -113,6 +113,49 @@ test.describe("the problems on a phone", () => {
     await expect(detail(page)).toBeHidden();
     await expect(cell(page, 2, 13)).toBeFocused();
     await expect(cell(page, 2, 13)).toBeInViewport();
+    await expectNoPageProblems(page);
+  });
+});
+
+test.describe("leave outside the plan period", () => {
+  test.use({ locale: "en-GB", viewport: { width: 1280, height: 800 } });
+
+  test("its row removes the leave in one undo step, and the focus goes to the row in its place", async ({ page }) => {
+    await openEditedExample(page, TWO_PROBLEMS);
+    const list = problemList(page);
+    await list.getByRole("button", { name: /^Remove leave, 3\sJan$/ }).click();
+    await expect(list).toHaveAccessibleName("Problems (1)");
+    await expect(list.getByRole("button", { name: /^13 Feb/ })).toBeFocused();
+    // The plan's own leave costs nothing; the company closure (27 to 30 December) takes 4 of the 30 days.
+    await expect(page.getByTestId("hint-line")).toHaveText("3 Jan: no leave. 26 days left.");
+    await page.keyboard.press("Control+z");
+    await expect(problemList(page)).toHaveAccessibleName("Problems (2)");
+    await expectNoPageProblems(page);
+  });
+
+  test("removing the last problem, far from the period, leaves the focus on the stretches heading", async ({ page }) => {
+    // More than a year after the period, where the engine computes no day.
+    await openEditedExample(page, { plan: { days: [{ date: "2029-01-03", take: "1" }] } });
+    await problemList(page).getByRole("button", { name: /^Remove leave, 3\sJan$/ }).click();
+    await expect(problemList(page)).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Stretches" })).toBeFocused();
+    await expect(page.getByTestId("hint-line")).toHaveText("3 Jan: no leave. 26 days left.");
+    await expectNoPageProblems(page);
+  });
+});
+
+test.describe("leave outside the plan period on a phone", () => {
+  test.use({ locale: "en-GB", viewport: { width: 375, height: 800 } });
+
+  test("the details sheet stays open and says the result in its own line", async ({ page }) => {
+    await openEditedExample(page, TWO_PROBLEMS);
+    await page.getByRole("button", { name: "Details", exact: true }).click();
+    const sheet = page.getByRole("dialog", { name: "Allowance" });
+    await sheet.getByRole("button", { name: /^Remove leave/ }).click();
+    await expect(sheet).toBeVisible();
+    await expect(problemList(page)).toHaveAccessibleName("Problems (1)");
+    await expect(sheet.locator('[aria-live="polite"]')).toHaveText("3 Jan: no leave. 26 days left.");
+    await expect(sheet.getByRole("button", { name: /^13 Feb/ })).toBeFocused();
     await expectNoPageProblems(page);
   });
 });

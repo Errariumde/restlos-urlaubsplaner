@@ -34,7 +34,8 @@ export function statusText(status: Status, state: PlanState | undefined, i18n: {
   return t("status.text", {
     kind: status.kind,
     date: status.kind === "day" ? unbroken(formatDate(status.day, locale, "dayMonth")) : "",
-    leave: day === undefined ? "" : leaveText(dayLeave(day), i18n),
+    // A day the result doesn't cover lies far outside the plan period, where the only change is removing leave.
+    leave: day === undefined ? t("day.leave.none") : leaveText(dayLeave(day), i18n),
     count: status.kind === "days" ? status.count : 0,
     over: remaining < 0 ? "yes" : "no",
     amount: formatDays(Math.abs(remaining), locale),

@@ -7,7 +7,7 @@ SPDX-License-Identifier: EUPL-1.2
   // free time; the leave as a line and a bar of switches with the "Full day" checkbox, its cost and the work left;
   // the calendars as bars; the reasons; the problems. A popover next to the cell; a bottom sheet on a narrow calendar
   // or a touch screen; inline in the gallery.
-  import { tick, untrack } from "svelte";
+  import { tick } from "svelte";
   import type { DayResult, Problem } from "../../engine/counting/plan.ts";
   import { textFor } from "../../engine/file/text.ts";
   import { UNITS_PER_DAY, type Units } from "../../engine/weight.ts";
@@ -21,7 +21,7 @@ SPDX-License-Identifier: EUPL-1.2
   import { lineStyle, sourceAccent } from "./cell-lanes.ts";
   import { amountText, dayDetail, reasonText, type DaySpan } from "./detail.ts";
   import { problemText } from "./problems.ts";
-  import { announced, statusText } from "./status.ts";
+  import SheetStatus from "./SheetStatus.svelte";
 
   interface Props {
     day: DayResult;
@@ -57,14 +57,6 @@ SPDX-License-Identifier: EUPL-1.2
   );
 
   let content = $state<HTMLElement>();
-
-  // The bottom sheet makes the page inert, so the hint line can't announce what an action here did: the sheet says
-  // it in its own live line, for the statuses reported while it is open.
-  const openedAt = untrack(() => app.statusCount);
-  const sheetStatus = $derived.by(() => {
-    if (app.status === undefined || app.statusCount <= openedAt) return "";
-    return announced(statusText(app.status, app.state, words), app.statusCount);
-  });
 
   /** One click, one change, one undo step. The detail stays open and shows the day as it is now. */
   async function run(change: LeaveChange | undefined): Promise<void> {
@@ -195,7 +187,7 @@ SPDX-License-Identifier: EUPL-1.2
 {:else if presentation === "sheet"}
   <Sheet {id} {anchor} open={true} {onclose} {label}>
     {@render body()}
-    <p class="status" aria-live="polite" aria-atomic="true">{sheetStatus}</p>
+    <SheetStatus />
   </Sheet>
 {:else}
   <section class="inline" aria-label={label}>
@@ -420,18 +412,6 @@ SPDX-License-Identifier: EUPL-1.2
       color: var(--r-overdraft);
       font-size: var(--font-size-1);
       font-weight: 600;
-    }
-
-    /* What an action in the sheet did, quiet like the hint line; empty until then. */
-    .status {
-      margin-block-start: var(--space-3);
-      color: var(--r-text-muted);
-      font-size: var(--font-size-1);
-    }
-
-    /* Kept in the accessibility tree while empty, so its first text is announced too. */
-    .status:empty {
-      margin: 0;
     }
 
     .inline {

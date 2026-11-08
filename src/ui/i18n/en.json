@@ -53,6 +53,8 @@
   "allowance.problems": "Problems ({count})",
   "allowance.problem": "{date}: {problem}",
   "allowance.problemCount": "{count, plural, one {1 problem} other {{count} problems}}",
+  "allowance.removeLeave": "Remove leave",
+  "allowance.removeLeaveOn": "Remove leave, {date}",
   "allowance.stretches": "Stretches",
   "allowance.noStretches": "No stretches yet",
   "allowance.stretch": "{fromNoon, select, yes {{from}, from noon} other {{from}}} – {untilNoon, select, yes {{to}, until noon} other {{to}}}: {costCount, plural, one {{cost} day of leave} other {{cost} days of leave}}, {daysOffCount, plural, one {{daysOff} day off} other {{daysOff} days off}}",

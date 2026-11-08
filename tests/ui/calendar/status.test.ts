@@ -39,6 +39,18 @@ describe("statusText", () => {
     expect(statusText({ kind: "day", day: friday }, opened, i18n("de"))).toBe("15. Jan.: kein Urlaub. 8 Tage übrig.");
   });
 
+  it("says no leave on a removed day that the result doesn't cover, far outside the plan period", () => {
+    // Leave on 3 January 2029, more than a year after the period, is a problem with a remove button; removing it
+    // is reported for that day.
+    const far = dayFromYmd(2029, 1, 3);
+    const outside = new Session();
+    outside.open(example, true);
+    outside.apply([{ day: far, take: 480 }]);
+    const removed = outside.apply([{ day: far, take: 0 }]);
+    expect(statusText({ kind: "day", day: far }, removed, i18n("de"))).toBe("3. Jan.: kein Urlaub. 8 Tage übrig.");
+    expect(statusText({ kind: "day", day: far }, removed, i18n("en"))).toBe("3 Jan: no leave. 8 days left.");
+  });
+
   it("counts several changed days", () => {
     expect(statusText({ kind: "days", count: 5 }, planned, i18n("de"))).toBe("5 Tage geändert. 7 Tage übrig.");
     expect(statusText({ kind: "days", count: 5 }, planned, i18n("en"))).toBe("5 days changed. 7 days left.");

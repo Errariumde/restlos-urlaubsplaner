@@ -14,6 +14,7 @@ SPDX-License-Identifier: EUPL-1.2
   import MonthColumns from "../calendar/MonthColumns.svelte";
   import MonthTiles from "../calendar/MonthTiles.svelte";
   import SelectionBar from "../calendar/SelectionBar.svelte";
+  import SheetStatus from "../calendar/SheetStatus.svelte";
   import Button from "../controls/Button.svelte";
   import Sheet from "../controls/Sheet.svelte";
   import { pluralCount, formatDays } from "../i18n/format.ts";
@@ -164,6 +165,15 @@ SPDX-License-Identifier: EUPL-1.2
     openDetail(day, cell);
   }
 
+  /**
+   * Removes the leave of a day outside the plan period from its problem's row (docs/SPEC.md, "Problems"): the
+   * calendar can't show that day. One change and one undo step, said like any other.
+   */
+  async function removeLeave(day: DayNumber): Promise<void> {
+    if (app.applying) return;
+    await app.apply([{ day, take: 0 }]);
+  }
+
   /** Only the request that is shown closes it: a popover replaced by the next one reports its close late. */
   function closeDetail(request: DetailRequest): void {
     if (detail === request) detail = undefined;
@@ -243,6 +253,7 @@ SPDX-License-Identifier: EUPL-1.2
                 problems={result.problems}
                 period={result.period}
                 onproblem={(day: DayNumber) => void showProblem(day)}
+                onremove={removeLeave}
                 {legend}
               />
             {/if}
@@ -263,8 +274,10 @@ SPDX-License-Identifier: EUPL-1.2
           problems={result.problems}
           period={result.period}
           onproblem={(day: DayNumber) => void showProblem(day)}
+          onremove={removeLeave}
           {legend}
         />
+        {#if detailsOpen}<SheetStatus />{/if}
       </Sheet>
     {/if}
   {/if}
@@ -298,6 +311,7 @@ SPDX-License-Identifier: EUPL-1.2
           problems={app.state.result.problems}
           period={app.state.result.period}
           onproblem={(day: DayNumber) => void showProblem(day)}
+          onremove={removeLeave}
           {legend}
         />
       </aside>
