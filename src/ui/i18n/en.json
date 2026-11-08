@@ -59,7 +59,7 @@
   "day.leave.own": "leave {amount, select, full {full} half {half} other {{share}}}{where, select, morning {, morning} afternoon {, afternoon} start {, at the start of the day} end {, at the end of the day} middle {, in the middle of the day} other {}}",
   "day.leave.mandatory": "mandatory leave{amount, select, full {} half { half} other { {share}}}{where, select, morning {, morning} afternoon {, afternoon} start {, at the start of the day} end {, at the end of the day} middle {, in the middle of the day} other {}}",
   "day.leave.otherPlan": "leave in another plan",
-  "day.label": "{date}, {kind, select, workday {working day} weekend {weekend} holiday {holiday {name}} halfRequired {half working day} halfRequiredHoliday {half working day, {name}} free {day off} other {working day}}, {leave}{hasCost, select, yes {, costs {cost}} other {}}{hasSources, select, yes {, calendars {sources}} other {}}",
+  "day.label": "{date}, {kind, select, workday {working day} weekend {weekend} holiday {holiday {name}} halfRequired {half working day} halfRequiredHoliday {half working day, {name}} free {day off} other {working day}}, {leave}{hasCost, select, yes {, costs {cost}} other {}}{hasSources, select, yes {, calendars {sources}} other {}}{problemCount, plural, =0 {} one {, problem: {problems}} other {, problems: {problems}}}",
   "detail.label": "Details for {date}",
   "detail.required.label": "Required work",
   "detail.required.none": "No required work",

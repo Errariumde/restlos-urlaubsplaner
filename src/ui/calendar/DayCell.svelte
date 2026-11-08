@@ -4,9 +4,10 @@ SPDX-License-Identifier: EUPL-1.2
 -->
 <script lang="ts">
   // One day of the calendar, drawn in the layers of docs/SPEC.md, "Day cell": background (required work),
-  // fill (leave), border (another plan), source lanes, and the ring (today, selection, preview).
+  // fill (leave), border (another plan), source lanes, and the ring (today, selection, preview); a problem marks
+  // the day number.
   import type { Snippet } from "svelte";
-  import type { DayResult } from "../../engine/counting/plan.ts";
+  import type { DayResult, Problem } from "../../engine/counting/plan.ts";
   import { textFor } from "../../engine/file/text.ts";
   import { ymdFromDay } from "../../engine/days.ts";
   import { formatDate } from "../i18n/format.ts";
@@ -28,11 +29,13 @@ SPDX-License-Identifier: EUPL-1.2
     today: boolean;
     /** A drag would change this day. */
     previewed: boolean;
+    /** The codes of the day's problems (docs/SPEC.md, "Problems"). */
+    problems?: readonly Problem["code"][];
     /** Drawn inside the cell above the ring: the calendar-week marker of the month columns. */
     marker?: Snippet | undefined;
   }
 
-  let { day, meta, lanes, orientation, focused, selected, today, previewed, marker }: Props = $props();
+  let { day, meta, lanes, orientation, focused, selected, today, previewed, problems = [], marker }: Props = $props();
 
   const kind = $derived(kindOf(day, meta));
   const leave = $derived(dayLeave(day));
@@ -63,7 +66,7 @@ SPDX-License-Identifier: EUPL-1.2
       .map((lane) => meta.sources[lane.index])
       .filter((source) => source !== undefined)
       .map((source) => textFor(source.name, i18n.lang));
-    return cellLabel(day, meta, { t: (key, args) => i18n.t(key, args), locale: i18n.locale }, names);
+    return cellLabel(day, meta, { t: (key, args) => i18n.t(key, args), locale: i18n.locale }, names, problems);
   });
 </script>
 
@@ -86,7 +89,7 @@ SPDX-License-Identifier: EUPL-1.2
   {#if mandatoryMask !== undefined}<span class="mandatory-fill" style:--mask={mandatoryMask}></span>{/if}
   {#if leave.otherPlan}<span class="border"></span>{/if}
   <span class="number">
-    {ymdFromDay(day.day).day}
+    <span class="digits" class:problem={problems.length > 0}>{ymdFromDay(day.day).day}</span>
     {#if orientation === "column"}<span class="weekday">{formatDate(day.day, i18n.locale, "weekday")}</span>{/if}
   </span>
   {#if drawn.length > 0}
@@ -250,6 +253,20 @@ SPDX-License-Identifier: EUPL-1.2
 
     .weekday {
       opacity: 0.8;
+    }
+
+    /*
+     * A problem on the day (docs/SPEC.md, "Problems"): a filled box behind the day number, with a ring in the
+     * surface colour that keeps it clear of a fill, the today ring and the selection.
+     */
+    .digits.problem {
+      padding-inline: 2px;
+      border-radius: 3px;
+      background: var(--r-overdraft);
+      color: var(--r-surface);
+      font-weight: 700;
+      text-shadow: none;
+      box-shadow: 0 0 0 1px var(--r-surface);
     }
 
     /* Layer 4: the source lanes, each a surface band with a 3 px line, only where a run is. */
@@ -477,6 +494,14 @@ SPDX-License-Identifier: EUPL-1.2
 
       .lane::before {
         background: CanvasText;
+      }
+
+      /* The problem box in the text colour, also on a Highlight fill. */
+      .digits.problem {
+        forced-color-adjust: none;
+        background: CanvasText;
+        color: Canvas;
+        box-shadow: 0 0 0 1px Canvas;
       }
 
       .today .ring {

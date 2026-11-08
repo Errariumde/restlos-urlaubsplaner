@@ -139,6 +139,15 @@ describe("cellLabel", () => {
     expect(label).toBe("Friday, 7 May 2027, working day, leave full, costs 1, calendars School holidays and Team trip");
     expect(cellLabel(planned, meta, i18n("de"), ["A", "B", "C"])).toBe("Freitag, 7. Mai 2027, Arbeitstag, ganzer Tag Urlaub, kostet 1, Kalender A, B und C");
   });
+
+  it("ends with the day's problems in full sentences", () => {
+    expect(cellLabel(planned, meta, i18n("en"), ["Kita"], ["uncoveredNeed"])).toBe(
+      "Friday, 7 May 2027, working day, leave full, costs 1, calendars Kita, problem: You still need time off on this day.",
+    );
+    expect(cellLabel(planned, meta, i18n("de"), [], ["leaveWithoutRequiredWork", "leaveTakenInOtherPlan"])).toBe(
+      "Freitag, 7. Mai 2027, Arbeitstag, ganzer Tag Urlaub, kostet 1, Probleme: Dieser Urlaub liegt auf einem freien Tag. Dieser Urlaub steht schon in einem anderen Plan.",
+    );
+  });
 });
 
 describe("a day of a holiday calendar", () => {

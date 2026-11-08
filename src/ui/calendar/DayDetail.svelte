@@ -20,6 +20,7 @@ SPDX-License-Identifier: EUPL-1.2
   import type { LeaveChange, PlanMeta } from "../worker/protocol.ts";
   import { lineStyle, sourceAccent } from "./cell-lanes.ts";
   import { amountText, dayDetail, reasonText, type DaySpan } from "./detail.ts";
+  import { problemText } from "./problems.ts";
   import { announced, statusText } from "./status.ts";
 
   interface Props {
@@ -54,21 +55,6 @@ SPDX-License-Identifier: EUPL-1.2
       return { id: source.id, text, accent: sourceAccent(source, index), style: lineStyle(index), spans };
     }),
   );
-
-  function problemText(code: Problem["code"]): string {
-    switch (code) {
-      case "leaveOutsidePeriod":
-        return i18n.t("detail.problem.leaveOutsidePeriod");
-      case "leaveWithoutRequiredWork":
-        return i18n.t("detail.problem.leaveWithoutRequiredWork");
-      case "leaveTakenInOtherPlan":
-        return i18n.t("detail.problem.leaveTakenInOtherPlan");
-      case "conflictingForcedRules":
-        return i18n.t("detail.problem.conflictingForcedRules");
-      case "uncoveredNeed":
-        return i18n.t("detail.problem.uncoveredNeed");
-    }
-  }
 
   let content = $state<HTMLElement>();
 
@@ -195,7 +181,7 @@ SPDX-License-Identifier: EUPL-1.2
     {#if detail.problems.length > 0}
       <ul class="part problems" aria-label={i18n.t("detail.problems")}>
         {#each detail.problems as code, index (index)}
-          <li>{problemText(code)}</li>
+          <li>{problemText(code, words.t)}</li>
         {/each}
       </ul>
     {/if}

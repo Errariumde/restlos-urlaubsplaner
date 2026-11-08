@@ -5,7 +5,7 @@ SPDX-License-Identifier: EUPL-1.2
 <script lang="ts">
   // View 1, the month tiles (docs/SPEC.md, "View 1"): one ARIA grid over all months with a roving tabindex,
   // 4, 3, 2 or 1 tiles per row by the width of the calendar area (container queries).
-  import type { PlanResult } from "../../engine/counting/plan.ts";
+  import type { PlanResult, Problem } from "../../engine/counting/plan.ts";
   import type { DayNumber } from "../../engine/days.ts";
   import { formatDate } from "../i18n/format.ts";
   import { i18n } from "../i18n/i18n.svelte.ts";
@@ -15,6 +15,7 @@ SPDX-License-Identifier: EUPL-1.2
   import DayCell from "./DayCell.svelte";
   import { calendarGestures, dragPreview } from "./gestures.svelte.ts";
   import { calendarKeyboard } from "./keyboard.svelte.ts";
+  import { problemsByDay } from "./problems.ts";
   import { periodMonths, tileWeeks } from "./months.ts";
   import { rangeChanges, weekChanges, weekSelection } from "./range.ts";
   import WeekNumber from "./WeekNumber.svelte";
@@ -31,6 +32,7 @@ SPDX-License-Identifier: EUPL-1.2
   let { meta, result, today, onDetail }: Props = $props();
 
   const NO_LANES: readonly CellLane[] = [];
+  const NO_PROBLEMS: readonly Problem["code"][] = [];
 
   let grid = $state<HTMLElement>();
 
@@ -48,6 +50,8 @@ SPDX-License-Identifier: EUPL-1.2
 
   /** The source lanes of every day, computed once per result. */
   const lanes = $derived(periodCellLanes(months.map(({ month }) => month), result, meta.sources, meta.weekStart, "row"));
+  /** The codes of each day's problems, for the mark on the day number and the label. */
+  const problems = $derived(problemsByDay(result.problems));
 
   const firstDay = $derived(result.days[0]?.day ?? 0);
   const focusDay = $derived(app.focusDay ?? result.period.from);
@@ -139,6 +143,7 @@ SPDX-License-Identifier: EUPL-1.2
                   selected={isSelected(day)}
                   today={day === today}
                   previewed={dragPreview.range?.days.has(day) ?? false}
+                  problems={problems.get(day) ?? NO_PROBLEMS}
                 />
               {/if}
             {/if}
