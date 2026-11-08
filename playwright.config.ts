@@ -28,14 +28,19 @@ export default defineConfig({
   projects: [
     { name: "firefox", use: { ...devices["Desktop Firefox"], viewport } },
     { name: "chromium", use: { ...devices["Desktop Chrome"], viewport } },
-    // The dev shell's WebKit paints in software at about two frames a second; with the month tiles on the
-    // screen, opening the plan or resizing takes seconds. `npm run test:e2e` runs it alone with one worker
-    // after Chromium and Firefox; parallel runs timed out at random (issue 0025, browser behaviour left
-    // untested by the feasibility run). It also crashes about once every four tests, in Mesa's software
-    // renderer or with an abort. The test:e2e scripts therefore start with `ulimit -c 0`: with systemd-coredump,
-    // every crash wrote a dump that took up to two minutes, slowed the whole machine and made WebKit tests time
-    // out. Without dumps, a WebKit run took 10.4 instead of 16.9 minutes (2026-11-07). Set it yourself before
-    // calling `playwright test` directly.
-    { name: "webkit", use: { ...devices["Desktop Safari"], viewport }, timeout: 90_000, expect: { timeout: 20_000 } },
+    // The dev shell's WebKit has no GPU. Through Mesa's software renderer (llvmpipe) it painted at about two
+    // frames a second and crashed about once every four tests, in llvmpipe or with an abort; Skia painting on
+    // the CPU (WEBKIT_SKIA_ENABLE_CPU_RENDERING) avoids both: all WebKit tests took 3.6 instead of 22.6 minutes,
+    // without a crash (2026-11-08). `npm run test:e2e` still runs WebKit alone with one worker after Chromium
+    // and Firefox, with longer timeouts; parallel runs had timed out at random (issue 0025, browser behaviour
+    // left untested by the feasibility run). The test:e2e scripts start with `ulimit -c 0`: with
+    // systemd-coredump, every crash wrote a dump that took up to two minutes and slowed the whole machine. Set
+    // it yourself before calling `playwright test` directly.
+    {
+      name: "webkit",
+      use: { ...devices["Desktop Safari"], viewport, launchOptions: { env: { ...env, WEBKIT_SKIA_ENABLE_CPU_RENDERING: "1" } } },
+      timeout: 90_000,
+      expect: { timeout: 20_000 },
+    },
   ],
 });
