@@ -113,6 +113,21 @@ describe("Session", () => {
     expect(hint).toEqual({ days: 0, cost: 0, remaining: start.result.totals.remaining, stretch: undefined });
   });
 
+  it("gives the day's cost and work left for a one-day preview", () => {
+    const fresh = new Session();
+    fresh.open(example, true);
+    // 24 December: half a day of work in the morning; the morning's leave costs it all and leaves no work.
+    expect(fresh.preview([{ day: dayFromYmd(2027, 12, 24), take: 240, part: "start" }]).day).toEqual({ cost: 240, remaining: 0 });
+    expect(fresh.preview([{ day: june(14), take: 120, part: "end" }]).day).toEqual({ cost: 120, remaining: 360 });
+    // Two days changed: no one day to tell.
+    const two = fresh.preview([
+      { day: june(14), take: 480 },
+      { day: june(15), take: 480 },
+    ]);
+    expect(two.days).toBe(2);
+    expect(two).not.toHaveProperty("day");
+  });
+
   it("refuses a broken file", () => {
     expect(new Session().open("{", false)).toEqual({ refused: "notJson" });
   });

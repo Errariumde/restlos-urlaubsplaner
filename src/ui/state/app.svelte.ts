@@ -139,6 +139,15 @@ class App {
   }
 
   /**
+   * What one change would do to its day (`Hint.day`), for the day detail's preview while a drag along its leave
+   * bar goes on. The hint line stays as it is: neither `hint` nor `status` changes. `undefined` when a newer request
+   * made the answer stale.
+   */
+  previewDay(change: LeaveChange): Promise<Hint | undefined> {
+    return this.#engineNow().preview([$state.snapshot(change)]);
+  }
+
+  /**
    * Selects a range (or ends the selection) and previews `changes`, the days the selection bar's Full day
    * would set. A preview that arrives after the selection changed or ended doesn't refill the hint.
    */

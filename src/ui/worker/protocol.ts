@@ -52,12 +52,14 @@ export interface PlanState {
   readonly changed: boolean;
 }
 
-/** What a change would do, for the hint line while a gesture is going on. */
+/** What a change would do, for the hint line while a gesture is going on, and for the day detail during a drag. */
 export interface Hint {
   readonly days: number; // the days the change would alter
   readonly cost: Units; // planned after − planned before
   readonly remaining: Units; // after the change
   readonly stretch: Stretch | undefined; // the listed stretch after the change that contains the first changed day
+  /** When exactly one day changes: that day's cost and the work left on it after the change. */
+  readonly day?: { readonly cost: Units; readonly remaining: Units };
 }
 
 export type Request =

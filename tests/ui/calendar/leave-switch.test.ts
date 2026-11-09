@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import type { LeavePiece } from "../../../src/engine/counting/leave.ts";
 import type { DayResult } from "../../../src/engine/counting/plan.ts";
 import type { Part } from "../../../src/engine/counting/types.ts";
-import { leaveSwitch, nearest, partCount, reach, withOwnLeave, type LeaveSegment, type PartName } from "../../../src/ui/calendar/leave-switch.ts";
+import { dragEdge, leaveSwitch, nearest, partCount, reach, withOwnLeave, type LeaveSegment, type PartName } from "../../../src/ui/calendar/leave-switch.ts";
 
 const DAY = 20_000;
 
@@ -407,11 +407,43 @@ describe("reach", () => {
     expect(reach(stub({ leave: [own(120)] }), 30, "end", 12)).toBeUndefined();
   });
 
+  it("keeps a part index past either end to the first or the last part", () => {
+    expect(reach(stub({}), 30, "end", 16)).toEqual({ day: DAY, take: 30, part: "end" });
+    expect(reach(stub({}), 30, "end", 40)).toEqual({ day: DAY, take: 30, part: "end" });
+    expect(reach(stub({}), 30, "start", 16)).toEqual(full);
+    expect(reach(stub({}), 30, "start", -1)).toEqual({ day: DAY, take: 30, part: "start" });
+    expect(reach(stub({}), 30, "end", -5)).toEqual(full);
+    expect(reach(stub({}), 240, "end", 2)).toEqual(afternoon);
+    // Outside the plan period own leave can only be taken away, also past the ends.
+    expect(reach(stub({ inPeriod: false, leave: [own(480)] }), 240, "start", 7)).toEqual(remove);
+    expect(reach(stub({ inPeriod: false }), 240, "start", -1)).toBeUndefined();
+  });
+
   it("takes own leave away instead of reaching only free time", () => {
     expect(reach(christmasEve(), 30, "end", 12)).toBeUndefined();
     expect(reach(christmasEve([own(240, "start")]), 30, "end", 12)).toEqual(remove);
     // Across the free afternoon into the work of the morning.
     expect(reach(christmasEve(), 30, "end", 6)).toEqual({ day: DAY, take: 300, part: "end" });
+  });
+});
+
+describe("dragEdge", () => {
+  it("reaches from the edge of the own leave", () => {
+    expect(dragEdge(stub({ leave: [own(120, "start")] }), 30, 12)).toBe("start");
+    expect(dragEdge(stub({ leave: [own(120, "end")] }), 30, 1)).toBe("end");
+    // Own leave on free time alone (a problem) has its edge too.
+    expect(dragEdge(christmasEve([own(240, "end")]), 30, 3)).toBe("end");
+  });
+
+  it("reaches from the edge nearer to the pressed part without own leave or with a full day", () => {
+    expect(dragEdge(stub({}), 30, 12)).toBe("end");
+    expect(dragEdge(stub({}), 30, 7)).toBe("start");
+    expect(dragEdge(stub({}), 30, 8)).toBe("end");
+    expect(dragEdge(stub({ leave: [own(480)] }), 30, 2)).toBe("start");
+    expect(dragEdge(stub({ leave: [own(480)] }), 30, 15)).toBe("end");
+    // Mandatory leave has no say; thirds: the middle one lies nearer the start, as for a press.
+    expect(dragEdge(stub({ leave: [mandatory(120, "start")] }), 30, 14)).toBe("end");
+    expect(dragEdge(stub({}), 160, 1)).toBe("start");
   });
 });
 
@@ -463,6 +495,8 @@ describe("nearest", () => {
       { from: 360, to: 480 },
     ];
     expect(nearest(items, { from: 130, to: 140 })).toBe(items[1]);
+    // Over the second and touching the first: the one over it.
+    expect(nearest(items, { from: 120, to: 240 })).toBe(items[1]);
     // 60 from the first and from the last.
     expect(nearest(items.filter((_, index) => index !== 1), { from: 180, to: 300 })).toBe(items[0]);
     // Touching both the second and the last.

@@ -5,7 +5,7 @@
 // Pure: the worker wiring (`self`) lives in engine-worker.ts.
 import { countries } from "../../data/holidays/index.ts";
 import { computePlan } from "../../engine/counting/plan.ts";
-import type { PlanResult } from "../../engine/counting/plan.ts";
+import type { DayResult, PlanResult } from "../../engine/counting/plan.ts";
 import type { LeaveDay, PlanInput } from "../../engine/counting/types.ts";
 import type { DayNumber } from "../../engine/days.ts";
 import { planInput } from "../../engine/file/model.ts";
@@ -65,6 +65,12 @@ function applyChanges(leave: Leave, changes: readonly LeaveChange[]): Changed {
   }
   if (altered.length === 0) return { leave, altered };
   return { leave: [...days.values()].sort((a, b) => a.day - b.day), altered };
+}
+
+/** The result's day, if the result has it. */
+function dayAt(result: PlanResult, day: DayNumber): DayResult | undefined {
+  const found = result.days[day - (result.days[0]?.day ?? 0)];
+  return found?.day === day ? found : undefined;
 }
 
 /** The listed stretch of the result that contains the day, if any. */
@@ -140,11 +146,13 @@ export class Session {
     const first = altered[0];
     if (first === undefined) return { days: 0, cost: 0, remaining: before.remaining, stretch: undefined };
     const after = this.#compute(leave);
+    const day = altered.length === 1 ? dayAt(after, first) : undefined;
     return {
       days: altered.length,
       cost: after.totals.planned - before.planned,
       remaining: after.totals.remaining,
       stretch: stretchAt(after, first),
+      ...(day === undefined ? {} : { day: { cost: day.evaluation.cost, remaining: day.evaluation.remaining } }),
     };
   }
 

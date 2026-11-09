@@ -2,12 +2,13 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 // Touch (docs/SPEC.md, "Calendar interaction"): a tap toggles a day and a swipe scrolls; ranges come with
-// the selection mode, where a drag or two taps select and the selection bar applies or cancels. The drags are
-// pointer events of type "touch" sent to the cell the finger starts on, as a browser does with its implicit
-// pointer capture. The example plan runs from January to December 2027.
+// the selection mode, where a drag or two taps select and the selection bar applies or cancels; in the day
+// detail's sheet a drag along the leave bar sets the leave ("Detail view"). The drags are pointer events of type
+// "touch" sent to the element the finger starts on, as a browser does with its implicit pointer capture. The
+// example plan runs from January to December 2027.
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { dayFromYmd } from "../src/engine/days.ts";
-import { expectNoPageProblems, openApp, openExampleFromStart } from "./helpers.ts";
+import { expectNoPageProblems, openApp, openEditedExample, openExampleFromStart, recorded, recordTexts } from "./helpers.ts";
 
 const cell = (page: Page, month: number, day: number): Locator => page.locator(`[data-day="${String(dayFromYmd(2027, month, day))}"]`);
 const hint = (page: Page): Locator => page.locator('[aria-live="polite"]');
@@ -90,6 +91,48 @@ test.describe("without the selection mode", () => {
     await expectLeave(page, 6, [14, 15, 16, 17, 18], NONE);
     await expect(page.locator('[aria-selected="true"]')).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Undo", exact: true })).toBeDisabled();
+    await expectNoPageProblems(page);
+  });
+});
+
+test.describe("in the day detail's sheet", () => {
+  test("a drag along the leave bar previews in the sheet and applies on release", async ({ page }) => {
+    await openEditedExample(page, { contract: { minUnit: "1/16" } });
+    const day = cell(page, 6, 14);
+    await day.scrollIntoViewIfNeeded();
+    const point = await centre(day);
+    // A long press opens the sheet; lifting the finger changes nothing.
+    await touchEvent(day, "pointerdown", point);
+    const sheet = page.getByRole("dialog", { name: /^Details for / });
+    await expect(sheet).toBeVisible();
+    await touchEvent(day, "pointerup", point);
+    await expectLeave(page, 6, [14], NONE);
+    const bar = sheet.getByRole("group", { name: "Leave on this day" });
+    const pressed = bar.getByRole("button", { name: "13th sixteenth", exact: true });
+    const costs = sheet.locator("p", { hasText: /^Costs/ });
+    const status = sheet.locator("[aria-live]");
+    await recordTexts(status);
+    // The finger from the 13th sixteenth to the 9th, its events at the switch it started on.
+    const start = await centre(pressed);
+    const end = await centre(bar.getByRole("button", { name: "9th sixteenth", exact: true }));
+    await touchEvent(pressed, "pointerdown", start);
+    for (let step = 1; step <= 4; step += 1) await touchEvent(pressed, "pointermove", { x: start.x + ((end.x - start.x) * step) / 4, y: start.y });
+    // The preview shows in the sheet itself; the page behind it is shaded.
+    await expect(costs).toContainText("½ day");
+    await expectLeave(page, 6, [14], NONE);
+    expect(await recorded(page)).toEqual([]);
+    await touchEvent(pressed, "pointerup", end);
+    await expectLeave(page, 6, [14], HALF);
+    // The sheet's own line says the result, once.
+    await expect(status).toHaveText(/^14\sJun: leave half, afternoon\./);
+    expect(await recorded(page)).toHaveLength(1);
+    // One undo step.
+    await sheet.getByRole("button", { name: "Close", exact: true }).tap();
+    await expect(sheet).toBeHidden();
+    const undo = page.getByRole("button", { name: "Undo", exact: true });
+    await undo.tap();
+    await expectLeave(page, 6, [14], NONE);
+    await expect(undo).toBeDisabled();
     await expectNoPageProblems(page);
   });
 });

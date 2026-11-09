@@ -5,10 +5,16 @@
 // a long press open it; on a narrow calendar or a touch screen it is a bottom sheet.
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { dayFromYmd } from "../src/engine/days.ts";
-import { expectNoPageProblems, openApp, openEditedExample, openExampleFromStart, openGallery } from "./helpers.ts";
+import { expectNoPageProblems, openApp, openEditedExample, openExampleFromStart, openGallery, recorded, recordTexts } from "./helpers.ts";
 
 const cell = (page: Page, month: number, day: number): Locator => page.locator(`[data-day="${String(dayFromYmd(2027, month, day))}"]`);
 const detail = (page: Page): Locator => page.getByRole("dialog", { name: /^Details for / });
+
+async function centre(locator: Locator): Promise<{ x: number; y: number }> {
+  const box = await locator.boundingBox();
+  if (!box) throw new Error("The element has no box");
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
 
 test.describe("in English at 1280 px", () => {
   test.use({ locale: "en-GB", viewport: { width: 1280, height: 800 } });
@@ -232,6 +238,84 @@ test.describe("the leave bar, in English at 1280 px", () => {
     await expectNoPageProblems(page);
   });
 
+  /** A value line of the detail by its label ("Costs", "Work left"). */
+  const line = (page: Page, name: string): Locator => detail(page).locator("p", { hasText: new RegExp(`^${name}`) });
+
+  /** Presses the mouse on the centre of `from` and moves it to the point `to` in steps, the button still down. */
+  async function pressAndMove(page: Page, from: Locator, to: { x: number; y: number }): Promise<void> {
+    const start = await centre(from);
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(to.x, to.y, { steps: 4 });
+  }
+
+  test("dragging along the bar previews and applies the leave", async ({ page }) => {
+    await openEditedExample(page, { contract: { minUnit: "1/16" } });
+    const bar = await openBar(page, 6, 14);
+    const part = (name: string): Locator => bar.getByRole("button", { name, exact: true });
+    const day = cell(page, 6, 14);
+    const hintLine = page.getByTestId("hint-line");
+    await recordTexts(hintLine.locator("[aria-live]"));
+    // From the 13th sixteenth (nearer the end, so the leave reaches from the end) to the 9th: half a day.
+    await pressAndMove(page, part("13th sixteenth"), await centre(part("9th sixteenth")));
+    await expect(line(page, "Costs")).toContainText("½ day");
+    await expect(line(page, "Work left")).toContainText("½ day");
+    await expect(part("9th sixteenth")).toHaveAttribute("aria-pressed", "true");
+    await expect(part("8th sixteenth")).toHaveAttribute("aria-pressed", "false");
+    // Only a preview: nothing is applied, and nothing is said.
+    await expect(day).toHaveAttribute("aria-label", /no leave/);
+    expect(await recorded(page)).toEqual([]);
+    await page.mouse.up();
+    await expect(day).toHaveAttribute("aria-label", /leave half, afternoon/);
+    await expect(line(page, "Costs")).toContainText("½ day");
+    // The result is said once, and the focus stays on the pressed switch.
+    await expect(hintLine).toHaveText(/^14\sJun: leave half, afternoon\./);
+    expect(await recorded(page)).toHaveLength(1);
+    await expect(part("13th sixteenth")).toBeFocused();
+    // One change, one undo step.
+    await page.keyboard.press("Escape");
+    const undo = page.getByRole("button", { name: "Undo", exact: true });
+    await undo.click();
+    await expect(day).toHaveAttribute("aria-label", /no leave/);
+    await expect(undo).toBeDisabled();
+    await expectNoPageProblems(page);
+  });
+
+  test("a cancelled drag changes nothing", async ({ page }) => {
+    await openEditedExample(page, { contract: { minUnit: "1/16" } });
+    const bar = await openBar(page, 6, 14);
+    const part = (name: string): Locator => bar.getByRole("button", { name, exact: true });
+    const day = cell(page, 6, 14);
+    const costs = line(page, "Costs");
+    const undo = page.getByRole("button", { name: "Undo", exact: true });
+    const target = await centre(part("9th sixteenth"));
+    // Escape drops the preview and keeps the detail open; the release after it is no press either.
+    await pressAndMove(page, part("13th sixteenth"), target);
+    await expect(costs).toContainText("½ day");
+    await page.keyboard.press("Escape");
+    await expect(costs).toContainText("–");
+    await expect(part("9th sixteenth")).toHaveAttribute("aria-pressed", "false");
+    await page.mouse.up();
+    await expect(detail(page)).toBeVisible();
+    await expect(costs).toContainText("–");
+    await expect(part("13th sixteenth")).toHaveAttribute("aria-pressed", "false");
+    // A release outside the detail: outside the bar the preview is gone already.
+    await pressAndMove(page, part("13th sixteenth"), target);
+    await expect(costs).toContainText("½ day");
+    const box = await detail(page).boundingBox();
+    if (!box) throw new Error("The detail has no box");
+    const right = box.x + box.width + 40;
+    await page.mouse.move(right < 1270 ? right : box.x - 40, box.y + box.height / 2, { steps: 4 });
+    await expect(costs).toContainText("–");
+    await page.mouse.up();
+    await expect(detail(page)).toBeVisible();
+    await expect(costs).toContainText("–");
+    await expect(part("13th sixteenth")).toHaveAttribute("aria-pressed", "false");
+    await expect(day).toHaveAttribute("aria-label", /no leave/);
+    await expect(undo).toBeDisabled();
+    await expectNoPageProblems(page);
+  });
+
   test("the focus stays in the bar when the pressed switch goes", async ({ page }) => {
     // Own leave on the free afternoon (a problem): its switch is named like the fixed block it stands for.
     await openEditedExample(page, { plan: { days: [{ date: "2027-12-24", take: "1/2", part: "end" }] } });
@@ -244,6 +328,31 @@ test.describe("the leave bar, in English at 1280 px", () => {
     await expect(bar.getByRole("button", { name: /^Afternoon/ })).toHaveCount(0);
     await expect(bar.getByText("Afternoon: off", { exact: true })).toHaveCount(1);
     await expect(bar.getByRole("button", { name: "Morning", exact: true })).toBeFocused();
+    await expectNoPageProblems(page);
+  });
+
+  test("the focus stays in the bar when a drag takes the pressed switch away", async ({ page }) => {
+    // Own leave on the free afternoon; dragged from it to the morning, the preview is a full day, under which the
+    // free afternoon is a fixed block: the pressed switch is gone while the drag goes on.
+    await openEditedExample(page, { plan: { days: [{ date: "2027-12-24", take: "1/2", part: "end" }] } });
+    const bar = await openBar(page, 12, 24);
+    const free = bar.getByRole("button", { name: "Afternoon: off", exact: true });
+    const morning = bar.getByRole("button", { name: "Morning", exact: true });
+    await pressAndMove(page, free, await centre(morning));
+    await expect(morning).toHaveAttribute("aria-pressed", "true");
+    await expect(free).toHaveCount(0);
+    // Escape brings it back, and the focus with it.
+    await page.keyboard.press("Escape");
+    await expect(free).toBeFocused();
+    await page.mouse.up();
+    await expect(free).toBeFocused();
+    await expect(cell(page, 12, 24)).toHaveAttribute("aria-label", /leave half/);
+    // Released on the morning: the full day is set, and the focus goes to the switch nearest to the gone one.
+    await pressAndMove(page, free, await centre(morning));
+    await page.mouse.up();
+    await expect(line(page, "Leave")).toContainText("1 day");
+    await expect(free).toHaveCount(0);
+    await expect(morning).toBeFocused();
     await expectNoPageProblems(page);
   });
 });
@@ -317,6 +426,27 @@ test.describe("on a touch screen", () => {
     await longPress(page, day);
     await expect(page.locator("dialog[open]")).toHaveCount(1);
     await expect(day).toHaveAttribute("aria-label", /no leave/);
+    await expectNoPageProblems(page);
+  });
+
+  test("a finger drags along the leave bar instead of scrolling the sheet", async ({ page }) => {
+    await openEditedExample(page, { contract: { minUnit: "1/16" } });
+    const day = cell(page, 6, 14);
+    await longPress(page, day);
+    const sheet = detail(page);
+    const bar = sheet.getByRole("group", { name: "Leave on this day" });
+    const from = await centre(bar.getByRole("button", { name: "13th sixteenth", exact: true }));
+    const to = await centre(bar.getByRole("button", { name: "9th sixteenth", exact: true }));
+    // Real touch input: the browser's own capture of the finger and its choice between panning and dragging.
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [from] });
+    for (let step = 1; step <= 6; step += 1) {
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: from.x + ((to.x - from.x) * step) / 6, y: from.y }] });
+    }
+    await expect(sheet.locator("p", { hasText: /^Costs/ })).toContainText("½ day");
+    await expect(day).toHaveAttribute("aria-label", /no leave/);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await expect(day).toHaveAttribute("aria-label", /leave half, afternoon/);
     await expectNoPageProblems(page);
   });
 });

@@ -15,7 +15,7 @@ SPDX-License-Identifier: EUPL-1.2
   import { formatDate, formatList } from "../i18n/format.ts";
   import { i18n } from "../i18n/i18n.svelte.ts";
   import { app } from "../state/app.svelte.ts";
-  import type { LeaveChange, PlanMeta } from "../worker/protocol.ts";
+  import type { Hint, LeaveChange, PlanMeta } from "../worker/protocol.ts";
   import { lineStyle, sourceAccent } from "./cell-lanes.ts";
   import { amountText, dayDetail, percent, reasonText } from "./detail.ts";
   import LeaveBar from "./LeaveBar.svelte";
@@ -33,9 +33,20 @@ SPDX-License-Identifier: EUPL-1.2
     onclose?: () => void;
     /** Makes a change: the app's plan by default; the gallery passes its own. */
     onapply?: (change: LeaveChange) => Promise<void> | void;
+    /** Asks what a change would do, for the preview of a drag along the leave bar: the app's worker by default; the gallery passes its own. */
+    onpreview?: (change: LeaveChange) => Promise<Hint | undefined> | Hint | undefined;
   }
 
-  let { day, meta, problems, presentation, anchor, onclose = () => {}, onapply = (change) => app.apply([change]) }: Props = $props();
+  let {
+    day,
+    meta,
+    problems,
+    presentation,
+    anchor,
+    onclose = () => {},
+    onapply = (change) => app.apply([change]),
+    onpreview = (change) => app.previewDay(change),
+  }: Props = $props();
 
   const words = $derived({ t: (key: string, args?: Record<string, string | number>) => i18n.t(key, args), locale: i18n.locale });
   const detail = $derived(dayDetail(day, meta, problems, i18n.locale));
@@ -53,6 +64,8 @@ SPDX-License-Identifier: EUPL-1.2
   );
 
   let content = $state<HTMLElement>();
+  /** During a drag along the leave bar: the cost and the work left the change would give, which the lines show. */
+  let preview = $state<Hint["day"]>();
 </script>
 
 <!-- A value line: the label and the amount, or at zero a dash that screen readers hear as `none`. -->
@@ -81,10 +94,10 @@ SPDX-License-Identifier: EUPL-1.2
       </div>
     </div>
     {#if leave}
-      <LeaveBar {day} {leave} off={required.off} {content} {onapply} />
+      <LeaveBar {day} {leave} minUnit={meta.minUnit} off={required.off} {content} {onapply} {onpreview} bind:preview />
       <div class="part">
-        <p class="line">{@render amount(i18n.t("detail.cost.label"), leave.cost, i18n.t("detail.cost.none"))}</p>
-        <p class="line">{@render amount(i18n.t("detail.remaining.label"), leave.remaining, i18n.t("detail.remaining.none"))}</p>
+        <p class="line">{@render amount(i18n.t("detail.cost.label"), preview?.cost ?? leave.cost, i18n.t("detail.cost.none"))}</p>
+        <p class="line">{@render amount(i18n.t("detail.remaining.label"), preview?.remaining ?? leave.remaining, i18n.t("detail.remaining.none"))}</p>
       </div>
     {:else}
       <p class="muted">{noLeave === "outsidePeriod" ? i18n.t("detail.outsidePeriod") : i18n.t("detail.notNeeded")}</p>

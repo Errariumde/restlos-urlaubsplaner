@@ -12,7 +12,7 @@ SPDX-License-Identifier: EUPL-1.2
 
   // Every situation of the day detail, shown inline (the content of the popover and the sheet). Three plans hold
   // them all, one of them per smallest leave unit; the real engine computes them here in the page, and the switches
-  // change them, so each detail can be tried.
+  // change them (a drag along a leave bar previews with it too), so each detail can be tried.
   const sessions: Record<PlanName, Session> = { situations: new Session(), quarters: new Session(), sixteenths: new Session() };
   const t = (key: string): string => i18n.t(key);
 
@@ -60,6 +60,7 @@ SPDX-License-Identifier: EUPL-1.2
                   problems={current.result.problems}
                   presentation="inline"
                   onapply={(change: LeaveChange) => apply(plan, change)}
+                  onpreview={(change: LeaveChange) => sessions[plan].preview([change])}
                 />
               </figure>
             {/if}

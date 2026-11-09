@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 /** The file URL of the built app (npm run build). */
 export const APP_URL: string = new URL("../dist/restlos-urlaubsplaner.html", import.meta.url).href;
@@ -106,6 +106,21 @@ export async function openEditedExample(
     block.textContent = JSON.stringify(file);
   }, edits);
   await openExampleFromStart(page);
+}
+
+/** Records every text the element gets from now on, as the page's `texts`, with its white space normalized as toHaveText does. */
+export async function recordTexts(locator: Locator): Promise<void> {
+  await locator.evaluate((element) => {
+    const texts: string[] = [];
+    Object.assign(window, { texts });
+    new MutationObserver(() => texts.push(element.textContent.replace(/\s+/g, " ").trim())).observe(element, { childList: true, characterData: true, subtree: true });
+  });
+}
+
+/** The texts recorded since recordTexts, each once in a row. */
+export async function recorded(page: Page): Promise<string[]> {
+  const texts = await page.evaluate(() => (window as unknown as { texts: string[] }).texts);
+  return texts.filter((text, index) => text !== texts[index - 1]);
 }
 
 /** Opens the built gallery on one section, locale and mode (`?section=…&locale=…&mode=…`), or on the overview. */

@@ -5,30 +5,39 @@ SPDX-License-Identifier: EUPL-1.2
 <script lang="ts">
   // The leave part of the day detail (docs/SPEC.md, "Detail view" and "Leave bar"): the leave as a line with the
   // "Full day" checkbox, and the leave bar below it, one switch per part of the plan's unit with the fixed blocks
-  // beside them. One Tab stop with arrow keys; after a press the focus stays in the bar.
-  import { onDestroy, tick } from "svelte";
+  // beside them. One Tab stop with arrow keys; after a press the focus stays in the bar. Pressing a switch and
+  // dragging along the bar sets how far the leave reaches; the bar draws the change meanwhile, and the engine's cost
+  // and work left for it go to the detail's lines through `preview`.
+  import { onDestroy, tick, untrack } from "svelte";
   import type { DayResult } from "../../engine/counting/plan.ts";
-  import type { Units } from "../../engine/weight.ts";
+  import type { Part } from "../../engine/counting/types.ts";
+  import { UNITS_PER_DAY, type Units } from "../../engine/weight.ts";
   import Checkbox from "../controls/Checkbox.svelte";
   import { i18n } from "../i18n/i18n.svelte.ts";
   import { app } from "../state/app.svelte.ts";
-  import type { LeaveChange } from "../worker/protocol.ts";
+  import type { Hint, LeaveChange } from "../worker/protocol.ts";
   import { amountText, fixedText, partText, percent, switchText, type DaySpan, type OffKind, type SwitchSegment } from "./detail.ts";
-  import { nearest, type LeaveSwitch } from "./leave-switch.ts";
+  import { dragEdge, leaveSwitch, nearest, reach, withOwnLeave, type LeaveSwitch } from "./leave-switch.ts";
 
   interface Props {
     day: DayResult;
     /** The day's leave bar. */
     leave: LeaveSwitch;
+    /** The plan's smallest leave unit, which the bar is split into. */
+    minUnit: Units;
     /** The pattern of the day's free time, which the blocks of time without work show as the Soll bar does. */
     off: OffKind;
     /** The detail's content: it takes the focus when the control just used is gone and no switch is near. */
     content: HTMLElement | undefined;
     /** Makes a change. */
     onapply: (change: LeaveChange) => Promise<void> | void;
+    /** Asks what a change would do; `undefined` for an answer that a newer request made stale. */
+    onpreview: (change: LeaveChange) => Promise<Hint | undefined> | Hint | undefined;
+    /** While a drag shows a change: the day's cost and work left after it, as the engine gives them. */
+    preview?: Hint["day"];
   }
 
-  let { day, leave, off, content, onapply }: Props = $props();
+  let { day, leave, minUnit, off, content, onapply, onpreview, preview = $bindable() }: Props = $props();
 
   const words = $derived({ t: (key: string, args?: Record<string, string | number>) => i18n.t(key, args), locale: i18n.locale });
 
@@ -39,8 +48,32 @@ SPDX-License-Identifier: EUPL-1.2
     mounted = false;
   });
 
+  /** A pointer pressed on a switch, until it lets go. */
+  interface Drag {
+    readonly pointerId: number;
+    /** The pressed switch: after the change the focus goes near it when it is gone. */
+    readonly pressed: DaySpan;
+    /** The part the press started on, and the edge of the day the leave reaches from. */
+    readonly start: number;
+    readonly edge: Part;
+    /** The part of the switch nearest to the pointer. */
+    readonly index: number;
+    /** The pointer has been over another part: the release applies the drag. Else it is a plain press. */
+    readonly moved: boolean;
+    /** The pointer is over the bar; a release outside it changes nothing, and the bar shows no change meanwhile. */
+    readonly inside: boolean;
+    /** Escape ended it, or its pointer let go and its change is on its way. */
+    readonly state: "down" | "cancelled" | "released";
+  }
+
+  let drag = $state.raw<Drag>();
+  /** The change the drag shows. */
+  const dragged = $derived(drag?.moved === true && drag.inside && drag.state !== "cancelled" ? reach(day, minUnit, drag.edge, drag.index) : undefined);
+  /** What the bar draws: the day with the dragged change, else as it is. */
+  const shown = $derived(dragged === undefined ? leave : leaveSwitch(withOwnLeave(day, dragged), minUnit));
+
   /** The leave bar's switches that a press can change, in the order of the day: the stops of its arrow keys. */
-  const usable = $derived(leave.segments.filter((segment): segment is SwitchSegment => segment.kind === "switch" && segment.change !== undefined));
+  const usable = $derived(shown.segments.filter((segment): segment is SwitchSegment => segment.kind === "switch" && segment.change !== undefined));
   /** The switch the focus was on last, on this day. */
   let focused = $state<{ day: number; from: Units }>();
   /** The bar's one Tab stop (roving tabindex): the switch the focus was on last, else the first one. */
@@ -64,8 +97,8 @@ SPDX-License-Identifier: EUPL-1.2
   }
 
   /**
-   * One click, one change, one undo step. The detail stays open and shows the day as it is now. `pressed` is the
-   * switch that made the change: if it is gone or disabled now, the focus goes to the switch nearest to it.
+   * One click or drag, one change, one undo step. The detail stays open and shows the day as it is now. `pressed` is
+   * the switch that made the change: if it is gone or disabled now, the focus goes to the switch nearest to it.
    */
   async function run(change: LeaveChange | undefined, pressed?: DaySpan): Promise<void> {
     if (change === undefined || app.applying) return;
@@ -80,7 +113,153 @@ SPDX-License-Identifier: EUPL-1.2
     if (near !== undefined) focusSwitch(near.from);
     else (root.querySelector<HTMLElement>("button:not(:disabled), input:not(:disabled)") ?? root).focus();
   }
+
+  /**
+   * After a drag that changed nothing: the preview may have taken the pressed switch away (own leave on free time),
+   * and the focus with it. Then it goes to the switch nearest to the pressed one, which is mostly that one again.
+   */
+  async function keepFocus(pressed: DaySpan): Promise<void> {
+    await tick();
+    const active = document.activeElement;
+    if (!mounted || (active !== null && active !== document.body)) return;
+    const near = nearest(usable, pressed);
+    if (near !== undefined) focusSwitch(near.from);
+  }
+
+  /** The part of the switch nearest to the viewport x: over a fixed block or past an end of the bar, the nearest switch's. */
+  function partAt(x: number): number | undefined {
+    if (!bar) return undefined;
+    const boxes = [...bar.querySelectorAll<HTMLElement>("[data-from]")].map((element) => {
+      const box = element.getBoundingClientRect();
+      return { from: box.left, to: box.right, at: Number(element.dataset["from"]) };
+    });
+    const hit = nearest(boxes, { from: x, to: x });
+    return hit === undefined ? undefined : Math.floor(hit.at / (UNITS_PER_DAY / shown.parts));
+  }
+
+  function overBar(event: PointerEvent): boolean {
+    const box = bar?.getBoundingClientRect();
+    return box !== undefined && event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom;
+  }
+
+  /** A release that is no press: the click that follows it, if any, does nothing. */
+  let swallowClick = false;
+
+  function ignoreClick(): void {
+    swallowClick = true;
+    // The click comes in the same task as the release, if at all.
+    setTimeout(() => (swallowClick = false));
+  }
+
+  /** Stops the click after a drag or a release outside the bar before it reaches a switch (capture phase). */
+  function swallow(event: MouseEvent): void {
+    if (!swallowClick) return;
+    swallowClick = false;
+    event.stopPropagation();
+    event.preventDefault();
+  }
+
+  /** A primary pointer pressed on a switch starts a drag; one that is still going on was lost and gives way. */
+  function press(event: PointerEvent, segment: SwitchSegment): void {
+    if (!event.isPrimary || event.button !== 0 || app.applying || segment.change === undefined) return;
+    const start = Math.floor(segment.from / (UNITS_PER_DAY / shown.parts));
+    drag = { pointerId: event.pointerId, pressed: { from: segment.from, to: segment.to }, start, edge: dragEdge(day, minUnit, start), index: start, moved: false, inside: true, state: "down" };
+    capture(event.currentTarget, event.pointerId);
+  }
+
+  /** Sends the pointer's events to the element (they also reach the window's listeners below without it). */
+  function capture(target: EventTarget | null, pointerId: number): void {
+    try {
+      if (target instanceof Element) target.setPointerCapture(pointerId);
+    } catch {
+      // A pointer the browser doesn't know, from an event made by a script.
+    }
+  }
+
+  function follow(event: PointerEvent): void {
+    const current = drag;
+    if (current?.state !== "down" || event.pointerId !== current.pointerId) return;
+    const index = partAt(event.clientX) ?? current.index;
+    const inside = overBar(event);
+    const moved = current.moved || index !== current.start;
+    if (moved && !current.moved) {
+      // The pressed switch may go in the preview; the bar keeps the pointer.
+      capture(bar ?? null, event.pointerId);
+    }
+    if (index !== current.index || inside !== current.inside || moved !== current.moved) drag = { ...current, index, inside, moved };
+  }
+
+  /**
+   * The pointer lets go: on the bar after a drag the shown change is applied as one change, and the bar keeps
+   * drawing it until it is in. A release without a drag is a press, made by the click that follows; a release
+   * outside the bar or after Escape changes nothing.
+   */
+  function release(event: PointerEvent): void {
+    const current = drag;
+    if (current === undefined || current.state === "released" || event.pointerId !== current.pointerId) return;
+    const inside = overBar(event);
+    if (current.state === "down" && !current.moved && inside) {
+      drag = undefined;
+      return;
+    }
+    ignoreClick();
+    if (current.state === "cancelled" || !current.moved || !inside) {
+      drag = undefined;
+      void keepFocus(current.pressed);
+      return;
+    }
+    const index = partAt(event.clientX) ?? current.index;
+    const done: Drag = { ...current, index, inside, state: "released" };
+    drag = done;
+    void run(reach(day, minUnit, done.edge, index), done.pressed).finally(() => {
+      if (drag === done) drag = undefined;
+    });
+  }
+
+  /** A cancelled pointer, or leaving the window, ends the drag without a change. */
+  function drop(event: PointerEvent | FocusEvent): void {
+    const current = drag;
+    if (current === undefined || current.state === "released") return;
+    if (event instanceof PointerEvent && event.pointerId !== current.pointerId) return;
+    drag = undefined;
+    if (event instanceof PointerEvent) void keepFocus(current.pressed);
+  }
+
+  /** Escape ends a drag, not the detail; the release that follows changes nothing. */
+  function escape(event: KeyboardEvent): void {
+    const current = drag;
+    if (event.key !== "Escape" || current?.state !== "down") return;
+    event.preventDefault();
+    event.stopPropagation();
+    drag = { ...current, state: "cancelled" };
+    void keepFocus(current.pressed);
+  }
+
+  // The engine's cost and work left for the shown change, once it answers; an answer for an older change is dropped.
+  $effect(() => {
+    const change = dragged;
+    if (change === undefined) {
+      if (preview !== undefined) preview = undefined;
+      return;
+    }
+    let current = true;
+    void Promise.resolve(untrack(() => onpreview(change))).then((hint) => {
+      if (current && hint?.day !== undefined) preview = hint.day;
+    });
+    return () => {
+      current = false;
+    };
+  });
 </script>
+
+<!-- A drag's pointer wherever it goes, first of all listeners (capture). -->
+<svelte:window
+  onpointermovecapture={follow}
+  onpointerupcapture={release}
+  onpointercancelcapture={drop}
+  onkeydowncapture={escape}
+  onblur={drop}
+/>
 
 {#snippet stretch(span: DaySpan, from: Units, whole: Units, kind: string)}
   <span class="stretch {kind}" style:inset-inline-start={percent(span.from - from, whole)} style:inline-size={percent(span.to - span.from, whole)} aria-hidden="true"
@@ -91,16 +270,16 @@ SPDX-License-Identifier: EUPL-1.2
   <div class="line">
     <!-- The value line: the label and the amount, or at zero a dash that screen readers hear as `none`. -->
     <p>
-      {#if leave.amount > 0}
+      {#if shown.amount > 0}
         <span class="name">{i18n.t("detail.leave.label")}</span>
-        <b>{amountText(leave.amount, words)}</b>
+        <b>{amountText(shown.amount, words)}</b>
       {:else}
         <span class="name" aria-hidden="true">{i18n.t("detail.leave.label")}</span>
         <b aria-hidden="true">{i18n.t("detail.zero")}</b><span class="spoken">{i18n.t("detail.leave.none")}</span>
       {/if}
     </p>
-    {#if leave.fullDay}
-      {@const fullDay = leave.fullDay}
+    {#if shown.fullDay}
+      {@const fullDay = shown.fullDay}
       <Checkbox
         label={i18n.t("detail.fullDay")}
         checked={fullDay.checked === "true"}
@@ -114,8 +293,14 @@ SPDX-License-Identifier: EUPL-1.2
     One element per segment, in the order of the day, each as wide as its share of the day. Switches are
     toggle buttons named by their part; fixed blocks show a short word and are read by their full name.
   -->
-  <div class={["bar switches", { few: leave.parts <= 4 }]} role="group" aria-label={i18n.t("detail.actions")} bind:this={bar}>
-    {#each leave.segments as segment (segment.from)}
+  <div
+    class={["bar switches", { few: shown.parts <= 4 }]}
+    role="group"
+    aria-label={i18n.t("detail.actions")}
+    bind:this={bar}
+    onclickcapture={swallow}
+  >
+    {#each shown.segments as segment (segment.from)}
       {#if segment.kind === "switch"}
         <button
           type="button"
@@ -128,6 +313,7 @@ SPDX-License-Identifier: EUPL-1.2
           disabled={!segment.change}
           onfocus={() => (focused = { day: day.day, from: segment.from })}
           onkeydown={(event) => moveInBar(event, segment.from)}
+          onpointerdown={(event) => press(event, segment)}
           onclick={() => void run(segment.change, segment)}
         >
           {#each segment.fills as fill (fill.from)}
@@ -193,6 +379,11 @@ SPDX-License-Identifier: EUPL-1.2
       border-radius: var(--radius-control);
       font-size: var(--font-size-1);
       font-weight: 700;
+    }
+
+    /* A drag along the bar selects no text, and a finger moving sideways on it drags instead of scrolling. */
+    .switches {
+      user-select: none;
     }
 
     /*
@@ -265,6 +456,7 @@ SPDX-License-Identifier: EUPL-1.2
       font: inherit;
       font-weight: 400;
       cursor: pointer;
+      touch-action: pan-y pinch-zoom;
     }
 
     .segment:focus-visible {

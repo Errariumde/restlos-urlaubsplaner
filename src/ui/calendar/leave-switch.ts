@@ -308,18 +308,33 @@ export function leaveSwitch(day: DayResult, minUnit: Units): LeaveSwitch {
 
 /**
  * Of the stretches `spans`, the one nearest to `span`, one over it first; of two as near, the earlier one. For the
- * switch the focus goes to when the pressed one is gone (in day positions).
+ * switch the focus goes to when the pressed one is gone (in day positions), and the switch under a pointer (in px).
  */
 export function nearest<T extends { readonly from: number; readonly to: number }>(spans: readonly T[], span: { readonly from: number; readonly to: number }): T | undefined {
-  const distance = (item: T): number => Math.max(0, item.from - span.to, span.from - item.to);
+  // The gap between the two, below 0 where they overlap: one over the span beats one that only touches it.
+  const distance = (item: T): number => Math.max(item.from - span.to, span.from - item.to);
   return spans.reduce<T | undefined>((best, item) => (best === undefined || distance(item) < distance(best) ? item : best), undefined);
 }
 
-/** Own leave from the edge `edge` of the day through the part `index` (from 0), with the guards of a press: for dragging along the bar. */
+/**
+ * Own leave from the edge `edge` of the day through the part `index` (from 0), with the guards of a press: for
+ * dragging along the bar. An index past either end counts as the first or the last part.
+ */
 export function reach(day: DayResult, minUnit: Units, edge: Part, index: number): LeaveChange | undefined {
   const bar = model(day, minUnit);
-  if (!bar.canSet) return bar.pressed[index] === "false" ? undefined : bar.removal;
-  return edge === "start" ? bar.changeTo(0, index + 1) : bar.changeTo(index, bar.parts);
+  const at = Math.max(0, Math.min(index, bar.parts - 1));
+  if (!bar.canSet) return bar.pressed[at] === "false" ? undefined : bar.removal;
+  return edge === "start" ? bar.changeTo(0, at + 1) : bar.changeTo(at, bar.parts);
+}
+
+/**
+ * The edge of the day a drag along the bar reaches from when it starts on the part `index`: own leave's `part` when
+ * it lies below a full day, else the edge nearer to the part, as for a press.
+ */
+export function dragEdge(day: DayResult, minUnit: Units, index: number): Part {
+  const own = day.leave.find((piece): piece is OwnPiece => piece.kind === "own");
+  if (own !== undefined && own.take < UNITS_PER_DAY) return own.part;
+  return 2 * index < partCount(minUnit) ? "start" : "end";
 }
 
 /** The day with its own leave replaced by the change (none for `take` 0), evaluated again: for drawing a preview. */
