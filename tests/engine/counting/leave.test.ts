@@ -90,9 +90,11 @@ describe("evaluateLeave", () => {
     expect(() => overlappingOtherPlanIds(required, pieces)).toThrow(RangeError));
 
   const thirtySecond = fc.integer({ min: 0, max: 32 }).map((k) => k * 15);
+  // Multiples of 1/32, and any multiple of 1/480: the engine has no special cases for either.
+  const share = fc.oneof(thirtySecond, fc.integer({ min: 0, max: 480 }));
   const part = fc.constantFrom<Part>("start", "end");
-  it("costs the overlap with the work for any multiple of 1/32", () =>
-    fc.assert(fc.property(thirtySecond, thirtySecond.filter((t) => t > 0), part, part, (r, take, p, freePart) => {
+  it("costs the overlap with the work for any multiple of 1/480", () =>
+    fc.assert(fc.property(share, share.filter((t) => t > 0), part, part, (r, take, p, freePart) => {
       // The work lies at [a, a + r), the leave at [from, to), both in day positions.
       const a = freePart === "end" ? 0 : 480 - r;
       const [from, to] = p === "start" ? [0, take] : [480 - take, 480];
@@ -105,13 +107,13 @@ describe("evaluateLeave", () => {
     })));
   // Pieces at the start or the end of the day; other-plan pieces at the matching edge of the day.
   const edgePiece = fc
-    .record({ kind: fc.constantFrom<LeaveKind>("own", "mandatory", "otherPlan"), take: thirtySecond.filter((t) => t > 0), part })
+    .record({ kind: fc.constantFrom<LeaveKind>("own", "mandatory", "otherPlan"), take: share.filter((t) => t > 0), part })
     .map(({ kind, take, part: p }): LeavePiece => {
       if (kind !== "otherPlan") return { kind, take, part: p };
       return p === "start" ? { kind, from: 0, to: take } : { kind, from: 480 - take, to: 480 };
     });
   it("keeps cost, free time and remaining work consistent", () =>
-    fc.assert(fc.property(thirtySecond, fc.array(edgePiece, { maxLength: 4 }), part,
+    fc.assert(fc.property(share, fc.array(edgePiece, { maxLength: 4 }), part,
       (r, pieces, freePart) => {
         const x = evaluateLeave(at(r, freePart), pieces, true);
         expect(x.cost).toBeLessThanOrEqual(r);
@@ -120,10 +122,11 @@ describe("evaluateLeave", () => {
       })));
 
   it("matches a slot-by-slot model of the day", () => {
-    const multiple = fc.integer({ min: 0, max: 32 }).map((k) => k * 15);
+    // Positions and takes in multiples of 1/32, and in any multiple of 1/480.
+    const multiple = fc.oneof(fc.integer({ min: 0, max: 32 }).map((k) => k * 15), fc.integer({ min: 0, max: 480 }));
     const ownOrMandatory = fc.record({
       kind: fc.constantFrom<"own" | "mandatory">("own", "mandatory"),
-      take: fc.integer({ min: 1, max: 32 }).map((k) => k * 15),
+      take: fc.oneof(fc.integer({ min: 1, max: 32 }).map((k) => k * 15), fc.integer({ min: 1, max: 480 })),
       part,
     });
     const otherPlan = fc

@@ -188,11 +188,13 @@ describe("computePlan: limits", () => {
     expect(isoFromDay(plan({ period: { from: month(1583, 1), to: month(1583, 12) } }).days[0]?.day ?? 0)).toBe("1583-01-01");
   });
   it("keeps the costs of all stretches equal to planned", () => {
-    const take = fc.integer({ min: 1, max: 32 }).map((k) => k * 15);
+    // Takes in multiples of 1/32, and in any multiple of 1/480.
+    const take = fc.oneof(fc.integer({ min: 1, max: 32 }).map((k) => k * 15), fc.integer({ min: 1, max: 480 }));
     const leaveDays = fc.uniqueArray(fc.integer({ min: 0, max: 58 }), { maxLength: 15 }).chain((offsets) =>
       fc.tuple(...offsets.map((o) => fc.tuple(take, fc.constantFrom<Part>("start", "end")).map(([t, p]) => ({ day: d("2027-01-01") + o, take: t, part: p })))));
-    const mandatoryDays = fc.uniqueArray(fc.integer({ min: 0, max: 58 }), { maxLength: 6 }).map((offsets) =>
-      offsets.map((o): SourceDay => ({ type: "mandatory", day: d("2027-01-01") + o, sourceId: "m", take: HALF, part: "end" })));
+    const mandatoryTake = fc.oneof(fc.constant(HALF), fc.integer({ min: 1, max: 480 }));
+    const mandatoryDays = fc.uniqueArray(fc.integer({ min: 0, max: 58 }), { maxLength: 6 }).chain((offsets) =>
+      fc.tuple(...offsets.map((o) => mandatoryTake.map((t): SourceDay => ({ type: "mandatory", day: d("2027-01-01") + o, sourceId: "m", take: t, part: "end" })))));
     fc.assert(fc.property(leaveDays, mandatoryDays, (leaveList, sources) => {
       const result = plan({ period: { from: month(2027, 1), to: month(2027, 2) }, leave: leaveList, sources });
       expect(result.stretches.reduce((sum, s) => sum + s.cost, 0)).toBe(result.totals.planned);
