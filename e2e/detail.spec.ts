@@ -249,6 +249,25 @@ test.describe("the leave bar, in English at 1280 px", () => {
     await page.mouse.move(to.x, to.y, { steps: 4 });
   }
 
+  /** Records every change of a switch's `aria-pressed` or `disabled` in the bar from now on, as the page's `stateChanges`. */
+  async function recordStates(bar: Locator): Promise<void> {
+    await bar.evaluate((element) => {
+      const changes: string[] = [];
+      Object.assign(window, { stateChanges: changes });
+      new MutationObserver((records) => {
+        for (const record of records) {
+          const target = record.target instanceof Element ? record.target : undefined;
+          changes.push(`${target?.getAttribute("aria-label") ?? ""}: ${record.attributeName ?? ""}`);
+        }
+      }).observe(element, { attributes: true, attributeFilter: ["aria-pressed", "disabled"], subtree: true });
+    });
+  }
+
+  const stateChanges = (page: Page): Promise<string[]> => page.evaluate(() => (window as unknown as { stateChanges: string[] }).stateChanges);
+
+  /** Whether a switch is drawn pressed, which in a drag's preview its `aria-pressed` doesn't say. */
+  const drawnPressed = /(^|\s)pressed(\s|$)/;
+
   test("dragging along the bar previews and applies the leave", async ({ page }) => {
     await openEditedExample(page, { contract: { minUnit: "1/16" } });
     const bar = await openBar(page, 6, 14);
@@ -256,15 +275,21 @@ test.describe("the leave bar, in English at 1280 px", () => {
     const day = cell(page, 6, 14);
     const hintLine = page.getByTestId("hint-line");
     await recordTexts(hintLine.locator("[aria-live]"));
+    await recordStates(bar);
     // From the 13th sixteenth (nearer the end, so the leave reaches from the end) to the 9th: half a day.
     await pressAndMove(page, part("13th sixteenth"), await centre(part("9th sixteenth")));
     await expect(line(page, "Costs")).toContainText("½ day");
     await expect(line(page, "Work left")).toContainText("½ day");
-    await expect(part("9th sixteenth")).toHaveAttribute("aria-pressed", "true");
-    await expect(part("8th sixteenth")).toHaveAttribute("aria-pressed", "false");
-    // Only a preview: nothing is applied, and nothing is said.
+    await expect(part("9th sixteenth")).toHaveClass(drawnPressed);
+    await expect(part("8th sixteenth")).not.toHaveClass(drawnPressed);
+    // Only a preview: nothing is applied, and nothing is said. The switches keep their states, also the focused
+    // one the leave now covers in the preview, so screen readers hear no step of the drag.
     await expect(day).toHaveAttribute("aria-label", /no leave/);
     expect(await recorded(page)).toEqual([]);
+    await expect(part("13th sixteenth")).toBeFocused();
+    await expect(part("13th sixteenth")).toHaveClass(drawnPressed);
+    await expect(part("13th sixteenth")).toHaveAttribute("aria-pressed", "false");
+    expect(await stateChanges(page)).toEqual([]);
     await page.mouse.up();
     await expect(day).toHaveAttribute("aria-label", /leave half, afternoon/);
     await expect(line(page, "Costs")).toContainText("½ day");
@@ -272,6 +297,7 @@ test.describe("the leave bar, in English at 1280 px", () => {
     await expect(hintLine).toHaveText(/^14\sJun: leave half, afternoon\./);
     expect(await recorded(page)).toHaveLength(1);
     await expect(part("13th sixteenth")).toBeFocused();
+    await expect(part("13th sixteenth")).toHaveAttribute("aria-pressed", "true");
     // One change, one undo step.
     await page.keyboard.press("Escape");
     const undo = page.getByRole("button", { name: "Undo", exact: true });
@@ -299,18 +325,54 @@ test.describe("the leave bar, in English at 1280 px", () => {
     await expect(detail(page)).toBeVisible();
     await expect(costs).toContainText("–");
     await expect(part("13th sixteenth")).toHaveAttribute("aria-pressed", "false");
-    // A release outside the detail: outside the bar the preview is gone already.
+    // A release outside the detail, below or above it: off the bar the preview is gone already.
     await pressAndMove(page, part("13th sixteenth"), target);
     await expect(costs).toContainText("½ day");
     const box = await detail(page).boundingBox();
     if (!box) throw new Error("The detail has no box");
-    const right = box.x + box.width + 40;
-    await page.mouse.move(right < 1270 ? right : box.x - 40, box.y + box.height / 2, { steps: 4 });
+    const below = box.y + box.height + 30;
+    await page.mouse.move(target.x, below < 790 ? below : box.y - 30, { steps: 4 });
     await expect(costs).toContainText("–");
     await page.mouse.up();
     await expect(detail(page)).toBeVisible();
     await expect(costs).toContainText("–");
     await expect(part("13th sixteenth")).toHaveAttribute("aria-pressed", "false");
+    await expect(day).toHaveAttribute("aria-label", /no leave/);
+    await expect(undo).toBeDisabled();
+    await expectNoPageProblems(page);
+  });
+
+  test("a drag past an end of the bar reaches the end part; one off the bar above or below changes nothing", async ({ page }) => {
+    await openEditedExample(page, { contract: { minUnit: "1/16" } });
+    const bar = await openBar(page, 6, 14);
+    const part = (name: string): Locator => bar.getByRole("button", { name, exact: true });
+    const day = cell(page, 6, 14);
+    const costs = line(page, "Costs");
+    const undo = page.getByRole("button", { name: "Undo", exact: true });
+    const box = await bar.boundingBox();
+    if (!box) throw new Error("The bar has no box");
+    // From the 6th sixteenth (nearer the start, so the leave reaches from the start) to the 8th: half a day. Below the
+    // bar by less than its height it still counts; above it by more than its height it doesn't.
+    const eighth = await centre(part("8th sixteenth"));
+    await pressAndMove(page, part("6th sixteenth"), eighth);
+    await expect(costs).toContainText("½ day");
+    await page.mouse.move(eighth.x, box.y + box.height * 1.5, { steps: 2 });
+    await expect(costs).toContainText("½ day");
+    await page.mouse.move(eighth.x, box.y - box.height * 1.5, { steps: 2 });
+    await expect(costs).toContainText("–");
+    await page.mouse.up();
+    await expect(costs).toContainText("–");
+    await expect(day).toHaveAttribute("aria-label", /no leave/);
+    await expect(undo).toBeDisabled();
+    // Past the bar's right end, beyond its box: the leave reaches the last part, a full day.
+    await pressAndMove(page, part("6th sixteenth"), { x: Math.min(box.x + box.width + 30, 1279), y: box.y + box.height / 2 });
+    await expect(costs).toContainText("1 day");
+    await expect(part("16th sixteenth")).toHaveClass(drawnPressed);
+    await page.mouse.up();
+    await expect(day).toHaveAttribute("aria-label", /leave full/);
+    // One change, one undo step.
+    await page.keyboard.press("Escape");
+    await undo.click();
     await expect(day).toHaveAttribute("aria-label", /no leave/);
     await expect(undo).toBeDisabled();
     await expectNoPageProblems(page);
@@ -339,7 +401,8 @@ test.describe("the leave bar, in English at 1280 px", () => {
     const free = bar.getByRole("button", { name: "Afternoon: off", exact: true });
     const morning = bar.getByRole("button", { name: "Morning", exact: true });
     await pressAndMove(page, free, await centre(morning));
-    await expect(morning).toHaveAttribute("aria-pressed", "true");
+    await expect(morning).toHaveClass(drawnPressed);
+    await expect(morning).toHaveAttribute("aria-pressed", "false");
     await expect(free).toHaveCount(0);
     // Escape brings it back, and the focus with it.
     await page.keyboard.press("Escape");

@@ -60,7 +60,7 @@ SPDX-License-Identifier: EUPL-1.2
     readonly index: number;
     /** The pointer has been over another part: the release applies the drag. Else it is a plain press. */
     readonly moved: boolean;
-    /** The pointer is over the bar; a release outside it changes nothing, and the bar shows no change meanwhile. */
+    /** The pointer is on the bar (`onBar`); a release off it changes nothing, and the bar shows no change meanwhile. */
     readonly inside: boolean;
     /** Escape ended it, or its pointer let go and its change is on its way. */
     readonly state: "down" | "cancelled" | "released";
@@ -72,8 +72,20 @@ SPDX-License-Identifier: EUPL-1.2
   /** What the bar draws: the day with the dragged change, else as it is. */
   const shown = $derived(dragged === undefined ? leave : leaveSwitch(withOwnLeave(day, dragged), minUnit));
 
-  /** The leave bar's switches that a press can change, in the order of the day: the stops of its arrow keys. */
-  const usable = $derived(shown.segments.filter((segment): segment is SwitchSegment => segment.kind === "switch" && segment.change !== undefined));
+  /**
+   * The leave bar's switches that a press can change, in the order of the day: the stops of its arrow keys. Of the
+   * bar as it is, also during a drag.
+   */
+  const usable = $derived(leave.segments.filter((segment): segment is SwitchSegment => segment.kind === "switch" && segment.change !== undefined));
+
+  /**
+   * The switch at `from` in the bar as it is. During a drag a drawn switch takes its state for assistive technology
+   * from it, so screen readers hear only the result, not the steps; the preview shows in the switch's look only.
+   */
+  function actual(from: Units): SwitchSegment | undefined {
+    return leave.segments.find((segment): segment is SwitchSegment => segment.kind === "switch" && segment.from === from);
+  }
+
   /** The switch the focus was on last, on this day. */
   let focused = $state<{ day: number; from: Units }>();
   /** The bar's one Tab stop (roving tabindex): the switch the focus was on last, else the first one. */
@@ -137,9 +149,13 @@ SPDX-License-Identifier: EUPL-1.2
     return hit === undefined ? undefined : Math.floor(hit.at / (UNITS_PER_DAY / shown.parts));
   }
 
-  function overBar(event: PointerEvent): boolean {
+  /**
+   * Whether the pointer is on the bar: past either end it still is (and picks the end switch); above or below it only
+   * within the bar's own height.
+   */
+  function onBar(event: PointerEvent): boolean {
     const box = bar?.getBoundingClientRect();
-    return box !== undefined && event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom;
+    return box !== undefined && event.clientY >= box.top - box.height && event.clientY <= box.bottom + box.height;
   }
 
   /** A release that is no press: the click that follows it, if any, does nothing. */
@@ -151,7 +167,7 @@ SPDX-License-Identifier: EUPL-1.2
     setTimeout(() => (swallowClick = false));
   }
 
-  /** Stops the click after a drag or a release outside the bar before it reaches a switch (capture phase). */
+  /** Stops the click after a drag or a release off the bar before it reaches a switch (capture phase). */
   function swallow(event: MouseEvent): void {
     if (!swallowClick) return;
     swallowClick = false;
@@ -180,7 +196,7 @@ SPDX-License-Identifier: EUPL-1.2
     const current = drag;
     if (current?.state !== "down" || event.pointerId !== current.pointerId) return;
     const index = partAt(event.clientX) ?? current.index;
-    const inside = overBar(event);
+    const inside = onBar(event);
     const moved = current.moved || index !== current.start;
     if (moved && !current.moved) {
       // The pressed switch may go in the preview; the bar keeps the pointer.
@@ -192,12 +208,12 @@ SPDX-License-Identifier: EUPL-1.2
   /**
    * The pointer lets go: on the bar after a drag the shown change is applied as one change, and the bar keeps
    * drawing it until it is in. A release without a drag is a press, made by the click that follows; a release
-   * outside the bar or after Escape changes nothing.
+   * off the bar or after Escape changes nothing.
    */
   function release(event: PointerEvent): void {
     const current = drag;
     if (current === undefined || current.state === "released" || event.pointerId !== current.pointerId) return;
-    const inside = overBar(event);
+    const inside = onBar(event);
     if (current.state === "down" && !current.moved && inside) {
       drag = undefined;
       return;
@@ -302,15 +318,18 @@ SPDX-License-Identifier: EUPL-1.2
   >
     {#each shown.segments as segment (segment.from)}
       {#if segment.kind === "switch"}
+        <!-- A switch only the preview has is hidden from assistive technology until the drag ends. -->
+        {@const now = actual(segment.from)}
         <button
           type="button"
-          class="segment"
+          class={["segment", { pressed: segment.pressed === "true", unavailable: !segment.change }]}
           style:flex-basis={percent(segment.to - segment.from)}
           data-from={segment.from}
           tabindex={segment.from === stop ? 0 : -1}
           aria-label={switchText(segment, day.required, words.t)}
-          aria-pressed={segment.pressed}
-          disabled={!segment.change}
+          aria-hidden={now === undefined ? "true" : undefined}
+          aria-pressed={(now ?? segment).pressed}
+          disabled={!(now ?? segment).change}
           onfocus={() => (focused = { day: day.day, from: segment.from })}
           onkeydown={(event) => moveInBar(event, segment.from)}
           onpointerdown={(event) => press(event, segment)}
@@ -465,17 +484,18 @@ SPDX-License-Identifier: EUPL-1.2
       outline-offset: -3px;
     }
 
-    .segment:disabled {
+    /* The look follows the switch as drawn, also in a drag's preview; the attributes stay with the bar as it is. */
+    .segment.unavailable {
       color: var(--r-text-muted);
       cursor: not-allowed;
     }
 
-    .segment[aria-pressed="true"] {
+    .segment.pressed {
       color: var(--r-on-leave);
       font-weight: 700;
     }
 
-    .segment[aria-pressed="true"] .text {
+    .segment.pressed .text {
       text-shadow: 0 0 2px var(--r-leave-aura), 0 0 1px var(--r-leave-aura);
     }
 
@@ -517,12 +537,12 @@ SPDX-License-Identifier: EUPL-1.2
         background: Highlight;
       }
 
-      .segment[aria-pressed="true"] {
+      .segment.pressed {
         forced-color-adjust: none;
         color: HighlightText;
       }
 
-      .segment[aria-pressed="true"] .text {
+      .segment.pressed .text {
         text-shadow: none;
       }
 
