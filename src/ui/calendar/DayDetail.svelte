@@ -4,14 +4,12 @@ SPDX-License-Identifier: EUPL-1.2
 -->
 <script lang="ts">
   // The detail of a day (docs/SPEC.md, "Detail view"): the date; the required work as a line and a bar of work and
-  // free time; the leave as a line and a bar of switches with the "Full day" checkbox, its cost and the work left;
-  // the calendars as bars; the reasons; the problems. A popover next to the cell; a bottom sheet on a narrow calendar
-  // or a touch screen; inline in the gallery.
-  import { tick } from "svelte";
+  // free time; the leave as a line with the "Full day" checkbox and a bar of switches (LeaveBar.svelte), its cost and
+  // the work left; the calendars as bars; the reasons; the problems. A popover next to the cell; a bottom sheet on a
+  // narrow calendar or a touch screen; inline in the gallery.
   import type { DayResult, Problem } from "../../engine/counting/plan.ts";
   import { textFor } from "../../engine/file/text.ts";
-  import { UNITS_PER_DAY, type Units } from "../../engine/weight.ts";
-  import Checkbox from "../controls/Checkbox.svelte";
+  import type { Units } from "../../engine/weight.ts";
   import Popover from "../controls/Popover.svelte";
   import Sheet from "../controls/Sheet.svelte";
   import { formatDate, formatList } from "../i18n/format.ts";
@@ -19,7 +17,8 @@ SPDX-License-Identifier: EUPL-1.2
   import { app } from "../state/app.svelte.ts";
   import type { LeaveChange, PlanMeta } from "../worker/protocol.ts";
   import { lineStyle, sourceAccent } from "./cell-lanes.ts";
-  import { amountText, dayDetail, fixedText, partText, reasonText, switchText, type DaySpan, type SwitchSegment } from "./detail.ts";
+  import { amountText, dayDetail, percent, reasonText } from "./detail.ts";
+  import LeaveBar from "./LeaveBar.svelte";
   import { problemText } from "./problems.ts";
   import SheetStatus from "./SheetStatus.svelte";
 
@@ -44,9 +43,6 @@ SPDX-License-Identifier: EUPL-1.2
   const label = $derived(i18n.t("detail.label", { date }));
   const id = $derived(`day-detail-${String(day.day)}`);
 
-  /** A share of the day as a percentage of `whole`, for a stretch drawn inside a bar. */
-  const percent = (units: Units, whole: Units = UNITS_PER_DAY): string => `${String((units / whole) * 100)}%`;
-
   const calendars = $derived(
     detail.calendars.map(({ source, index, entries, spans }) => {
       const name = textFor(source.name, i18n.lang);
@@ -57,54 +53,6 @@ SPDX-License-Identifier: EUPL-1.2
   );
 
   let content = $state<HTMLElement>();
-  let bar = $state<HTMLElement>();
-
-  /** The leave bar's switches that a press can change, in the order of the day: the stops of its arrow keys. */
-  const usable = $derived(detail.leave?.segments.filter((segment): segment is SwitchSegment => segment.kind === "switch" && segment.change !== undefined) ?? []);
-  /** The switch the focus was on last, on this day. */
-  let focused = $state<{ day: number; from: Units }>();
-  /** The bar's one Tab stop (roving tabindex): the switch the focus was on last, else the first one. */
-  const stop = $derived(usable.find((segment) => focused?.day === day.day && segment.from === focused.from)?.from ?? usable[0]?.from);
-
-  function focusSwitch(from: Units): void {
-    bar?.querySelector<HTMLElement>(`[data-from="${String(from)}"]`)?.focus();
-  }
-
-  /** The arrow keys move to the next or the previous switch (in the reading direction), Home and End to the first or the last. */
-  function moveInBar(event: KeyboardEvent, from: Units): void {
-    if (event.altKey || event.ctrlKey || event.metaKey) return;
-    const at = usable.findIndex((segment) => segment.from === from);
-    const ahead = i18n.dir === "rtl" ? -1 : 1;
-    const steps: Record<string, number> = { ArrowRight: at + ahead, ArrowLeft: at - ahead, ArrowDown: at + 1, ArrowUp: at - 1, Home: 0, End: usable.length - 1 };
-    const to = steps[event.key];
-    if (to === undefined || at < 0) return;
-    event.preventDefault();
-    const target = usable[Math.max(0, Math.min(to, usable.length - 1))];
-    if (target) focusSwitch(target.from);
-  }
-
-  /** The switch nearest to the stretch `span` of the day, the one over it first. */
-  function nearestSwitch(span: DaySpan): SwitchSegment | undefined {
-    const distance = (segment: SwitchSegment): number => Math.max(0, segment.from - span.to, span.from - segment.to);
-    return usable.reduce<SwitchSegment | undefined>((best, segment) => (best === undefined || distance(segment) < distance(best) ? segment : best), undefined);
-  }
-
-  /**
-   * One click, one change, one undo step. The detail stays open and shows the day as it is now. `pressed` is the
-   * switch that made the change: if it is gone or disabled now, the focus goes to the switch nearest to it.
-   */
-  async function run(change: LeaveChange | undefined, pressed?: DaySpan): Promise<void> {
-    if (change === undefined || app.applying) return;
-    await onapply(change);
-    await tick();
-    // The control just used may be disabled or gone now: keep the focus in the detail.
-    const active = document.activeElement;
-    const stale = active === null || active === document.body || ((active instanceof HTMLButtonElement || active instanceof HTMLInputElement) && active.disabled);
-    if (!content || (!stale && content.contains(active))) return;
-    const near = pressed === undefined ? undefined : nearestSwitch(pressed);
-    if (near !== undefined) focusSwitch(near.from);
-    else (content.querySelector<HTMLElement>("button:not(:disabled), input:not(:disabled)") ?? content).focus();
-  }
 </script>
 
 <!-- A value line: the label and the amount, or at zero a dash that screen readers hear as `none`. -->
@@ -116,11 +64,6 @@ SPDX-License-Identifier: EUPL-1.2
     <span class="name" aria-hidden="true">{name}</span>
     <b aria-hidden="true">{i18n.t("detail.zero")}</b><span class="spoken">{none}</span>
   {/if}
-{/snippet}
-
-{#snippet stretch(span: DaySpan, from: Units, whole: Units, kind: string)}
-  <span class="stretch {kind}" style:inset-inline-start={percent(span.from - from, whole)} style:inline-size={percent(span.to - span.from, whole)} aria-hidden="true"
-  ></span>
 {/snippet}
 
 {#snippet body()}
@@ -138,54 +81,7 @@ SPDX-License-Identifier: EUPL-1.2
       </div>
     </div>
     {#if leave}
-      <div class="part">
-        <div class="line">
-          <p>{@render amount(i18n.t("detail.leave.label"), leave.amount, i18n.t("detail.leave.none"))}</p>
-          {#if leave.fullDay}
-            {@const fullDay = leave.fullDay}
-            <Checkbox
-              label={i18n.t("detail.fullDay")}
-              checked={fullDay.checked === "true"}
-              mixed={fullDay.checked === "mixed"}
-              disabled={!fullDay.change}
-              onchange={() => void run(fullDay.change)}
-            />
-          {/if}
-        </div>
-        <!--
-          One element per segment, in the order of the day, each as wide as its share of the day. Switches are
-          toggle buttons named by their part; fixed blocks show a short word and are read by their full name.
-        -->
-        <div class={["bar switches", { few: leave.parts <= 4 }]} role="group" aria-label={i18n.t("detail.actions")} bind:this={bar}>
-          {#each leave.segments as segment (segment.from)}
-            {#if segment.kind === "switch"}
-              <button
-                type="button"
-                class="segment"
-                style:flex-basis={percent(segment.to - segment.from)}
-                data-from={segment.from}
-                tabindex={segment.from === stop ? 0 : -1}
-                aria-label={switchText(segment, day.required, words.t)}
-                aria-pressed={segment.pressed}
-                disabled={!segment.change}
-                onfocus={() => (focused = { day: day.day, from: segment.from })}
-                onkeydown={(event) => moveInBar(event, segment.from)}
-                onclick={() => void run(segment.change, segment)}
-              >
-                {#each segment.fills as fill (fill.from)}
-                  {@render stretch(fill, segment.from, segment.to - segment.from, fill.kind)}
-                {/each}
-                <span class="text">{partText(segment.name, words.t)}</span>
-              </button>
-            {:else}
-              <span class={["locked", segment.kind, segment.kind === "free" && `off-${required.off}`]} style:flex-basis={percent(segment.to - segment.from)}>
-                <span class="text" aria-hidden="true">{segment.kind === "free" ? i18n.t("detail.off") : i18n.t("detail.locked", { kind: segment.kind })}</span>
-                <span class="spoken">{fixedText(segment, words.t)}</span>
-              </span>
-            {/if}
-          {/each}
-        </div>
-      </div>
+      <LeaveBar {day} {leave} off={required.off} {content} {onapply} />
       <div class="part">
         <p class="line">{@render amount(i18n.t("detail.cost.label"), leave.cost, i18n.t("detail.cost.none"))}</p>
         <p class="line">{@render amount(i18n.t("detail.remaining.label"), leave.remaining, i18n.t("detail.remaining.none"))}</p>
@@ -280,7 +176,7 @@ SPDX-License-Identifier: EUPL-1.2
       list-style: none;
     }
 
-    /* A line with its value or its checkbox at the end. */
+    /* A line with its value at the end. */
     .line {
       display: flex;
       flex-wrap: wrap;
@@ -311,8 +207,8 @@ SPDX-License-Identifier: EUPL-1.2
     }
 
     /*
-     * The two bars: blocks of the day side by side, each as long as its share of the day (its flex-basis), over the
-     * full width, so that the blocks of both bars line up.
+     * The Soll bar: blocks of the day side by side, each as long as its share of the day (its flex-basis), over the
+     * full width, so that they line up with the segments of the leave bar below (LeaveBar.svelte).
      */
     .bar {
       display: flex;
@@ -324,9 +220,7 @@ SPDX-License-Identifier: EUPL-1.2
       font-weight: 700;
     }
 
-    .block,
-    .segment,
-    .locked {
+    .block {
       position: relative;
       display: grid;
       min-inline-size: 0;
@@ -335,39 +229,6 @@ SPDX-License-Identifier: EUPL-1.2
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-    }
-
-    /*
-     * The leave bar's segments can be a sliver of the day, so their padding sits on the text, and a segment
-     * too narrow for its text shows none.
-     */
-    .segment,
-    .locked {
-      container-type: inline-size;
-      padding-inline: 0;
-    }
-
-    .switches .text {
-      max-inline-size: 100%;
-      padding-inline: var(--space-1);
-    }
-
-    @container (inline-size < 2.5rem) {
-      .switches .text {
-        display: none;
-      }
-    }
-
-    /*
-     * With up to four parts (units 1, ½ and ¼) a switch is never narrower than the touch size: the fixed blocks
-     * beside it give way first.
-     */
-    .few .segment {
-      min-inline-size: 2.75rem;
-    }
-
-    .switches .locked {
-      flex-shrink: 1000;
     }
 
     .bar > :not(:first-child) {
@@ -379,87 +240,26 @@ SPDX-License-Identifier: EUPL-1.2
       background: var(--r-workday);
     }
 
-    /* The leave bar's blocks of time without work look exactly like the free time above them. */
-    .off-weekend .block:not(.work),
-    .locked.free.off-weekend {
+    /* The free time in its pattern; the leave bar's blocks of time without work look the same. */
+    .off-weekend .block:not(.work) {
       background: var(--r-fill-weekend);
     }
 
-    .off-holiday .block:not(.work),
-    .locked.free.off-holiday {
+    .off-holiday .block:not(.work) {
       background: var(--r-fill-holiday);
     }
 
-    .off-halfRequired .block:not(.work),
-    .locked.free.off-halfRequired {
+    .off-halfRequired .block:not(.work) {
       background: var(--r-fill-half-required);
     }
 
-    .off-free .block:not(.work),
-    .locked.free.off-free {
+    .off-free .block:not(.work) {
       background: var(--r-fill-free);
-    }
-
-    /* The leave switches: grey where no leave is taken, the leave drawn inside as the cell draws it. */
-    .segment {
-      margin: 0;
-      border: 0;
-      background: var(--r-border);
-      color: var(--r-text);
-      font: inherit;
-      font-weight: 400;
-      cursor: pointer;
-    }
-
-    .segment:focus-visible {
-      z-index: 1;
-      outline: 3px solid var(--r-focus);
-      outline-offset: -3px;
-    }
-
-    .segment:disabled {
-      color: var(--r-text-muted);
-      cursor: not-allowed;
-    }
-
-    .segment[aria-pressed="true"] {
-      color: var(--r-on-leave);
-      font-weight: 700;
-    }
-
-    .segment[aria-pressed="true"] .text {
-      text-shadow: 0 0 2px var(--r-leave-aura), 0 0 1px var(--r-leave-aura);
-    }
-
-    .text {
-      position: relative;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
     .stretch {
       position: absolute;
       inset-block: 0;
-    }
-
-    .stretch.own {
-      background: var(--r-leave-full);
-    }
-
-    .stretch.mandatory,
-    .locked.mandatory {
-      background: var(--r-fill-mandatory);
-    }
-
-    .locked.mandatory {
-      color: var(--r-on-mandatory);
-    }
-
-    .stretch.otherPlan,
-    .locked.otherPlan {
-      background: var(--r-surface);
-      outline: 2px dashed var(--r-other-plan);
-      outline-offset: -3px;
     }
 
     /* A calendar: its name, then where it lies in the day in its accent and line style. */
@@ -510,28 +310,8 @@ SPDX-License-Identifier: EUPL-1.2
       background: var(--r-surface-raised);
     }
 
-    /* Forced colours: own leave and pressed switches in the highlight colours, the other kinds outlined. */
+    /* Forced colours: the calendars' marks in the text colour. */
     @media (forced-colors: active) {
-      .stretch.own {
-        forced-color-adjust: none;
-        background: Highlight;
-      }
-
-      .segment[aria-pressed="true"] {
-        forced-color-adjust: none;
-        color: HighlightText;
-      }
-
-      .segment[aria-pressed="true"] .text {
-        text-shadow: none;
-      }
-
-      .stretch.mandatory,
-      .locked.mandatory {
-        outline: 2px solid CanvasText;
-        outline-offset: -3px;
-      }
-
       .mark {
         --mark: CanvasText;
         forced-color-adjust: none;

@@ -306,6 +306,15 @@ export function leaveSwitch(day: DayResult, minUnit: Units): LeaveSwitch {
   return { ...base, fullDay: change === undefined ? { checked } : { checked, change } };
 }
 
+/**
+ * Of the stretches `spans`, the one nearest to `span`, one over it first; of two as near, the earlier one. For the
+ * switch the focus goes to when the pressed one is gone (in day positions).
+ */
+export function nearest<T extends { readonly from: number; readonly to: number }>(spans: readonly T[], span: { readonly from: number; readonly to: number }): T | undefined {
+  const distance = (item: T): number => Math.max(0, item.from - span.to, span.from - item.to);
+  return spans.reduce<T | undefined>((best, item) => (best === undefined || distance(item) < distance(best) ? item : best), undefined);
+}
+
 /** Own leave from the edge `edge` of the day through the part `index` (from 0), with the guards of a press: for dragging along the bar. */
 export function reach(day: DayResult, minUnit: Units, edge: Part, index: number): LeaveChange | undefined {
   const bar = model(day, minUnit);

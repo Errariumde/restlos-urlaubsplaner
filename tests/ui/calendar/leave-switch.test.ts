@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import type { LeavePiece } from "../../../src/engine/counting/leave.ts";
 import type { DayResult } from "../../../src/engine/counting/plan.ts";
 import type { Part } from "../../../src/engine/counting/types.ts";
-import { leaveSwitch, partCount, reach, withOwnLeave, type LeaveSegment, type PartName } from "../../../src/ui/calendar/leave-switch.ts";
+import { leaveSwitch, nearest, partCount, reach, withOwnLeave, type LeaveSegment, type PartName } from "../../../src/ui/calendar/leave-switch.ts";
 
 const DAY = 20_000;
 
@@ -433,5 +433,40 @@ describe("withOwnLeave", () => {
       [MORNING, "true", remove],
       ["free", 240, 480],
     ]);
+  });
+});
+
+describe("nearest", () => {
+  /** The switches a press can change, as the bar's arrow keys reach them. */
+  const usable = (segments: readonly LeaveSegment[]) =>
+    segments.filter((segment): segment is Extract<LeaveSegment, { kind: "switch" }> => segment.kind === "switch" && segment.change !== undefined);
+
+  it("gives the switch beside the pressed one that is gone, not the farther one", () => {
+    // A ¾ day with own ¼ at the end, on the free rest of the afternoon: its switch takes the leave away and turns
+    // into a fixed block. The afternoon's switch over its work lies right beside it, the morning's farther away.
+    const day = stub({ required: 360, leave: [own(120, "end")] });
+    const pressed = leaveSwitch(day, 240).segments.find((segment) => segment.kind === "switch" && segment.from === 360);
+    expect(pressed).toMatchObject({ from: 360, to: 480, pressed: "true", change: remove });
+    const after = leaveSwitch(withOwnLeave(day, remove), 240).segments;
+    expect(spans(after)).toEqual([
+      ["switch", 0, 240],
+      ["switch", 240, 360],
+      ["free", 360, 480],
+    ]);
+    expect(nearest(usable(after), { from: 360, to: 480 })).toMatchObject({ from: 240, to: 360, name: AFTERNOON });
+  });
+
+  it("gives the one over the stretch first, and the earlier one of two as near", () => {
+    const items = [
+      { from: 0, to: 120 },
+      { from: 120, to: 240 },
+      { from: 360, to: 480 },
+    ];
+    expect(nearest(items, { from: 130, to: 140 })).toBe(items[1]);
+    // 60 from the first and from the last.
+    expect(nearest(items.filter((_, index) => index !== 1), { from: 180, to: 300 })).toBe(items[0]);
+    // Touching both the second and the last.
+    expect(nearest(items, { from: 240, to: 360 })).toBe(items[1]);
+    expect(nearest([], { from: 0, to: 480 })).toBeUndefined();
   });
 });

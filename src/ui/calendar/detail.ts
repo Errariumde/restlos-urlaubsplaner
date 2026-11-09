@@ -226,6 +226,11 @@ export function switchText(segment: SwitchSegment, required: Pick<RequiredWork, 
   return onWork ? name : t("detail.fixed", { where: name, kind: "free" });
 }
 
+/** A share of the day as a percentage of `whole`, for a stretch drawn inside a bar. */
+export function percent(units: Units, whole: Units = FULL): string {
+  return `${String((units / whole) * 100)}%`;
+}
+
 /** A day amount with its unit: "½ Tag", "1 Tag", "1½ Tage". */
 export function amountText(units: Units, i18n: { t: Translate; locale: Locale }): string {
   return i18n.t("detail.amount", { count: pluralCount(units), days: formatDays(units, i18n.locale) });
