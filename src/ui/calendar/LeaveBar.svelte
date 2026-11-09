@@ -127,8 +127,9 @@ SPDX-License-Identifier: EUPL-1.2
   }
 
   /**
-   * After a drag that changed nothing: the preview may have taken the pressed switch away (own leave on free time),
-   * and the focus with it. Then it goes to the switch nearest to the pressed one, which is mostly that one again.
+   * After a drag that changed nothing (Escape, a cancelled pointer, a release off the bar or one that gives no change):
+   * the preview may have taken the pressed switch away (own leave on free time), and the focus with it. Then it goes
+   * to the switch nearest to the pressed one, which is mostly that one again.
    */
   async function keepFocus(pressed: DaySpan): Promise<void> {
     await tick();
@@ -171,21 +172,25 @@ SPDX-License-Identifier: EUPL-1.2
     return box !== undefined && event.clientY >= box.top - box.height && event.clientY <= box.bottom + box.height;
   }
 
-  /** A release that is no press: the click that follows it, if any, does nothing. */
+  /**
+   * The next click on the bar does nothing: after a release that is no press (it ended a drag, or came after Escape
+   * or off the bar), whose click comes right after it if at all, and after a window blur that dropped a drag, whose
+   * release may come much later. It holds until that click comes or a new gesture starts on the bar: a pointer pressed
+   * there, or a key (Space and Enter press a switch with a click of their own).
+   */
   let swallowClick = false;
 
-  function ignoreClick(): void {
-    swallowClick = true;
-    // The click comes in the same task as the release, if at all.
-    setTimeout(() => (swallowClick = false));
-  }
-
-  /** Stops the click after a drag or a release off the bar before it reaches a switch (capture phase). */
+  /** Stops that click before it reaches a switch (capture phase). */
   function swallow(event: MouseEvent): void {
     if (!swallowClick) return;
     swallowClick = false;
     event.stopPropagation();
     event.preventDefault();
+  }
+
+  /** A new gesture on the bar: its click is a press again. */
+  function startGesture(): void {
+    swallowClick = false;
   }
 
   /** A primary pointer pressed on a switch starts a drag; one that is still going on was lost and gives way. */
@@ -221,7 +226,7 @@ SPDX-License-Identifier: EUPL-1.2
   /**
    * The pointer lets go: on the bar after a drag the shown change is applied as one change, and the bar keeps
    * drawing it until it is in. A release without a drag is a press, made by the click that follows; a release
-   * off the bar or after Escape changes nothing.
+   * off the bar, after Escape or where no leave can reach changes nothing.
    */
   function release(event: PointerEvent): void {
     const current = drag;
@@ -231,27 +236,32 @@ SPDX-License-Identifier: EUPL-1.2
       drag = undefined;
       return;
     }
-    ignoreClick();
-    if (current.state === "cancelled" || !current.moved || !inside) {
+    swallowClick = true;
+    const index = partAt(event.clientX) ?? current.index;
+    const change = current.state === "down" && current.moved && inside && !app.applying ? reach(day, minUnit, current.edge, index) : undefined;
+    if (change === undefined) {
       drag = undefined;
       void keepFocus(current.pressed);
       return;
     }
-    const index = partAt(event.clientX) ?? current.index;
     const done: Drag = { ...current, index, inside, state: "released" };
     drag = done;
-    void run(reach(day, minUnit, done.edge, index), done.pressed).finally(() => {
+    void run(change, done.pressed).finally(() => {
       if (drag === done) drag = undefined;
     });
   }
 
-  /** A cancelled pointer, or leaving the window, ends the drag without a change. */
+  /**
+   * A cancelled pointer, or leaving the window, ends the drag without a change. After leaving the window the button
+   * may still be down, and its release come back later over a switch: that click is no press.
+   */
   function drop(event: PointerEvent | FocusEvent): void {
     const current = drag;
     if (current === undefined || current.state === "released") return;
     if (event instanceof PointerEvent && event.pointerId !== current.pointerId) return;
     drag = undefined;
     if (event instanceof PointerEvent) void keepFocus(current.pressed);
+    else swallowClick = true;
   }
 
   /** Escape ends a drag, not the detail; the release that follows changes nothing. */
@@ -264,7 +274,8 @@ SPDX-License-Identifier: EUPL-1.2
     void keepFocus(current.pressed);
   }
 
-  // The engine's cost and work left for the shown change, once it answers; an answer for an older change is dropped.
+  // The engine's cost and work left for the shown change, once it answers. An answer for an older change is dropped,
+  // and so is a preview that fails: the lines keep the values they show, and the release still applies the change.
   $effect(() => {
     const change = dragged;
     if (change === undefined) {
@@ -272,9 +283,17 @@ SPDX-License-Identifier: EUPL-1.2
       return;
     }
     let current = true;
-    void Promise.resolve(untrack(() => onpreview(change))).then((hint) => {
-      if (current && hint?.day !== undefined) preview = hint.day;
+    const answer = new Promise<Hint | undefined>((resolve) => {
+      resolve(untrack(() => onpreview(change)));
     });
+    void answer.then(
+      (hint) => {
+        if (current && hint?.day !== undefined) preview = hint.day;
+      },
+      () => {
+        // No preview this time.
+      },
+    );
     return () => {
       current = false;
     };
@@ -328,6 +347,8 @@ SPDX-License-Identifier: EUPL-1.2
     aria-label={i18n.t("detail.actions")}
     bind:this={bar}
     onclickcapture={swallow}
+    onpointerdowncapture={startGesture}
+    onkeydowncapture={startGesture}
   >
     {#each shown.segments as segment (segment.from)}
       {#if segment.kind === "switch"}

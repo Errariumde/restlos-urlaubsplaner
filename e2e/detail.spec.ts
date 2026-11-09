@@ -418,6 +418,153 @@ test.describe("the leave bar, in English at 1280 px", () => {
     await expect(morning).toBeFocused();
     await expectNoPageProblems(page);
   });
+
+  /** Whether the focus is on a switch of the bar. */
+  const focusOnSwitch = (bar: Locator): Promise<boolean> =>
+    bar.evaluate((element) => document.activeElement instanceof HTMLButtonElement && element.contains(document.activeElement));
+
+  test("the focus comes back into the bar after a drag that the preview took the pressed switch from and that changes nothing", async ({ page }) => {
+    // Own leave on the free afternoon; dragged onto the morning, the preview is a full day without the pressed switch.
+    await openEditedExample(page, { plan: { days: [{ date: "2027-12-24", take: "1/2", part: "end" }] } });
+    const bar = await openBar(page, 12, 24);
+    const free = bar.getByRole("button", { name: "Afternoon: off", exact: true });
+    const morning = bar.getByRole("button", { name: "Morning", exact: true });
+    const undo = page.getByRole("button", { name: "Undo", exact: true });
+    const box = await bar.boundingBox();
+    if (!box) throw new Error("The bar has no box");
+    const target = await centre(morning);
+    await pressAndMove(page, free, target);
+    await expect(free).toHaveCount(0);
+    // Off the bar by more than its height: no preview, and the release changes nothing.
+    await page.mouse.move(target.x, box.y + box.height * 2.5, { steps: 2 });
+    await expect(free).toHaveCount(1);
+    await page.mouse.up();
+    await settle(page);
+    await expect(cell(page, 12, 24)).toHaveAttribute("aria-label", /leave half/);
+    await expect(undo).toBeDisabled();
+    expect(await focusOnSwitch(bar)).toBe(true);
+    await expect(free).toBeFocused();
+    await expectNoPageProblems(page);
+  });
+
+  test("the focus comes back into the bar after a drag released on the bar that changes nothing", async ({ page }) => {
+    // Every Friday works ¾ of a day; on Friday 18 June, in quarters, own ¼ lies on the free rest (a problem) and
+    // another plan's leave on the 2nd quarter.
+    const week = [{ from: "2026-01-01", required: { mon: "1", tue: "1", wed: "1", thu: "1", fri: "3/4", sat: "0", sun: "0" } }];
+    const otherPlan = {
+      id: "previous-year",
+      name: { de: "Urlaub 2026", en: "Leave 2026" },
+      type: "otherPlan",
+      color: { slot: "accent-3" },
+      visible: true,
+      plan: { id: "7005d0ea-dbdf-48e9-a000-d7a22608ca76", name: { de: "Beispiel GmbH", en: "Beispiel GmbH" }, revision: 9 },
+      entries: [{ date: "2027-06-18", from: "1/4", to: "1/2", kind: "leave" }],
+    };
+    await openEditedExample(page, {
+      contract: { week, minUnit: "1/4" },
+      plan: { days: [{ date: "2027-06-18", take: "1/4", part: "end" }] },
+      root: { sources: [otherPlan] },
+    });
+    const bar = await openBar(page, 6, 18);
+    const free = bar.getByRole("button", { name: "4th quarter: off", exact: true });
+    const first = bar.getByRole("button", { name: "1st quarter", exact: true });
+    const undo = page.getByRole("button", { name: "Undo", exact: true });
+    // To the 3rd quarter: the preview books the afternoon, under which the free rest is a fixed block, so the pressed
+    // switch goes. On to the 1st quarter: no own leave can reach there across the other plan's, so no preview.
+    await pressAndMove(page, free, await centre(bar.getByRole("button", { name: "3rd quarter", exact: true })));
+    await expect(free).toHaveCount(0);
+    const target = await centre(first);
+    await page.mouse.move(target.x, target.y, { steps: 4 });
+    await expect(free).toHaveCount(1);
+    await page.mouse.up();
+    await settle(page);
+    await expect(cell(page, 6, 18)).toHaveAttribute("aria-label", /leave ¼/);
+    await expect(undo).toBeDisabled();
+    expect(await focusOnSwitch(bar)).toBe(true);
+    await expect(free).toBeFocused();
+    await expectNoPageProblems(page);
+  });
+
+  test("a press or a drag that loses the window does nothing, also on the release after it", async ({ page }) => {
+    await openEditedExample(page, { contract: { minUnit: "1/16" } });
+    const bar = await openBar(page, 6, 14);
+    const part = (name: string): Locator => bar.getByRole("button", { name, exact: true });
+    const day = cell(page, 6, 14);
+    const costs = line(page, "Costs");
+    const undo = page.getByRole("button", { name: "Undo", exact: true });
+    const blur = (): Promise<boolean> => page.evaluate(() => window.dispatchEvent(new Event("blur")));
+    // Pressed on the 13th sixteenth, the window loses the focus before the button comes up, and some time passes:
+    // the click after the release is no press.
+    const thirteenth = await centre(part("13th sixteenth"));
+    await page.mouse.move(thirteenth.x, thirteenth.y);
+    await page.mouse.down();
+    await blur();
+    await settle(page);
+    await page.mouse.up();
+    await settle(page);
+    await expect(day).toHaveAttribute("aria-label", /no leave/);
+    await expect(undo).toBeDisabled();
+    // A drag that loses the window drops its preview, and its release changes nothing.
+    await pressAndMove(page, part("13th sixteenth"), await centre(part("9th sixteenth")));
+    await expect(costs).toContainText("½ day");
+    await blur();
+    await expect(costs).toContainText("–");
+    await settle(page);
+    await page.mouse.up();
+    await settle(page);
+    await expect(day).toHaveAttribute("aria-label", /no leave/);
+    await expect(undo).toBeDisabled();
+    // A new press is one again.
+    await part("13th sixteenth").click();
+    await expect(day).toHaveAttribute("aria-label", /leave ¼, at the end of the day/);
+    await expectNoPageProblems(page);
+  });
+
+  test("a press on the free rest of a ¾ day takes the leave there away and keeps the focus on the afternoon", async ({ page }) => {
+    // Every Friday works ¾ of a day; own ¼ at the end of Friday 18 June lies only on its free rest (a problem).
+    const week = [{ from: "2026-01-01", required: { mon: "1", tue: "1", wed: "1", thu: "1", fri: "3/4", sat: "0", sun: "0" } }];
+    await openEditedExample(page, { contract: { week }, plan: { days: [{ date: "2027-06-18", take: "1/4", part: "end" }] } });
+    const bar = await openBar(page, 6, 18);
+    const free = bar.getByRole("button", { name: "Afternoon: off", exact: true });
+    await expect(free).toHaveAttribute("aria-pressed", "true");
+    await free.click();
+    await expect(cell(page, 6, 18)).toHaveAttribute("aria-label", /no leave/);
+    await expect(free).toHaveCount(0);
+    await expect(bar.getByText("Afternoon: off", { exact: true })).toHaveCount(1);
+    await expect(bar.getByRole("button", { name: "Afternoon", exact: true })).toBeFocused();
+    await expectNoPageProblems(page);
+  });
+
+  test("a preview that fails leaves the lines as they are, and the release still applies the drag", async ({ page }) => {
+    // The engine worker refuses every preview message from the moment the page sets `failPreviews`.
+    await page.addInitScript(() => {
+      const rejections: string[] = [];
+      Object.assign(window, { rejections, failPreviews: false });
+      window.addEventListener("unhandledrejection", (event) => rejections.push(String(event.reason)));
+      const post = Reflect.get(Worker.prototype, "postMessage") as (this: Worker, message: unknown, options?: unknown) => void;
+      Worker.prototype.postMessage = function (this: Worker, message: unknown, options?: unknown): void {
+        const fail = (window as unknown as { failPreviews: boolean }).failPreviews;
+        if (fail && (message as { type?: unknown } | null)?.type === "preview") throw new Error("No preview");
+        post.call(this, message, options);
+      };
+    });
+    await openEditedExample(page, { contract: { minUnit: "1/16" } });
+    const bar = await openBar(page, 6, 14);
+    const part = (name: string): Locator => bar.getByRole("button", { name, exact: true });
+    await page.evaluate(() => Object.assign(window, { failPreviews: true }));
+    await pressAndMove(page, part("13th sixteenth"), await centre(part("9th sixteenth")));
+    // The bar draws the drag; the lines keep the day's values.
+    await expect(part("9th sixteenth")).toHaveClass(drawnPressed);
+    await settle(page);
+    await expect(line(page, "Costs")).toContainText("–");
+    await expect(line(page, "Work left")).toContainText("1 day");
+    await page.mouse.up();
+    await expect(cell(page, 6, 14)).toHaveAttribute("aria-label", /leave half, afternoon/);
+    await expect(line(page, "Costs")).toContainText("½ day");
+    await settle(page);
+    expect(await page.evaluate(() => (window as unknown as { rejections: string[] }).rejections)).toEqual([]);
+    await expectNoPageProblems(page);
+  });
 });
 
 test.describe("on a Mac", () => {
@@ -510,6 +657,30 @@ test.describe("on a touch screen", () => {
     await expect(day).toHaveAttribute("aria-label", /no leave/);
     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     await expect(day).toHaveAttribute("aria-label", /leave half, afternoon/);
+    await expectNoPageProblems(page);
+  });
+
+  test("a finger moved up or down on the leave bar previews nothing and changes nothing", async ({ page }) => {
+    await openEditedExample(page, { contract: { minUnit: "1/16" } });
+    const day = cell(page, 6, 14);
+    await longPress(page, day);
+    const sheet = detail(page);
+    const bar = sheet.getByRole("group", { name: "Leave on this day" });
+    const costs = sheet.locator("p", { hasText: /^Costs/ });
+    const from = await centre(bar.getByRole("button", { name: "13th sixteenth", exact: true }));
+    // The browser scrolls the sheet (the switch allows panning up and down) and cancels the pointer.
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [from] });
+    for (let step = 1; step <= 6; step += 1) {
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: from.x, y: from.y - step * 20 }] });
+      await expect(costs).toContainText("–");
+    }
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await settle(page);
+    await expect(costs).toContainText("–");
+    await expect(day).toHaveAttribute("aria-label", /no leave/);
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("button", { name: "Undo", exact: true })).toBeDisabled();
     await expectNoPageProblems(page);
   });
 });
