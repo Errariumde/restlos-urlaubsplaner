@@ -30,8 +30,10 @@ The day detail's leave bar offers the plan's smallest leave unit (`minUnit`), bu
 - [ ] The contract dialog offers the smallest leave unit, with the values its design decides; today `docs/SPEC.md` plans only `"1"` and `"1/2"` for it.
 - [ ] `docs/SPEC.md` ("Finer granularity", "Calendar interaction", the shortcut table) and the help's keyboard chapter describe both.
 - [ ] e2e tests in a plan with `minUnit` `"1/4"`, in both languages.
+- [ ] In parts below ½, a press on the last part with work of a fully booked day keeps the parts with work before it booked (see the notes): in quarters on 24 December with own leave over the whole day, a press on "2. Viertel" leaves own ¼ at the `"start"`. A unit test shows it, and it is fixed before finer steps become reachable.
 
 ## Notes
 
 - H already follows the unit in part: in a plan in whole days it changes nothing and the hint line says so (`e2e/min-unit.spec.ts`).
 - The contract dialog is not built yet; the key can come first.
+- On a fully booked day with time without work, in parts smaller than ½, a press on the last part with work removes the whole booking instead of keeping the parts before it. Case: unit ¼, 24 December (work in the 1st and 2nd quarter, the afternoon free), own leave over the whole day, press "2. Viertel" ("2nd quarter"). `press` in `src/ui/calendar/leave-switch.ts` (line 284) shrinks a full day from the edge nearer to the pressed part, so it asks for `changeTo(2, 4)`, the 3rd and 4th quarter; that covers only time without work, so the change takes the own leave away. Expected: the 1st quarter stays booked. It can't be reached yet, because parts below ½ need a plan file with such a `minUnit`, which the UI can't open yet (issue 0030, open real files in the UI); it must be fixed before finer steps become reachable.
