@@ -535,12 +535,19 @@ test.describe("the leave bar, in English at 1280 px", () => {
     await expectNoPageProblems(page);
   });
 
-  test("a preview that fails leaves the lines as they are, and the release still applies the drag", async ({ page }) => {
-    // The engine worker refuses every preview message from the moment the page sets `failPreviews`.
+  test("a preview that fails shows the day's own values in the lines, and the release still applies the drag", async ({ page }) => {
+    // The engine worker refuses every preview message from the moment the page sets `failPreviews`. The page records
+    // what it logs as an error (the message of an Error) and the rejections nothing handled.
     await page.addInitScript(() => {
       const rejections: string[] = [];
-      Object.assign(window, { rejections, failPreviews: false });
+      const logged: string[] = [];
+      Object.assign(window, { rejections, logged, failPreviews: false });
       window.addEventListener("unhandledrejection", (event) => rejections.push(String(event.reason)));
+      const log = console.error.bind(console);
+      console.error = (...args: unknown[]): void => {
+        logged.push(args.map((arg) => (arg instanceof Error ? arg.message : String(arg))).join(" "));
+        log(...args);
+      };
       const post = Reflect.get(Worker.prototype, "postMessage") as (this: Worker, message: unknown, options?: unknown) => void;
       Worker.prototype.postMessage = function (this: Worker, message: unknown, options?: unknown): void {
         const fail = (window as unknown as { failPreviews: boolean }).failPreviews;
@@ -551,18 +558,29 @@ test.describe("the leave bar, in English at 1280 px", () => {
     await openEditedExample(page, { contract: { minUnit: "1/16" } });
     const bar = await openBar(page, 6, 14);
     const part = (name: string): Locator => bar.getByRole("button", { name, exact: true });
-    await page.evaluate(() => Object.assign(window, { failPreviews: true }));
+    // The engine gives the preview of half a day: the lines show it.
     await pressAndMove(page, part("13th sixteenth"), await centre(part("9th sixteenth")));
-    // The bar draws the drag; the lines keep the day's values.
-    await expect(part("9th sixteenth")).toHaveClass(drawnPressed);
-    await settle(page);
+    await expect(line(page, "Costs")).toContainText("½ day");
+    await expect(line(page, "Work left")).toContainText("½ day");
+    // From now on it fails. The drag goes on to ¾ of a day: the bar draws it, and the lines go back to the day's own
+    // values instead of keeping the half day's.
+    await page.evaluate(() => Object.assign(window, { failPreviews: true }));
+    const fifth = await centre(part("5th sixteenth"));
+    await page.mouse.move(fifth.x, fifth.y, { steps: 4 });
+    await expect(part("5th sixteenth")).toHaveClass(drawnPressed);
     await expect(line(page, "Costs")).toContainText("–");
     await expect(line(page, "Work left")).toContainText("1 day");
     await page.mouse.up();
-    await expect(cell(page, 6, 14)).toHaveAttribute("aria-label", /leave half, afternoon/);
-    await expect(line(page, "Costs")).toContainText("½ day");
+    await expect(cell(page, 6, 14)).toHaveAttribute("aria-label", /leave ¾, at the end of the day/);
+    await expect(line(page, "Costs")).toContainText("¾ day");
     await settle(page);
-    expect(await page.evaluate(() => (window as unknown as { rejections: string[] }).rejections)).toEqual([]);
+    // The error is logged, and no rejection is left unhandled.
+    const recorded = await page.evaluate(() => {
+      const { rejections, logged } = window as unknown as { rejections: string[]; logged: string[] };
+      return { rejections, logged };
+    });
+    expect(recorded.logged).toContain("No preview");
+    expect(recorded.rejections).toEqual([]);
     await expectNoPageProblems(page);
   });
 });

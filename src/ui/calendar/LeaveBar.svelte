@@ -274,8 +274,9 @@ SPDX-License-Identifier: EUPL-1.2
     void keepFocus(current.pressed);
   }
 
-  // The engine's cost and work left for the shown change, once it answers. An answer for an older change is dropped,
-  // and so is a preview that fails: the lines keep the values they show, and the release still applies the change.
+  // The engine's cost and work left for the shown change, once it answers. An answer for an older change is dropped
+  // (it comes as `undefined`). A preview that fails drops the one shown, so that the lines show the day's own values
+  // rather than those of another change, and the release still applies the change.
   $effect(() => {
     const change = dragged;
     if (change === undefined) {
@@ -290,8 +291,9 @@ SPDX-License-Identifier: EUPL-1.2
       (hint) => {
         if (current && hint?.day !== undefined) preview = hint.day;
       },
-      () => {
-        // No preview this time.
+      (error: unknown) => {
+        if (current) preview = undefined;
+        console.error(error);
       },
     );
     return () => {
