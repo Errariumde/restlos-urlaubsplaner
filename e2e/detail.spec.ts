@@ -393,58 +393,66 @@ test.describe("the leave bar, in English at 1280 px", () => {
     await expectNoPageProblems(page);
   });
 
-  test("the focus stays in the bar when a drag takes the pressed switch away", async ({ page }) => {
-    // Own leave on the free afternoon; dragged from it to the morning, the preview is a full day, under which the
-    // free afternoon is a fixed block: the pressed switch is gone while the drag goes on.
-    await openEditedExample(page, { plan: { days: [{ date: "2027-12-24", take: "1/2", part: "end" }] } });
-    const bar = await openBar(page, 12, 24);
-    const free = bar.getByRole("button", { name: "Afternoon: off", exact: true });
-    const morning = bar.getByRole("button", { name: "Morning", exact: true });
-    await pressAndMove(page, free, await centre(morning));
-    await expect(morning).toHaveClass(drawnPressed);
-    await expect(morning).toHaveAttribute("aria-pressed", "false");
-    await expect(free).toHaveCount(0);
-    // Escape brings it back, and the focus with it.
-    await page.keyboard.press("Escape");
-    await expect(free).toBeFocused();
-    await page.mouse.up();
-    await expect(free).toBeFocused();
-    await expect(cell(page, 12, 24)).toHaveAttribute("aria-label", /leave half/);
-    // Released on the morning: the full day is set, and the focus goes to the switch nearest to the gone one.
-    await pressAndMove(page, free, await centre(morning));
-    await page.mouse.up();
-    await expect(line(page, "Leave")).toContainText("1 day");
-    await expect(free).toHaveCount(0);
-    await expect(morning).toBeFocused();
-    await expectNoPageProblems(page);
-  });
-
   /** Whether the focus is on a switch of the bar. */
   const focusOnSwitch = (bar: Locator): Promise<boolean> =>
     bar.evaluate((element) => document.activeElement instanceof HTMLButtonElement && element.contains(document.activeElement));
 
-  test("the focus comes back into the bar after a drag that the preview took the pressed switch from and that changes nothing", async ({ page }) => {
-    // Own leave on the free afternoon; dragged onto the morning, the preview is a full day without the pressed switch.
-    await openEditedExample(page, { plan: { days: [{ date: "2027-12-24", take: "1/2", part: "end" }] } });
-    const bar = await openBar(page, 12, 24);
-    const free = bar.getByRole("button", { name: "Afternoon: off", exact: true });
-    const morning = bar.getByRole("button", { name: "Morning", exact: true });
-    const undo = page.getByRole("button", { name: "Undo", exact: true });
-    const box = await bar.boundingBox();
-    if (!box) throw new Error("The bar has no box");
-    const target = await centre(morning);
-    await pressAndMove(page, free, target);
-    await expect(free).toHaveCount(0);
-    // Off the bar by more than its height: no preview, and the release changes nothing.
-    await page.mouse.move(target.x, box.y + box.height * 2.5, { steps: 2 });
-    await expect(free).toHaveCount(1);
-    await page.mouse.up();
-    await settle(page);
-    await expect(cell(page, 12, 24)).toHaveAttribute("aria-label", /leave half/);
-    await expect(undo).toBeDisabled();
-    expect(await focusOnSwitch(bar)).toBe(true);
-    await expect(free).toBeFocused();
-    await expectNoPageProblems(page);
+  // 24 December lies in the last row of the calendar, so in an 800 px window its detail has to open above it. WebKit
+  // sometimes opens it below the day instead, past the window's edge, where no scrolling reaches it (issue 0025,
+  // browser behaviour left untested by the feasibility run), and the mouse then presses on nothing. In a window tall
+  // enough for the detail to fit below the day, every browser opens it there.
+  test.describe("in a window tall enough for the detail of 24 December below it", () => {
+    test.use({ viewport: { width: 1280, height: 1800 } });
+
+    test("the focus stays in the bar when a drag takes the pressed switch away", async ({ page }) => {
+      // Own leave on the free afternoon; dragged from it to the morning, the preview is a full day, under which the
+      // free afternoon is a fixed block: the pressed switch is gone while the drag goes on.
+      await openEditedExample(page, { plan: { days: [{ date: "2027-12-24", take: "1/2", part: "end" }] } });
+      const bar = await openBar(page, 12, 24);
+      const free = bar.getByRole("button", { name: "Afternoon: off", exact: true });
+      const morning = bar.getByRole("button", { name: "Morning", exact: true });
+      await pressAndMove(page, free, await centre(morning));
+      await expect(morning).toHaveClass(drawnPressed);
+      await expect(morning).toHaveAttribute("aria-pressed", "false");
+      await expect(free).toHaveCount(0);
+      // Escape brings it back, and the focus with it.
+      await page.keyboard.press("Escape");
+      await expect(free).toBeFocused();
+      await page.mouse.up();
+      await expect(free).toBeFocused();
+      await expect(cell(page, 12, 24)).toHaveAttribute("aria-label", /leave half/);
+      // Released on the morning: the full day is set, and the focus goes to the switch nearest to the gone one.
+      await pressAndMove(page, free, await centre(morning));
+      await page.mouse.up();
+      await expect(line(page, "Leave")).toContainText("1 day");
+      await expect(free).toHaveCount(0);
+      await expect(morning).toBeFocused();
+      await expectNoPageProblems(page);
+    });
+
+    test("the focus comes back into the bar after a drag that the preview took the pressed switch from and that changes nothing", async ({ page }) => {
+      // Own leave on the free afternoon; dragged onto the morning, the preview is a full day without the pressed switch.
+      await openEditedExample(page, { plan: { days: [{ date: "2027-12-24", take: "1/2", part: "end" }] } });
+      const bar = await openBar(page, 12, 24);
+      const free = bar.getByRole("button", { name: "Afternoon: off", exact: true });
+      const morning = bar.getByRole("button", { name: "Morning", exact: true });
+      const undo = page.getByRole("button", { name: "Undo", exact: true });
+      const box = await bar.boundingBox();
+      if (!box) throw new Error("The bar has no box");
+      const target = await centre(morning);
+      await pressAndMove(page, free, target);
+      await expect(free).toHaveCount(0);
+      // Off the bar by more than its height: no preview, and the release changes nothing.
+      await page.mouse.move(target.x, box.y + box.height * 2.5, { steps: 2 });
+      await expect(free).toHaveCount(1);
+      await page.mouse.up();
+      await settle(page);
+      await expect(cell(page, 12, 24)).toHaveAttribute("aria-label", /leave half/);
+      await expect(undo).toBeDisabled();
+      expect(await focusOnSwitch(bar)).toBe(true);
+      await expect(free).toBeFocused();
+      await expectNoPageProblems(page);
+    });
   });
 
   test("the focus comes back into the bar after a drag released on the bar that changes nothing", async ({ page }) => {
