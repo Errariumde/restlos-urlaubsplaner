@@ -3,9 +3,10 @@
 
 // The leave bar of the day detail (docs/SPEC.md, "Detail view"): the day in parts of the plan's smallest leave unit,
 // each part with work a switch drawn over its working time; time without work, and the parts that mandatory leave or
-// another plan's leave cover wholly, as fixed blocks; and the "Full day" checkbox. The bar draws leave where it lies in
-// the day: own and mandatory leave at the start or the end as its `part` says, another plan's leave at its span. No
-// press books own leave that would lie only on time without work.
+// another plan's leave cover wholly, as fixed blocks; and the "Full day" checkbox. Own leave that overlaps no work at
+// all (from a file) turns the time without work it covers into switches that take it away. The bar draws leave where
+// it lies in the day: own and mandatory leave at the start or the end as its `part` says, another plan's leave at its
+// span. No press books own leave that would lie only on time without work.
 import { evaluateLeave, type LeaveKind, type LeavePiece } from "../../engine/counting/leave.ts";
 import type { DayResult } from "../../engine/counting/plan.ts";
 import type { Part } from "../../engine/counting/types.ts";
@@ -32,7 +33,10 @@ export type PartName =
 export type LeaveSegment =
   | {
       readonly kind: "switch";
-      /** The drawn span: the part cut to its working time, or the whole part for own leave lying only on free time. */
+      /**
+       * The drawn span: the part cut to its working time, or the part's time without work beside it where own leave
+       * lies that overlaps no work at all (a part without work gives one such switch over the whole part).
+       */
       readonly from: Units;
       readonly to: Units;
       readonly name: PartName;
@@ -131,10 +135,12 @@ type OwnPiece = Extract<LeavePiece, { kind: "own" | "mandatory" }>;
 interface Model {
   readonly parts: number;
   readonly segments: readonly LeaveSegment[];
-  /** The pressed state of every part, "false" for one without a switch. */
+  /** The pressed state of every part: its switch over the work, else its switch over free time, else "false". */
   readonly pressed: readonly Pressed[];
-  /** Per part: a switch over free time for own leave that lies only on free time, which a press takes away. */
-  readonly onFree: readonly boolean[];
+  /** Whether any switch is pressed, also one over free time. */
+  readonly anyPressed: boolean;
+  /** Where the switches over free time start: they are for own leave lying only on free time, and a press takes it away. */
+  readonly freeSwitches: ReadonlySet<Units>;
   readonly own: OwnPiece | undefined;
   readonly canSet: boolean;
   readonly removal: LeaveChange | undefined;
@@ -188,7 +194,8 @@ function model(day: DayResult, minUnit: Units): Model {
 
   const segments: LeaveSegment[] = [];
   const pressed: Pressed[] = [];
-  const onFree: boolean[] = [];
+  const freeSwitches = new Set<Units>();
+  let anyPressed = false;
   const nameAt = (position: Units): PartName => partName(Math.floor(position / size), parts);
 
   /** A fixed block; it merges with the one before it when that is of the same kind and touches it. */
@@ -211,56 +218,67 @@ function model(day: DayResult, minUnit: Units): Model {
     for (const block of blocks) fixed(block.kind, block.from, block.to);
   }
 
-  for (let index = 0; index < parts; index++) {
-    const from = index * size;
-    const to = from + size;
-    pressed.push("false");
-    onFree.push(false);
-    if (minus([[from, to]], locked).length === 0) {
-      // Locked wholly: one block of the kind that covers more of the part.
-      fixed(measure(within(mandatory, from, to)) >= measure(within(otherShown, from, to)) ? "mandatory" : "otherPlan", from, to);
-      continue;
-    }
-    let drawn: Span | undefined;
-    if (Math.max(from, workFrom) < Math.min(to, workTo)) drawn = [Math.max(from, workFrom), Math.min(to, workTo)];
-    else if (ownOnFree && measure(within(ownShown, from, to)) > 0) {
-      drawn = [from, to];
-      onFree[index] = true;
-    }
-    if (drawn === undefined) {
-      offWork(from, to);
-      continue;
-    }
-    offWork(from, drawn[0]);
-    const [a, b] = drawn;
+  /** A switch over [a, b) in the part `index`, named after the part; gives its pressed state. */
+  function addSwitch(a: Units, b: Units, index: number, onFree: boolean): Pressed {
     const ownTime = measure(within(ownShown, a, b));
-    const state: Pressed = ownTime === 0 ? "false" : ownTime >= measure(minus([drawn], locked)) ? "true" : "mixed";
-    pressed[index] = state;
+    const state: Pressed = ownTime === 0 ? "false" : ownTime >= measure(minus([[a, b]], locked)) ? "true" : "mixed";
     const fills: Fill[] = [
       ...within(mandatory, a, b).map(([x, y]): Fill => ({ from: x, to: y, kind: "mandatory" })),
       ...within(ownShown, a, b).map(([x, y]): Fill => ({ from: x, to: y, kind: "own" })),
       ...within(otherShown, a, b).map(([x, y]): Fill => ({ from: x, to: y, kind: "otherPlan" })),
     ].toSorted((x, y) => x.from - y.from);
     segments.push({ kind: "switch", from: a, to: b, name: partName(index, parts), pressed: state, fills });
-    offWork(b, to);
+    if (onFree) freeSwitches.add(a);
+    if (state !== "false") anyPressed = true;
+    return state;
+  }
+
+  /**
+   * Time without work [a, b) in the part `index`: one switch over it where own leave that overlaps no work at all
+   * covers some of it, so that a press takes that leave away; else fixed blocks. Gives the switch's pressed state.
+   */
+  function withoutWork(a: Units, b: Units, index: number): Pressed | undefined {
+    if (a >= b) return undefined;
+    if (ownOnFree && measure(within(ownShown, a, b)) > 0) return addSwitch(a, b, index, true);
+    offWork(a, b);
+    return undefined;
+  }
+
+  for (let index = 0; index < parts; index++) {
+    const from = index * size;
+    const to = from + size;
+    pressed.push("false");
+    if (minus([[from, to]], locked).length === 0) {
+      // Locked wholly: one block of the kind that covers more of the part.
+      fixed(measure(within(mandatory, from, to)) >= measure(within(otherShown, from, to)) ? "mandatory" : "otherPlan", from, to);
+      continue;
+    }
+    const a = Math.max(from, workFrom);
+    const b = Math.min(to, workTo);
+    if (a >= b) {
+      pressed[index] = withoutWork(from, to, index) ?? "false";
+      continue;
+    }
+    withoutWork(from, a, index);
+    pressed[index] = addSwitch(a, b, index, false);
+    withoutWork(b, to, index);
   }
 
   const amount = measure(union([...ownSpan, ...mandatory, ...other]));
-  return { parts, segments, pressed, onFree, own, canSet, removal, changeTo, amount };
+  return { parts, segments, pressed, anyPressed, freeSwitches, own, canSet, removal, changeTo, amount };
 }
 
 /**
- * What a press on the part `index` changes. A press on a free part extends own leave up to and including it, one on
- * a booked part shrinks it to just before it; with no own leave it fills from the nearer edge of the day. A switch
- * for own leave lying only on free time takes it away. Own leave can be set only on a day in the plan period with
- * required work; elsewhere it can only be taken away.
+ * What a press on the switch over the work of the part `index` changes. A press on a free part extends own leave up
+ * to and including it, one on a booked part shrinks it to just before it; with no own leave it fills from the nearer
+ * edge of the day. Own leave can be set only on a day in the plan period with required work; elsewhere it can only be
+ * taken away.
  */
 function press(bar: Model, index: number): LeaveChange | undefined {
   const { parts, pressed, own, changeTo } = bar;
-  if (bar.onFree[index] === true) return bar.removal;
   if (!bar.canSet) return pressed[index] === "false" ? undefined : bar.removal;
   const nearStart = 2 * index < parts;
-  if (pressed.every((state) => state === "false")) return nearStart ? changeTo(0, index + 1) : changeTo(index, parts);
+  if (!bar.anyPressed) return nearStart ? changeTo(0, index + 1) : changeTo(index, parts);
   const ownPart = own !== undefined && own.take < UNITS_PER_DAY ? own.part : undefined;
   if (ownPart === undefined) return nearStart ? changeTo(index + 1, parts) : changeTo(0, index);
   const extend = pressed[index] !== "true"; // a free part, or one own leave covers only in part
@@ -277,7 +295,8 @@ export function leaveSwitch(day: DayResult, minUnit: Units): LeaveSwitch {
   const size = UNITS_PER_DAY / bar.parts;
   const segments = bar.segments.map((segment): LeaveSegment => {
     if (segment.kind !== "switch") return segment;
-    const change = press(bar, Math.floor(segment.from / size));
+    // A switch over free time is there only to take own leave away that lies on free time alone.
+    const change = bar.freeSwitches.has(segment.from) ? bar.removal : press(bar, Math.floor(segment.from / size));
     return change === undefined ? segment : { ...segment, change };
   });
   const base = { amount: bar.amount, parts: bar.parts, segments };

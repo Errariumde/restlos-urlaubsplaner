@@ -181,6 +181,29 @@ describe("leaveSwitch on a day with time without work", () => {
     ]);
   });
 
+  it("makes the free rest of a part a switch for leave lying only there", () => {
+    // A ¾ day with own ¼ at the end, which lies only on the free rest of the afternoon: that rest is a pressed
+    // switch of its own that takes the leave away, beside the afternoon's switch over its work.
+    const view = leaveSwitch(stub({ required: 360, leave: [own(120, "end")] }), 240);
+    expect(spans(view.segments)).toEqual([
+      ["switch", 0, 240],
+      ["switch", 240, 360],
+      ["switch", 360, 480],
+    ]);
+    expect(short(view.segments)).toEqual([
+      [MORNING, "false", full],
+      [AFTERNOON, "false", afternoon],
+      [AFTERNOON, "true", remove],
+    ]);
+    expect(view.fullDay).toEqual({ checked: "mixed", change: full });
+    // The same at the start of the day: a ¾ day free in the morning with own ¼ at the start.
+    expect(short(leaveSwitch(stub({ required: 360, freePart: "start", leave: [own(120, "start")] }), 240).segments)).toEqual([
+      [MORNING, "true", remove],
+      [MORNING, "false", morning],
+      [AFTERNOON, "false", full],
+    ]);
+  });
+
   it("puts the switch of a day free in the morning over its afternoon", () => {
     const view = leaveSwitch(stub({ required: 240, freePart: "start" }), 240);
     expect(short(view.segments)).toEqual([
