@@ -5,7 +5,7 @@
 // the leave as a bar of switches with its cost and the work left, the calendars as bars, the reasons for the
 // required work and the leave, and the day's problems.
 import type { DayResult, Problem } from "../../engine/counting/plan.ts";
-import type { RequiredLayer, RequiredWork } from "../../engine/counting/required.ts";
+import type { RequiredLayer } from "../../engine/counting/required.ts";
 import type { SourceDay } from "../../engine/counting/types.ts";
 import { textFor } from "../../engine/file/text.ts";
 import { UNITS_PER_DAY, type Units } from "../../engine/weight.ts";
@@ -224,11 +224,9 @@ export function fixedText(block: FixedSegment, t: Translate): string {
  * on free time alone) is named like the fixed block it stands for ("nachmittags: frei"), so that two switches of one
  * bar never share a name: the free rest of a part can be a switch beside the switch over the part's work.
  */
-export function switchText(segment: SwitchSegment, required: Pick<RequiredWork, "value" | "freePart">, t: Translate): string {
+export function switchText(segment: SwitchSegment, t: Translate): string {
   const name = partText(segment.name, t);
-  const workFrom = required.freePart === "end" ? 0 : FULL - required.value;
-  const onWork = Math.max(segment.from, workFrom) < Math.min(segment.to, workFrom + required.value);
-  return onWork ? name : t("detail.fixed", { where: name, kind: "free" });
+  return segment.onFree ? t("detail.fixed", { where: name, kind: "free" }) : name;
 }
 
 /** A share of the day as a percentage of `whole`, for a stretch drawn inside a bar. */

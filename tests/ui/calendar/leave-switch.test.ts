@@ -204,6 +204,31 @@ describe("leaveSwitch on a day with time without work", () => {
     ]);
   });
 
+  it("flags the switches that stand over time without work", () => {
+    const flags = (segments: readonly LeaveSegment[]): unknown[] => segments.flatMap((segment) => (segment.kind === "switch" ? [[segment.name, segment.onFree]] : []));
+    // Own leave only on the free afternoon of 24 December, only on the free rest of a ¾ day, and the same at the start.
+    expect(flags(leaveSwitch(christmasEve([own(240, "end")]), 240).segments)).toEqual([
+      [MORNING, false],
+      [AFTERNOON, true],
+    ]);
+    expect(flags(leaveSwitch(stub({ required: 360, leave: [own(120, "end")] }), 240).segments)).toEqual([
+      [MORNING, false],
+      [AFTERNOON, false],
+      [AFTERNOON, true],
+    ]);
+    expect(flags(leaveSwitch(stub({ required: 360, freePart: "start", leave: [own(120, "start")] }), 240).segments)).toEqual([
+      [MORNING, true],
+      [MORNING, false],
+      [AFTERNOON, false],
+    ]);
+    // A switch over work never is, also one drawn over part of its part.
+    expect(flags(leaveSwitch(stub({ required: 360 }), 240).segments)).toEqual([
+      [MORNING, false],
+      [AFTERNOON, false],
+    ]);
+    expect(flags(leaveSwitch(christmasEve([own(480)]), 240).segments)).toEqual([[MORNING, false]]);
+  });
+
   it("puts the switch of a day free in the morning over its afternoon", () => {
     const view = leaveSwitch(stub({ required: 240, freePart: "start" }), 240);
     expect(short(view.segments)).toEqual([

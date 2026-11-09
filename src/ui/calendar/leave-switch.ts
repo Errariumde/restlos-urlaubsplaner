@@ -40,6 +40,11 @@ export type LeaveSegment =
       readonly from: Units;
       readonly to: Units;
       readonly name: PartName;
+      /**
+       * Whether the switch stands over time without work: it is there only to take away own leave that overlaps no
+       * work at all, and a press does just that.
+       */
+      readonly onFree: boolean;
       /** Whether own leave covers all, none or part of the drawn span's time beside the other kinds of leave. */
       readonly pressed: Pressed;
       /** Where each kind of leave lies inside the drawn span. */
@@ -139,8 +144,6 @@ interface Model {
   readonly pressed: readonly Pressed[];
   /** Whether any switch is pressed, also one over free time. */
   readonly anyPressed: boolean;
-  /** Where the switches over free time start: they are for own leave lying only on free time, and a press takes it away. */
-  readonly freeSwitches: ReadonlySet<Units>;
   readonly own: OwnPiece | undefined;
   readonly canSet: boolean;
   readonly removal: LeaveChange | undefined;
@@ -194,7 +197,6 @@ function model(day: DayResult, minUnit: Units): Model {
 
   const segments: LeaveSegment[] = [];
   const pressed: Pressed[] = [];
-  const freeSwitches = new Set<Units>();
   let anyPressed = false;
   const nameAt = (position: Units): PartName => partName(Math.floor(position / size), parts);
 
@@ -227,8 +229,7 @@ function model(day: DayResult, minUnit: Units): Model {
       ...within(ownShown, a, b).map(([x, y]): Fill => ({ from: x, to: y, kind: "own" })),
       ...within(otherShown, a, b).map(([x, y]): Fill => ({ from: x, to: y, kind: "otherPlan" })),
     ].toSorted((x, y) => x.from - y.from);
-    segments.push({ kind: "switch", from: a, to: b, name: partName(index, parts), pressed: state, fills });
-    if (onFree) freeSwitches.add(a);
+    segments.push({ kind: "switch", from: a, to: b, name: partName(index, parts), onFree, pressed: state, fills });
     if (state !== "false") anyPressed = true;
     return state;
   }
@@ -265,7 +266,7 @@ function model(day: DayResult, minUnit: Units): Model {
   }
 
   const amount = measure(union([...ownSpan, ...mandatory, ...other]));
-  return { parts, segments, pressed, anyPressed, freeSwitches, own, canSet, removal, changeTo, amount };
+  return { parts, segments, pressed, anyPressed, own, canSet, removal, changeTo, amount };
 }
 
 /**
@@ -295,8 +296,7 @@ export function leaveSwitch(day: DayResult, minUnit: Units): LeaveSwitch {
   const size = UNITS_PER_DAY / bar.parts;
   const segments = bar.segments.map((segment): LeaveSegment => {
     if (segment.kind !== "switch") return segment;
-    // A switch over free time is there only to take own leave away that lies on free time alone.
-    const change = bar.freeSwitches.has(segment.from) ? bar.removal : press(bar, Math.floor(segment.from / size));
+    const change = segment.onFree ? bar.removal : press(bar, Math.floor(segment.from / size));
     return change === undefined ? segment : { ...segment, change };
   });
   const base = { amount: bar.amount, parts: bar.parts, segments };

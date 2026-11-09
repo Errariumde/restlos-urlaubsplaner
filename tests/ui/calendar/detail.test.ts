@@ -261,11 +261,16 @@ describe("the leave bar's names", () => {
       leave: [{ kind: "own" as const, take: 120, part: "end" as const }],
     };
     const switches = leaveSwitch(day, 240).segments.filter((segment): segment is SwitchSegment => segment.kind === "switch");
-    expect(switches.map((segment) => switchText(segment, day.required, en))).toEqual(["Morning", "Afternoon", "Afternoon: off"]);
-    expect(switches.map((segment) => switchText(segment, day.required, de))).toEqual(["vormittags", "nachmittags", "nachmittags: frei"]);
+    expect(switches.map((segment) => switchText(segment, en))).toEqual(["Morning", "Afternoon", "Afternoon: off"]);
+    expect(switches.map((segment) => switchText(segment, de))).toEqual(["vormittags", "nachmittags", "nachmittags: frei"]);
     // Free time at the start: the work lies at the end of the day.
     const morningOff = { ...day, required: { ...day.required, value: 240, freePart: "start" as const }, leave: [{ kind: "own" as const, take: 240, part: "start" as const }] };
-    const named = leaveSwitch(morningOff, 240).segments.flatMap((segment) => (segment.kind === "switch" ? [switchText(segment, morningOff.required, en)] : []));
+    const named = leaveSwitch(morningOff, 240).segments.flatMap((segment) => (segment.kind === "switch" ? [switchText(segment, en)] : []));
     expect(named).toEqual(["Morning: off", "Afternoon"]);
+    // The switch says itself whether it stands over time without work.
+    const afternoon: SwitchSegment = { kind: "switch", from: 240, to: 480, name: AFTERNOON, pressed: "true", fills: [], onFree: true };
+    expect(switchText(afternoon, de)).toBe("nachmittags: frei");
+    expect(switchText({ ...afternoon, onFree: false }, de)).toBe("nachmittags");
+    expect(switchText({ ...afternoon, name: part(13, 16), onFree: true }, en)).toBe("13th sixteenth: off");
   });
 });

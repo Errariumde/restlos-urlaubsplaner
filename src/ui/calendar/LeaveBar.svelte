@@ -339,7 +339,7 @@ SPDX-License-Identifier: EUPL-1.2
           style:flex-basis={percent(segment.to - segment.from)}
           data-from={segment.from}
           tabindex={segment.from === stop ? 0 : -1}
-          aria-label={switchText(segment, day.required, words.t)}
+          aria-label={switchText(segment, words.t)}
           aria-hidden={now === undefined ? "true" : undefined}
           aria-pressed={(now ?? segment).pressed}
           disabled={!(now ?? segment).change}
