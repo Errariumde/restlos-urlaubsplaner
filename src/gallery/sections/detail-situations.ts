@@ -200,7 +200,8 @@ export function situations(t: Translate): SituationGroup[] {
     title: t("gallery.detail.group.sixteenths"),
     plan: "sixteenths",
     // Left out of axe: the leave bar's parts below ¼ are smaller than the target size of WCAG 2.5.8 (24 px), which
-    // axe checks, as long as the bar has no equivalent control of full size.
+    // axe checks, as long as the bar has no equivalent control of full size: issue 0049 (leave bar parts below ¼ are
+    // under the target size).
     skipAxe: true,
     samples: [
       [t("gallery.detail.leaveAtEnd"), day(6, 14)],
