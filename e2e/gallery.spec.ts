@@ -31,14 +31,14 @@ test.describe("every gallery section passes axe", () => {
       // axe checks every one of the main screen's 365 day cells.
       test.slow(section === "main-tiles" || section === "main-columns");
       await show(page, combination);
-      // The leave bars in parts below a quarter are left out (src/gallery/sections/detail-situations.ts says why).
+      // The day details' group in sixteenths is left out as a whole (src/gallery/sections/detail-situations.ts says why).
       expect(await axeViolations(page, ["[data-axe-skip]"])).toEqual([]);
       await expectNoPageProblems(page);
     });
   }
 });
 
-test("axe leaves out only the day details with leave bars in parts below a quarter", async ({ page }) => {
+test("axe leaves out only the day details' group in sixteenths", async ({ page }) => {
   await show(page, { section: "day-detail", locale: "en", mode: "light" });
   const skipped = page.locator("[data-axe-skip]");
   await expect(skipped).toHaveCount(1);

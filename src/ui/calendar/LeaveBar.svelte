@@ -445,7 +445,7 @@ SPDX-License-Identifier: EUPL-1.2
     }
 
     /*
-     * With up to four parts (units 1, ½ and ¼) a switch is never narrower than the touch size: the fixed blocks
+     * With up to four parts (units 1, ½, ⅓ and ¼) a switch is never narrower than the touch size: the fixed blocks
      * beside it give way first.
      */
     .few .segment {
