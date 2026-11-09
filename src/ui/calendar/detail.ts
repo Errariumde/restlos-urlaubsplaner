@@ -199,16 +199,21 @@ function samePart(a: PartName, b: PartName): boolean {
   return a.kind === b.kind;
 }
 
-/** Where a fixed block lies: the whole day, its one part, or its first to its last part. */
+/**
+ * Where a fixed block lies: the whole day, its one part, or its first to its last part, with their share named once
+ * ("13. bis 16. Sechzehntel"); a block over both halves that isn't the whole day lies from the morning to the afternoon.
+ */
 function placeText(block: FixedSegment, t: Translate): string {
+  const { first, last } = block;
   if (block.from === 0 && block.to === FULL) return partText({ kind: "day" }, t);
-  if (samePart(block.first, block.last)) return partText(block.first, t);
-  return t("detail.partRange", { first: partText(block.first, t), last: partText(block.last, t) });
+  if (samePart(first, last)) return partText(first, t);
+  if (first.kind === "part" && last.kind === "part") return t("detail.partRange", { first: first.index, last: last.index, count: first.count });
+  return t("detail.halfRange");
 }
 
 /**
  * What a fixed block is to a screen reader: where it lies and what it is ("nachmittags: frei",
- * "13. Sechzehntel bis 16. Sechzehntel: frei", "Ganzer Tag: aus anderem Plan").
+ * "13. bis 16. Sechzehntel: frei", "Ganzer Tag: aus anderem Plan").
  */
 export function fixedText(block: FixedSegment, t: Translate): string {
   return t("detail.fixed", { where: placeText(block, t), kind: block.kind });

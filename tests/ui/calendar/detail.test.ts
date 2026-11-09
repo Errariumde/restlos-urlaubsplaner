@@ -236,15 +236,21 @@ describe("the leave bar's names", () => {
     // 24 December: work in the morning, the afternoon free.
     const free = detailOf(12, 24).leave?.segments.find((segment): segment is FixedSegment => segment.kind === "free");
     expect(free && [fixedText(free, de), fixedText(free, en)]).toEqual(["nachmittags: frei", "Afternoon: off"]);
-    expect(fixedText({ kind: "free", from: 360, to: 480, first: part(13, 16), last: part(16, 16) }, de)).toBe("13. Sechzehntel bis 16. Sechzehntel: frei");
-    expect(fixedText({ kind: "free", from: 360, to: 480, first: part(13, 16), last: part(16, 16) }, en)).toBe("13th sixteenth to 16th sixteenth: off");
+    // A range of smaller parts names their share once.
+    expect(fixedText({ kind: "free", from: 360, to: 480, first: part(13, 16), last: part(16, 16) }, de)).toBe("13. bis 16. Sechzehntel: frei");
+    expect(fixedText({ kind: "free", from: 360, to: 480, first: part(13, 16), last: part(16, 16) }, en)).toBe("13th to 16th sixteenth: off");
+    expect(fixedText({ kind: "mandatory", from: 0, to: 360, first: part(1, 4), last: part(3, 4) }, de)).toBe("1. bis 3. Viertel: Pflichturlaub");
+    expect(fixedText({ kind: "mandatory", from: 0, to: 360, first: part(1, 4), last: part(3, 4) }, en)).toBe("1st to 3rd quarter: mandatory leave");
+    expect(fixedText({ kind: "free", from: 160, to: 480, first: part(2, 3), last: part(3, 3) }, de)).toBe("2. bis 3. Drittel: frei");
+    expect(fixedText({ kind: "otherPlan", from: 300, to: 345, first: part(21, 32), last: part(23, 32) }, en)).toBe("21st to 23rd thirty-second: from another plan");
     expect(fixedText({ kind: "mandatory", from: 240, to: 480, first: AFTERNOON, last: AFTERNOON }, de)).toBe("nachmittags: Pflichturlaub");
     expect(fixedText({ kind: "otherPlan", from: 120, to: 240, first: part(2, 4), last: part(2, 4) }, en)).toBe("2nd quarter: from another plan");
     // A block over the whole day is the whole day, not its first to its last part.
     expect(fixedText({ kind: "otherPlan", from: 0, to: 480, first: MORNING, last: AFTERNOON }, de)).toBe("Ganzer Tag: aus anderem Plan");
     expect(fixedText({ kind: "mandatory", from: 0, to: 480, first: part(1, 16), last: part(16, 16) }, en)).toBe("Full day: mandatory leave");
-    // Time without work from inside a part to the end of the day is not the whole day.
-    expect(fixedText({ kind: "free", from: 100, to: 480, first: MORNING, last: AFTERNOON }, en)).toBe("Morning to Afternoon: off");
+    // Time without work from inside a part to the end of the day is not the whole day: from the morning to the afternoon.
+    expect(fixedText({ kind: "free", from: 100, to: 480, first: MORNING, last: AFTERNOON }, en)).toBe("Morning to afternoon: off");
+    expect(fixedText({ kind: "free", from: 100, to: 480, first: MORNING, last: AFTERNOON }, de)).toBe("vormittags bis nachmittags: frei");
   });
 
   it("names a switch by its part, and one over time without work like the fixed block it stands for", () => {
