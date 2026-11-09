@@ -64,11 +64,12 @@ test("a leave bar's segment shows its text whole or not at all", async ({ page }
       }),
     );
   const bars = page.getByRole("group", { name: "Leave on this day" });
-  expect((await states(bars.locator(".text"))).filter((state) => state.startsWith("cut"))).toEqual([]);
+  // Polled: a text that doesn't fit is hidden once the bar's ResizeObserver has measured it.
+  await expect.poll(async () => (await states(bars.locator(".text"))).filter((state) => state.startsWith("cut"))).toEqual([]);
   // The quarters' names show none; "Morning" fits its half of the day.
   const quarters = page.getByRole("heading", { name: "Leave in quarters", exact: true }).locator("xpath=..").getByRole("group", { name: "Leave on this day" });
-  expect(await states(quarters.getByRole("button").locator(".text"))).toContain("hidden");
-  expect(await states(bars.getByRole("button", { name: "Morning", exact: true }).locator(".text"))).toContain("whole");
+  await expect.poll(() => states(quarters.getByRole("button").locator(".text"))).toContain("hidden");
+  await expect.poll(() => states(bars.getByRole("button", { name: "Morning", exact: true }).locator(".text"))).toContain("whole");
   await expectNoPageProblems(page);
 });
 

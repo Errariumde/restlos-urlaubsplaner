@@ -520,6 +520,35 @@ test.describe("the leave bar, in English at 1280 px", () => {
     await expectNoPageProblems(page);
   });
 
+  test("after a release whose click lands outside the bar, the next click on a switch is a press", async ({ page }) => {
+    await openEditedExample(page, { contract: { minUnit: "1/16" } });
+    const bar = await openBar(page, 6, 14);
+    const part = (name: string): Locator => bar.getByRole("button", { name, exact: true });
+    const box = await bar.boundingBox();
+    if (!box) throw new Error("The bar has no box");
+    const from = await centre(part("13th sixteenth"));
+    const to = await centre(part("9th sixteenth"));
+    // A drag made of script events, which brings no click of its own: pressed on the 13th sixteenth, moved to the 9th
+    // and released far below the bar, which changes nothing.
+    await part("13th sixteenth").dispatchEvent("pointerdown", { pointerId: 9, isPrimary: true, button: 0, clientX: from.x, clientY: from.y, bubbles: true });
+    const onWindow = (type: string, point: { x: number; y: number }): Promise<boolean> =>
+      page.evaluate(([name, x, y]) => window.dispatchEvent(new PointerEvent(name, { pointerId: 9, isPrimary: true, clientX: x, clientY: y, bubbles: true })), [type, point.x, point.y] as const);
+    await onWindow("pointermove", to);
+    await expect(line(page, "Costs")).toContainText("½ day");
+    await onWindow("pointerup", { x: to.x, y: box.y + box.height * 4 });
+    await expect(line(page, "Costs")).toContainText("–");
+    // Its click lands outside the bar. Then a switch gets a click with neither a pointer pressed on the bar nor a key, as
+    // an assistive technology's default action gives it: that is a press.
+    await page.evaluate(() => {
+      document.body.click();
+    });
+    await part("13th sixteenth").evaluate((button) => {
+      (button as HTMLButtonElement).click();
+    });
+    await expect(cell(page, 6, 14)).toHaveAttribute("aria-label", /leave ¼, at the end of the day/);
+    await expectNoPageProblems(page);
+  });
+
   test("a press on the free rest of a ¾ day takes the leave there away and keeps the focus on the afternoon", async ({ page }) => {
     // Every Friday works ¾ of a day; own ¼ at the end of Friday 18 June lies only on its free rest (a problem).
     const week = [{ from: "2026-01-01", required: { mon: "1", tue: "1", wed: "1", thu: "1", fri: "3/4", sat: "0", sun: "0" } }];
@@ -685,6 +714,8 @@ test.describe("on a touch screen", () => {
     const sheet = detail(page);
     const bar = sheet.getByRole("group", { name: "Leave on this day" });
     const costs = sheet.locator("p", { hasText: /^Costs/ });
+    // The switches a preview draws pressed (by their class: their `aria-pressed` stays as the bar is during a drag).
+    const drawn = bar.locator("button.pressed");
     const from = await centre(bar.getByRole("button", { name: "13th sixteenth", exact: true }));
     // The browser scrolls the sheet (the switch allows panning up and down) and cancels the pointer.
     const cdp = await page.context().newCDPSession(page);
@@ -692,10 +723,12 @@ test.describe("on a touch screen", () => {
     for (let step = 1; step <= 6; step += 1) {
       await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: from.x, y: from.y - step * 20 }] });
       await expect(costs).toContainText("–");
+      await expect(drawn).toHaveCount(0);
     }
     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     await settle(page);
     await expect(costs).toContainText("–");
+    await expect(drawn).toHaveCount(0);
     await expect(day).toHaveAttribute("aria-label", /no leave/);
     await page.keyboard.press("Escape");
     await expect(page.getByRole("button", { name: "Undo", exact: true })).toBeDisabled();

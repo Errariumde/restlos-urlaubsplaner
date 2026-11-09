@@ -173,7 +173,7 @@ Recommendation: every day has a **required work** value (how much work is owed),
 
 ### The one formula
 
-Cost of a day = the overlap of the leave with the day's working time, both as shares of the day where they lie in it. Leave lies at the start or the end of the day as its `part` says; a full day covers the whole day. The working time is one block as long as the required work: the whole day on a normal working day; on a day with less work it lies beside its free time, which is at the end unless the layer that decides the required work says `part: "start"`. The work week has no `part`, so a part-time day has its work in the morning (issue 0047, a part for work-week entries). Leave on time that is off anyway costs nothing, so the cost is never more than min(taken, required work) and equals it on a normal working day.
+Cost of a day = the overlap of the leave with the day's working time, both as shares of the day where they lie in it. Leave lies at the start or the end of the day as its `part` says; a full day covers the whole day. The working time is one block as long as the required work: the whole day on a normal working day; on a day with less work it lies beside its free time, which is at the end unless the layer that decides the required work says `part: "start"`. The work week has no `part`, so a part-time day has its work at the start of the day (issue 0047, a part for work-week entries). Leave on time that is off anyway costs nothing, so the cost is never more than min(taken, required work) and equals it on a normal working day.
 
 | Day | Leave | Cost | Result |
 | --- | --- | --- | --- |

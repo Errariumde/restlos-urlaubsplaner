@@ -15,7 +15,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 ## Problem
 
-A work-week entry gives each weekday its required work as a share of the day, but not where in the day that work lies. The engine puts the free time of a lowered day at the end unless the layer that decides the day says `part: "start"`, and the work week has no `part`. So a part-time day always has its work in the morning: someone who works half of Friday in the afternoon can't say so.
+A work-week entry gives each weekday its required work as a share of the day, but not where in the day that work lies. The engine puts the free time of a lowered day at the end unless the layer that decides the day says `part: "start"`, and the work week has no `part`. So a part-time day always has its work at the start of the day (a ¾ day's work runs into the afternoon): someone who works half of Friday in the afternoon can't say so.
 
 Since leave costs only where it overlaps the working time (issue 0031, charge leave only where it overlaps the working time), this decides what leave costs. With work on Friday afternoons, a booked Friday afternoon reads as leave on time that is off anyway (cost 0, the problem `leaveOnFreeTime`), and a booked morning costs ½ and frees the day, both the wrong way round.
 

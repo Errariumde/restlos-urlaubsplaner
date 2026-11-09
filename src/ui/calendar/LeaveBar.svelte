@@ -175,8 +175,9 @@ SPDX-License-Identifier: EUPL-1.2
   /**
    * The next click on the bar does nothing: after a release that is no press (it ended a drag, or came after Escape
    * or off the bar), whose click comes right after it if at all, and after a window blur that dropped a drag, whose
-   * release may come much later. It holds until that click comes or a new gesture starts on the bar: a pointer pressed
-   * there, or a key (Space and Enter press a switch with a click of their own).
+   * release may come much later. It holds until a click comes, also one that lands outside the bar (when the pressed
+   * switch is gone, say), or a new gesture starts on the bar: a pointer pressed there, or a key (Space and Enter press
+   * a switch with a click of their own).
    */
   let swallowClick = false;
 
@@ -188,8 +189,8 @@ SPDX-License-Identifier: EUPL-1.2
     event.preventDefault();
   }
 
-  /** A new gesture on the bar: its click is a press again. */
-  function startGesture(): void {
+  /** A new gesture on the bar, or a click that got past the bar to the window: the next click is a press again. */
+  function letClicksThrough(): void {
     swallowClick = false;
   }
 
@@ -302,13 +303,17 @@ SPDX-License-Identifier: EUPL-1.2
   });
 </script>
 
-<!-- A drag's pointer wherever it goes, first of all listeners (capture). -->
+<!--
+  A drag's pointer wherever it goes, first of all listeners (capture). A click reaches the window last (bubbling),
+  after the bar's capture listener has had it.
+-->
 <svelte:window
   onpointermovecapture={follow}
   onpointerupcapture={release}
   onpointercancelcapture={drop}
   onkeydowncapture={escape}
   onblur={drop}
+  onclick={letClicksThrough}
 />
 
 {#snippet stretch(span: DaySpan, from: Units, whole: Units, kind: string)}
@@ -349,8 +354,8 @@ SPDX-License-Identifier: EUPL-1.2
     aria-label={i18n.t("detail.actions")}
     bind:this={bar}
     onclickcapture={swallow}
-    onpointerdowncapture={startGesture}
-    onkeydowncapture={startGesture}
+    onpointerdowncapture={letClicksThrough}
+    onkeydowncapture={letClicksThrough}
   >
     {#each shown.segments as segment (segment.from)}
       {#if segment.kind === "switch"}
