@@ -76,7 +76,7 @@ export type SourceDay = (
       readonly type: "otherPlan";
       readonly day: DayNumber;
       readonly sourceId: string;
-      /** Day positions: units of a full day, 0 = start of a full working day; 0 ≤ from < to ≤ 480. */
+      /** Day positions: units of a full day, 0 = the start of the day; 0 ≤ from < to ≤ 480. */
       readonly from: Units;
       readonly to: Units;
       /** What the other plan charged it as; for display only. */

@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import { suggestPart, suggestParts } from "../../../src/engine/counting/suggest";
-import type { Part, PlanInput } from "../../../src/engine/counting/types";
+import type { DayRule, Part, PlanInput } from "../../../src/engine/counting/types";
 import { BAVARIA, baseInput, CHRISTMAS_EVE_RULES, d, FULL, HALF, fixed } from "./helpers";
 
 const suggest = (iso: string, take = HALF, changes: Partial<PlanInput> = {}) => suggestPart(baseInput(changes), d(iso), take);
@@ -25,6 +25,24 @@ describe("suggestPart", () => {
     expect(
       suggest("2027-12-24", 120, { contract: { ...BAVARIA, rules: [{ id: "closes-at-noon", match: fixed(12, 24), mandatory: HALF }] } }),
     ).toBe("start"));
+  it("prefers the end when mandatory leave covers the start, against the neighbours", () =>
+    // Monday after a free Sunday, so the neighbours alone would suggest the start; own ¼ at the start lies under the
+    // mandatory morning and frees nothing, at the end it frees work.
+    expect(
+      suggest("2027-05-10", 120, { contract: { ...BAVARIA, rules: [{ id: "closed-mornings", match: fixed(5, 10), mandatory: HALF, part: "start" }] } }),
+    ).toBe("end"));
+  it("lets the neighbours decide when neither side frees work", () => {
+    // Work ½ in the morning, its first quarter mandatory leave: own ¼ at the start lies under the mandatory leave, at the
+    // end on time without work. Neither frees work nor the whole day, so the neighbours decide.
+    const rules = (month: number, day: number): DayRule[] => [
+      { id: "half-day", match: fixed(month, day), requiredAtMost: HALF },
+      { id: "closed-early", match: fixed(month, day), mandatory: 120, part: "start" },
+    ];
+    // Monday after a free Sunday: the start.
+    expect(suggest("2027-05-10", 120, { contract: { ...BAVARIA, rules: rules(5, 10) } })).toBe("start");
+    // Wednesday between working days: no suggestion.
+    expect(suggest("2027-05-12", 120, { contract: { ...BAVARIA, rules: rules(5, 12) } })).toBeNull();
+  });
   it("lets the neighbours decide when both sides free work", () => expect(suggest("2027-05-10", 120)).toBe("start"));
   it("ignores own leave already on that day", () => expect(suggest("2027-05-10", HALF, { leave: [{ day: d("2027-05-10"), take: FULL }] })).toBe("start"));
   it("suggests the end for a full day", () => expect(suggest("2027-05-12", FULL)).toBe("end"));

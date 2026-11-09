@@ -223,7 +223,7 @@ describe("other-plan pieces with a position", () => {
     expect(evaluateLeave(at(480), [own(120, "start"), other(120, 240)], true)).toMatchObject({ cost: 120, freeStart: 240, costStart: 120, charged: [{ from: 0, to: 120, kind: "leave" }] }));
   it("charges only the second quarter of a mandatory morning", () =>
     expect(evaluateLeave(at(480), [mand(240, "start"), other(0, 120)], true)).toMatchObject({ cost: 120, mandatoryCost: 120, freeStart: 240, costStart: 120, charged: [{ from: 120, to: 240, kind: "mandatory" }] }));
-  it("places a span by day position, not by work block (Review Focus 5)", () => {
+  it("places a span by day position, not by work block", () => {
     // required ½ with the free time at the start: the work block is the afternoon, day positions 240–480
     expect(evaluateLeave(at(240, "start"), [other(0, 240)], true)).toMatchObject({ remaining: 240, whole: false, freeStart: 240 });
     expect(evaluateLeave(at(240, "start"), [other(240, 480)], true)).toMatchObject({ remaining: 0, whole: true });

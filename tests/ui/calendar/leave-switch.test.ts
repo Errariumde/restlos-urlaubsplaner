@@ -264,6 +264,27 @@ describe("leaveSwitch on a day with time without work", () => {
       ["mandatory", 360, 480],
     ]);
   });
+
+  it("splits time without work that mandatory leave covers only in part by kind", () => {
+    // 24 December with mandatory ¼ at the end, in quarters: the free afternoon is a free block over the 3rd quarter
+    // and a mandatory block over the 4th.
+    const view = leaveSwitch(christmasEve([mandatory(120)]), 120);
+    expect(short(view.segments)).toEqual([
+      [part(1, 4), "false", { day: DAY, take: 120, part: "start" }],
+      [part(2, 4), "false", morning],
+      ["free", 240, 360],
+      ["mandatory", 360, 480],
+    ]);
+    expect(view.segments.slice(2)).toEqual([
+      { kind: "free", from: 240, to: 360, first: part(3, 4), last: part(3, 4) },
+      { kind: "mandatory", from: 360, to: 480, first: part(4, 4), last: part(4, 4) },
+    ]);
+    // In half days the afternoon is one part, split the same way inside it.
+    expect(leaveSwitch(christmasEve([mandatory(120)]), 240).segments.slice(1)).toEqual([
+      { kind: "free", from: 240, to: 360, first: AFTERNOON, last: AFTERNOON },
+      { kind: "mandatory", from: 360, to: 480, first: AFTERNOON, last: AFTERNOON },
+    ]);
+  });
 });
 
 describe("leaveSwitch in parts of the plan's unit", () => {

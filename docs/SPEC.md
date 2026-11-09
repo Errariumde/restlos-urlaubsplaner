@@ -970,7 +970,7 @@ Recommendation: three versions; each is usable on its own. The must lists under 
 
 - Project name **restlos-urlaubsplaner** (repository and file name of the HTML); short name in the app "restlos", subtitle "Urlaub rund um Feiertage und Brückentage planen" (EN: "Vacation planner for bridge days and holidays").
 - Country-neutral core incl. work week per country; data initially only for Germany.
-- Only days, no hours: taken as a share (UI currently full or half, data model and engine down to 1/32), required work with fractions; cost = the overlap of the leave with the working time.
+- Only days, no hours: taken as a share (in the UI the day detail's leave bar offers the plan's smallest leave unit, H and the range actions half and full days; data model and engine down to 1/32), required work with fractions; cost = the overlap of the leave with the working time.
 - One plan, one allowance; no automatic carry-over; days from sources "Leave from another plan" (.ics or .urlaub.json) are displayed here and counted in the other plan, not in this one.
 - License EUPL-1.2 for code and data; templates and examples MIT-0; documentation CC BY 4.0.
 - German and English from version 1, with a fixed glossary.
