@@ -8,19 +8,24 @@ SPDX-License-Identifier: EUPL-1.2
   import { i18n } from "../../ui/i18n/i18n.svelte.ts";
   import type { LeaveChange, PlanState } from "../../ui/worker/protocol.ts";
   import { Session } from "../../ui/worker/session.ts";
-  import { situations, situationsPlan } from "./detail-situations.ts";
+  import { planText, situations, type PlanName } from "./detail-situations.ts";
 
-  // Every situation of the day detail, shown inline (the content of the popover and the sheet). One plan holds them
-  // all; the real engine computes it here in the page, and the switches change it, so each detail can be tried.
-  const session = new Session();
+  // Every situation of the day detail, shown inline (the content of the popover and the sheet). Three plans hold
+  // them all, one of them per smallest leave unit; the real engine computes them here in the page, and the switches
+  // change them, so each detail can be tried.
+  const sessions: Record<PlanName, Session> = { situations: new Session(), quarters: new Session(), sixteenths: new Session() };
   const t = (key: string): string => i18n.t(key);
 
-  /** The plan as opened; a click replaces it with the changed plan, a change of language opens it again. */
-  let state = $derived.by((): PlanState | undefined => {
+  /** The plans as opened; a click replaces one with the changed plan, a change of language opens them again. */
+  let states = $derived.by((): Partial<Record<PlanName, PlanState>> => {
     const example = document.getElementById("example-plan")?.textContent;
-    if (!example) return undefined;
-    const opened = session.open(situationsPlan(example, t), true);
-    return "refused" in opened ? undefined : opened;
+    if (!example) return {};
+    const opened: Partial<Record<PlanName, PlanState>> = {};
+    for (const name of ["situations", "quarters", "sixteenths"] as const) {
+      const state = sessions[name].open(planText(name, example, t), true);
+      if (!("refused" in state)) opened[name] = state;
+    }
+    return opened;
   });
 
   const groups = $derived(situations(t));
@@ -30,16 +35,18 @@ SPDX-License-Identifier: EUPL-1.2
     return current.result.days[day - first];
   }
 
-  function apply(change: LeaveChange): void {
-    state = session.apply([change]);
+  function apply(name: PlanName, change: LeaveChange): void {
+    states = { ...states, [name]: sessions[name].apply([change]) };
   }
 </script>
 
-{#if state}
-  {@const current = state}
-  <div class="stack">
-    {#each groups as group (group.title)}
-      <section class="stack">
+<div class="stack">
+  {#each groups as group (group.title)}
+    {@const plan = group.plan ?? "situations"}
+    {@const current = states[plan]}
+    {#if current}
+      <!-- The accessibility check (axe) leaves out the groups marked with data-axe-skip; their `skipAxe` says why. -->
+      <section class="stack" data-axe-skip={group.skipAxe ? "" : undefined}>
         <h2>{group.title}</h2>
         <div class="samples">
           {#each group.samples as [caption, day] (day)}
@@ -47,15 +54,21 @@ SPDX-License-Identifier: EUPL-1.2
             {#if result}
               <figure>
                 <figcaption>{caption}</figcaption>
-                <DayDetail day={result} meta={current.meta} problems={current.result.problems} presentation="inline" onapply={apply} />
+                <DayDetail
+                  day={result}
+                  meta={current.meta}
+                  problems={current.result.problems}
+                  presentation="inline"
+                  onapply={(change: LeaveChange) => apply(plan, change)}
+                />
               </figure>
             {/if}
           {/each}
         </div>
       </section>
-    {/each}
-  </div>
-{/if}
+    {/if}
+  {/each}
+</div>
 
 <style>
   @layer components {

@@ -19,8 +19,7 @@ SPDX-License-Identifier: EUPL-1.2
   import { app } from "../state/app.svelte.ts";
   import type { LeaveChange, PlanMeta } from "../worker/protocol.ts";
   import { lineStyle, sourceAccent } from "./cell-lanes.ts";
-  import { amountText, dayDetail, reasonText, type DaySpan } from "./detail.ts";
-  import type { PartName } from "./leave-switch.ts";
+  import { amountText, dayDetail, fixedText, partText, reasonText, switchText, type DaySpan, type SwitchSegment } from "./detail.ts";
   import { problemText } from "./problems.ts";
   import SheetStatus from "./SheetStatus.svelte";
 
@@ -45,12 +44,6 @@ SPDX-License-Identifier: EUPL-1.2
   const label = $derived(i18n.t("detail.label", { date }));
   const id = $derived(`day-detail-${String(day.day)}`);
 
-  /** A switch's text: the half or the whole day by name, a smaller part by its number in the day. */
-  function partText(name: PartName): string {
-    if (name.kind === "part") return String(name.index);
-    return i18n.t("detail.segment", { name: name.kind === "half" ? name.half : "day" });
-  }
-
   /** A share of the day as a percentage of `whole`, for a stretch drawn inside a bar. */
   const percent = (units: Units, whole: Units = UNITS_PER_DAY): string => `${String((units / whole) * 100)}%`;
 
@@ -64,18 +57,53 @@ SPDX-License-Identifier: EUPL-1.2
   );
 
   let content = $state<HTMLElement>();
+  let bar = $state<HTMLElement>();
 
-  /** One click, one change, one undo step. The detail stays open and shows the day as it is now. */
-  async function run(change: LeaveChange | undefined): Promise<void> {
+  /** The leave bar's switches that a press can change, in the order of the day: the stops of its arrow keys. */
+  const usable = $derived(detail.leave?.segments.filter((segment): segment is SwitchSegment => segment.kind === "switch" && segment.change !== undefined) ?? []);
+  /** The switch the focus was on last, on this day. */
+  let focused = $state<{ day: number; from: Units }>();
+  /** The bar's one Tab stop (roving tabindex): the switch the focus was on last, else the first one. */
+  const stop = $derived(usable.find((segment) => focused?.day === day.day && segment.from === focused.from)?.from ?? usable[0]?.from);
+
+  function focusSwitch(from: Units): void {
+    bar?.querySelector<HTMLElement>(`[data-from="${String(from)}"]`)?.focus();
+  }
+
+  /** The arrow keys move to the next or the previous switch (in the reading direction), Home and End to the first or the last. */
+  function moveInBar(event: KeyboardEvent, from: Units): void {
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+    const at = usable.findIndex((segment) => segment.from === from);
+    const ahead = i18n.dir === "rtl" ? -1 : 1;
+    const steps: Record<string, number> = { ArrowRight: at + ahead, ArrowLeft: at - ahead, ArrowDown: at + 1, ArrowUp: at - 1, Home: 0, End: usable.length - 1 };
+    const to = steps[event.key];
+    if (to === undefined || at < 0) return;
+    event.preventDefault();
+    const target = usable[Math.max(0, Math.min(to, usable.length - 1))];
+    if (target) focusSwitch(target.from);
+  }
+
+  /** The switch nearest to the stretch `span` of the day, the one over it first. */
+  function nearestSwitch(span: DaySpan): SwitchSegment | undefined {
+    const distance = (segment: SwitchSegment): number => Math.max(0, segment.from - span.to, span.from - segment.to);
+    return usable.reduce<SwitchSegment | undefined>((best, segment) => (best === undefined || distance(segment) < distance(best) ? segment : best), undefined);
+  }
+
+  /**
+   * One click, one change, one undo step. The detail stays open and shows the day as it is now. `pressed` is the
+   * switch that made the change: if it is gone or disabled now, the focus goes to the switch nearest to it.
+   */
+  async function run(change: LeaveChange | undefined, pressed?: DaySpan): Promise<void> {
     if (change === undefined || app.applying) return;
     await onapply(change);
     await tick();
     // The control just used may be disabled or gone now: keep the focus in the detail.
     const active = document.activeElement;
     const stale = active === null || active === document.body || ((active instanceof HTMLButtonElement || active instanceof HTMLInputElement) && active.disabled);
-    if (content && (stale || !content.contains(active))) {
-      (content.querySelector<HTMLElement>("button:not(:disabled), input:not(:disabled)") ?? content).focus();
-    }
+    if (!content || (!stale && content.contains(active))) return;
+    const near = pressed === undefined ? undefined : nearestSwitch(pressed);
+    if (near !== undefined) focusSwitch(near.from);
+    else (content.querySelector<HTMLElement>("button:not(:disabled), input:not(:disabled)") ?? content).focus();
   }
 </script>
 
@@ -105,7 +133,7 @@ SPDX-License-Identifier: EUPL-1.2
       </p>
       <div class="bar off-{required.off}" aria-hidden="true">
         {#each required.blocks as block (block.from)}
-          <span class="block" class:work={block.work} style:flex-grow={block.to - block.from}>{block.work ? i18n.t("detail.work") : i18n.t("detail.off")}</span>
+          <span class="block" class:work={block.work} style:flex-basis={percent(block.to - block.from)}>{block.work ? i18n.t("detail.work") : i18n.t("detail.off")}</span>
         {/each}
       </div>
     </div>
@@ -124,26 +152,36 @@ SPDX-License-Identifier: EUPL-1.2
             />
           {/if}
         </div>
-        <div class="bar switches" role="group" aria-label={i18n.t("detail.actions")}>
+        <!--
+          One element per segment, in the order of the day, each as wide as its share of the day. Switches are
+          toggle buttons named by their part; fixed blocks show a short word and are read by their full name.
+        -->
+        <div class={["bar switches", { few: leave.parts <= 4 }]} role="group" aria-label={i18n.t("detail.actions")} bind:this={bar}>
           {#each leave.segments as segment (segment.from)}
             {#if segment.kind === "switch"}
               <button
                 type="button"
                 class="segment"
-                style:flex-grow={segment.to - segment.from}
+                style:flex-basis={percent(segment.to - segment.from)}
+                data-from={segment.from}
+                tabindex={segment.from === stop ? 0 : -1}
+                aria-label={switchText(segment, day.required, words.t)}
                 aria-pressed={segment.pressed}
                 disabled={!segment.change}
-                onclick={() => void run(segment.change)}
+                onfocus={() => (focused = { day: day.day, from: segment.from })}
+                onkeydown={(event) => moveInBar(event, segment.from)}
+                onclick={() => void run(segment.change, segment)}
               >
                 {#each segment.fills as fill (fill.from)}
                   {@render stretch(fill, segment.from, segment.to - segment.from, fill.kind)}
                 {/each}
-                <span class="text">{partText(segment.name)}</span>
+                <span class="text">{partText(segment.name, words.t)}</span>
               </button>
-            {:else if segment.kind === "free"}
-              <span class="locked free" style:flex-grow={segment.to - segment.from}>{i18n.t("detail.off")}</span>
             {:else}
-              <span class="locked {segment.kind}" style:flex-grow={segment.to - segment.from}>{i18n.t("detail.locked", { kind: segment.kind })}</span>
+              <span class={["locked", segment.kind, segment.kind === "free" && `off-${required.off}`]} style:flex-basis={percent(segment.to - segment.from)}>
+                <span class="text" aria-hidden="true">{segment.kind === "free" ? i18n.t("detail.off") : i18n.t("detail.locked", { kind: segment.kind })}</span>
+                <span class="spoken">{fixedText(segment, words.t)}</span>
+              </span>
             {/if}
           {/each}
         </div>
@@ -272,7 +310,10 @@ SPDX-License-Identifier: EUPL-1.2
       white-space: nowrap;
     }
 
-    /* The two bars: blocks of the day side by side, as long as their share of it, over the full width. */
+    /*
+     * The two bars: blocks of the day side by side, each as long as its share of the day (its flex-basis), over the
+     * full width, so that the blocks of both bars line up.
+     */
     .bar {
       display: flex;
       min-block-size: 1.75rem;
@@ -288,13 +329,45 @@ SPDX-License-Identifier: EUPL-1.2
     .locked {
       position: relative;
       display: grid;
-      flex-basis: 0;
       min-inline-size: 0;
       place-items: center;
       padding-inline: var(--space-1);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    /*
+     * The leave bar's segments can be a sliver of the day, so their padding sits on the text, and a segment
+     * too narrow for its text shows none.
+     */
+    .segment,
+    .locked {
+      container-type: inline-size;
+      padding-inline: 0;
+    }
+
+    .switches .text {
+      max-inline-size: 100%;
+      padding-inline: var(--space-1);
+    }
+
+    @container (inline-size < 2.5rem) {
+      .switches .text {
+        display: none;
+      }
+    }
+
+    /*
+     * With up to four parts (units 1, ½ and ¼) a switch is never narrower than the touch size: the fixed blocks
+     * beside it give way first.
+     */
+    .few .segment {
+      min-inline-size: 2.75rem;
+    }
+
+    .switches .locked {
+      flex-shrink: 1000;
     }
 
     .bar > :not(:first-child) {
@@ -306,19 +379,24 @@ SPDX-License-Identifier: EUPL-1.2
       background: var(--r-workday);
     }
 
-    .off-weekend .block:not(.work) {
+    /* The leave bar's blocks of time without work look exactly like the free time above them. */
+    .off-weekend .block:not(.work),
+    .locked.free.off-weekend {
       background: var(--r-fill-weekend);
     }
 
-    .off-holiday .block:not(.work) {
+    .off-holiday .block:not(.work),
+    .locked.free.off-holiday {
       background: var(--r-fill-holiday);
     }
 
-    .off-halfRequired .block:not(.work) {
+    .off-halfRequired .block:not(.work),
+    .locked.free.off-halfRequired {
       background: var(--r-fill-half-required);
     }
 
-    .off-free .block:not(.work) {
+    .off-free .block:not(.work),
+    .locked.free.off-free {
       background: var(--r-fill-free);
     }
 

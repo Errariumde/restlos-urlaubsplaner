@@ -6,7 +6,8 @@ import { IntlMessageFormat } from "intl-messageformat";
 import { describe, expect, it } from "vitest";
 import type { DayResult } from "../../../src/engine/counting/plan.ts";
 import { dayFromYmd } from "../../../src/engine/days.ts";
-import { amountText, dayDetail, reasonText, type Reason } from "../../../src/ui/calendar/detail.ts";
+import { amountText, dayDetail, fixedText, partText, reasonText, switchText, type FixedSegment, type Reason, type SwitchSegment } from "../../../src/ui/calendar/detail.ts";
+import { leaveSwitch, type PartName } from "../../../src/ui/calendar/leave-switch.ts";
 import type { Catalog, Locale } from "../../../src/ui/i18n/locale.ts";
 import type { PlanState } from "../../../src/ui/worker/protocol.ts";
 import { Session } from "../../../src/ui/worker/session.ts";
@@ -195,5 +196,70 @@ describe("amountText", () => {
     expect(amountText(240, i18n("de"))).toBe("½\u00a0Tag");
     expect(amountText(480, i18n("de"))).toBe("1\u00a0Tag");
     expect(amountText(720, i18n("en"))).toBe("1½\u00a0days");
+  });
+});
+
+describe("the leave bar's names", () => {
+  const de = i18n("de").t;
+  const en = i18n("en").t;
+  const part = (index: number, count: number): PartName => ({ kind: "part", index, count });
+  const MORNING: PartName = { kind: "half", half: "morning" };
+  const AFTERNOON: PartName = { kind: "half", half: "afternoon" };
+
+  it("names the halves and the whole day by name, smaller parts by their place in the day", () => {
+    expect([partText(MORNING, de), partText(AFTERNOON, de), partText({ kind: "day" }, de)]).toEqual(["vormittags", "nachmittags", "Ganzer Tag"]);
+    expect([partText(MORNING, en), partText(AFTERNOON, en), partText({ kind: "day" }, en)]).toEqual(["Morning", "Afternoon", "Full day"]);
+    expect(partText(part(4, 16), de)).toBe("4. Sechzehntel");
+    expect(partText(part(4, 16), en)).toBe("4th sixteenth");
+    expect(partText(part(2, 4), de)).toBe("2. Viertel");
+    expect(partText(part(2, 4), en)).toBe("2nd quarter");
+    expect([1, 2, 3, 4, 11, 12, 13, 21, 22, 23, 32].map((index) => partText(part(index, 32), en))).toEqual(
+      ["1st", "2nd", "3rd", "4th", "11th", "12th", "13th", "21st", "22nd", "23rd", "32nd"].map((ordinal) => `${ordinal} thirty-second`),
+    );
+  });
+
+  it("has a name for every number of parts a bar can have", () => {
+    const counts = [3, 4, 5, 6, 8, 10, 12, 15, 16, 20, 24, 30, 32];
+    expect(counts.map((count) => partText(part(1, count), de))).toEqual(
+      ["Drittel", "Viertel", "Fünftel", "Sechstel", "Achtel", "Zehntel", "Zwölftel", "Fünfzehntel", "Sechzehntel", "Zwanzigstel", "Vierundzwanzigstel", "Dreißigstel", "Zweiunddreißigstel"].map(
+        (share) => `1. ${share}`,
+      ),
+    );
+    expect(counts.map((count) => partText(part(1, count), en))).toEqual(
+      ["third", "quarter", "fifth", "sixth", "eighth", "tenth", "twelfth", "fifteenth", "sixteenth", "twentieth", "twenty-fourth", "thirtieth", "thirty-second"].map(
+        (share) => `1st ${share}`,
+      ),
+    );
+  });
+
+  it("names a fixed block by where it lies and what it is", () => {
+    // 24 December: work in the morning, the afternoon free.
+    const free = detailOf(12, 24).leave?.segments.find((segment): segment is FixedSegment => segment.kind === "free");
+    expect(free && [fixedText(free, de), fixedText(free, en)]).toEqual(["nachmittags: frei", "Afternoon: off"]);
+    expect(fixedText({ kind: "free", from: 360, to: 480, first: part(13, 16), last: part(16, 16) }, de)).toBe("13. Sechzehntel bis 16. Sechzehntel: frei");
+    expect(fixedText({ kind: "free", from: 360, to: 480, first: part(13, 16), last: part(16, 16) }, en)).toBe("13th sixteenth to 16th sixteenth: off");
+    expect(fixedText({ kind: "mandatory", from: 240, to: 480, first: AFTERNOON, last: AFTERNOON }, de)).toBe("nachmittags: Pflichturlaub");
+    expect(fixedText({ kind: "otherPlan", from: 120, to: 240, first: part(2, 4), last: part(2, 4) }, en)).toBe("2nd quarter: from another plan");
+    // A block over the whole day is the whole day, not its first to its last part.
+    expect(fixedText({ kind: "otherPlan", from: 0, to: 480, first: MORNING, last: AFTERNOON }, de)).toBe("Ganzer Tag: aus anderem Plan");
+    expect(fixedText({ kind: "mandatory", from: 0, to: 480, first: part(1, 16), last: part(16, 16) }, en)).toBe("Full day: mandatory leave");
+    // Time without work from inside a part to the end of the day is not the whole day.
+    expect(fixedText({ kind: "free", from: 100, to: 480, first: MORNING, last: AFTERNOON }, en)).toBe("Morning to Afternoon: off");
+  });
+
+  it("names a switch by its part, and one over time without work like the fixed block it stands for", () => {
+    // A ¾ day with own leave lying only on its free last quarter (from a file): two afternoon switches.
+    const day = {
+      ...at(6, 14),
+      required: { ...at(6, 14).required, value: 360, freePart: "end" as const },
+      leave: [{ kind: "own" as const, take: 120, part: "end" as const }],
+    };
+    const switches = leaveSwitch(day, 240).segments.filter((segment): segment is SwitchSegment => segment.kind === "switch");
+    expect(switches.map((segment) => switchText(segment, day.required, en))).toEqual(["Morning", "Afternoon", "Afternoon: off"]);
+    expect(switches.map((segment) => switchText(segment, day.required, de))).toEqual(["vormittags", "nachmittags", "nachmittags: frei"]);
+    // Free time at the start: the work lies at the end of the day.
+    const morningOff = { ...day, required: { ...day.required, value: 240, freePart: "start" as const }, leave: [{ kind: "own" as const, take: 240, part: "start" as const }] };
+    const named = leaveSwitch(morningOff, 240).segments.flatMap((segment) => (segment.kind === "switch" ? [switchText(segment, morningOff.required, en)] : []));
+    expect(named).toEqual(["Morning: off", "Afternoon"]);
   });
 });

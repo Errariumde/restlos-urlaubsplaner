@@ -5,7 +5,7 @@
 // a long press open it; on a narrow calendar or a touch screen it is a bottom sheet.
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { dayFromYmd } from "../src/engine/days.ts";
-import { expectNoPageProblems, openApp, openExampleFromStart, openGallery } from "./helpers.ts";
+import { expectNoPageProblems, openApp, openEditedExample, openExampleFromStart, openGallery } from "./helpers.ts";
 
 const cell = (page: Page, month: number, day: number): Locator => page.locator(`[data-day="${String(dayFromYmd(2027, month, day))}"]`);
 const detail = (page: Page): Locator => page.getByRole("dialog", { name: /^Details for / });
@@ -102,8 +102,10 @@ test.describe("in English at 1280 px", () => {
     const popover = detail(page);
     await expect(popover).toBeVisible();
     await expect(popover.getByRole("list", { name: "Calendars" })).toHaveText("Leave 2026");
-    // Another plan's leave fills the day: the bar shows it locked, with nothing to switch.
-    await expect(popover.getByRole("group", { name: "Leave on this day" })).toHaveText("From another plan");
+    // Another plan's leave fills the day: the bar shows it as a fixed block, read by its name, with nothing to switch.
+    const bar = popover.getByRole("group", { name: "Leave on this day" });
+    await expect(bar.getByText("From another plan", { exact: true })).toBeVisible();
+    await expect(bar.getByText("Full day: from another plan", { exact: true })).toHaveCount(1);
     await expect(popover.getByRole("checkbox")).toHaveCount(0);
     await expect(popover.getByRole("button")).toHaveCount(0);
     await expect(popover).toContainText("Leave from Leave 2026: counts there");
@@ -151,6 +153,28 @@ test.describe("in English at 1280 px", () => {
     await expectNoPageProblems(page);
   });
 
+  test("the free afternoon of 24 December is a fixed block", async ({ page }) => {
+    await cell(page, 12, 24).focus();
+    await page.keyboard.press("ContextMenu");
+    const popover = detail(page);
+    const bar = popover.getByRole("group", { name: "Leave on this day" });
+    await expect(bar.getByRole("button")).toHaveCount(1);
+    await expect(bar.getByRole("button", { name: "Morning", exact: true })).toBeVisible();
+    await expect(bar.getByRole("button", { name: "Afternoon", exact: true })).toHaveCount(0);
+    // Screen readers hear the block by its name; the bar shows "off" in the Soll bar's look.
+    await expect(bar.getByText("Afternoon: off", { exact: true })).toHaveCount(1);
+    await expect(bar.getByText("off", { exact: true })).toBeVisible();
+    // The block's fill, and the Soll bar's free block's above it.
+    const fill = (element: Element): string => {
+      const style = getComputedStyle(element.closest(".block, .locked") ?? element);
+      return `${style.backgroundColor} ${style.backgroundImage}`;
+    };
+    const free = await bar.getByText("off", { exact: true }).evaluate(fill);
+    expect(free).not.toBe(await bar.getByRole("button").evaluate(fill));
+    expect(free).toBe(await popover.getByText("off", { exact: true }).first().evaluate(fill));
+    await expectNoPageProblems(page);
+  });
+
   test("a right-click on another day while the detail is open shows that day", async ({ page }) => {
     await cell(page, 6, 14).click({ button: "right" });
     await expect(detail(page)).toHaveAccessibleName(/^Details for Monday,? 14 June 2027$/);
@@ -158,6 +182,68 @@ test.describe("in English at 1280 px", () => {
     await expect(detail(page)).toHaveAccessibleName(/^Details for Thursday,? 27 May 2027$/);
     await expect(detail(page)).toContainText("Corpus Christi (public holiday): off");
     await expect(detail(page)).toHaveCount(1);
+    await expectNoPageProblems(page);
+  });
+});
+
+test.describe("the leave bar, in English at 1280 px", () => {
+  test.use({ locale: "en-GB", viewport: { width: 1280, height: 800 } });
+
+  /** Opens the detail of a day with the context-menu key and gives its leave bar. */
+  async function openBar(page: Page, month: number, day: number): Promise<Locator> {
+    await cell(page, month, day).focus();
+    await page.keyboard.press("ContextMenu");
+    return detail(page).getByRole("group", { name: "Leave on this day" });
+  }
+
+  test("the leave bar is one Tab stop", async ({ page }) => {
+    await openEditedExample(page, { contract: { minUnit: "1/16" } });
+    const bar = await openBar(page, 6, 14);
+    const part = (name: string): Locator => bar.getByRole("button", { name, exact: true });
+    const fullDay = detail(page).getByRole("checkbox", { name: "Full day" });
+    await expect(fullDay).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(part("1st sixteenth")).toBeFocused();
+    await page.keyboard.press("ArrowRight");
+    await expect(part("2nd sixteenth")).toBeFocused();
+    await page.keyboard.press("End");
+    await expect(part("16th sixteenth")).toBeFocused();
+    await page.keyboard.press("Home");
+    await expect(part("1st sixteenth")).toBeFocused();
+    await expect(bar.locator('[tabindex="0"]')).toHaveCount(1);
+    // Shift+Tab leaves the bar from its last switch in one step, and Tab comes back to that switch. (Leaving
+    // forwards and coming back with Shift+Tab depends on the browser here: the popover is last in the page, and
+    // Firefox wraps a Tab there round to the toolbar.)
+    await page.keyboard.press("End");
+    await page.keyboard.press("Shift+Tab");
+    await expect(fullDay).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(part("16th sixteenth")).toBeFocused();
+    await page.keyboard.press("Home");
+    for (let step = 0; step < 12; step++) await page.keyboard.press("ArrowRight");
+    await expect(part("13th sixteenth")).toBeFocused();
+    await page.keyboard.press("Space");
+    await expect(page.getByTestId("hint-line")).toHaveText(/^14\sJun: leave ¼, at the end of the day\./);
+    await expect(part("13th sixteenth")).toHaveAttribute("aria-pressed", "true");
+    await expect(part("13th sixteenth")).toBeFocused();
+    // One more Tab leaves the bar, from a switch in its middle.
+    await page.keyboard.press("Tab");
+    expect(await bar.evaluate((element) => element.contains(document.activeElement))).toBe(false);
+    await expectNoPageProblems(page);
+  });
+
+  test("the focus stays in the bar when the pressed switch goes", async ({ page }) => {
+    // Own leave on the free afternoon (a problem): its switch is named like the fixed block it stands for.
+    await openEditedExample(page, { plan: { days: [{ date: "2027-12-24", take: "1/2", part: "end" }] } });
+    const bar = await openBar(page, 12, 24);
+    const free = bar.getByRole("button", { name: "Afternoon: off", exact: true });
+    await expect(free).toHaveAttribute("aria-pressed", "true");
+    await free.focus();
+    await page.keyboard.press("Space");
+    await expect(cell(page, 12, 24)).toHaveAttribute("aria-label", /no leave/);
+    await expect(bar.getByRole("button", { name: /^Afternoon/ })).toHaveCount(0);
+    await expect(bar.getByText("Afternoon: off", { exact: true })).toHaveCount(1);
+    await expect(bar.getByRole("button", { name: "Morning", exact: true })).toBeFocused();
     await expectNoPageProblems(page);
   });
 });
@@ -310,6 +396,27 @@ test.describe("a detail waiting for its button's release", () => {
 test.describe("in right-to-left text", () => {
   test.skip(({ browserName }) => browserName === "webkit", "The gallery is checked in Chromium and Firefox.");
   test.use({ viewport: { width: 1280, height: 800 } });
+
+  test("in RTL the arrow keys move through the leave bar in the reading direction", async ({ page }) => {
+    await openGallery(page, { section: "day-detail", locale: "en-XB", mode: "light" });
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    // The bar of the first day in quarters: its first quarter lies at the right.
+    const quarters = page.locator("section", { has: page.getByRole("heading", { name: /Leave in quarters/ }) });
+    const bar = quarters.getByRole("group").first();
+    const first = bar.getByRole("button", { name: /1st quarter/ });
+    const second = bar.getByRole("button", { name: /2nd quarter/ });
+    expect((await first.boundingBox())!.x).toBeGreaterThan((await second.boundingBox())!.x);
+    await first.focus();
+    await page.keyboard.press("ArrowLeft");
+    await expect(second).toBeFocused();
+    await page.keyboard.press("ArrowRight");
+    await expect(first).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(second).toBeFocused();
+    await page.keyboard.press("ArrowUp");
+    await expect(first).toBeFocused();
+    await expectNoPageProblems(page);
+  });
 
   test("in RTL the popover opens toward the inline end and stays on screen", async ({ page }) => {
     await openGallery(page, { section: "main-tiles", locale: "en-XB", mode: "light" });

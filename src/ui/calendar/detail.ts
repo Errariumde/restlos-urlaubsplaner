@@ -5,7 +5,7 @@
 // the leave as a bar of switches with its cost and the work left, the calendars as bars, the reasons for the
 // required work and the leave, and the day's problems.
 import type { DayResult, Problem } from "../../engine/counting/plan.ts";
-import type { RequiredLayer } from "../../engine/counting/required.ts";
+import type { RequiredLayer, RequiredWork } from "../../engine/counting/required.ts";
 import type { SourceDay } from "../../engine/counting/types.ts";
 import { textFor } from "../../engine/file/text.ts";
 import { UNITS_PER_DAY, type Units } from "../../engine/weight.ts";
@@ -13,7 +13,7 @@ import { formatDate, formatDays, pluralCount } from "../i18n/format.ts";
 import { textLanguage, type Locale } from "../i18n/locale.ts";
 import type { PlanMeta, SourceMeta } from "../worker/protocol.ts";
 import { kindOf, type Translate } from "./label.ts";
-import { leaveSwitch, type LeaveSwitch } from "./leave-switch.ts";
+import { leaveSwitch, type LeaveSegment, type LeaveSwitch, type PartName } from "./leave-switch.ts";
 
 /** The pattern of the free time, as the cell draws the day. */
 export type OffKind = "weekend" | "holiday" | "halfRequired" | "free";
@@ -179,6 +179,51 @@ export function dayDetail(day: DayResult, meta: PlanMeta, problems: readonly Pro
   if (day.leave.length === 0 && !(day.inPeriod && day.required.value > 0)) return { ...base, noLeave: day.inPeriod ? "notNeeded" : "outsidePeriod" };
   const { cost, remaining } = day.evaluation;
   return { ...base, leave: { ...leaveSwitch(day, meta.minUnit), cost, remaining } };
+}
+
+/** A switch of the leave bar. */
+export type SwitchSegment = Extract<LeaveSegment, { kind: "switch" }>;
+
+/** A fixed block of the leave bar: time without work, mandatory leave or another plan's leave. */
+export type FixedSegment = Exclude<LeaveSegment, SwitchSegment>;
+
+/** A part of the day by its name: a half or the whole day ("vormittags", "Ganzer Tag"), a smaller part by its place ("4. Sechzehntel"). */
+export function partText(name: PartName, t: Translate): string {
+  if (name.kind === "part") return t("detail.part", { index: name.index, count: name.count });
+  return t("detail.segment", { name: name.kind === "half" ? name.half : "day" });
+}
+
+function samePart(a: PartName, b: PartName): boolean {
+  if (a.kind === "part" && b.kind === "part") return a.index === b.index;
+  if (a.kind === "half" && b.kind === "half") return a.half === b.half;
+  return a.kind === b.kind;
+}
+
+/** Where a fixed block lies: the whole day, its one part, or its first to its last part. */
+function placeText(block: FixedSegment, t: Translate): string {
+  if (block.from === 0 && block.to === FULL) return partText({ kind: "day" }, t);
+  if (samePart(block.first, block.last)) return partText(block.first, t);
+  return t("detail.partRange", { first: partText(block.first, t), last: partText(block.last, t) });
+}
+
+/**
+ * What a fixed block is to a screen reader: where it lies and what it is ("nachmittags: frei",
+ * "13. Sechzehntel bis 16. Sechzehntel: frei", "Ganzer Tag: aus anderem Plan").
+ */
+export function fixedText(block: FixedSegment, t: Translate): string {
+  return t("detail.fixed", { where: placeText(block, t), kind: block.kind });
+}
+
+/**
+ * A switch's name: its part's. A switch over time without work (it is there only to take away own leave that lies
+ * on free time alone) is named like the fixed block it stands for ("nachmittags: frei"), so that two switches of one
+ * bar never share a name: the free rest of a part can be a switch beside the switch over the part's work.
+ */
+export function switchText(segment: SwitchSegment, required: Pick<RequiredWork, "value" | "freePart">, t: Translate): string {
+  const name = partText(segment.name, t);
+  const workFrom = required.freePart === "end" ? 0 : FULL - required.value;
+  const onWork = Math.max(segment.from, workFrom) < Math.min(segment.to, workFrom + required.value);
+  return onWork ? name : t("detail.fixed", { where: name, kind: "free" });
 }
 
 /** A day amount with its unit: "½ Tag", "1 Tag", "1½ Tage". */
