@@ -53,8 +53,8 @@ function share(kind: LeaveShare["kind"], spans: readonly Span[]): LeaveShare {
 
 /**
  * The leave of a day as the cell, its label and the detail show it. A kind fills the cell only when it is the
- * day's only leave and no work is left; leave on a day without work lies nowhere, and own leave there fills it
- * too. Otherwise each share is drawn where the engine placed it: own leave where no mandatory leave lies.
+ * day's only placed leave and no work is left, also on a day without work. Otherwise each share is drawn where the
+ * engine placed it, on work and on time without work alike: own leave where no mandatory leave lies.
  */
 export function dayLeave(day: DayResult): DayLeaveView {
   const { placed, whole } = day.evaluation;

@@ -20,6 +20,7 @@ SPDX-License-Identifier: EUPL-1.2
   import type { LeaveChange, PlanMeta } from "../worker/protocol.ts";
   import { lineStyle, sourceAccent } from "./cell-lanes.ts";
   import { amountText, dayDetail, reasonText, type DaySpan } from "./detail.ts";
+  import type { PartName } from "./leave-switch.ts";
   import { problemText } from "./problems.ts";
   import SheetStatus from "./SheetStatus.svelte";
 
@@ -43,6 +44,12 @@ SPDX-License-Identifier: EUPL-1.2
   const date = $derived(formatDate(day.day, i18n.locale, "long"));
   const label = $derived(i18n.t("detail.label", { date }));
   const id = $derived(`day-detail-${String(day.day)}`);
+
+  /** A switch's text: the half or the whole day by name, a smaller part by its number in the day. */
+  function partText(name: PartName): string {
+    if (name.kind === "part") return String(name.index);
+    return i18n.t("detail.segment", { name: name.kind === "half" ? name.half : "day" });
+  }
 
   /** A share of the day as a percentage of `whole`, for a stretch drawn inside a bar. */
   const percent = (units: Units, whole: Units = UNITS_PER_DAY): string => `${String((units / whole) * 100)}%`;
@@ -131,8 +138,10 @@ SPDX-License-Identifier: EUPL-1.2
                 {#each segment.fills as fill (fill.from)}
                   {@render stretch(fill, segment.from, segment.to - segment.from, fill.kind)}
                 {/each}
-                <span class="text">{i18n.t("detail.segment", { name: segment.name })}</span>
+                <span class="text">{partText(segment.name)}</span>
               </button>
+            {:else if segment.kind === "free"}
+              <span class="locked free" style:flex-grow={segment.to - segment.from}>{i18n.t("detail.off")}</span>
             {:else}
               <span class="locked {segment.kind}" style:flex-grow={segment.to - segment.from}>{i18n.t("detail.locked", { kind: segment.kind })}</span>
             {/if}

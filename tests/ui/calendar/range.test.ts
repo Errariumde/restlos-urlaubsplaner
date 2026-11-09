@@ -3,10 +3,24 @@
 
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import type { LeavePiece } from "../../../src/engine/counting/leave.ts";
+import type { DayResult, PlanResult } from "../../../src/engine/counting/plan.ts";
+import type { RequiredWork } from "../../../src/engine/counting/required.ts";
+import type { Part } from "../../../src/engine/counting/types.ts";
 import { dayFromYmd } from "../../../src/engine/days.ts";
 import type { PlanState } from "../../../src/ui/worker/protocol.ts";
 import { Session } from "../../../src/ui/worker/session.ts";
-import { actionForDrag, halfDayFits, rangeChanges, toggleDay, weekChanges, weekSelection } from "../../../src/ui/calendar/range.ts";
+import {
+  actionForDrag,
+  changeFor,
+  halfDayFits,
+  rangeChanges,
+  toggleDay,
+  weekChanges,
+  weekSelection,
+  whollyFree,
+  workLeft,
+} from "../../../src/ui/calendar/range.ts";
 
 const example = readFileSync("examples/plans/beispiel-gmbh-2027.urlaub.json", "utf8");
 const d = (y: number, m: number, day: number): number => dayFromYmd(y, m, day);
@@ -14,6 +28,13 @@ const d = (y: number, m: number, day: number): number => dayFromYmd(y, m, day);
 function opened(): { session: Session; state: PlanState } {
   const session = new Session();
   return { session, state: session.open(example, true) as PlanState };
+}
+
+/** The result's day; the test fails when it lies outside the computed window. */
+function dayIn(result: PlanResult, day: number): DayResult {
+  const found = result.days.find((candidate) => candidate.day === day);
+  if (found === undefined) throw new Error(`No day ${String(day)} in the result`);
+  return found;
 }
 
 describe("halfDayFits", () => {
@@ -233,7 +254,8 @@ describe("toggleDay", () => {
 });
 
 // Days that mandatory leave or another plan's leave covers in part: setting fills the free rest of the work, at the
-// free side, as long as it is one stretch at an edge; a span in the middle that leaves two gaps is left alone.
+// free side, as long as it is one stretch reaching an edge of the day; a span in the middle that leaves two gaps is
+// left alone.
 describe("partly covered days", () => {
   const file = JSON.parse(example) as { contract: { rules: unknown[] }; sources: { entries: unknown[] }[] };
   file.contract.rules.push(
@@ -280,5 +302,111 @@ describe("partly covered days", () => {
     const filled = after.apply(rangeChanges(r, march(4), march(4), "full")).result;
     expect(rangeChanges(filled, march(4), march(4), "full")).toEqual([]);
     expect(toggleDay(filled, march(4))).toEqual([{ day: march(4), take: 0 }]);
+  });
+});
+
+// Leave lies at day positions: own leave starts at an edge of the day and may reach the work across time without work.
+describe("leave in day positions", () => {
+  const DAY = 20_000;
+  const own = (take: number, part: Part = "end"): LeavePiece => ({ kind: "own", take, part });
+  const mandatory = (take: number, part: Part = "end"): LeavePiece => ({ kind: "mandatory", take, part, ruleId: "closure" });
+  const otherPlan = (from: number, to: number): LeavePiece => ({ kind: "otherPlan", from, to, sourceId: "previous-year" });
+
+  /** A day with just what the range rules read. */
+  function stub(required: number, leave: LeavePiece[] = [], freePart: Part = "end"): Pick<DayResult, "day" | "inPeriod" | "required" | "leave"> {
+    return { day: DAY, inPeriod: true, required: { value: required, freePart } as RequiredWork, leave };
+  }
+
+  const christmas = d(2027, 12, 24);
+  const christmasEve = dayIn(opened().state.result, christmas);
+
+  it("puts H on 24 December in the morning, where the work is", () => {
+    expect(changeFor(christmasEve, "half")).toEqual({ day: christmas, take: 240, part: "start" });
+    // Space and a click still book the full day, which costs ½ there.
+    expect(changeFor(christmasEve, "full")).toEqual({ day: christmas, take: 480 });
+  });
+
+  it("keeps H in the afternoon of a ¾ day, which has work there", () => {
+    expect(changeFor(stub(360), "half")).toEqual({ day: DAY, take: 240, part: "end" });
+  });
+
+  it("books the afternoon of a day whose free time lies in the morning", () => {
+    expect(changeFor(stub(240, [], "start"), "half")).toEqual({ day: DAY, take: 240, part: "end" });
+  });
+
+  it("reaches the work left across free time", () => {
+    // Work in the morning, mandatory leave in its first quarter: the work left is the second quarter, which own
+    // leave reaches from the end of the day across the free afternoon.
+    const day = stub(240, [mandatory(120, "start")]);
+    expect(workLeft(day)).toEqual([[120, 240]]);
+    expect(changeFor(day, "full")).toEqual({ day: DAY, take: 360, part: "end" });
+    expect(changeFor(day, "half")).toEqual({ day: DAY, take: 360, part: "end" });
+  });
+
+  it("books the morning beside mandatory leave in the last quarter", () => {
+    expect(changeFor(stub(480, [mandatory(120, "end")]), "half")).toEqual({ day: DAY, take: 240, part: "start" });
+    expect(changeFor(stub(480, [mandatory(120, "end")]), "full")).toEqual({ day: DAY, take: 360, part: "start" });
+  });
+
+  it("books no more than half a day of the work left with H", () => {
+    // The work left is [0, 400); H covers half a day of it from the start of the day.
+    expect(changeFor(stub(480, [otherPlan(400, 480)]), "half")).toEqual({ day: DAY, take: 240, part: "start" });
+    // The work left is [100, 480): H reaches half a day of it from the end of the day.
+    expect(changeFor(stub(480, [mandatory(100, "start")]), "half")).toEqual({ day: DAY, take: 240, part: "end" });
+  });
+
+  it("leaves a day alone whose work left lies on both sides of another plan's leave", () => {
+    const day = stub(480, [otherPlan(300, 420)]);
+    expect(workLeft(day)).toEqual([
+      [0, 300],
+      [420, 480],
+    ]);
+    expect(changeFor(day, "half")).toBeUndefined();
+    expect(changeFor(day, "full")).toBeUndefined();
+  });
+
+  it("books a full day where mandatory leave lies only on time without work", () => {
+    // Mandatory leave on the free afternoon covers no work: the day is booked as if it weren't there.
+    const day = stub(240, [mandatory(240, "end")]);
+    expect(workLeft(day)).toEqual([[0, 240]]);
+    expect(changeFor(day, "full")).toEqual({ day: DAY, take: 480 });
+    expect(changeFor(day, "half")).toEqual({ day: DAY, take: 240, part: "start" });
+  });
+
+  it("moves leave from the free afternoon to the morning with H", () => {
+    // Own leave on time without work, from a file: H books the work instead.
+    expect(changeFor(stub(240, [own(240, "end")]), "half")).toEqual({ day: DAY, take: 240, part: "start" });
+    expect(changeFor(stub(240, [own(240, "end")]), "full")).toEqual({ day: DAY, take: 480 });
+  });
+
+  it("counts a day made wholly free by own leave as set", () => {
+    const session = opened().session;
+    const morning = session.apply([{ day: christmas, take: 240, part: "start" }]).result;
+    expect(changeFor(dayIn(morning, christmas), "full")).toBeUndefined();
+    expect(rangeChanges(morning, christmas, christmas, "full")).toEqual([]);
+    // H on it again changes nothing either.
+    expect(changeFor(dayIn(morning, christmas), "half")).toBeUndefined();
+    // The week of 20 December: four full days and the morning of 24 December are all set, so a week click takes
+    // the week away.
+    const monday = d(2027, 12, 20);
+    const week = session.apply([20, 21, 22, 23].map((day) => ({ day: d(2027, 12, day), take: 480 }))).result;
+    expect(weekChanges(week, monday)).toEqual([20, 21, 22, 23, 24].map((day) => ({ day: d(2027, 12, day), take: 0 })));
+  });
+
+  it("tells whether the work is all covered and which of it other leave leaves free", () => {
+    expect(whollyFree(christmasEve)).toBe(false);
+    expect(workLeft(christmasEve)).toEqual([[0, 240]]);
+    const morning = { ...christmasEve, leave: [own(240, "start")] };
+    expect(whollyFree(morning)).toBe(true);
+    // Own leave is no other leave: the work left stays.
+    expect(workLeft(morning)).toEqual([[0, 240]]);
+    // Leave on the free afternoon covers none of the work.
+    expect(whollyFree({ ...christmasEve, leave: [own(240, "end")] })).toBe(false);
+    // A day without work is wholly free, with nothing left.
+    expect(whollyFree(stub(0))).toBe(true);
+    expect(workLeft(stub(0))).toEqual([]);
+    // The work of a day free in the morning lies in the afternoon.
+    expect(workLeft(stub(240, [], "start"))).toEqual([[240, 480]]);
+    expect(whollyFree(stub(480, [mandatory(240, "start"), otherPlan(240, 480)]))).toBe(true);
   });
 });
