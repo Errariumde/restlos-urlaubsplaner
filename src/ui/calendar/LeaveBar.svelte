@@ -138,6 +138,19 @@ SPDX-License-Identifier: EUPL-1.2
     if (near !== undefined) focusSwitch(near.from);
   }
 
+  /**
+   * Hides a segment's text while it doesn't fit: a part too narrow for its text shows none. The hidden text keeps its
+   * box, which follows the segment's width and the text's own, so a change of either (a wider detail, another
+   * language, a loaded font) measures it again.
+   */
+  function hideWhenCut(text: HTMLElement): () => void {
+    const observer = new ResizeObserver(() => {
+      text.classList.toggle("cut", text.scrollWidth > text.clientWidth);
+    });
+    observer.observe(text);
+    return () => observer.disconnect();
+  }
+
   /** The part of the switch nearest to the viewport x: over a fixed block or past an end of the bar, the nearest switch's. */
   function partAt(x: number): number | undefined {
     if (!bar) return undefined;
@@ -338,11 +351,11 @@ SPDX-License-Identifier: EUPL-1.2
           {#each segment.fills as fill (fill.from)}
             {@render stretch(fill, segment.from, segment.to - segment.from, fill.kind)}
           {/each}
-          <span class="text">{partText(segment.name, words.t)}</span>
+          <span class="text" {@attach hideWhenCut}>{partText(segment.name, words.t)}</span>
         </button>
       {:else}
         <span class={["locked", segment.kind, segment.kind === "free" && `off-${off}`]} style:flex-basis={percent(segment.to - segment.from)}>
-          <span class="text" aria-hidden="true">{segment.kind === "free" ? i18n.t("detail.off") : i18n.t("detail.locked", { kind: segment.kind })}</span>
+          <span class="text" aria-hidden="true" {@attach hideWhenCut}>{segment.kind === "free" ? i18n.t("detail.off") : i18n.t("detail.locked", { kind: segment.kind })}</span>
           <span class="spoken">{fixedText(segment, words.t)}</span>
         </span>
       {/if}
@@ -419,7 +432,6 @@ SPDX-License-Identifier: EUPL-1.2
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      container-type: inline-size;
     }
 
     .switches .text {
@@ -427,10 +439,9 @@ SPDX-License-Identifier: EUPL-1.2
       padding-inline: var(--space-1);
     }
 
-    @container (inline-size < 2.5rem) {
-      .switches .text {
-        display: none;
-      }
+    /* A text that doesn't fit (hideWhenCut) keeps its box, so that it can be measured again. */
+    .switches .text:global(.cut) {
+      visibility: hidden;
     }
 
     /*
