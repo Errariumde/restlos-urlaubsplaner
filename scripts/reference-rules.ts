@@ -36,7 +36,11 @@ const FORBIDDEN: readonly Forbidden[] = [
 ];
 
 /** Tests of the text checks, which cite what the checks report. */
-const CHECK_TESTS: ReadonlySet<string> = new Set(["tests/scripts/reference-rules.test.ts", "tests/scripts/citation-rules.test.ts"]);
+const CHECK_TESTS: ReadonlySet<string> = new Set([
+  "tests/scripts/reference-rules.test.ts",
+  "tests/scripts/citation-rules.test.ts",
+  "tests/scripts/docs-rules.test.ts",
+]);
 
 /** docs/superpowers/ itself, done issues, which stay as they were written, and the text checks' own tests. */
 export function exempt({ path, text }: TextFile): boolean {
