@@ -35,7 +35,7 @@ describe("checkSpecStatus", () => {
         "Status: planned for version 2.",
         "",
         "### Half",
-        "Status: partly implemented; issue 0043 (dismiss a time-off need for one day) is open.",
+        "Status: partly implemented; issue 0043 (dismiss a time-off need for one day) is open, planned for version 1.",
         "",
         "## Moving",
         "",
@@ -69,6 +69,15 @@ describe("checkSpecStatus", () => {
         "status: implemented.",
       ),
     ).toEqual(at(1, 3, 5, 7, 9, 11));
+  });
+
+  it("requires a partly implemented line to end with its version", () => {
+    expect(check("## A", "Status: partly implemented; the help is not built.", "## B", "Status: partly implemented; the help is not built, planned for version 1.")).toEqual(
+      at(1),
+    );
+    expect(
+      check("## C", "Status: partly implemented; the export is not built, planned for version 1; the Pro HTML, planned for version 2."),
+    ).toEqual([]);
   });
 
   it("reports a section whose first line is a code block", () => {

@@ -56,7 +56,7 @@ Other licenses only where necessary: built-in PDF templates, example template an
 
 ## Delivery format
 
-Status: partly implemented; the downloadable HTML file is built, the GitHub Pages version with manifest and service worker, saving and browser storage (IndexedDB) are not.
+Status: partly implemented; the downloadable HTML file is built, the GitHub Pages version with manifest and service worker, saving and browser storage (IndexedDB) are not, planned for version 1.
 
 Recommendation: two distribution channels from the same build. A **downloadable HTML file** for offline use from your own computer, and a **hosted version on GitHub Pages** (free for public repositories) that can be installed as a web app on the phone and then also runs offline. In both cases the data stays on the device.
 
@@ -105,7 +105,7 @@ A fixed date "02-29" is only allowed with an explicit behavior for non-leap year
 
 ### Work week per country
 
-Status: partly implemented; the engine and the file format are built, the work week and the week start can't be changed in the UI yet.
+Status: partly implemented; the engine and the file format are built, the work week and the week start can't be changed in the UI yet, planned for version 1.
 
 Countries define the work week differently: weekend Sat/Sun (DE), Fri/Sat (some countries in the Middle East), only one day off (six-day week), week start Monday, Sunday or Saturday. Therefore:
 
@@ -116,7 +116,7 @@ Countries define the work week differently: weekend Sat/Sun (DE), Fri/Sat (some 
 
 ### Region tree and German special cases
 
-Status: partly implemented; the region tree and the local rules are in the holiday data, choosing the federal state and its local rules in the UI is not built.
+Status: partly implemented; the region tree and the local rules are in the holiday data, choosing the federal state and its local rules in the UI is not built, planned for version 1.
 
 Region tree country → region → optional sub-areas (e.g. DE → BY → "City of Augsburg", "Assumption Day applies"). Holiday names are translation keys. Further countries come later as a data file without code changes.
 
@@ -128,7 +128,7 @@ After choosing the federal state, only its local rules appear, phrased as "appli
 
 ### Multiple calendar sources (iCal)
 
-Status: partly implemented; the engine reads and counts every source type and the calendar shows them, import, update, editing, export and the duplicate mark are not built, issue 0010 (iCal import and export of calendar sources) is open.
+Status: partly implemented; the engine reads and counts every source type and the calendar shows them, import, update, editing, export and the duplicate mark are not built (issue 0010 (iCal import and export of calendar sources) is open), planned for version 1.
 
 A **calendar source** is a named list of days with a type and a color. It is imported once from an iCal file or another plan file, or created by hand (e.g. the closure days of a Kita from a PDF), and is stored only as its entries: a date, or a repeating `match` in the day-rule format (see Format). No iCal text is kept and no time zone is stored.
 
@@ -212,7 +212,7 @@ Where in the day partial leave lies (at the start or the end of the day, shown a
 
 ### Finer granularity: prepared, offered only in the leave bar
 
-Status: partly implemented; engine, file format, display and leave bar are built, issue 0048 (a calendar key for finer leave steps, and the smallest leave unit in the contract dialog) is open, and the .ics and template rows wait for those outputs.
+Status: partly implemented; engine, file format, display and leave bar are built; the .ics and template rows wait for those outputs, planned for version 1; issue 0048 (a calendar key for finer leave steps, and the smallest leave unit in the contract dialog) is open, planned for version 3.
 
 Version 1 sets **full** and **half** days with the calendar's clicks, keys and ranges; only the day detail's leave bar offers the plan's smallest leave unit (see "Detail view"). Engine, file format and template interface are built so that planning down to **1/32 day** (15 minutes at 8 hours) works everywhere without data migration and without changing the calculation logic. Anyone working on the code must observe this:
 
@@ -232,7 +232,7 @@ What is still missing later is only UI: a calendar key and range actions for fin
 
 ### How a day's required work comes about
 
-Status: partly implemented; the engine computes every layer, issue 0043 (dismiss a time-off need for one day) is open.
+Status: partly implemented; the engine computes every layer, issue 0043 (dismiss a time-off need for one day) is open, planned for version 1.
 
 1. **Base value** from the contract's work week (e.g. Mon–Fri = 1, Sat/Sun = 0; part-time Friday = 0 or ½).
 2. **Lowering layers:** built-in holidays (0), calendar sources of type Holiday (0 or ½) and Paid closure (0), own day rules (e.g. "24 Dec and 31 Dec: at most ½"). The **minimum** of all applicable values applies. A rule can therefore never make a Sunday or holiday more expensive; if New Year's Eve falls on a Sunday, it stays 0.
@@ -245,7 +245,7 @@ Status: partly implemented; the engine computes every layer, issue 0043 (dismiss
 
 ### Work week with validity
 
-Status: implemented.
+Status: partly implemented; the engine and the file format are built, the help's text on the two counting methods for part-time and on § 5 BUrlG is not written, planned for version 1.
 
 The work week is a list with start dates, e.g. full-time until 30 June, four days from 1 July. This way a contract with a switch to part-time stays one file. The first entry also applies before its start date; the rules describe ongoing employment, and there is no separate state for days before or after it. The help explains the two common counting methods for part-time ("day off has required work 0, allowance reduced" vs. "required work ½") and that partial entitlements can be rounded according to § 5 BUrlG (Federal Leave Act); the user enters the allowance themselves.
 
@@ -273,7 +273,7 @@ The plan file is operated like a document in a normal desktop editor: New, Open,
 
 ### Content of the files
 
-Status: implemented.
+Status: partly implemented; the engine reads and writes every part, a single template can't be exported yet, planned for version 1.
 
 - **Contract:** name, description and references (what the contract is and what it is based on), country/region, local rules, smallest leave unit (`minUnit`), work week with validity, day rules. No time zone and no working hours.
 - **Calendar sources** as entries (dates or repeating matches) with name, type, color slot and visibility; no file content. A rule set never contains sources of type "Leave from another plan" or "Time off needed" (personal data).
@@ -287,7 +287,7 @@ In a plan file every copied part can be changed, e.g. a part-time work week or a
 
 ### File operations (editor behavior)
 
-Status: partly implemented; only the bundled example opens, New, Open, Save, Save as, the rule set commands, Close, restore, the revision warning and the list of notes and manual changes are not built, issue 0030 (open real files in the UI: rule sets and the read report) is open.
+Status: partly implemented; only the bundled example opens, New, Open, Save, Save as, the rule set commands, Close, restore, the revision warning and the list of notes and manual changes are not built (issue 0030 (open real files in the UI: rule sets and the read report) is open), planned for version 1.
 
 | Command | Behavior |
 | --- | --- |
@@ -312,7 +312,7 @@ Status: partly implemented; only the bundled example opens, New, Open, Save, Sav
 
 ### What is stored where
 
-Status: partly implemented; the plan file and rule set hold their parts, the device settings and recovery copies in IndexedDB, the revision record and "Use colors from file?" are not built.
+Status: partly implemented; the plan file and rule set hold their parts, the device settings and recovery copies in IndexedDB, the revision record and "Use colors from file?" are not built, planned for version 1.
 
 | Content | Location |
 | --- | --- |
@@ -328,7 +328,7 @@ Calendar sources store a **color slot** of the palette (e.g. "Accent 3"), not a 
 
 ### Format
 
-Status: partly implemented; plan files and rule sets are read and written, the device settings export is recognized but refused.
+Status: partly implemented; plan files and rule sets are read and written, the device settings export is recognized but refused, planned for version 1.
 
 JSON with a `schema` version and a `kind` (`"plan"`, `"ruleSet"` or `"settings"`); the app recognizes a file by its content, not by its extension. All values language-neutral (IDs, ISO dates, decimal point); keys in English according to the glossary. Sketch of a plan file showing every part (illustrative; not one of the example files):
 
@@ -395,7 +395,7 @@ JSON with a `schema` version and a `kind` (`"plan"`, `"ruleSet"` or `"settings"`
 
 ### Sharing and validation
 
-Status: partly implemented; reading, checking, severities and limits are built in the engine and the worker, the open dialog with its progress bar and report is not (issue 0030 (open real files in the UI: rule sets and the read report) and issue 0017 (messages in the open dialog) are open), and the HTML self-copy is planned for version 3.
+Status: partly implemented; reading, checking, severities and limits are built in the engine and the worker, the open dialog with its progress bar and report is not (issue 0030 (open real files in the UI: rule sets and the read report) and issue 0017 (messages in the open dialog) are open), planned for version 1; the HTML self-copy, planned for version 3.
 
 - **Rule set for colleagues:** "Save as rule set" (see File operations): contract, sources, templates and color scheme, no leave days.
 - **HTML self-copy** (version 3, after feasibility test): a copy of the app with an embedded rule set and without personal settings; opens directly in "New → From rule set".
@@ -442,7 +442,7 @@ Classic calendar sheets per month (week start according to the country data, for
 
 ### View 2: Month columns
 
-Status: implemented.
+Status: partly implemented; the view, alignment by weekday and calendar weeks are built, storing both settings in the device settings and the templates' switches are not, planned for version 1.
 
 ```text
 Wireframe month columns: one month per column, days as rows
@@ -462,7 +462,7 @@ One month per column, days 1–31 as rows, weekday abbreviation in every cell, l
 
 ### Day cell: what is shown how
 
-Status: implemented.
+Status: partly implemented; every layer is drawn, the sources list that shows each source's colour and line style is not built, planned for version 1.
 
 A cell in the month columns is only about 75 px wide on desktop, so a fixed ranking of the layers applies:
 
@@ -495,7 +495,7 @@ Minimum size for tap targets on touch devices: 40 × 40 px.
 
 ### First start
 
-Status: partly implemented; the start screen offers only "View example", Open file, New and its steps are not built.
+Status: partly implemented; the start screen offers only "View example", Open file, New and its steps are not built, planned for version 1.
 
 1. Start screen: **Open file** · **New** · **View example**. If the HTML already contains a rule set (HTML self-copy, version 3), it starts directly with "New → From rule set".
 2. On "New": language (preset), country/federal state.
@@ -508,7 +508,7 @@ With "From rule set", country, region, local rules and day rules come from the r
 
 ### Calendar interaction
 
-Status: partly implemented; the detail view doesn't set notes or change the required work yet.
+Status: partly implemented; the detail view doesn't set notes or change the required work yet, planned for version 1.
 
 - **Mouse:**
   - Click = full leave day on/off; Shift-click = range up to the last clicked day.
@@ -534,7 +534,7 @@ Status: partly implemented; the detail view doesn't set notes or change the requ
 
 ### Allowance display
 
-Status: partly implemented; "Change allowance" in the overdraft line is not built, and bridge day hints are planned for version 3.
+Status: partly implemented; "Change allowance" in the overdraft line is not built, planned for version 1; bridge day hints, planned for version 3.
 
 - Plan allowance, planned, remaining, progress bar; remaining < 0 clearly marked. No carry-over field.
 - **Overdraft:** the bar is scaled to what is planned, with a tick at the allowance. The part over the allowance is hatched red (a pattern, not colour alone), and a warning line says by how much, with "Change allowance". Nothing is blocked.
@@ -546,7 +546,7 @@ Status: partly implemented; "Change allowance" in the overdraft line is not buil
 
 ### Problems
 
-Status: partly implemented; issue 0043 (dismiss a time-off need for one day) is open.
+Status: partly implemented; issue 0043 (dismiss a time-off need for one day) is open, planned for version 1.
 
 A problem is something on a day that can't be right; like the overdraft, it is only marked, nothing is blocked. The plan reports own leave outside the plan period, own leave on a day without required work, own leave on time that is off anyway (a day with required work whose work the leave doesn't overlap, such as the free afternoon of 24 December; it costs nothing), own leave on a day that another plan already has as leave, day rules that force contradicting values, and time off needed that is not covered. Each kind has one sentence ("Dieser Urlaub liegt auf einem freien Tag."), the same wherever it shows:
 
@@ -559,7 +559,7 @@ Dismissing a problem of time off needed for one day is not built yet: issue 0043
 
 ### Colors, light and dark mode
 
-Status: partly implemented; the colour roles, the scheme "Standard" and the three modes are built, "High contrast", "Color vision deficiency", the editor and the print palette are not.
+Status: partly implemented; the colour roles, the scheme "Standard" and the three modes are built, "High contrast", "Color vision deficiency", the editor and the print palette are not, planned for version 1; the editor's contrast check, planned for version 3.
 
 - **Color roles:** working day, weekend, holiday, required work ½, leave full, leave half, mandatory leave, other plan, overdraft, today, focus, info band, accent 1–8 (for calendar sources).
 - **Color scheme** = values for all roles, each for light and dark. Built in: "Standard", "High contrast", "Color vision deficiency" (Okabe-Ito); not changeable, only duplicable.
@@ -572,7 +572,7 @@ Status: partly implemented; the colour roles, the scheme "Standard" and the thre
 
 ### Multilingual support (from the start)
 
-Status: implemented.
+Status: partly implemented; the catalogs, formatting, the language switch, the catalog check, the pseudo-locales and right-to-left readiness are built, the bilingual help and PDF templates, Intl.Collator for sorted lists and the locale's decimal separator in number fields are not, planned for version 1.
 
 - All texts via message IDs in catalogs (`de.json`, `en.json`) in ICU MessageFormat, including plural rules; no composed sentence parts in code.
 - Dates and month names via `Intl.DateTimeFormat`, numbers via `Intl.NumberFormat`, plurals via `Intl.PluralRules` (also for 1.5 days). Week start from the country data, not from the browser.
@@ -610,13 +610,13 @@ Status: implemented.
 
 ### Accessibility
 
-Status: partly implemented; issue 0040 (forced colours: day types and the allowance bar) is open.
+Status: partly implemented; issue 0040 (forced colours: day types and the allowance bar) is open, planned for version 1.
 
 Contrast according to WCAG AA for the built-in schemes, a screen reader label per day ("Friday, 7 May 2027, working day, leave full, costs 1"), fully operable by keyboard, focus visible in both modes. Each view is an ARIA grid with a roving tabindex (one Tab stop, not 365); the selection is `aria-selected` and the leave state is part of the label. The slots before the first and after the last day of a month are empty grid cells, so every cell sits under its header. The allowance panel follows the calendar in the document, because the calendar is the main content. In forced colours (Windows contrast themes) the system colours replace the tokens; planned days and pressed buttons draw Highlight with HighlightText themselves, because the browser's backplate behind their text would hide it. What a screen reader gets is checked in two layers: e2e tests compare the accessibility tree with ARIA snapshots (the grid and its labels, the day detail, the allowance panel, the live regions), and before each release Orca's debug log is read after a fixed sequence of keys in the Firefox ESR (`npm run orca`, release checklist), for a result that wasn't said, a text said twice in a row and very long texts; nothing has to be heard. Orca 50 drops some results at random with its own filters (issue 0046, Orca 50 drops some hint line results), so the check lists those apart and fails only when the app didn't give Orca a result, when fewer than half were said or when a text was said twice. The live regions are divs: Orca 50 lets a live region's text change past its filter for changes that come many at once only from an element Firefox reports as a section, and every change updates many texts at the same time. axe-core checks the component gallery and the main screens; in the gallery it leaves out the whole group of day details in sixteenths (its heading, details and leave bars), because the parts of those leave bars are smaller than the target size of WCAG 2.5.8 (issue 0049, leave bar parts below ¼ are under the target size).
 
 ### Built-in help
 
-Status: partly implemented; "View example" and the keys of the calendar, V, W and K are built, the help, Ctrl+S, Ctrl+O, ? and catching a file dropped anywhere on the page are not.
+Status: partly implemented; "View example" and the keys of the calendar, V, W and K are built, the help, Ctrl+S, Ctrl+O, ? and catching a file dropped anywhere on the page are not, planned for version 1.
 
 Offline, bilingual, context-sensitive ("?" on every dialog). Chapters: Getting started, Work week and part-time, Day rules, Calendar sources (incl. showing the previous year), Plan and allowance, Plan file, rule set and saving (incl. the Firefox setting for overwriting and installing the web app with file association), Colors, Keyboard shortcuts, Privacy (incl. what the browser stores: device settings, recovery copies and the revision record, and that in Chrome and Edge other local HTML files can read them), **Own PDF templates** (see Output), About/Licenses.
 
@@ -644,7 +644,7 @@ New, Save as and Close are only available in the menu: Ctrl+N, Ctrl+T and Ctrl+W
 
 ### Controls, icons and fonts
 
-Status: partly implemented; Open and Save, the File menu, colour picking, the order of calendar sources and the print font are not built.
+Status: partly implemented; Open and Save, the File menu, colour picking, the order of calendar sources and the print font are not built, planned for version 1.
 
 No component or icon library.
 
@@ -723,7 +723,7 @@ Own templates are created outside the app. The help page "Create your own PDF te
 
 ## Architecture, technology and tests
 
-Status: partly implemented; the engine, the worker, the single-file build and its size check are built, the About / Licenses page, the Pro HTML, the iCal and PDF/Typst tests and the feasibility tests for versions 2 and 3 are not.
+Status: partly implemented; the engine, the worker, the single-file build and its size check are built; the About / Licenses page and the iCal and PDF/Typst tests are not, planned for version 1; the Pro HTML and its feasibility test, planned for version 2; the feasibility test of the HTML self-copy, planned for version 3.
 
 Recommendation: **Svelte 5** (currently 5.57.2 from 6 October 2026) and **TypeScript**, built with **Vite** and [vite-plugin-singlefile](https://cdn.jsdelivr.net/npm/vite-plugin-singlefile@2.3.3/README.md), which inlines JavaScript and CSS into one HTML file; tested with **Vitest**. The calendar engine is a pure TypeScript module without DOM and without runtime dependencies and can be verified in isolation.
 
@@ -787,7 +787,7 @@ Recommendation: use common, widespread tools, but choose them deliberately and s
 
 ### Dependencies
 
-Status: partly implemented; ical.js and typst.ts are not installed yet, they come with the iCal import and the PDF.
+Status: partly implemented; ical.js comes with the iCal import, planned for version 1; typst.ts comes with the Pro HTML, planned for version 2.
 
 | Package | Purpose | In the HTML? | Assessment |
 | --- | --- | --- | --- |
@@ -829,7 +829,7 @@ Recommendation: every file from outside is considered untrusted, the app has no 
 
 ### Threats and countermeasures
 
-Status: partly implemented; the measures for plan files, rule sets and displayed text are built, those for iCal files, Typst, the .ics export, file names when saving and releases wait for their features.
+Status: partly implemented; the measures for plan files, rule sets and displayed text are built; those for iCal files, the .ics export, data passed to Typst, file names when saving and releases wait for their features, planned for version 1; running own templates isolated in Typst WASM, planned for version 2.
 
 | Input / risk | Example | Countermeasure |
 | --- | --- | --- |
@@ -845,7 +845,7 @@ Status: partly implemented; the measures for plan files, rule sets and displayed
 
 ### Content Security Policy
 
-Status: partly implemented; the policy of the downloadable HTML file is built and tested, the Pages version's additions and 'wasm-unsafe-eval' for the Pro HTML wait for those versions.
+Status: partly implemented; the policy of the downloadable HTML file is built and tested; the Pages version's additions, planned for version 1; 'wasm-unsafe-eval' for the Pro HTML, planned for version 2.
 
 In the HTML's `<meta>` tag (GitHub Pages cannot set custom HTTP headers), as the first element after `<meta charset>`: a meta policy applies only to what comes after it.
 
@@ -859,7 +859,7 @@ In the HTML's `<meta>` tag (GitHub Pages cannot set custom HTTP headers), as the
 
 ### Verification
 
-Status: partly implemented; the plan file and rule set reader is fuzzed and SECURITY.md exists, the other parsers don't exist yet, and the CSP and network test runs only locally, issue 0029 (run the build and the end-to-end tests in CI) is open.
+Status: partly implemented; the plan file and rule set reader is fuzzed and SECURITY.md exists, the iCal and settings parsers don't exist yet and the CSP and network test runs only locally (issue 0029 (run the build and the end-to-end tests in CI) is open), planned for version 1.
 
 - Fuzzing of the parsers (iCal, plan file, rule set, settings export, template metadata) with fast-check: random and broken inputs may only lead to error messages, never to crashes or wrong data.
 - CI test: the built HTML contains the CSP, and no network request leaves the page (Playwright intercepts requests).
@@ -877,7 +877,7 @@ Recommendation: everything runs locally with one command; GitHub Actions only ru
 
 ### Workflows
 
-Status: partly implemented; check, seed-cache and Dependency Review run, templates, e2e and release are not built, issue 0029 (run the build and the end-to-end tests in CI) is open.
+Status: partly implemented; check, seed-cache and Dependency Review run, templates, e2e and release are not built (issue 0029 (run the build and the end-to-end tests in CI) is open), planned for version 1.
 
 | Workflow | Trigger | Content |
 | --- | --- | --- |
@@ -892,7 +892,7 @@ Status: partly implemented; check, seed-cache and Dependency Review run, templat
 
 ### Consideration for upstream sources (caching)
 
-Status: partly implemented; the Nix, npm and Dependabot parts are built, the caches for the Playwright browsers and the Typst CLI and the build artifact of check are not.
+Status: partly implemented; the Nix, npm and Dependabot parts are built, the caches for the Playwright browsers and the Typst CLI and the build artifact of check are not, planned for version 1.
 
 - **Nix:** the release tarball of the pinned Nix version (the one the pinned nixpkgs ships) is cached with the version as key and checked against a SHA-256 pinned in `.github/actions/nix/action.yml` before it is installed. The dev shell comes from a `file://` binary cache kept in GitHub's cache, keyed on `flake.lock`, `flake.nix`, the action and the `seed-cache` workflow. `nix copy` keeps cache.nixos.org's signatures in it, so Nix checks every path against the `cache.nixos.org-1` key as it would on download; the shell's own `-env` output is rebuilt. CI also downloads the cheap wrappers that nixpkgs would otherwise build locally (`always-allow-substitutes`), so they too come signed. cache.nixos.org is the fallback on a miss; with a warm cache, the Nix setup needs neither it, releases.nixos.org nor github.com (checked on GitHub's runners on 2026-10-24; the checkout and the actions still come from GitHub). Signatures and the pinned hash detect altered content, not a poisoned cache entry: restoring an entry can write any file the runner can write, before Nix or the hash check looks at it. Only the single writer and the cache scopes keep such entries out (see "Avoid cache poisoning").
 - **npm packages:** `~/.npm` is cached with the hash of `package-lock.json` and `.npmrc` as key; `check` restores it and runs `npm ci --prefer-offline`, which checks every package against the `integrity` in the lockfile. Registry access only happens when the lockfile changes.
@@ -906,7 +906,7 @@ Status: partly implemented; the Nix, npm and Dependabot parts are built, the cac
 
 ### Workflow security
 
-Status: implemented.
+Status: partly implemented; check, seed-cache and Dependency Review follow the rules, the release workflow with its write permissions (contents, pages, id-token, attestations), actions/attest-build-provenance and the Pages actions is not built, planned for version 1.
 
 - Only actions from GitHub itself (`actions/checkout`, `actions/cache`, `actions/upload-artifact`, `actions/dependency-review-action`, `actions/attest-build-provenance`, Pages actions), each pinned by **commit SHA**, plus the repository's own composite action `.github/actions/nix`; Dependabot keeps the SHAs current. The repository settings enforce both: only actions created by GitHub are allowed, and a workflow using an action that isn't pinned to a full-length commit SHA doesn't start. Tools without an official GitHub action (Nix, Typst CLI) are installed with checksum pinning (see caching).
 - `permissions: contents: read` as the default at workflow level; only `release` gets `contents: write`, `pages: write`, `id-token: write` and `attestations: write`.
@@ -961,7 +961,7 @@ or continued maintenance.
 
 ### Files in the repository
 
-Status: partly implemented; every file exists, the README has no screenshot, download or Pages link and no verification of checksums and attestations yet.
+Status: partly implemented; every file exists, the README has no screenshot, download or Pages link and no verification of checksums and attestations yet, planned for version 1.
 
 | File | Content |
 | --- | --- |
@@ -1003,7 +1003,7 @@ Nothing needs to be set for GitHub's workflow execution protections: the default
 
 ### License compliance with REUSE
 
-Status: partly implemented; reuse lint runs locally and in CI, the SPDX bill of materials of a release and the About / Licenses page are not built.
+Status: partly implemented; reuse lint runs locally and in CI, the SPDX bill of materials of a release and the About / Licenses page are not built, planned for version 1.
 
 The repository follows the FSFE's [REUSE specification](https://reuse.software): every file has a machine-readable license and copyright statement, and all license texts used are in the `LICENSES/` folder.
 
@@ -1028,7 +1028,7 @@ Status: implemented.
 
 ### Releases and updates
 
-Status: partly implemented; the tools of the release checklist are built, the release workflow, the About page and the update notice of the Pages version are not.
+Status: partly implemented; the tools of the release checklist are built, the release workflow, the About page and the update notice of the Pages version are not, planned for version 1.
 
 - Versions according to Semantic Versioning; the version and the data status of the holiday rules are shown on the "About" page.
 - The downloaded HTML doesn't check for updates itself (no network); new versions are available via GitHub Releases with a changelog.
@@ -1048,7 +1048,7 @@ Status: partly implemented; the tools of the release checklist are built, the re
 
 ### Maintaining holiday data
 
-Status: implemented.
+Status: partly implemented; every rule carries its source and the date of its check, the help's notice that data can become outdated is not written, planned for version 1.
 
 - Every rule in the data file carries a link to the official source and the date of the last check.
 - Changes to rules only with a source and a test; contributions for further countries as a data file plus tests, described in a data format documentation.

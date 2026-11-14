@@ -9,10 +9,10 @@ import type { TextFile } from "./reference-rules.ts";
 
 const SPEC = "docs/SPEC.md";
 
-const STATUS = /^Status: (implemented|see the subsections|planned for version [1-3]|partly implemented; .+|not a requirement; moves to .+ in phase [2-6])\.$/;
+const STATUS = /^Status: (implemented|see the subsections|planned for version [1-3]|partly implemented; .+, planned for version [1-3]|not a requirement; moves to .+ in phase [2-6])\.$/;
 const SUBSECTIONS = "Status: see the subsections.";
 const FORMS =
-  'write "Status: implemented.", "Status: see the subsections.", "Status: planned for version N." (1 to 3), "Status: partly implemented; <what is missing>." or "Status: not a requirement; moves to <destination> in phase N." (2 to 6)';
+  'write "Status: implemented.", "Status: see the subsections.", "Status: planned for version N." (1 to 3), "Status: partly implemented; <what is missing>, planned for version N." (1 to 3) or "Status: not a requirement; moves to <destination> in phase N." (2 to 6)';
 
 const FENCE = /^ {0,3}(`{3,}|~{3,})/;
 const HEADING = /^(#{2,3}) +\S/;
@@ -50,7 +50,7 @@ export function checkSpecStatus(files: readonly TextFile[]): string[] {
     return HEADING.exec(line.text)?.[1]?.length ?? 0;
   };
   const errors: string[] = [];
-  all.forEach((line, index) => {
+  all.forEach((_line, index) => {
     const depth = level(index);
     if (depth === 0) return;
     const where = `${SPEC}:${String(index + 1)}`;
