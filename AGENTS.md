@@ -25,7 +25,7 @@ restlos is an offline vacation planner delivered as a single HTML file (plus a G
 - Everything in the repository must make sense from the repository alone: no pointers to chats, sessions, review rounds, rulings or files outside it. Write the reason or the rule itself.
 - A short reference never stands alone: a decision number such as "D4" or an issue number such as "issue 0032" always gets a short description next to it, for example "issue 0032 (light/dark switch not instant in Firefox ESR)".
 - `docs/superpowers/` holds design and plan documents written with AI tools. Treat it as outside the repository and as if it could disappear at any time: nothing else links to it or depends on it. **Only the maintainer may delete it or anything in it; agents never do.**
-- `npm run check` fails on links into `docs/superpowers/`, on rulings and on review files from outside the repository. It also fails on `docs/…` paths, anchors and spec section names that don't resolve, on citations of the spec in `docs/user/`, `docs/dev/` and `.claude/skills/`, on missing or malformed spec status lines and on breaks of the docs style rules.
+- `npm run check` fails on links into `docs/superpowers/`, on rulings and on review files from outside the repository. It also fails on `docs/…` paths, Markdown link targets, anchors and spec section names that don't resolve, on citations of the spec in `docs/user/`, `docs/dev/` and `.claude/skills/`, on missing or malformed spec status lines and on breaks of the docs style rules.
 
 ## Documentation
 

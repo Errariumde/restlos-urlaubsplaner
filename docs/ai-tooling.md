@@ -13,7 +13,7 @@ As of 2026-10-17. The setup targets Claude Code and stays usable for other agent
 | --- | --- | --- |
 | `AGENTS.md` | Canonical rules for all agents | Codex, Cursor, Copilot, Gemini CLI, Zed, … |
 | `CLAUDE.md` | Imports `@AGENTS.md`, plus a few Claude Code notes | Claude Code |
-| `docs/SPEC.md` | Tracking of planned work; reference pages are authoritative | linked from `AGENTS.md`, not loaded automatically |
+| `docs/SPEC.md` | Being emptied: sections marked implemented stay authoritative until they move; the rest tracks planned work. Reference pages are authoritative | linked from `AGENTS.md`, not loaded automatically |
 | `docs/dev/en/howto/*.md` | Procedures (holiday data, UI texts, updates, release, documentation) | all agents, through the skills or directly |
 | `.claude/skills/*/SKILL.md` | Pointers to those procedures, plus issue triage in full | Claude Code automatically; other agents as plain Markdown |
 | `issues/` | File-based issue tracker for follow-ups and open decisions; conventions in `issues/README.md`, rules in `AGENTS.md` | all agents |
