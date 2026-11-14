@@ -17,7 +17,7 @@ As of 2026-10-17. The setup targets Claude Code and stays usable for other agent
 | `.claude/skills/*/SKILL.md` | Procedures (holiday data, UI texts, updates, release, issue triage) | Claude Code automatically; other agents as plain Markdown |
 | `issues/` | File-based issue tracker for follow-ups and open decisions; conventions in `issues/README.md`, rules in `AGENTS.md` | all agents |
 
-Why the import instead of `AGENTS.md` alone: Claude Code reads `AGENTS.md` natively only since version 2.1.277, and only when there is no `CLAUDE.md` (nixpkgs 26.05 ships 2.1.223). With both files present it loads only `CLAUDE.md`, so the `@AGENTS.md` import is what loads the shared rules; the import never loads them twice. It works in every version and keeps a single source. The specification is deliberately not imported (about 65 KB in every session); agents read the relevant sections on demand.
+Why the import instead of `AGENTS.md` alone: Claude Code reads `AGENTS.md` natively only since version 2.1.277, and only when there is no `CLAUDE.md` (nixpkgs 26.05 ships 2.1.223). With both files present it loads only `CLAUDE.md`, so the `@AGENTS.md` import is what loads the shared rules; the import never loads them twice. It works in every version and keeps a single source. The specification is deliberately not imported (about 145 KB in every session); agents read the relevant sections on demand.
 
 Block-level HTML comments, such as the SPDX headers, are stripped before `CLAUDE.md` is loaded, so they cost no context.
 
@@ -131,4 +131,4 @@ GitHub MCP servers and connectors stay off (see section 3): they would act on Gi
 - **Server arguments:** `svelteserver --stdio`, `tinymist lsp` and `nixd` without arguments are untested; check with `/plugin` and the LSP diagnostics in a session.
 - **Sandbox with the toolchain:** writing to `~/.npm`, Node child processes with IPC and worker threads work inside the sandbox (checked 2026-10-17). `npm install` and `npm ci` against the registry work inside the sandbox (checked 2026-10-18). Still to check: `npm run test:e2e`.
 - **Unsigned agent commits:** check that the `env` setting reaches the shell: in a Claude Code session, `git config commit.gpgsign` should print `false`.
-- **GitHub workflows** are still missing. Actions must be pinned by commit SHA (see the specification).
+- **GitHub workflows:** `.github/workflows/` has `check.yml`, `dependency-review.yml` and `seed-cache.yml`. Actions must be pinned by commit SHA (see the specification).

@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # restlos-urlaubsplaner – Specification (single-file HTML)
 
-As of: 2026-10-19
+As of: 2026-11-14
 
 ## Goals and scope
 
@@ -791,7 +791,7 @@ Status: partly implemented; ical.js comes with the iCal import, planned for vers
 
 | Package | Purpose | In the HTML? | Assessment |
 | --- | --- | --- | --- |
-| svelte 5 | UI | runtime part | needed; 16 direct dependencies according to [depscope](https://depscope.dev/pkg/npm/svelte), almost all only for the compiler |
+| svelte 5 | UI | runtime part | needed; 16 direct dependencies (depscope, as of 2026-10), almost all only for the compiler |
 | vite, @sveltejs/vite-plugin-svelte | build, dev server | no | standard for Svelte; largest dependency tree in the project, build time only |
 | vite-plugin-singlefile | everything into one HTML | no | small, fulfils exactly the core requirement |
 | typescript | types | no | no dependencies |
@@ -800,7 +800,7 @@ Status: partly implemented; ical.js comes with the iCal import, planned for vers
 | eslint, eslint-plugin-svelte, svelte-check | lint, type checking | no | standard; covers among others "no `Date` in the engine" |
 | typescript-eslint | ESLint parser and rules for TypeScript | no | needed to lint TypeScript; umbrella for parser, plugin, utils and typescript-estree from the same project |
 | @eslint/js | ESLint's recommended rule set | no | from the ESLint team, no dependencies; no longer installed with eslint since ESLint 10 |
-| ical.js | read iCal (and verify the export) | yes | 0 dependencies, MPL-2.0 ([depscope](https://depscope.dev/pkg/npm/ical.js)); proven parser instead of an own implementation, also covers `RRULE`/`EXDATE` |
+| ical.js | read iCal (and verify the export) | yes | 0 dependencies (depscope, as of 2026-10), MPL-2.0; proven parser instead of an own implementation, also covers `RRULE`/`EXDATE` |
 | intl-messageformat (FormatJS) | ICU messages | yes | established ICU implementation; check the dependency tree during setup, otherwise `@messageformat/core` |
 | date-holidays | reference model | no | development dependency, tests only |
 | @playwright/test | end-to-end | no | standard; browsers locally from nixpkgs, in CI via Playwright |
@@ -883,9 +883,9 @@ Status: partly implemented; check, seed-cache and Dependency Review run, templat
 | --- | --- | --- |
 | `check` | push to `main`, pull requests; always the full check, without a path filter (a required check whose workflow a path filter skipped stays pending and blocks the merge) | inside `nix develop .#ci`: NixOS release check, `npm ci`, lint, REUSE check, type check, Vitest, performance gate, catalog, CSS and reference checks; then, as separate steps, the app build with its size check and the gallery build |
 | `seed-cache` | pushes to `main` that change `flake.nix`, `flake.lock`, `package-lock.json`, `.npmrc`, the Nix action or the workflow itself; weekly; by hand | the only workflow that writes caches: the Nix tarball, the Nix store cache and the npm cache, each fetched fresh from upstream; a separate read-only job runs the NixOS release check, so a failed weekly run reports an outdated release |
-| `templates` | only on changes to templates or the Typst version | compile templates × DE/EN with the pinned Typst version |
-| `e2e` | pull requests with the label `e2e`, before every release, otherwise once a week only if there were commits since the last run | Playwright in Firefox, Chromium, WebKit |
-| `release` | manual (tag) | build; create a draft GitHub Release, attach standard and Pro HTML, `SHA256SUMS` and the SPDX bill of materials, then publish it (immutable release); Pages version (web app) on GitHub Pages |
+| `templates` (planned) | only on changes to templates or the Typst version | compile templates × DE/EN with the pinned Typst version |
+| `e2e` (planned) | pull requests with the label `e2e`, before every release, otherwise once a week only if there were commits since the last run | Playwright in Firefox, Chromium, WebKit |
+| `release` (planned) | manual (tag) | build; create a draft GitHub Release, attach standard and Pro HTML, `SHA256SUMS` and the SPDX bill of materials, then publish it (immutable release); Pages version (web app) on GitHub Pages |
 | Dependency Review | pull requests that change the lockfile | GitHub's own `dependency-review-action` reports new packages and known vulnerabilities |
 
 **NixOS release check:** `npm run nixos-release` reads the release branch from `flake.lock`. NixOS supports a YY.05 release until 31 December and a YY.11 release until 30 June of the next year; its successor comes out about a month earlier. From the 1st of that last month CI warns that the successor is due; from the 16th, or for a branch that isn't a release branch, it fails, so the project moves while the old release is still supported.
@@ -1118,7 +1118,7 @@ Recommendation: three versions; each is usable on its own. The must lists under 
 - [typst.ts all-in-one library](https://myriad-dreamin.github.io/typst.ts/cookery/guide/all-in-one.html)
 - [Typst 0.13 changelog](https://typst.app/docs/changelog/0.13.0/)
 - [Svelte releases](https://releases.sh/svelte/svelte-releases.md)
-- [depscope: svelte](https://depscope.dev/pkg/npm/svelte)
+- depscope: svelte
 - [Unit 42: npm supply chain attacks](https://unit42.paloaltonetworks.com/?p=179395)
 - [npm min-release-age and Dependabot cooldown](https://dev.classmethod.jp/en/articles/npm-min-release-age-dependabot-cooldown/)
 - [GitHub: billing for Actions](https://docs.github.com/billing/managing-billing-for-your-products/managing-billing-for-github-actions)
