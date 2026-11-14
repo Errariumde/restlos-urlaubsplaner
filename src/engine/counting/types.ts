@@ -22,7 +22,10 @@ interface DayRuleBase {
   readonly match: DayMatch;
   readonly validFrom?: number; // years, inclusive; for a range, the year in which it starts
   readonly validUntil?: number;
-  /** Where the free time lies when the effect's value is below a full day; default "end". */
+  /**
+   * At which end of the day the effect lies when its value is below a full day; default "end". For `requiredAtMost` and
+   * `requiredExactly` where the free time lies, for `mandatory` where the mandatory leave lies.
+   */
   readonly part?: Part;
 }
 export type DayRule = DayRuleBase &

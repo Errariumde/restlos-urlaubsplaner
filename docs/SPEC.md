@@ -169,7 +169,7 @@ date-holidays is a development dependency and runs directly in the Vitest tests 
 
 ## Counting model (weights)
 
-Recommendation: every day has a **required work** value (how much work is owed), the user takes a **full** or **half** day off, and the cost is how much of that leave overlaps the day's working time. Internal calculation in integer units (1 day = 480), so that sums stay exact and planning down to 1/32 day is possible later without restructuring.
+Recommendation: every day has a **required work** value (how much work is owed), the user takes a share of the day off (a **full** or **half** day with the calendar's clicks, keys and ranges, a part of the plan's smallest leave unit in the day detail's leave bar), and the cost is how much of that leave overlaps the day's working time. Internal calculation in integer units (1 day = 480), so that sums stay exact and planning down to 1/32 day works without restructuring.
 
 ### The one formula
 
@@ -465,7 +465,7 @@ With "From rule set", country, region, local rules and day rules come from the r
 - **Keyboard:** the calendar is one widget with one Tab stop (ARIA grid, roving tabindex); arrow keys, Home/End and PageUp/PageDown move inside it. Home and End go to the start and the end of the week, in both views and also into the neighbouring month; Ctrl+Home and Ctrl+End (Cmd on macOS) go to the first and the last day of the month. No key moves the focus out of the plan period. Shift+arrow grows a visible selection; Space sets full days, H half days and Delete removes leave on the selection (on a single cell: Space = full, H = half); in a plan without half days (smallest leave unit `"1"`), H changes nothing and the hint line says so. Ctrl+Z/Ctrl+Y. In the month columns, Up and Down stop at the first and the last day of a month, since a month is one column; the other keys move between months. When there is no month in that direction inside the plan period, PageUp and PageDown, and Left and Right in the month columns, leave the focus where it is. Week numbers are buttons for the pointer; with the keyboard a week is selected with Shift+arrows and then planned with Space, H or Delete. Switching the view (V) or the alignment by weekday (W) keeps the focused day: an open detail closes, and the day is scrolled into view in the new layout and keeps the focus.
 - **Range rules** (one function for drag, Shift-click, week click, keyboard and touch ranges):
   - **Setting** puts a full day on every day in the range that has required work above 0, lies in the plan period and is not wholly mandatory leave or wholly covered by "Leave from another plan". Half days in the range become full days. Days with ½ required work (24 and 31 Dec) get a full day and cost ½, the same as a click. Own leave lies at an edge of the day: H puts half a day at the end, unless the end half has no work, then at the start; on 24 December, whose afternoon is free, H books the morning, which frees the whole day for ½. A day that mandatory leave or another plan's leave covers in part gets own leave for the work they leave free (with H half a day of it at most), from the edge of the day that work reaches, directly or across time without work, as long as it is one stretch; a day with free work on both sides of such leave is left alone. For example, 24 December with mandatory leave in its first quarter leaves the work from ¼ to ½: Space books ¾ at the end and costs ¼. H never books half a day that frees no work. A day whose work leave covers wholly, with own leave on it, counts as set: setting full days (a drag or Shift-click that sets, Space on a selection, a week click, "Full day" in the selection bar) leaves it alone, but H still puts its half day there, so on 24 December H turns a full day into the morning. The detail's "Full day" checkbox sets full days by the same rules.
-  - **Removing** removes all own leave in the range, full or half.
+  - **Removing** removes all own leave in the range, whatever its share.
   - Days that wouldn't change are left alone, so the hint line counts only real changes. A gesture that changes nothing adds no undo step. One undo step undoes a range.
   - A week-number click covers the whole ISO week (starting on the country's week start), not just the visible row, and goes through the range rules. It removes leave instead when setting would change none of its days (each has a full day already, or own leave that leaves no work).
   - Every pointer action has a single-pointer alternative (WCAG 2.5.7): clicks, Shift-click, the keyboard and the touch taps.
@@ -527,7 +527,7 @@ Dismissing a problem of time off needed for one day is not built yet: issue 0043
 | German | English | Meaning |
 | --- | --- | --- |
 | Soll | Required work | share of a day that would have to be worked (e.g. 0, ½, 1; any multiple of 1/32 possible) |
-| Genommen | Taken | share of the day taken off (UI currently: full or half) |
+| Genommen | Taken | share of the day taken off (in the UI full or half days, and the plan's smallest leave unit in the day detail's leave bar) |
 | Restarbeitszeit | Work left | the required work of a day that no leave covers, own, mandatory or from another plan |
 | Kontingent | Allowance | available leave days of a plan |
 | Plan | Plan | period + allowance + selected days |
