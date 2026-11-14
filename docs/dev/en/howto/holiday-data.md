@@ -15,6 +15,6 @@ SPDX-License-Identifier: CC-BY-4.0
    - date-holidays runs inside `npm test`;
    - after rule changes, run `npm run reference:python` and commit the regenerated `tests/reference/python-holidays-de.json`.
    Fix every difference or explain it in `tests/reference/known-differences.ts` with the official source that settles it (the packages are oracles, not the authority).
-8. Add the translation keys used by the data (`nameKey`, `explanationKey`) to both message catalogs (`ui-texts` skill).
+8. Add the translation keys used by the data (`nameKey`, `explanationKey`) to both message catalogs ([UI texts](ui-texts.md)).
 9. School holidays are **not** built in; they come via iCal import.
 10. Run `npm run check` (includes `reuse lint`).
