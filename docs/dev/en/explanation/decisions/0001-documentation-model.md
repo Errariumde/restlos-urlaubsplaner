@@ -21,7 +21,7 @@ Sorting by audience first lets each reader find their kind of text. Sorting by m
 
 English is the source because equal languages in lockstep do not scale to a third language. German is required because the main audience reads German. German help must never fall back to English text in silence. More languages stay optional, so a third language never blocks a change.
 
-The rules of style live on one page that humans and agents share. A deterministic check enforces the mechanical rules, so an agent that skips the page still gets the same result.
+The rules of style live on one page that humans and agents share. A deterministic check enforces the mechanical rules, so an agent that skips the page still meets them.
 
 The move happens section by section because one maintainer reviews every diff. A fixed, finite list of moves keeps the migration from stalling. Each move cuts the text from the specification in the same commit, so no fact is binding in two places.
 
@@ -35,7 +35,7 @@ The move happens section by section because one maintainer reviews every diff. A
 | Where developer procedures live | skills; docs pages | **docs pages, skills as thin pointers** | Visible on the website, readable by agents that do not load `.claude/skills/`, and editable without the protected-path prompt. |
 | Website generator | own `svelte/server` site; mdBook; Hugo; Zola; Zensical; Sphinx; GitHub links | **mdBook 0.5.2 from nixpkgs** | No site chrome to write, no npm packages, slow-moving. Hugo is better at languages but needs an own layout or a vendored theme with minified third-party JavaScript, and it releases breaking minor versions every few weeks. |
 | Multilingual mdBook | mdbook-i18n-helpers (gettext); forked theme; three generated books plus a checked string rewrite | **three generated books plus a checked string rewrite** | gettext makes German a PO file tied to English sentences and needs an extra pass for the app. A forked theme is a merge on every upgrade. |
-| Help rendering | a Svelte Markdown library; mdsvex; own typed tree plus one component | **own typed tree plus one component** | Every maintained library parses in the browser, so the parser ships in the 600 KB file. Several insert raw HTML with `{@html}` from `node_modules`, and none runs the project's checks. |
+| Help rendering | a Svelte Markdown library; mdsvex; own typed tree plus one component | **own typed tree plus one component** | Every maintained library parses in the browser, so the parser ships in the single HTML file, whose budget is 600 KB. Several insert raw HTML with `{@html}` from `node_modules`, and none runs the project's checks. |
 | Parser | marked; markdown-it; remark parser layer; Markdoc | **markdown-it 15.0.3, build-only, approved** | It parses like GitHub (CommonMark) and gives block line ranges for errors. Its `Token` format was unchanged from 14 to 15, and it drops `javascript:` and `data:` links. It adds 6 lockfile entries. |
 | Languages | equal languages in lockstep; gettext; English source with German required | **English source, German required and current in the same commit, more languages optional** | Equal lockstep doesn't scale to a third language, and gettext puts the main audience's language into PO files. |
 | Language in paths | suffix on every file; suffix on translations; language folders for user docs; language folders everywhere | **language folders everywhere, including `docs/dev/en/`** | One rule for all of `docs/`: clean trees for optional languages, ownership per folder, and room for translated developer docs. |

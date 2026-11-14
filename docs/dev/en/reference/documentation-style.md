@@ -26,7 +26,7 @@ The rules for every page under `docs/user/` and `docs/dev/`. Humans and agents f
 - **Mirrored trees:** the trees under `docs/user/en/` and `docs/user/de/` mirror each other path for path.
 - **User page links:** user pages link to each other by topic ID, not by file path: `[Tagesregeln](day-rules)`.
 - **Developer page links:** developer pages use relative links. `npm run check` resolves them.
-- **Meta pages:** they keep their own homes. `README.md`, `CONTRIBUTING.md`, `SUPPORT.md`, `SECURITY.md` and `CHANGELOG.md` stay at the repository root. Issues live in `issues/`, the licence texts in `LICENSES/`.
+- **Meta pages:** they keep their own homes. `README.md`, `CONTRIBUTING.md`, `SUPPORT.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md` and `CHANGELOG.md` stay at the repository root. Issues live in `issues/`, the licence texts in `LICENSES/`.
 
 ## Languages
 
@@ -36,15 +36,15 @@ The rules for every page under `docs/user/` and `docs/dev/`. Humans and agents f
 - **Developer docs are English only.**
 - **German style:** these rules apply to user docs and UI texts only.
   - `du` as the form of address;
-  - gender-neutral wording without gender characters such as `*`, `:` or `_`;
-  - `z. B.` with a non-breaking space (U+00A0);
+  - gender-neutral wording without gender characters such as `*`, `:`, `_` or a capital `I` in `-Innen`;
+  - `z. B.` and `d. h.` with a non-breaking space (U+00A0);
   - no `wir`, tutorials included;
   - no Konjunktiv in instructions.
 
 ## Audience and mode
 
 - Each page has one audience first, then one mode. The folder follows the mode.
-- Mixing modes in one page is a defect. A page that is touched is split into one page per mode.
+- Mixing modes in one page is the defect. A page that is touched is split into one page per mode.
 - Meta pages keep the homes named under "Layout".
 
 ## Voice
@@ -69,7 +69,7 @@ The rules for every page under `docs/user/` and `docs/dev/`. Humans and agents f
 
 - Filler.
 - Minimising words: `simply`, `easily`, `just`, `merely`, `obviously`, `straightforward`; in German `einfach`, `eben`, `halt`, `natürlich`, `offensichtlich`.
-- Time-relative words such as `currently`, `now`, `soon` and `will be`. They are allowed in `CHANGELOG.md`, in `issues/` and in status lines. Elsewhere the text names the version.
+- Time-relative words such as `currently`, `now`, `soon`, `at the moment` and `will be`. They are allowed in `CHANGELOG.md` and in `issues/`. Elsewhere the text names the version.
 - Latin abbreviations in English, such as `e.g.`, `i.e.` and `etc.`.
 - Metaphor, idiom, humour and exclamation marks.
 
@@ -98,7 +98,8 @@ Agent files: `AGENTS.md` is reference. Skills and how-tos are how-to.
 - the cut words and Latin abbreviations;
 - exclamation marks;
 - `we` and `our` outside tutorials, and second person in reference pages;
-- in German pages, `wir`, gender characters and `z. B.` without a non-breaking space;
+- in reference pages, a line that starts with `Recommendation:`;
+- in German pages, `wir`, gender characters and `z. B.` or `d. h.` without a non-breaking space;
 - every cited `docs/` path and every relative link, anchors included.
 
 The check skips code blocks, code spans, HTML comments and link targets. A page that quotes a cut word writes it as a code span.
