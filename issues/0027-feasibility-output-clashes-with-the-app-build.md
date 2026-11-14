@@ -29,4 +29,4 @@ Found when the UI branch added the single-file build (into `dist/restlos-urlaubs
 
 ## Notes
 
-- Closed as wontfix on 2026-11-08: the feasibility test pages were removed (commit c080a69, "Remove the feasibility test pages"), so no build or script writes into `dist/feasibility` any more and the clash can no longer happen.
+- Closed as wontfix on 2026-11-08: the feasibility test pages were removed on the feasibility branch before it was merged as pull request #10 ("Run the version 1 feasibility tests and write the results into the spec", commit 65384f2), so they never reached `main`, no build or script writes into `dist/feasibility`, and the clash can no longer happen.
