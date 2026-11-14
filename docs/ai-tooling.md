@@ -56,14 +56,15 @@ Recommendation: **only the Svelte MCP server, as a remote server** (`.mcp.json` 
 
 ## 4. Skills
 
-The skills follow the open Agent Skills format (agentskills.io) and use only portable frontmatter fields (`name`, `description`, `license`, `metadata`). Other agents can read them as plain instructions; `AGENTS.md` points to them. The one exception is `triage`: only the maintainer starts it (`/triage`), so it also uses the Claude Code fields `disable-model-invocation`, `argument-hint` and `allowed-tools`.
+The procedures live in `docs/dev/en/howto/`, one page per skill name. Each skill is a one-paragraph pointer that tells the agent to read that page and follow it step by step, so the page is the single source and any agent can read it directly. The skills follow the open Agent Skills format (agentskills.io) and use only portable frontmatter fields (`name`, `description`, `license`, `metadata`); `AGENTS.md` points to them. The one exception is `triage`, a full skill without a how-to: only the maintainer starts it (`/triage`), so it also uses the Claude Code fields `disable-model-invocation`, `argument-hint` and `allowed-tools`.
 
-| Skill | When | Key points |
+| Skill | When | Key points of the procedure (in `docs/dev/en/howto/<skill>.md`, for `triage` in the skill) |
 | --- | --- | --- |
 | `holiday-data` | changing holiday rules | official source, rule as data, tests over several years, cross-check with date-holidays and python-holidays |
 | `ui-texts` | changing texts | both catalogs, ICU MessageFormat, no sentence concatenation |
 | `dependency-update` | package and nixpkgs updates | no new packages without asking, review the lockfile diff, couple Playwright to the Nix version |
 | `release` | preparing a release | checks, `reuse lint`, SPDX bill of materials, manual test in Firefox ESR; tagging and pushing only by the maintainer |
+| `docs` | writing or moving documentation | one reader, one need and one mode per page, Diátaxis path, text from the spec moved unchanged before the rewrite, citations updated in the same commit, user pages in English and German together |
 | `triage` | choosing issues for the next branch (maintainer only) | checks open issues in `issues/` against the code, proposes a plan, changes status only after confirmation, no commit |
 
 No external skills (marketplaces) are needed. Deliberately left out: a skill for Typst templates, which only makes sense once templates exist.

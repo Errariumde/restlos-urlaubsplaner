@@ -20,7 +20,7 @@ The review of branch `ci` (2026-10-24, before the first runs) found minor issues
 ## Context
 
 - `.github/workflows/seed-cache.yml`, step "Check the store cache's signatures": it exempts the shell's own `-env` output by matching the name `nix-shell-env`. A `name` on `devShells.ci` would break that; comparing with the target of `$RUNNER_TEMP/ci-profile` (`readlink -f`) wouldn't. It also reports unsigned paths only as annotations; the job summary could list them too.
-- `.github/actions/nix/check-version.sh` and `.claude/skills/dependency-update/SKILL.md` (step 8) say "Update `NIX_VERSION`", but `action.yml` sets the version in its `version=` line and derives `NIX_VERSION` from it.
+- `.github/actions/nix/check-version.sh` and `docs/dev/en/howto/dependency-update.md` (step 8) say to update `NIX_VERSION`, but `action.yml` sets the version in its `version=` line and derives `NIX_VERSION` from it.
 - `scripts/perf.js`: the comment calls `--predictable` "single-threaded". In V8 13.6 it implies only single-threaded garbage collection, which is why `--liftoff-only` is needed as well. `tests/scripts/perf-trace-gc.test.ts` runs `node` from `PATH`; `process.execPath` would pin the binary the gate uses.
 - GitHub disables scheduled workflows in a public repository after 60 days without activity. The weekly `seed-cache` run, and with it the weekly NixOS release check, then stops without notice in a quiet period; `check` still runs the release check on every pull request.
 - Found by the second review: an `actions/cache` update arrives as two Dependabot pull requests, one per directory in `.github/dependabot.yml` (`/` and `/.github/actions/nix`), unless the `actions` group sets `group-by: dependency-name` (GitHub changelog 2026-02-24); merge them together so the pins don't differ. The tarball cache key holds the version but not the pinned hash, and the npm key doesn't cover `seed-cache.yml`, so a change there isn't seeded afresh until the next key change. The weekly seed runs right at the cache's 7-day eviction age, so after a quiet week `check` may run once without a cache (it still passes through upstream).
@@ -29,7 +29,7 @@ The review of branch `ci` (2026-10-24, before the first runs) found minor issues
 ## Acceptance criteria
 
 - [ ] The signature check identifies the `-env` output by path, not by name, and lists unsigned paths in the job summary.
-- [ ] The version message and the skill name the `version=` line in `action.yml`.
+- [ ] The version message and the how-to name the `version=` line in `action.yml`.
 - [ ] The `scripts/perf.js` comment is accurate; the trace-gc test uses `process.execPath`.
 - [ ] The SPEC's release-check paragraph mentions the 60-day rule, or the maintainer decides to accept it silently.
 - [ ] A 403 from GitHub in the seed run is either handled or documented as the known cause.

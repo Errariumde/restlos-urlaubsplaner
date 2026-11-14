@@ -22,7 +22,7 @@ So the monthly group pull request stays mergeable, `.github/dependabot.yml` igno
 ## Context
 
 - `.github/dependabot.yml`, the `ignore` entry for `typescript`.
-- `.claude/skills/dependency-update/SKILL.md`: for a major, read the changelog and summarize the breaking changes first.
+- `docs/dev/en/howto/dependency-update.md`, step 3: for a major, read the changelog and summarize the breaking changes first.
 - `npm run typecheck` runs `tsc` and `svelte-check`; `npm run lint` uses typescript-eslint with type information.
 
 ## Acceptance criteria

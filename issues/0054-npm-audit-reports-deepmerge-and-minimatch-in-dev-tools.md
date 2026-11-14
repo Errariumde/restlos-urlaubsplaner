@@ -33,11 +33,11 @@ The fixes `npm audit` suggests are wrong: `date-holidays` 1.8.4 and `typescript-
 
 ## Acceptance criteria
 
-- [ ] `eslint` is updated to a release that requires minimatch 11 (10.15.0 or later), through the monthly Dependabot npm group or by hand following `.claude/skills/dependency-update/SKILL.md`.
+- [ ] `eslint` is updated to a release that requires minimatch 11 (10.15.0 or later), through the monthly Dependabot npm group or by hand following `docs/dev/en/howto/dependency-update.md`.
 - [ ] `npm audit` no longer reports minimatch once typescript-eslint requires minimatch 11 and is updated.
 - [ ] `npm audit` no longer reports deepmerge once a fixed release exists and the packages that use it allow it, or this issue records why the remaining finding is accepted.
 
 ## Notes
 
 - No `overrides` in `package.json` to force minimatch 11 under typescript-eslint: its declared range is `^10.2.2`, and forcing a major it hasn't tested is a bigger risk than a denial of service on our own glob patterns.
-- Not a case for skipping the 14-day delay (`.claude/skills/dependency-update/SKILL.md`, step 7): nothing shipped is affected.
+- Not a case for skipping the 14-day delay (`docs/dev/en/howto/dependency-update.md`, step 7): nothing shipped is affected.

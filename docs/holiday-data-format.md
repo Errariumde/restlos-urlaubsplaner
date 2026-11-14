@@ -79,7 +79,7 @@ The engine takes a selection `{ country, state, options }`. A switch that is mis
 
 ## Adding a country
 
-1. Find the official legal sources (see the skill above).
+1. Find the official legal sources (see the how-to above, step 2).
 2. Create `src/data/holidays/<cc>.json` (lowercase country code); `REUSE.toml` already covers `src/data/**`.
 3. Import it in `src/data/holidays/index.ts` and add it to `countries` under its code.
 4. Add `tests/data/holidays/<cc>.test.ts` with known dates for at least three years per rule, including the years before and after each rule change. The validity test in `tests/data/holidays/de.test.ts` runs for every entry of `countries`.
