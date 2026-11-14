@@ -18,6 +18,7 @@ SPDX-License-Identifier: EUPL-1.2
   import type { Hint, LeaveChange } from "../worker/protocol.ts";
   import { amountText, fixedText, partText, percent, switchText, type DaySpan, type OffKind, type SwitchSegment } from "./detail.ts";
   import { dragEdge, leaveSwitch, nearest, reach, withOwnLeave, type LeaveSwitch } from "./leave-switch.ts";
+  import { POINTER_SLOP_PX } from "./pointer.ts";
 
   interface Props {
     day: DayResult;
@@ -58,7 +59,14 @@ SPDX-License-Identifier: EUPL-1.2
     readonly edge: Part;
     /** The part of the switch nearest to the pointer. */
     readonly index: number;
-    /** The pointer has been over another part: the release applies the drag. Else it is a plain press. */
+    /** Where the pointer was pressed, in client pixels. */
+    readonly x: number;
+    readonly y: number;
+    /**
+     * The pointer has been over another part, more than `POINTER_SLOP_PX` from where it was pressed: the release
+     * applies the drag. Else it is a plain press, so a finger that wobbles across the edge of a part still presses
+     * the part it went down on.
+     */
     readonly moved: boolean;
     /** The pointer is on the bar (`onBar`); a release off it changes nothing, and the bar shows no change meanwhile. */
     readonly inside: boolean;
@@ -198,7 +206,18 @@ SPDX-License-Identifier: EUPL-1.2
   function press(event: PointerEvent, segment: SwitchSegment): void {
     if (!event.isPrimary || event.button !== 0 || app.applying || segment.change === undefined) return;
     const start = Math.floor(segment.from / (UNITS_PER_DAY / shown.parts));
-    drag = { pointerId: event.pointerId, pressed: { from: segment.from, to: segment.to }, start, edge: dragEdge(day, minUnit, start), index: start, moved: false, inside: true, state: "down" };
+    drag = {
+      pointerId: event.pointerId,
+      pressed: { from: segment.from, to: segment.to },
+      start,
+      edge: dragEdge(day, minUnit, start),
+      index: start,
+      x: event.clientX,
+      y: event.clientY,
+      moved: false,
+      inside: true,
+      state: "down",
+    };
     capture(event.currentTarget, event.pointerId);
   }
 
@@ -216,7 +235,8 @@ SPDX-License-Identifier: EUPL-1.2
     if (current?.state !== "down" || event.pointerId !== current.pointerId) return;
     const index = partAt(event.clientX) ?? current.index;
     const inside = onBar(event);
-    const moved = current.moved || index !== current.start;
+    const far = Math.hypot(event.clientX - current.x, event.clientY - current.y) > POINTER_SLOP_PX;
+    const moved = current.moved || (far && index !== current.start);
     if (moved && !current.moved) {
       // The pressed switch may go in the preview; the bar keeps the pointer.
       capture(bar ?? null, event.pointerId);
@@ -340,7 +360,10 @@ SPDX-License-Identifier: EUPL-1.2
         checked={fullDay.checked === "true"}
         mixed={fullDay.checked === "mixed"}
         disabled={!fullDay.change}
-        onchange={() => void run(fullDay.change)}
+        onchange={() => {
+          // While a pointer is down on the bar, its release decides, not a key.
+          if (drag === undefined) void run(fullDay.change);
+        }}
       />
     {/if}
   </div>
@@ -374,7 +397,9 @@ SPDX-License-Identifier: EUPL-1.2
           onfocus={() => (focused = { day: day.day, from: segment.from })}
           onkeydown={(event) => moveInBar(event, segment.from)}
           onpointerdown={(event) => press(event, segment)}
-          onclick={() => void run(segment.change, segment)}
+          onclick={() => {
+            if (drag === undefined) void run(segment.change, segment);
+          }}
         >
           {#each segment.fills as fill (fill.from)}
             {@render stretch(fill, segment.from, segment.to - segment.from, fill.kind)}
@@ -441,7 +466,7 @@ SPDX-License-Identifier: EUPL-1.2
       font-weight: 700;
     }
 
-    /* A drag along the bar selects no text, and a finger moving sideways on it drags instead of scrolling. */
+    /* A drag along the bar selects no text. (A finger moving sideways on a switch drags: `.segment`, touch-action.) */
     .switches {
       user-select: none;
     }

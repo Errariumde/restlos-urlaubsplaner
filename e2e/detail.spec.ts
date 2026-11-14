@@ -378,6 +378,58 @@ test.describe("the leave bar, in English at 1280 px", () => {
     await expectNoPageProblems(page);
   });
 
+  test("a press that wobbles into the next part by less than 10 px is a press, a longer move a drag", async ({ page }) => {
+    await openEditedExample(page, {});
+    const bar = await openBar(page, 6, 14);
+    const morning = bar.getByRole("button", { name: "Morning", exact: true });
+    const day = cell(page, 6, 14);
+    const box = await morning.boundingBox();
+    if (!box) throw new Error("The morning has no box");
+    // Pressed 3 px left of the edge between the halves, let go 5 px right of it: 8 px, still the morning's press.
+    const y = box.y + box.height / 2;
+    const edge = box.x + box.width;
+    await page.mouse.move(edge - 3, y);
+    await page.mouse.down();
+    await page.mouse.move(edge + 5, y, { steps: 4 });
+    await page.mouse.up();
+    await expect(day).toHaveAttribute("aria-label", /leave half, morning/);
+    // The same press moved 12 px into the afternoon is a drag: from the start through the afternoon, a full day.
+    await page.mouse.move(edge - 3, y);
+    await page.mouse.down();
+    await page.mouse.move(edge + 9, y, { steps: 4 });
+    await page.mouse.up();
+    await expect(day).toHaveAttribute("aria-label", /leave full/);
+    await expectNoPageProblems(page);
+  });
+
+  test("keys press nothing while a pointer is down on the bar", async ({ page }) => {
+    await openEditedExample(page, { contract: { minUnit: "1/16" } });
+    const bar = await openBar(page, 6, 14);
+    const part = (name: string): Locator => bar.getByRole("button", { name, exact: true });
+    const day = cell(page, 6, 14);
+    const undo = page.getByRole("button", { name: "Undo", exact: true });
+    const box = await bar.boundingBox();
+    if (!box) throw new Error("The bar has no box");
+    // In the preview the focused 13th sixteenth is booked and "Full day" mixed; Space on either changes nothing.
+    await pressAndMove(page, part("13th sixteenth"), await centre(part("9th sixteenth")));
+    await expect(line(page, "Costs")).toContainText("½ day");
+    await expect(part("13th sixteenth")).toBeFocused();
+    await page.keyboard.press("Space");
+    await page.keyboard.press("Shift+Tab");
+    await expect(detail(page).getByRole("checkbox", { name: "Full day" })).toBeFocused();
+    await page.keyboard.press("Space");
+    // Released above the bar by more than its height: the drag ends without a change too.
+    await page.mouse.move(box.x + box.width / 2, box.y - box.height * 1.5, { steps: 2 });
+    await page.mouse.up();
+    await expect(line(page, "Costs")).toContainText("–");
+    await expect(day).toHaveAttribute("aria-label", /no leave/);
+    await expect(undo).toBeDisabled();
+    // Once the pointer is up, Space presses again.
+    await page.keyboard.press("Space");
+    await expect(day).toHaveAttribute("aria-label", /leave full/);
+    await expectNoPageProblems(page);
+  });
+
   test("the focus stays in the bar when the pressed switch goes", async ({ page }) => {
     // Own leave on the free afternoon (a problem): its switch is named like the fixed block it stands for.
     await openEditedExample(page, { plan: { days: [{ date: "2027-12-24", take: "1/2", part: "end" }] } });

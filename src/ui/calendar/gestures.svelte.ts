@@ -11,11 +11,11 @@ import type { PlanResult } from "../../engine/counting/plan.ts";
 import type { DayNumber } from "../../engine/days.ts";
 import type { app as appState } from "../state/app.svelte.ts";
 import type { LeaveChange } from "../worker/protocol.ts";
+import { POINTER_SLOP_PX } from "./pointer.ts";
 import { actionForDrag, rangeChanges, toggleDay } from "./range.ts";
 
-/** How long a touch must rest on a day to open its detail, and how far it may move meanwhile. */
+/** How long a touch must rest on a day to open its detail; it may move by `POINTER_SLOP_PX` meanwhile. */
 const LONG_PRESS_MS = 500;
-const TOUCH_SLOP_PX = 10;
 
 /** How close to an edge of the visible calendar a drag scrolls, and its step per frame right at the edge. */
 const EDGE_ZONE_PX = 40;
@@ -180,7 +180,7 @@ export function calendarGestures(node: HTMLElement, initial: GestureOptions): { 
   /** Starts the autoscroll once the pointer has left the spot where it was pressed. */
   function autoscrollFrom(drag: MousePress | SelectPress): void {
     if (frame !== undefined) return;
-    if (!drag.moved && Math.hypot(drag.lastX - drag.x, drag.lastY - drag.y) <= TOUCH_SLOP_PX) return;
+    if (!drag.moved && Math.hypot(drag.lastX - drag.x, drag.lastY - drag.y) <= POINTER_SLOP_PX) return;
     frame = requestAnimationFrame(autoscroll);
   }
 
@@ -359,12 +359,12 @@ export function calendarGestures(node: HTMLElement, initial: GestureOptions): { 
     const current = press;
     if (current === undefined || event.pointerId !== current.id) return;
     if (current.kind === "touch") {
-      if (Math.hypot(event.clientX - current.x, event.clientY - current.y) > TOUCH_SLOP_PX) finish();
+      if (Math.hypot(event.clientX - current.x, event.clientY - current.y) > POINTER_SLOP_PX) finish();
       return;
     }
     if (current.kind === "select") {
       if (current.done) return;
-      if (current.timer !== undefined && Math.hypot(event.clientX - current.x, event.clientY - current.y) > TOUCH_SLOP_PX) {
+      if (current.timer !== undefined && Math.hypot(event.clientX - current.x, event.clientY - current.y) > POINTER_SLOP_PX) {
         clearTimeout(current.timer);
         current.timer = undefined;
       }
