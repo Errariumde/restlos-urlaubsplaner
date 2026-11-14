@@ -9,7 +9,7 @@ const EN_TUTORIAL = "docs/user/en/tutorials/first-plan.md";
 const EN_REFERENCE = "docs/user/en/reference/plan-file.md";
 const DE_HOWTO = "docs/user/de/howto/brueckentag-planen.md";
 const DE_REFERENCE = "docs/user/de/reference/plandatei.md";
-const NBSP = " ";
+const NBSP = "\u00a0";
 
 /** The errors for one file whose text is the given lines. */
 function check(path: string, ...lines: string[]): string[] {
@@ -44,7 +44,12 @@ describe("checkDocs", () => {
 
     it("reports upper case, a missing language and a folder below decisions", () => {
       const paths = ["docs/user/en/howto/Plan.md", "docs/user/howto/plan.md", "docs/dev/en/explanation/decisions/old/0001-x.md"];
-      expect(checkDocs(paths.map((path) => ({ path, text: "Text.\n" })))).toHaveLength(3);
+      expect(checkDocs(paths.map((path) => ({ path, text: "Text.\n" })))).toEqual(paths.flatMap((path) => at(path, 1)));
+    });
+
+    it("accepts decisions only under explanation", () => {
+      expect(check("docs/dev/en/reference/decisions/x.md", "Text.")).toEqual(at("docs/dev/en/reference/decisions/x.md", 1));
+      expect(check("docs/dev/en/explanation/decisions/0001-documentation-model.md", "Text.")).toEqual([]);
     });
 
     it("ignores files outside docs/user and docs/dev, and files that are not Markdown", () => {
@@ -81,8 +86,14 @@ describe("checkDocs", () => {
       expect(check(EN_HOWTO, "Fine.", "Done!", "![The plan](plan.png)")).toEqual(at(EN_HOWTO, 2));
     });
 
+    it("leaves a GitHub alert alone", () => {
+      expect(check(EN_HOWTO, "> [!NOTE]", "> The plan stays on this device.")).toEqual([]);
+    });
+
     it("reports we and our outside tutorials", () => {
       expect(check(EN_HOWTO, "Fine.", "We open the plan.", "Then we save it.", "Open our plan.")).toEqual(at(EN_HOWTO, 2, 3, 4));
+      const explanation = "docs/dev/en/explanation/counting-model.md";
+      expect(check(explanation, "Fine.", "Our plan counts in units.")).toEqual(at(explanation, 2));
       expect(check(EN_TUTORIAL, "We open the plan.", "Open our plan.")).toEqual([]);
     });
 
@@ -106,6 +117,11 @@ describe("checkDocs", () => {
         at(DE_REFERENCE, 2, 3, 4, 5, 6),
       );
       expect(check(DE_HOWTO, "Du öffnest deinen Plan.")).toEqual([]);
+    });
+
+    it("leaves words that only start with dein alone", () => {
+      expect(check(DE_REFERENCE, "Die Deinstallation entfernt nichts.")).toEqual([]);
+      expect(check(DE_REFERENCE, "Gut.", "Hier liegt dein Plan.")).toEqual(at(DE_REFERENCE, 2));
     });
 
     it("reports filler words", () => {
@@ -167,6 +183,10 @@ describe("checkDocs", () => {
 
     it("counts skipped lines toward the line number", () => {
       expect(check(EN_HOWTO, "# Title", "", "```", "we just run it", "```", "", "It just works.")).toEqual(at(EN_HOWTO, 7));
+    });
+
+    it("does not read a comment start inside a code span as a comment", () => {
+      expect(check(EN_HOWTO, "Write `<!--` to start a comment.", "Fine.", "It just works.")).toEqual(at(EN_HOWTO, 3));
     });
 
     it("checks the text around a code span or comment on the same line", () => {

@@ -14,7 +14,7 @@ interface Rule {
   applies: (path: string) => boolean;
 }
 
-const PAGE_PATH = /^docs\/(user|dev)\/[a-z]{2}\/(tutorials|howto|reference|explanation)(\/decisions)?\/[a-z0-9][a-z0-9-]*\.md$/;
+const PAGE_PATH = /^docs\/(user|dev)\/[a-z]{2}\/(tutorials|howto|reference|explanation(\/decisions)?)\/[a-z0-9][a-z0-9-]*\.md$/;
 
 /** The language segment of a page path, such as `en` in `docs/user/en/howto/<name>.md`. */
 function language(path: string): string | undefined {
@@ -53,13 +53,14 @@ const LINE_RULES: readonly Rule[] = [
     applies: english,
   },
   {
-    pattern: /!(?!\[)/,
+    // An image (`![`) and a GitHub alert (`> [!NOTE]`) are not exclamations.
+    pattern: /(?<!\[)!(?!\[)/,
     what: "an exclamation mark",
     instead: "end the sentence with a full stop",
     applies: (path) => english(path) || german(path),
   },
   {
-    pattern: /\b[Ww]e\b|\bour\b/,
+    pattern: /\b[Ww]e\b|\b[Oo]ur\b/,
     what: "\"we\" or \"our\" outside a tutorial",
     instead: "name who acts, or address the reader",
     applies: (path) => english(path) && !path.includes("/tutorials/"),
@@ -71,7 +72,7 @@ const LINE_RULES: readonly Rule[] = [
     applies: (path) => english(path) && reference(path),
   },
   {
-    pattern: /\b(du|dich|dir|dein\w*)\b/i,
+    pattern: /\b(du|dich|dir|dein(e|er|es|em|en)?)\b/i,
     what: "\"du\" or \"dein\" in a reference page",
     instead: "describe the thing itself, not the reader",
     applies: (path) => german(path) && reference(path),
@@ -109,6 +110,7 @@ const LINE_RULES: readonly Rule[] = [
 ];
 
 const FENCE = /^ {0,3}(`{3,}|~{3,})/;
+const CODE_SPAN = /(`+)[^`]*?\1/g;
 
 /** Spaces in place of the matched text, so positions and line starts stay as they were. */
 function blank(text: string): string {
@@ -145,17 +147,19 @@ function proseLines(text: string): string[] {
         rest = rest.slice(end + 3);
         inComment = false;
       } else {
-        const start = rest.indexOf("<!--");
+        // Code spans first, so a comment start inside one, such as `<!--`, starts no comment.
+        const spans = rest.replace(CODE_SPAN, blank);
+        const start = spans.indexOf("<!--");
         if (start < 0) {
-          prose += rest;
+          prose += spans;
           break;
         }
-        prose += rest.slice(0, start);
+        prose += spans.slice(0, start);
         rest = rest.slice(start);
         inComment = true;
       }
     }
-    return prose.replace(/(`+)[^`]*?\1/g, blank).replace(/\]\([^)]*\)/g, (target) => `]${blank(target.slice(1))}`);
+    return prose.replace(/\]\([^)]*\)/g, (target) => `]${blank(target.slice(1))}`);
   });
 }
 
