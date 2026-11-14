@@ -37,5 +37,5 @@ Since leave is charged by its overlap with the working time, the engine, the ran
 - [ ] One shared module for spans of a day (half-open, in day positions: union, difference, within, measure, where a piece of leave lies, where the work block lies), used by `leave.ts`, `range.ts`, `leave-switch.ts` and `day-leave.ts`; one `OwnPiece` type, or two with names that say what they hold. The engine part stays free of UI imports. Its existing tests pass, and the module has its own.
 - [ ] The value line's markup and its styles (`.part`, `.line`, `.name`, `b`, `.spoken`, `.bar`) exist once, for example as a shared component or a style in the components layer, used by `DayDetail.svelte` and `LeaveBar.svelte`; the gallery's day details and the e2e tests of the detail look and read as before.
 - [ ] The leave bar asks for a preview and builds the drawn bar only when the take or the part of the dragged change changes, not for a new drag object with the same change, and not for the released drag; a test shows one preview request per change.
-- [ ] `suggestParts` uses `today.evaluation.remaining`; its tests pass unchanged.
+- [x] `suggestParts` uses `today.evaluation.remaining`; its tests pass unchanged. Done on `leave-on-working-time`, when the suggestion started to prefer leave on work to leave on time without work.
 - [ ] `npm run check` and `npm run perf` stay green.

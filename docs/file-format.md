@@ -342,7 +342,7 @@ A report entry has a `code`, the `path` of the key itself in the text that was r
 | `personalSourceInRuleSet` | Error | An `otherPlan` or `needed` source in a rule set (`data.type`) | that source dropped |
 | `invalidMinUnit` | Warning | `minUnit` present but invalid | `"1/2"` used |
 | `notMultipleOfMinUnit` | Warning | A leave `take` or an override's `required` that is not a multiple of `minUnit` | kept; the engine computes it exactly |
-| `partSuggested` | Warning | Partial own leave without `part` (`data.part`) | kept with a part: inside the plan period the one that frees the whole day, else the only one whose leave covers work not yet covered, else the one the neighbouring days suggest, computed once for the whole plan, otherwise `"end"`; outside the period always `"end"`, without a computation |
+| `partSuggested` | Warning | Partial own leave without `part` (`data.part`) | kept with a part: inside the plan period the one that frees the whole day, else the only one whose leave covers work not yet covered, else (where both free the same) the only one whose leave lies on work and not only on time without work, else `"end"` if both free the whole day, else the one the neighbouring days suggest, computed once for the whole plan, otherwise `"end"`; outside the period always `"end"`, without a computation |
 | `outsidePeriod` | Info | Leave, an override or a note outside the plan period | kept; the calendar doesn't show it |
 
 Error means not loaded and lost when saving, Warning loaded but changed or probably wrong, Info loaded unchanged. `SEVERITY` in `src/engine/file/severity.ts` holds the same values.
