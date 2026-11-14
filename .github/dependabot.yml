@@ -4,7 +4,7 @@
 # flake.lock: Dependabot updates nixpkgs within its release branch (nix
 # ecosystem) and, once the next release branch exists, proposes moving
 # flake.nix to it. That pull request is only the notice: the move is made by
-# hand (.claude/skills/dependency-update/SKILL.md, step 8).
+# hand (docs/dev/en/howto/dependency-update.md, step 8).
 version: 2
 updates:
   - package-ecosystem: npm

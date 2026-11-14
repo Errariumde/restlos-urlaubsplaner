@@ -186,7 +186,7 @@ export function checkCitations(files: readonly TextFile[]): string[] {
 }
 
 /** Where docs and code must not cite the spec yet; the rest of the repository follows as its sections move. */
-export const SPEC_CITATION_SCOPE: readonly string[] = ["docs/user/", "docs/dev/"];
+export const SPEC_CITATION_SCOPE: readonly string[] = ["docs/user/", "docs/dev/", ".claude/skills/"];
 
 /** Scoped files that may still cite the spec, each with the step that removes it. */
 export const SPEC_CITATION_ALLOWLIST: Readonly<Record<string, string>> = {

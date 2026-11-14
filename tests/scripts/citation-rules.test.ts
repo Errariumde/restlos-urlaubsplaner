@@ -151,6 +151,9 @@ describe("checkSpecCitations", () => {
     expect(checkSpecCitations([{ path: "docs/user/de/howto/b.md", text: "laut SPEC\n" }])).toHaveLength(1);
   });
 
+  it("reports a skill that cites the spec", () =>
+    expect(checkSpecCitations([{ path: ".claude/skills/x/SKILL.md", text: "see docs/SPEC.md\n" }])).toHaveLength(1));
+
   it("skips allowlisted files and files outside the scope", () => {
     expect(checkSpecCitations([{ path: "docs/dev/en/howto/docs.md", text: "docs/SPEC.md\n" }])).toEqual([]);
     expect(checkSpecCitations([{ path: "src/a.ts", text: "// docs/SPEC.md\n" }])).toEqual([]);
@@ -166,6 +169,6 @@ describe("checkSpecCitations", () => {
       "docs/dev/en/howto/holiday-data.md",
     ]);
     for (const reason of Object.values(SPEC_CITATION_ALLOWLIST)) expect(reason).toMatch(/^removed /);
-    expect(SPEC_CITATION_SCOPE).toEqual(["docs/user/", "docs/dev/"]);
+    expect(SPEC_CITATION_SCOPE).toEqual(["docs/user/", "docs/dev/", ".claude/skills/"]);
   });
 });
