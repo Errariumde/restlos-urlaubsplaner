@@ -386,6 +386,10 @@ describe("leave in day positions", () => {
     expect(rangeChanges(morning, christmas, christmas, "full")).toEqual([]);
     // H on it again changes nothing either.
     expect(changeFor(dayIn(morning, christmas), "half")).toBeUndefined();
+    // A full day there is set too, but H still puts its half day there: the full day becomes the morning.
+    const fullDay = opened().session.apply([{ day: christmas, take: 480 }]).result;
+    expect(changeFor(dayIn(fullDay, christmas), "full")).toBeUndefined();
+    expect(changeFor(dayIn(fullDay, christmas), "half")).toEqual({ day: christmas, take: 240, part: "start" });
     // The week of 20 December: four full days and the morning of 24 December are all set, so a week click takes
     // the week away.
     const monday = d(2027, 12, 20);

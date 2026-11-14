@@ -181,6 +181,28 @@ describe("computePlan: problems", () => {
   ] as [Partial<PlanInput>][])("rejects invalid input %#", (changes) => expect(() => plan(changes)).toThrow(RangeError));
 });
 
+describe("computePlan: required work with its free time at the start", () => {
+  // Wednesday 12 May 2027 with ½ of work in the afternoon, from an override or from an entry of a holiday calendar.
+  const iso = "2027-05-12";
+  const layers: [string, Partial<PlanInput>][] = [
+    ["an override", { overrides: [{ day: d(iso), required: HALF, part: "start" }] }],
+    ["a holiday calendar", { sources: [{ type: "holiday", day: d(iso), sourceId: "school", required: HALF, part: "start" }] }],
+  ];
+  const costAndRemaining = (result: PlanResult) => [dayOf(result, iso).evaluation.ownCost, dayOf(result, iso).evaluation.remaining];
+  it.each(layers)("charges nothing for leave on the free morning and reports it, from %s", (_, changes) => {
+    const result = plan({ ...changes, leave: [leave(iso, HALF, "start")] });
+    expect(result.problems).toEqual([{ code: "leaveOnFreeTime", day: d(iso) }]);
+    expect(costAndRemaining(result)).toEqual([0, HALF]);
+  });
+  it.each(layers)("charges ½ for the afternoon or a full day, which free the day, from %s", (_, changes) => {
+    for (const booked of [leave(iso, HALF, "end"), leave(iso)]) {
+      const result = plan({ ...changes, leave: [booked] });
+      expect(result.problems).toEqual([]);
+      expect(costAndRemaining(result)).toEqual([HALF, 0]);
+    }
+  });
+});
+
 describe("computePlan: limits", () => {
   // the day window is clamped to the supported years
   it("works at the limits of the supported years", () => {

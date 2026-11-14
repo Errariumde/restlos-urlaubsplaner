@@ -777,7 +777,12 @@ test.describe("on a touch screen", () => {
     // The switches a preview draws pressed (by their class: their `aria-pressed` stays as the bar is during a drag).
     const drawn = bar.locator("button.pressed");
     const from = await centre(bar.getByRole("button", { name: "13th sixteenth", exact: true }));
-    // The browser scrolls the sheet (the switch allows panning up and down) and cancels the pointer.
+    // The browser pans (the switch allows panning up and down) and so cancels the pointer; with panning not allowed
+    // it would keep sending the pointer's moves to the bar.
+    await page.evaluate(() => {
+      Object.assign(window, { pointerCancels: 0 });
+      window.addEventListener("pointercancel", () => Object.assign(window, { pointerCancels: (window as unknown as { pointerCancels: number }).pointerCancels + 1 }), true);
+    });
     const cdp = await page.context().newCDPSession(page);
     await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [from] });
     for (let step = 1; step <= 6; step += 1) {
@@ -787,6 +792,7 @@ test.describe("on a touch screen", () => {
     }
     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     await settle(page);
+    expect(await page.evaluate(() => (window as unknown as { pointerCancels: number }).pointerCancels)).toBe(1);
     await expect(costs).toContainText("–");
     await expect(drawn).toHaveCount(0);
     await expect(day).toHaveAttribute("aria-label", /no leave/);

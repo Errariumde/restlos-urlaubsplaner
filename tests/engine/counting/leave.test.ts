@@ -19,6 +19,10 @@ describe("evaluateLeave", () => {
     ["company closure", at(480), [mand(480)], [480, 0, 480, 0, 480, 480]],
     ["mandatory leave on a Sunday", at(0), [mand(480)], [0, 0, 0, 0, 480, 480]],
     ["company closes at noon", at(480), [mand(240)], [240, 0, 240, 240, 0, 240]],
+    // a normal working day: work over the whole day
+    ["normal day: a full day costs 1", at(480), [own(480)], [480, 480, 0, 0, 480, 480]],
+    ["normal day: own ½ morning costs ½", at(480), [own(240, "start")], [240, 240, 0, 240, 240, 0]],
+    ["normal day: own ½ afternoon costs ½", at(480), [own(240, "end")], [240, 240, 0, 240, 0, 240]],
     ["maintainer's example: own ½ start, mandatory ½ end", at(480), [own(240, "start"), mand(240)], [480, 240, 240, 0, 480, 480]],
     ["own and mandatory on the same half", at(480), [own(240), mand(240)], [240, 0, 240, 240, 0, 240]],
     ["mandatory ½ at the end on a ½ day costs nothing", at(240), [mand(240)], [0, 0, 0, 240, 0, 240]],
@@ -29,6 +33,7 @@ describe("evaluateLeave", () => {
     // a ¾ day with the free time at the end: work from 0 to 360
     ["¾ day: own ½ afternoon costs ¼", at(360), [own(240, "end")], [120, 120, 0, 240, 0, 240]],
     ["¾ day: own ½ morning costs ½", at(360), [own(240, "start")], [240, 240, 0, 120, 240, 120]],
+    ["¾ day: a full day costs ¾", at(360), [own(480)], [360, 360, 0, 0, 480, 480]],
     ["free start: own ½ start on free time", at(240, "start"), [own(240, "start")], [0, 0, 0, 240, 240, 0]],
     // the other plan charged the afternoon, which is free here; the mandatory morning is still charged
     ["another plan's afternoon on this plan's free afternoon", at(240), [mand(240, "start"), other(240, 480)], [240, 0, 240, 0, 480, 480]],
