@@ -38,6 +38,6 @@ describe("checkReferences", () => {
 
   it("says what to do instead", () => {
     const [error] = checkReferences([{ path: "a.md", text: "docs/superpowers/plans/p.md" }]);
-    expect(error).toContain("docs/SPEC.md");
+    expect(error).toContain("docs/dev/en/");
   });
 });

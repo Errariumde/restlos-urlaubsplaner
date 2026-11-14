@@ -3,14 +3,15 @@
 
 // Checks that the repository's text stands on its own (AGENTS.md, "Text in the repository"): no links into
 // docs/superpowers/, no rulings, no review files from outside; and that every cited docs path, Markdown link
-// target, anchor and docs/SPEC.md section exists. Scans every tracked or new, not ignored, text file.
+// target, anchor and docs/SPEC.md section exists; and that docs/user/ and docs/dev/ do not cite docs/SPEC.md.
+// Scans every tracked or new, not ignored, text file.
 // Run through `npm run check`.
 /* global console, process, URL */
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { checkCitations } from "./citation-rules.ts";
+import { checkCitations, checkSpecCitations } from "./citation-rules.ts";
 import { checkReferences } from "./reference-rules.ts";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -25,7 +26,7 @@ for (const path of new Set(listed.split("\0").filter(Boolean))) {
   files.push({ path, text: bytes.toString("utf8") });
 }
 
-const errors = [...checkReferences(files), ...checkCitations(files)];
+const errors = [...checkReferences(files), ...checkCitations(files), ...checkSpecCitations(files)];
 if (errors.length > 0) {
   console.error(errors.join("\n"));
   console.error(`\n${String(errors.length)} reference(s) to fix.`);

@@ -2,7 +2,14 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 import { describe, expect, it } from "vitest";
-import { checkCitations, githubSlug, specSectionNames } from "../../scripts/citation-rules";
+import {
+  SPEC_CITATION_ALLOWLIST,
+  SPEC_CITATION_SCOPE,
+  checkCitations,
+  checkSpecCitations,
+  githubSlug,
+  specSectionNames,
+} from "../../scripts/citation-rules";
 
 const spec = {
   path: "docs/SPEC.md",
@@ -50,6 +57,19 @@ describe("checkCitations", () => {
       ]),
     ).toEqual([]));
 
+  it("ignores a path match that a pattern character follows", () =>
+    expect(checkCitations([spec, { path: "a.md", text: "docs/file-*.md and docs/howto/install… and docs/x<y> and docs/a>b\n" }])).toEqual([]));
+
+  it("counts (new) after a closing backtick or a link's closing parenthesis", () => {
+    const planned = "`docs/dev/en/reference/glossary.md` (new) [g](docs/dev/en/reference/glossary.md) (new)\n";
+    expect(checkCitations([spec, { path: "a.md", text: planned }])).toEqual([]);
+    const unmarked = "`docs/dev/en/reference/glossary.md` x\n[g](docs/dev/en/reference/glossary.md) x\n";
+    expect(checkCitations([spec, { path: "a.md", text: unmarked }])).toEqual([
+      expect.stringMatching(/^a\.md:1: /),
+      expect.stringMatching(/^a\.md:2: /),
+    ]);
+  });
+
   it("resolves quoted spec section names in full, cut at ': ' or ' (', and bold labels", () =>
     expect(
       checkCitations([
@@ -89,7 +109,7 @@ describe("checkCitations", () => {
     ]);
   });
 
-  it("skips docs/superpowers, CHANGELOG.md, done issues and its own test", () =>
+  it("skips docs/superpowers, CHANGELOG.md, done issues, its own test and its own source", () =>
     expect(
       checkCitations([
         spec,
@@ -97,6 +117,7 @@ describe("checkCitations", () => {
         { path: "CHANGELOG.md", text: "docs/gone.md\n" },
         { path: "issues/0001-x.md", text: "---\nstatus: done\n---\ndocs/gone.md\n" },
         { path: "tests/scripts/citation-rules.test.ts", text: "docs/gone.md\n" },
+        { path: "scripts/citation-rules.ts", text: '"docs/gone.md": "x"\n' },
       ]),
     ).toEqual([]));
 
@@ -110,5 +131,32 @@ describe("checkCitations", () => {
     expect(path).toBe("a.ts:1: the path docs/gone.md does not exist; correct it, or mark a planned page with (new).");
     const [section] = checkCitations([spec, { path: "a.ts", text: 'docs/SPEC.md, "X"\n' }]);
     expect(section).toBe('a.ts:1: docs/SPEC.md has no section "X"; cite an existing heading or move the section first.');
+  });
+});
+
+describe("checkSpecCitations", () => {
+  it("reports a citation of the spec in a scoped file, by path or by name", () => {
+    expect(checkSpecCitations([{ path: "docs/dev/en/reference/a.md", text: "x\nsee docs/SPEC.md\n" }])).toEqual([
+      "docs/dev/en/reference/a.md:2: a citation of the spec, which docs and code never cite; cite the reference page, or move the section into docs/dev/en/reference/ first.",
+    ]);
+    expect(checkSpecCitations([{ path: "docs/user/de/howto/b.md", text: "laut SPEC\n" }])).toHaveLength(1);
+  });
+
+  it("skips allowlisted files and files outside the scope", () => {
+    expect(checkSpecCitations([{ path: "docs/dev/en/howto/docs.md", text: "docs/SPEC.md\n" }])).toEqual([]);
+    expect(checkSpecCitations([{ path: "src/a.ts", text: "// docs/SPEC.md\n" }])).toEqual([]);
+  });
+
+  it("leaves other specs alone", () =>
+    expect(checkSpecCitations([{ path: "docs/dev/en/reference/a.md", text: "the CommonMark spec\n" }])).toEqual([]));
+
+  it("keeps the stage 1 scope and allowlist, each entry with the step that removes it", () => {
+    expect(Object.keys(SPEC_CITATION_ALLOWLIST).sort()).toEqual([
+      "docs/dev/en/howto/dependency-update.md",
+      "docs/dev/en/howto/docs.md",
+      "docs/dev/en/howto/holiday-data.md",
+    ]);
+    for (const reason of Object.values(SPEC_CITATION_ALLOWLIST)) expect(reason).toMatch(/^removed /);
+    expect(SPEC_CITATION_SCOPE).toEqual(["docs/user/", "docs/dev/"]);
   });
 });

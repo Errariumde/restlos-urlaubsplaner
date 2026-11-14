@@ -90,15 +90,23 @@ function decode(target: string): string {
   }
 }
 
-/** What the reference check skips, including this check's own test, and the changelog, which records the past. */
+/**
+ * What the reference check skips, including this check's own test; the changelog, which records the past; and
+ * this file, whose allowlist names pages before they exist.
+ */
 function exempt(file: TextFile): boolean {
-  return exemptFromReferences(file) || file.path === "CHANGELOG.md";
+  return exemptFromReferences(file) || file.path === "CHANGELOG.md" || file.path === "scripts/citation-rules.ts";
 }
 
 const ROOT_PATH = /(?<![\w/.:-])docs\/[A-Za-z0-9_./-]*[A-Za-z0-9_/-]/g;
 const ANCHOR = /^#([\p{L}\p{N}_-]+)/u;
 const LINK = /\]\(([^)\s]+)/g;
 const SECTIONS = /SPEC\.md`?(?:,\s*|\s*\(\s*|\s+)((?:"[^"\n]+"(?:,\s*)?)+)/g;
+
+/** Whether a citation ending at `end` is marked as a planned page, also after a closing backtick or link parenthesis. */
+function planned(text: string, end: number): boolean {
+  return [" (new)", "` (new)", ") (new)"].some((marker) => text.startsWith(marker, end));
+}
 
 /** One line per citation that does not resolve: `path:line: what it is; what to do instead`. */
 export function checkCitations(files: readonly TextFile[]): string[] {
@@ -138,7 +146,8 @@ export function checkCitations(files: readonly TextFile[]): string[] {
 
     for (const match of text.matchAll(ROOT_PATH)) {
       const end = match.index + match[0].length;
-      if (match[0].endsWith("/") || text.startsWith(" (new)", end)) continue;
+      // A folder, a pattern such as docs/file-*.md or docs/howto/<name>.md, or a planned page.
+      if (match[0].endsWith("/") || /[<>*…]/.test(text.charAt(end)) || planned(text, end)) continue;
       const what = problem(match[0], ANCHOR.exec(text.slice(end))?.[1]);
       if (what !== null) report(match.index, what);
     }
@@ -147,7 +156,7 @@ export function checkCitations(files: readonly TextFile[]): string[] {
       const folder = path.split("/").slice(0, -1).join("/");
       for (const match of text.matchAll(LINK)) {
         const link = match[1] ?? "";
-        if (/^(https?|mailto):/.test(link)) continue;
+        if (/^(https?|mailto):/.test(link) || planned(text, match.index + match[0].length)) continue;
         const hash = link.indexOf("#");
         const target = hash === -1 ? link : link.slice(0, hash);
         const anchor = hash === -1 ? undefined : decode(link.slice(hash + 1));
@@ -172,4 +181,31 @@ export function checkCitations(files: readonly TextFile[]): string[] {
     }
   }
   return [...errors];
+}
+
+/** Where docs and code must not cite the spec yet; the rest of the repository follows as its sections move. */
+export const SPEC_CITATION_SCOPE: readonly string[] = ["docs/user/", "docs/dev/"];
+
+/** Scoped files that may still cite the spec, each with the step that removes it. */
+export const SPEC_CITATION_ALLOWLIST: Readonly<Record<string, string>> = {
+  "docs/dev/en/howto/dependency-update.md": 'removed in phase 2, when "Dependencies and supply chain" moves',
+  "docs/dev/en/howto/holiday-data.md": 'removed in phase 2, when "Holiday sources and work week" moves',
+  "docs/dev/en/howto/docs.md": "removed when docs/SPEC.md is deleted",
+};
+
+const SPEC_CITATION = /SPEC\.md|\bSPEC\b/;
+
+/** One line per line of a scoped file that cites the spec: `path:line: what it is; what to do instead`. */
+export function checkSpecCitations(files: readonly TextFile[]): string[] {
+  const errors: string[] = [];
+  for (const { path, text } of files) {
+    if (!SPEC_CITATION_SCOPE.some((scope) => path.startsWith(scope)) || path in SPEC_CITATION_ALLOWLIST) continue;
+    text.split("\n").forEach((line, index) => {
+      if (SPEC_CITATION.test(line))
+        errors.push(
+          `${path}:${String(index + 1)}: a citation of the spec, which docs and code never cite; cite the reference page, or move the section into docs/dev/en/reference/ first.`,
+        );
+    });
+  }
+  return errors;
 }
