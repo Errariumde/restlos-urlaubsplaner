@@ -329,12 +329,12 @@ export function reach(day: DayResult, minUnit: Units, edge: Part, index: number)
 
 /**
  * The edge of the day a drag along the bar reaches from when it starts on the part `index`: own leave's `part` when
- * it lies below a full day, else the edge nearer to the part, as for a press.
+ * it lies below a full day and the bar shows it, else the edge nearer to the part, as for a press.
  */
 export function dragEdge(day: DayResult, minUnit: Units, index: number): Part {
-  const own = day.leave.find((piece): piece is OwnPiece => piece.kind === "own");
-  if (own !== undefined && own.take < UNITS_PER_DAY) return own.part;
-  return 2 * index < partCount(minUnit) ? "start" : "end";
+  const bar = model(day, minUnit);
+  if (bar.anyPressed && bar.own !== undefined && bar.own.take < UNITS_PER_DAY) return bar.own.part;
+  return 2 * index < bar.parts ? "start" : "end";
 }
 
 /** The day with its own leave replaced by the change (none for `take` 0), evaluated again: for drawing a preview. */

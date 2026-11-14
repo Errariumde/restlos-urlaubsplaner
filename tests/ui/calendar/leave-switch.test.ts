@@ -491,6 +491,16 @@ describe("dragEdge", () => {
     expect(dragEdge(stub({ leave: [mandatory(120, "start")] }), 30, 14)).toBe("end");
     expect(dragEdge(stub({}), 160, 1)).toBe("start");
   });
+
+  it("reaches from the edge nearer to the pressed part when mandatory leave hides the own leave, as a press does", () => {
+    // Quarters, mandatory ½ at the end with own ½ under it: no part is drawn pressed, so a press on the 1st quarter
+    // books it from the start, and a drag from it reaches from the start too.
+    const hidden = stub({ leave: [mandatory(240, "end"), own(240, "end")] });
+    expect(dragEdge(hidden, 120, 0)).toBe("start");
+    expect(reach(hidden, 120, dragEdge(hidden, 120, 0), 1)).toEqual(morning);
+    // Own ¾ at the end shows in the 2nd quarter beside the mandatory leave: its edge counts.
+    expect(dragEdge(stub({ leave: [mandatory(240, "end"), own(360, "end")] }), 120, 0)).toBe("end");
+  });
 });
 
 describe("withOwnLeave", () => {
