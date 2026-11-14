@@ -90,18 +90,20 @@ function decode(target: string): string {
   }
 }
 
-/**
- * What the reference check skips, including this check's own test; the changelog, which records the past; and
- * this file, whose allowlist names pages before they exist.
- */
+/** What the reference check skips, including this check's own test, and the changelog, which records the past. */
 function exempt(file: TextFile): boolean {
-  return exemptFromReferences(file) || file.path === "CHANGELOG.md" || file.path === "scripts/citation-rules.ts";
+  return exemptFromReferences(file) || file.path === "CHANGELOG.md";
 }
 
 const ROOT_PATH = /(?<![\w/.:-])docs\/[A-Za-z0-9_./-]*[A-Za-z0-9_/-]/g;
 const ANCHOR = /^#([\p{L}\p{N}_-]+)/u;
 const LINK = /\]\(([^)\s]+)/g;
 const SECTIONS = /SPEC\.md`?(?:,\s*|\s*\(\s*|\s+)((?:"[^"\n]+"(?:,\s*)?)+)/g;
+
+/** Whether the text at `at` continues a path as a pattern: `<`, `>`, `…`, or a `*` before a path character, `.` or `/`. */
+function pattern(text: string, at: number): boolean {
+  return /[<>…]/.test(text.charAt(at)) || (text.charAt(at) === "*" && /[A-Za-z0-9_./-]/.test(text.charAt(at + 1)));
+}
 
 /** Whether a citation ending at `end` is marked as a planned page, also after a closing backtick or link parenthesis. */
 function planned(text: string, end: number): boolean {
@@ -146,8 +148,8 @@ export function checkCitations(files: readonly TextFile[]): string[] {
 
     for (const match of text.matchAll(ROOT_PATH)) {
       const end = match.index + match[0].length;
-      // A folder, a pattern such as docs/file-*.md or docs/howto/<name>.md, or a planned page.
-      if (match[0].endsWith("/") || /[<>*…]/.test(text.charAt(end)) || planned(text, end)) continue;
+      // A folder, a pattern such as docs/file-*.md or docs/howto/<name>.md, or a planned page; not a bold path.
+      if (match[0].endsWith("/") || pattern(text, end) || planned(text, end)) continue;
       const what = problem(match[0], ANCHOR.exec(text.slice(end))?.[1]);
       if (what !== null) report(match.index, what);
     }

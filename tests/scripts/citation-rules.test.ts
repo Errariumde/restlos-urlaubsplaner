@@ -60,6 +60,11 @@ describe("checkCitations", () => {
   it("ignores a path match that a pattern character follows", () =>
     expect(checkCitations([spec, { path: "a.md", text: "docs/file-*.md and docs/howto/install… and docs/x<y> and docs/a>b\n" }])).toEqual([]));
 
+  it("checks a bold path, while a * followed by a path character, a dot or a slash still marks a pattern", () =>
+    expect(checkCitations([spec, { path: "a.md", text: "**docs/gone.md** and docs/file-*.md and docs/a*/b.md\n" }])).toEqual([
+      expect.stringMatching(/^a\.md:1: .*docs\/gone\.md/),
+    ]));
+
   it("counts (new) after a closing backtick or a link's closing parenthesis", () => {
     const planned = "`docs/dev/en/reference/glossary.md` (new) [g](docs/dev/en/reference/glossary.md) (new)\n";
     expect(checkCitations([spec, { path: "a.md", text: planned }])).toEqual([]);
@@ -109,7 +114,7 @@ describe("checkCitations", () => {
     ]);
   });
 
-  it("skips docs/superpowers, CHANGELOG.md, done issues, its own test and its own source", () =>
+  it("skips docs/superpowers, CHANGELOG.md, done issues and its own test", () =>
     expect(
       checkCitations([
         spec,
@@ -117,9 +122,13 @@ describe("checkCitations", () => {
         { path: "CHANGELOG.md", text: "docs/gone.md\n" },
         { path: "issues/0001-x.md", text: "---\nstatus: done\n---\ndocs/gone.md\n" },
         { path: "tests/scripts/citation-rules.test.ts", text: "docs/gone.md\n" },
-        { path: "scripts/citation-rules.ts", text: '"docs/gone.md": "x"\n' },
       ]),
     ).toEqual([]));
+
+  it("checks its own source", () =>
+    expect(checkCitations([spec, { path: "scripts/citation-rules.ts", text: '"docs/gone.md": "x"\n' }])).toEqual([
+      expect.stringMatching(/^scripts\/citation-rules\.ts:1: .*docs\/gone\.md/),
+    ]));
 
   it("treats a path as existing when it is a file or a folder of listed files", () =>
     expect(
