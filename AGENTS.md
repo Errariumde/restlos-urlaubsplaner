@@ -11,8 +11,7 @@ Instructions for AI coding agents (Claude Code, Codex, Cursor, Copilot, …) wor
 
 restlos is an offline vacation planner delivered as a single HTML file (plus a GitHub Pages web app). German and English UI. Hobby project, open source.
 
-- **Full specification:** `docs/SPEC.md`. It is authoritative. If code and spec disagree, or the spec is unclear, ask instead of guessing. Do not silently deviate from it.
-- **File format:** `docs/file-format.md` and `docs/day-rules-format.md` are part of the specification: they mark every key as required or optional and list every code, severity and limit. `docs/SPEC.md` states the principles.
+- **Authority:** Reference pages in `docs/dev/en/reference/` describe what is built. They are authoritative: if code and reference disagree, or a page is unclear, ask. Until phase 2 moves them, the format references `docs/file-format.md`, `docs/day-rules-format.md` and `docs/holiday-data-format.md` are reference pages in place. `docs/SPEC.md` is being emptied. A section whose status line says "implemented" is authoritative until it moves; everything else in it is tracking for planned work. Follow `SPEC.md` when a task implements a part of it; move that part into reference in the same commit; never change existing code toward it unasked. Docs and code never cite `SPEC.md`: existing citations stay until their section moves. If new code or a new doc needs a spec section, move that section into reference first and cite the reference page. Issues may cite it. Explanation pages and decision records say why; they are not requirements.
 - **AI tooling rationale:** `docs/ai-tooling.md`.
 
 ## Language conventions
@@ -26,7 +25,14 @@ restlos is an offline vacation planner delivered as a single HTML file (plus a G
 - Everything in the repository must make sense from the repository alone: no pointers to chats, sessions, review rounds, rulings or files outside it. Write the reason or the rule itself.
 - A short reference never stands alone: a decision number such as "D4" or an issue number such as "issue 0032" always gets a short description next to it, for example "issue 0032 (light/dark switch not instant in Firefox ESR)".
 - `docs/superpowers/` holds design and plan documents written with AI tools. Treat it as outside the repository and as if it could disappear at any time: nothing else links to it or depends on it. **Only the maintainer may delete it or anything in it; agents never do.**
-- `npm run check` fails on links into `docs/superpowers/`, on rulings and on review files from outside the repository.
+- `npm run check` fails on links into `docs/superpowers/`, on rulings and on review files from outside the repository. It also fails on `docs/…` paths, anchors and spec section names that don't resolve, on citations of the spec in `docs/user/`, `docs/dev/` and `.claude/skills/`, on missing or malformed spec status lines and on breaks of the docs style rules.
+
+## Documentation
+
+- `docs/user/<language>/` holds the end-user docs, which feed the in-app help and the website: English (`en/`) is the source, German (`de/`) is required at the same paths and changes in the same commit, further languages are optional. `docs/dev/en/` holds the developer docs, in English.
+- Pages sit in `tutorials/`, `howto/`, `reference/` or `explanation/` (Diátaxis); a folder appears with its first page. Normative statements live only in reference, rationale only in explanation; a page that mixes them is a defect.
+- User pages link to each other by topic ID, which is the file name, not by path.
+- Style rules: `docs/dev/en/reference/documentation-style.md`. Procedure: `docs/dev/en/howto/docs.md`. `npm run check` runs the docs, citation and spec status checks.
 
 ## Working style
 
@@ -59,14 +65,15 @@ restlos is an offline vacation planner delivered as a single HTML file (plus a G
 ## Environment
 
 - Work inside the Nix dev shell (`nix develop`, or direnv with `use flake`). It provides Node.js, Typst, REUSE, language servers, Firefox ESR, Playwright browsers and Valgrind (Linux).
-- Commands: `npm ci`, `npm test`, `npm run lint`, `npm run typecheck`, `npm run check` (lint, typecheck, test, perf, the catalog, CSS and reference checks and `reuse lint`). `npm run build` and `npm run build:gallery` build the app and the component gallery; `npm run test:e2e` builds both and runs the Playwright tests in Chromium, Firefox and WebKit. `npm run reference:python` regenerates the python-holidays reference after rule changes. `npm run plan -- <file>` prints what the engine reads and computes for a plan file or rule set. `npm run orca` prints the steps of the screen reader check, and `npm run orca -- <log>` checks what Orca said. `npm run perf` runs the performance gate (Valgrind from the dev shell).
+- Commands: `npm ci`, `npm test`, `npm run lint`, `npm run typecheck`, `npm run check` (lint, typecheck, test, perf, the catalog, CSS, reference, citation, spec status and docs style checks and `reuse lint`). `npm run build` and `npm run build:gallery` build the app and the component gallery; `npm run test:e2e` builds both and runs the Playwright tests in Chromium, Firefox and WebKit. `npm run reference:python` regenerates the python-holidays reference after rule changes. `npm run plan -- <file>` prints what the engine reads and computes for a plan file or rule set. `npm run orca` prints the steps of the screen reader check, and `npm run orca -- <log>` checks what Orca said. `npm run perf` runs the performance gate (Valgrind from the dev shell).
 
 ## Repository-specific procedures
 
-Step-by-step procedures live as skills in `.claude/skills/*/SKILL.md` (Agent Skills format, plain Markdown, usable by any agent):
+Step-by-step procedures live as how-tos in `docs/dev/en/howto/`, readable by humans and every agent. The skills in `.claude/skills/*/SKILL.md` (Agent Skills format) point to them.
 
 - `holiday-data` – adding or changing holiday rules
 - `ui-texts` – adding or changing UI texts in both languages
 - `dependency-update` – updating npm packages and the Nix dev shell safely
 - `release` – release checklist
-- `triage` – proposing which issues to do on the next branch; started only by the maintainer (`/triage` in Claude Code)
+- `docs` – writing or moving documentation
+- `triage` – proposing which issues to do on the next branch; started only by the maintainer (`/triage` in Claude Code) (a full skill, not a pointer)
