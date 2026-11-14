@@ -89,7 +89,7 @@ async function scrollThroughSeptember(page: Page, check: () => Promise<void>): P
   await check();
 }
 
-// docs/SPEC.md, "Main screen": the allowance display is always visible.
+// docs/SPEC.md, "Screen sizes": the allowance display is always visible.
 test.describe("the allowance stays in view while the calendar scrolls", () => {
   test.use({ locale: "en-GB" });
 

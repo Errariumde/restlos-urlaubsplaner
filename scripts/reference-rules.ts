@@ -35,9 +35,12 @@ const FORBIDDEN: readonly Forbidden[] = [
   },
 ];
 
-/** docs/superpowers/ itself, done issues, which stay as they were written, and this check's own test. */
-function exempt({ path, text }: TextFile): boolean {
-  if (path.startsWith("docs/superpowers/") || path === "tests/scripts/reference-rules.test.ts") return true;
+/** Tests of the text checks, which cite what the checks report. */
+const CHECK_TESTS: ReadonlySet<string> = new Set(["tests/scripts/reference-rules.test.ts", "tests/scripts/citation-rules.test.ts"]);
+
+/** docs/superpowers/ itself, done issues, which stay as they were written, and the text checks' own tests. */
+export function exempt({ path, text }: TextFile): boolean {
+  if (path.startsWith("docs/superpowers/") || CHECK_TESTS.has(path)) return true;
   return path.startsWith("issues/") && /^status: done$/m.test(text);
 }
 
