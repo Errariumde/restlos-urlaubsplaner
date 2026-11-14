@@ -6,25 +6,10 @@
 // readers hear the result of every change, by keyboard, mouse or touch. The example plan leaves 8 days.
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { dayFromYmd } from "../src/engine/days.ts";
-import { expectNoPageProblems, openApp, openExampleFromStart } from "./helpers.ts";
+import { expectNoPageProblems, openApp, openExampleFromStart, recorded, recordTexts } from "./helpers.ts";
 
 const cell = (page: Page, month: number, day: number): Locator => page.locator(`[data-day="${String(dayFromYmd(2027, month, day))}"]`);
 const hintLine = (page: Page): Locator => page.getByTestId("hint-line");
-
-/** Records every text the element gets from now on, as the page's `texts`, with its white space normalized as toHaveText does. */
-async function recordTexts(locator: Locator): Promise<void> {
-  await locator.evaluate((element) => {
-    const texts: string[] = [];
-    Object.assign(window, { texts });
-    new MutationObserver(() => texts.push(element.textContent.replace(/\s+/g, " ").trim())).observe(element, { childList: true, characterData: true, subtree: true });
-  });
-}
-
-/** The texts recorded since recordTexts, each once in a row. */
-async function recorded(page: Page): Promise<string[]> {
-  const texts = await page.evaluate(() => (window as unknown as { texts: string[] }).texts);
-  return texts.filter((text, index) => text !== texts[index - 1]);
-}
 
 async function centre(locator: Locator): Promise<{ x: number; y: number }> {
   const box = await locator.boundingBox();

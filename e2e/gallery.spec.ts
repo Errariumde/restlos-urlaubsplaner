@@ -3,7 +3,7 @@
 
 // The component gallery (dist-gallery/gallery.html, npm run build:gallery): axe on every section in every
 // locale and mode, screenshots, and the behaviour of the popover and the sheet. Chromium and Firefox only.
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { allCombinations, MODES, SECTIONS, type Combination } from "../src/gallery/params.ts";
 import { axeViolations, expectNoPageProblems, openGallery } from "./helpers.ts";
 
@@ -15,7 +15,7 @@ async function show(page: Page, combination: Combination): Promise<void> {
   await expect(page.locator("[data-section]")).toHaveAttribute("data-section", combination.section);
   if (combination.section === "main-tiles" || combination.section === "main-columns") await expect(page.getByRole("gridcell").first()).toBeVisible();
   if (combination.section === "selection-bar") await expect(page.locator('[aria-live="polite"]')).not.toHaveText("");
-  if (combination.section === "day-detail") await expect(page.getByRole("region")).toHaveCount(34);
+  if (combination.section === "day-detail") await expect(page.getByRole("region")).toHaveCount(40);
   if (combination.section === "popover") await expect(page.locator("[popover]")).toBeVisible();
   if (combination.section === "sheet") await expect(page.getByRole("dialog")).toBeVisible();
 }
@@ -31,10 +31,46 @@ test.describe("every gallery section passes axe", () => {
       // axe checks every one of the main screen's 365 day cells.
       test.slow(section === "main-tiles" || section === "main-columns");
       await show(page, combination);
-      expect(await axeViolations(page)).toEqual([]);
+      // The day details' group in sixteenths is left out as a whole (src/gallery/sections/detail-situations.ts says why).
+      expect(await axeViolations(page, ["[data-axe-skip]"])).toEqual([]);
       await expectNoPageProblems(page);
     });
   }
+});
+
+test("axe leaves out only the day details' group in sixteenths", async ({ page }) => {
+  await show(page, { section: "day-detail", locale: "en", mode: "light" });
+  const skipped = page.locator("[data-axe-skip]");
+  await expect(skipped).toHaveCount(1);
+  await expect(skipped.getByRole("heading", { name: "Leave in sixteenths", exact: true })).toBeVisible();
+  await expect(skipped.getByRole("region")).toHaveCount(3);
+  // The bars in quarters are as big as the target size asks, so axe checks them.
+  const quarters = page.getByRole("heading", { name: "Leave in quarters", exact: true });
+  await expect(quarters).toBeVisible();
+  expect(await quarters.evaluate((heading) => heading.closest("[data-axe-skip]") === null)).toBe(true);
+  await expectNoPageProblems(page);
+});
+
+test("a leave bar's segment shows its text whole or not at all", async ({ page }) => {
+  // In English the quarters' names ("3rd quarter") are wider than a quarter of the detail.
+  await show(page, { section: "day-detail", locale: "en", mode: "light" });
+  /** Of each text: hidden, shown whole, or cut (with the text). */
+  const states = (texts: Locator): Promise<string[]> =>
+    texts.evaluateAll((elements) =>
+      elements.map((element) => {
+        const style = getComputedStyle(element);
+        if (style.visibility === "hidden" || style.display === "none") return "hidden";
+        return element.scrollWidth <= element.clientWidth ? "whole" : `cut: ${element.textContent}`;
+      }),
+    );
+  const bars = page.getByRole("group", { name: "Leave on this day" });
+  // Polled: a text that doesn't fit is hidden once the bar's ResizeObserver has measured it.
+  await expect.poll(async () => (await states(bars.locator(".text"))).filter((state) => state.startsWith("cut"))).toEqual([]);
+  // The quarters' names show none; "Morning" fits its half of the day.
+  const quarters = page.getByRole("heading", { name: "Leave in quarters", exact: true }).locator("xpath=..").getByRole("group", { name: "Leave on this day" });
+  await expect.poll(() => states(quarters.getByRole("button").locator(".text"))).toContain("hidden");
+  await expect.poll(() => states(bars.getByRole("button", { name: "Morning", exact: true }).locator(".text"))).toContain("whole");
+  await expectNoPageProblems(page);
 });
 
 test.describe("the gallery screenshots", () => {

@@ -34,6 +34,7 @@ export interface PlanTotals {
 export type Problem =
   | { readonly code: "leaveOutsidePeriod"; readonly day: DayNumber }
   | { readonly code: "leaveWithoutRequiredWork"; readonly day: DayNumber }
+  | { readonly code: "leaveOnFreeTime"; readonly day: DayNumber }
   | { readonly code: "leaveTakenInOtherPlan"; readonly day: DayNumber; readonly sourceIds: readonly string[] }
   | { readonly code: "conflictingForcedRules"; readonly day: DayNumber; readonly ruleIds: readonly string[] }
   | { readonly code: "uncoveredNeed"; readonly day: DayNumber; readonly sourceIds: readonly string[] };
@@ -71,9 +72,10 @@ export function computationWindow(period: PlanPeriod): { from: DayNumber; to: Da
 const PROBLEM_ORDER: Record<Problem["code"], number> = {
   leaveOutsidePeriod: 0,
   leaveWithoutRequiredWork: 1,
-  leaveTakenInOtherPlan: 2,
-  conflictingForcedRules: 3,
-  uncoveredNeed: 4,
+  leaveOnFreeTime: 2,
+  leaveTakenInOtherPlan: 3,
+  conflictingForcedRules: 4,
+  uncoveredNeed: 5,
 };
 
 /** The pieces of leave on a day: own leave, mandatory leave of rules and sources, and leave from other plans. */
@@ -132,6 +134,7 @@ export function computePlan(input: PlanInput): PlanResult {
 
     if (inPeriod) {
       if (own && required.value === 0) problems.push({ code: "leaveWithoutRequiredWork", day: facts.day });
+      if (own && required.value > 0 && evaluation.ownWorkOverlap === 0) problems.push({ code: "leaveOnFreeTime", day: facts.day });
       if (evaluation.ownCoveredByOtherPlan) {
         problems.push({ code: "leaveTakenInOtherPlan", day: facts.day, sourceIds: overlappingOtherPlanIds(required, pieces) });
       }
@@ -140,9 +143,7 @@ export function computePlan(input: PlanInput): PlanResult {
       }
       const uncovered = facts.sources.filter(
         (source) =>
-          source.type === "needed" && (source.part ?? "end") === "end"
-            ? evaluation.freeEnd < source.take
-            : source.type === "needed" && evaluation.freeStart < source.take,
+          source.type === "needed" && ((source.part ?? "end") === "end" ? evaluation.freeEnd < source.take : evaluation.freeStart < source.take),
       );
       if (!evaluation.whole && uncovered.length > 0) {
         problems.push({ code: "uncoveredNeed", day: facts.day, sourceIds: [...new Set(uncovered.map((source) => source.sourceId))] });

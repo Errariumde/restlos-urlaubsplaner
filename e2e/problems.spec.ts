@@ -161,3 +161,29 @@ test.describe("leave outside the plan period on a phone", () => {
     await expectNoPageProblems(page);
   });
 });
+
+const FREE_AFTERNOON = { plan: { days: [{ date: "2027-12-24", take: "1/2", part: "end" }] } };
+
+test.describe("leave on the free afternoon of 24 December, in English", () => {
+  test.use({ locale: "en-GB", viewport: { width: 1280, height: 800 } });
+
+  test("the day, its label and the list say that the leave lies on time that is off anyway", async ({ page }) => {
+    await openEditedExample(page, FREE_AFTERNOON);
+    await expect(cell(page, 12, 24)).toHaveAttribute("aria-label", /, problem: This leave lies on time that is off anyway\.$/);
+    await expect(problemList(page).getByRole("listitem")).toHaveText([/^24 Dec\S*: This leave lies on time that is off anyway\.$/]);
+    await expectNoPageProblems(page);
+  });
+});
+
+test.describe("leave on the free afternoon of 24 December, in German", () => {
+  test.use({ locale: "de-DE", viewport: { width: 1280, height: 800 } });
+
+  test("the day, its label and the list say it in German", async ({ page }) => {
+    await openEditedExample(page, FREE_AFTERNOON);
+    await expect(cell(page, 12, 24)).toHaveAttribute("aria-label", /Problem: Dieser Urlaub liegt auf ohnehin freier Zeit\.$/);
+    await expect(page.getByRole("list", { name: /^Probleme \(\d+\)$/ }).getByRole("listitem")).toHaveText([
+      /^24\. Dez\S*: Dieser Urlaub liegt auf ohnehin freier Zeit\.$/,
+    ]);
+    await expectNoPageProblems(page);
+  });
+});

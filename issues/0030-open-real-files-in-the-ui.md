@@ -35,3 +35,11 @@ The UI's engine worker opens only the bundled example so far. Two gaps show once
 ## Notes
 
 Found while closing the `ui` branch.
+
+Opening real files is what lets users reach plans and rule sets the example doesn't show: another smallest leave unit (below ½, or whole days) and other working time (a part-time day, a day rule with the free time at the start, a `mandatory` rule beside lowered work). With them, these follow-ups of the leave bar become visible, so decide whether they come before this issue or with it:
+
+- issue 0047 (a part for work-week entries): a part-time day always has its work at the start of the day;
+- issue 0048 (a calendar key for finer leave steps, and the smallest leave unit in the contract dialog): a press in parts below ½ can remove a whole booking, which its last criterion says must be fixed before finer steps become reachable;
+- issue 0049 (leave bar parts below ¼ are under the target size);
+- issue 0050 (leave bar names in whole days on a partly free day);
+- issue 0051 (mandatory leave that lies wholly on time without work is silent).

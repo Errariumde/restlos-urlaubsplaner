@@ -25,6 +25,12 @@ export default defineConfig({
   // Screenshot baselines are committed (e2e/__screenshots__/<spec>/<name>-<browser>-<platform>.png).
   snapshotPathTemplate: "{testDir}/__screenshots__/{testFilePath}/{arg}-{projectName}-{platform}{ext}",
   use: { launchOptions: { env } },
+  // How long a condition may take to come true, in every browser (Playwright's default is 5 s). A laptop that a
+  // whole run heats to 100 °C can cut its CPU to the minimum clock of 400 MHz for a minute, a sixth of its usual
+  // speed: opening the example, which takes under 1.5 s otherwise, then took up to 7.5 s, and Chromium and Firefox
+  // tests failed on it (2026-11-14). No test measures speed with these waits (`npm run perf` counts instructions
+  // instead), so a longer one costs nothing while the tests pass.
+  expect: { timeout: 20_000 },
   projects: [
     { name: "firefox", use: { ...devices["Desktop Firefox"], viewport } },
     { name: "chromium", use: { ...devices["Desktop Chrome"], viewport } },
@@ -32,7 +38,7 @@ export default defineConfig({
     // frames a second and crashed about once every four tests, in llvmpipe or with an abort; Skia painting on
     // the CPU (WEBKIT_SKIA_ENABLE_CPU_RENDERING) avoids both: all WebKit tests took 3.6 instead of 22.6 minutes,
     // without a crash (2026-11-08). `npm run test:e2e` still runs WebKit alone with one worker after Chromium
-    // and Firefox, with longer timeouts; parallel runs had timed out at random (issue 0025, browser behaviour
+    // and Firefox, with a longer test timeout; parallel runs had timed out at random (issue 0025, browser behaviour
     // left untested by the feasibility run). The test:e2e scripts start with `ulimit -c 0`: with
     // systemd-coredump, every crash wrote a dump that took up to two minutes and slowed the whole machine. Set
     // it yourself before calling `playwright test` directly.
@@ -40,7 +46,6 @@ export default defineConfig({
       name: "webkit",
       use: { ...devices["Desktop Safari"], viewport, launchOptions: { env: { ...env, WEBKIT_SKIA_ENABLE_CPU_RENDERING: "1" } } },
       timeout: 90_000,
-      expect: { timeout: 20_000 },
     },
   ],
 });

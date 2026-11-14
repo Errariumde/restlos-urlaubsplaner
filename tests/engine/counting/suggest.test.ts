@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import { suggestPart, suggestParts } from "../../../src/engine/counting/suggest";
-import type { Part, PlanInput } from "../../../src/engine/counting/types";
+import type { DayRule, Part, PlanInput } from "../../../src/engine/counting/types";
 import { BAVARIA, baseInput, CHRISTMAS_EVE_RULES, d, FULL, HALF, fixed } from "./helpers";
 
 const suggest = (iso: string, take = HALF, changes: Partial<PlanInput> = {}) => suggestPart(baseInput(changes), d(iso), take);
@@ -15,12 +15,50 @@ describe("suggestPart", () => {
     ["2027-05-07", null], // Ascension before, Saturday after
     ["2027-05-12", null], // working days on both sides
   ] as [string, Part | null][])("on %s suggests %j", (iso, expected) => expect(suggest(iso)).toBe(expected));
-  it("suggests the end when the leave covers all work either way", () =>
-    expect(suggest("2027-12-24", HALF, { contract: { ...BAVARIA, rules: CHRISTMAS_EVE_RULES } })).toBe("end"));
+  it("suggests the morning of 24 December, which frees the day, not its free afternoon", () =>
+    expect(suggest("2027-12-24", HALF, { contract: { ...BAVARIA, rules: CHRISTMAS_EVE_RULES } })).toBe("start"));
   it("suggests the side that frees the whole day", () =>
     expect(suggest("2027-12-24", HALF, { contract: { ...BAVARIA, rules: [{ id: "closes-at-noon", match: fixed(12, 24), mandatory: HALF }] } })).toBe(
       "start",
     ));
+  it("prefers the side not covered by mandatory leave", () =>
+    expect(
+      suggest("2027-12-24", 120, { contract: { ...BAVARIA, rules: [{ id: "closes-at-noon", match: fixed(12, 24), mandatory: HALF }] } }),
+    ).toBe("start"));
+  it("prefers the end when mandatory leave covers the start, against the neighbours", () =>
+    // Monday after a free Sunday, so the neighbours alone would suggest the start; own ¼ at the start lies under the
+    // mandatory morning and frees nothing, at the end it frees work.
+    expect(
+      suggest("2027-05-10", 120, { contract: { ...BAVARIA, rules: [{ id: "closed-mornings", match: fixed(5, 10), mandatory: HALF, part: "start" }] } }),
+    ).toBe("end"));
+  it.each([
+    ["2027-05-12", "Wednesday between working days"],
+    ["2027-05-14", "Friday before a free Saturday"],
+  ])("prefers work to time without work when neither side frees work, against the neighbours: %s (%s)", (iso) => {
+    // Work ½ in the morning, its first quarter mandatory leave: own ¼ at the start lies under the mandatory leave, at the
+    // end on time without work. Neither frees work nor the whole day; only the start lies on work.
+    const [month, day] = [Number(iso.slice(5, 7)), Number(iso.slice(8, 10))];
+    const rules: DayRule[] = [
+      { id: "half-day", match: fixed(month, day), requiredAtMost: HALF },
+      { id: "closed-early", match: fixed(month, day), mandatory: 120, part: "start" },
+    ];
+    expect(suggest(iso, 120, { contract: { ...BAVARIA, rules } })).toBe("start");
+  });
+  it("prefers work to time without work when both sides leave the day whole", () =>
+    // 31 December as in the Muster AG plans: work ½ in the morning, the whole day mandatory leave. Own ¼ leaves the day
+    // whole on either side; at the end it would lie on the free afternoon only.
+    expect(
+      suggest("2027-12-31", 120, {
+        contract: {
+          ...BAVARIA,
+          rules: [
+            { id: "new-years-eve", match: fixed(12, 31), requiredAtMost: HALF },
+            { id: "company-closure", match: fixed(12, 31), mandatory: FULL },
+          ],
+        },
+      }),
+    ).toBe("start"));
+  it("lets the neighbours decide when both sides free work", () => expect(suggest("2027-05-10", 120)).toBe("start"));
   it("ignores own leave already on that day", () => expect(suggest("2027-05-10", HALF, { leave: [{ day: d("2027-05-10"), take: FULL }] })).toBe("start"));
   it("suggests the end for a full day", () => expect(suggest("2027-05-12", FULL)).toBe("end"));
   it("sees free days before the period", () =>

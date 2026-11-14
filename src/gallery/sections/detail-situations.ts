@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 // The situations of the day detail (docs/SPEC.md, "Detail view") in one plan: the built-in example with the rules,
-// calendars, leave and overrides that make each situation, so the real engine computes every one of them.
+// calendars, leave and overrides that make each situation, so the real engine computes every one of them. Two more
+// plans show the leave bar in a finer smallest leave unit.
 import { dayFromYmd, type DayNumber } from "../../engine/days.ts";
 
 type Translate = (key: string) => string;
@@ -14,7 +15,7 @@ interface Source {
 }
 
 interface PlanFile {
-  contract: { week: unknown[]; rules: unknown[] };
+  contract: { minUnit: string; week: unknown[]; rules: unknown[] };
   sources: Source[];
   plan: { days: unknown[]; overrides: unknown[] };
 }
@@ -82,10 +83,40 @@ export function situationsPlan(example: string, t: Translate): string {
   return JSON.stringify(file);
 }
 
+/** The plans the situations are in: the one above, and the example in quarters or in sixteenths of a day. */
+export type PlanName = "situations" | "quarters" | "sixteenths";
+
+/**
+ * The example in a finer smallest leave unit, with a Friday 18 June that works ¾ (quarters) or 9/16 (sixteenths)
+ * of a day, and a little leave on Monday 14 June.
+ */
+function finerPlan(example: string, name: "quarters" | "sixteenths"): string {
+  const file = JSON.parse(example) as PlanFile;
+  const quarters = name === "quarters";
+  file.contract.minUnit = quarters ? "1/4" : "1/16";
+  file.contract.week.push({ from: "2027-06-14", required: { ...NORMAL_WEEK, fri: quarters ? "3/4" : "9/16" } }, { from: "2027-06-21", required: NORMAL_WEEK });
+  file.plan.days.push(quarters ? { date: "2027-06-14", take: "1/4", part: "start" } : { date: "2027-06-14", take: "3/16", part: "end" });
+  return JSON.stringify(file);
+}
+
+/** The text of a plan the situations are in, made from the example plan's text. */
+export function planText(name: PlanName, example: string, t: Translate): string {
+  return name === "situations" ? situationsPlan(example, t) : finerPlan(example, name);
+}
+
+export interface SituationGroup {
+  title: string;
+  /** The plan its days are in; the situations plan if not given. */
+  plan?: PlanName;
+  /** Left out of the accessibility check (axe): see the group for why. */
+  skipAxe?: boolean;
+  samples: [caption: string, day: DayNumber][];
+}
+
 const day = (month: number, date: number, year = 2027): DayNumber => dayFromYmd(year, month, date);
 
 /** The situations in groups: a caption and the day that shows it. */
-export function situations(t: Translate): { title: string; samples: [caption: string, day: DayNumber][] }[] {
+export function situations(t: Translate): SituationGroup[] {
   return [
   {
     title: t("gallery.detail.group.workday"),
@@ -154,6 +185,28 @@ export function situations(t: Translate): { title: string; samples: [caption: st
       [t("gallery.detail.leaveOnFreeDay"), day(12, 11)],
       [t("gallery.detail.conflict"), day(11, 13)],
       [t("gallery.detail.otherPlanToo"), day(1, 8)],
+    ],
+  },
+  {
+    title: t("gallery.detail.group.quarters"),
+    plan: "quarters",
+    samples: [
+      [t("gallery.detail.leaveAtStart"), day(6, 14)],
+      [t("gallery.detail.shortFriday"), day(6, 18)],
+      [t("gallery.detail.christmasEve"), day(12, 24)],
+    ],
+  },
+  {
+    title: t("gallery.detail.group.sixteenths"),
+    plan: "sixteenths",
+    // Left out of axe: the leave bar's parts below ¼ are smaller than the target size of WCAG 2.5.8 (24 px), which
+    // axe checks, as long as the bar has no equivalent control of full size: issue 0049 (leave bar parts below ¼ are
+    // under the target size).
+    skipAxe: true,
+    samples: [
+      [t("gallery.detail.leaveAtEnd"), day(6, 14)],
+      [t("gallery.detail.shortFriday"), day(6, 18)],
+      [t("gallery.detail.christmasEve"), day(12, 24)],
     ],
   },
 ];

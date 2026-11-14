@@ -34,13 +34,22 @@ describe("dayLeave", () => {
     expect(dayLeave(day([own(480)])).fill).toBe("full");
     // A half working day whose work lies in the morning: half a day of leave there leaves no work.
     expect(dayLeave(day([own(240, "start")], { required: 240 })).fill).toBe("full");
-    // Leave on a day without work lies nowhere, but there is nothing left to work either.
+    // Leave on a day without work lies where it lies in the day, and there is nothing left to work.
     expect(dayLeave(day([own(480)], { required: 0 })).fill).toBe("full");
   });
 
   it("fills the cell with mandatory leave that covers all the work", () => {
     expect(dayLeave(day([mand(480)])).fill).toBe("mandatory");
     expect(dayLeave(day([mand(480)], { required: 0 })).fill).toBe("mandatory");
+  });
+
+  it("layers the kinds of leave on a day without work as on a working day", () => {
+    // Mandatory leave lies over own leave: the cell shows the mandatory leave.
+    expect(dayLeave(day([own(480), mand(480)], { required: 0 })).fill).toBe("mandatory");
+    expect(dayLeave(day([own(480), mand(480)])).fill).toBe("mandatory");
+    // Another plan's leave over all of the mandatory leave leaves no fill, only the border.
+    expect(dayLeave(day([mand(480), other(0, 480)], { required: 0 }))).toEqual({ fill: "none", shares: [], otherPlan: true });
+    expect(dayLeave(day([mand(480), other(0, 480)]))).toEqual({ fill: "none", shares: [], otherPlan: true });
   });
 
   it("gives each share its amount and where it lies", () => {

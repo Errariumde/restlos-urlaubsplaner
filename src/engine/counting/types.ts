@@ -5,7 +5,7 @@ import type { DayNumber, Weekday } from "../days";
 import type { CountryData, DateRule, RegionSelection } from "../holidays/types";
 import type { Units } from "../weight";
 
-/** Where in the day a partial piece lies: at the start or at the end of the working time. */
+/** Where in the day a partial piece lies: at the start or the end of the day. */
 export type Part = "start" | "end";
 
 export interface RangeMatch {
@@ -22,7 +22,10 @@ interface DayRuleBase {
   readonly match: DayMatch;
   readonly validFrom?: number; // years, inclusive; for a range, the year in which it starts
   readonly validUntil?: number;
-  /** Where the free time lies when the effect's value is below a full day; default "end". */
+  /**
+   * At which end of the day the effect lies when its value is below a full day; default "end". For `requiredAtMost` and
+   * `requiredExactly` where the free time lies, for `mandatory` where the mandatory leave lies.
+   */
   readonly part?: Part;
 }
 export type DayRule = DayRuleBase &
@@ -72,11 +75,11 @@ export type SourceDay = (
       readonly part?: Part; // default "end"
     }
   | {
-      /** A span another plan charged on this day; covers leave here but never costs. */
+      /** A span another plan charged on this day. Frees the work time it covers and the mandatory leave there; never costs in this plan. */
       readonly type: "otherPlan";
       readonly day: DayNumber;
       readonly sourceId: string;
-      /** Day positions: units of a full day, 0 = start of a full working day; 0 ≤ from < to ≤ 480. */
+      /** Day positions: units of a full day, 0 = the start of the day; 0 ≤ from < to ≤ 480. */
       readonly from: Units;
       readonly to: Units;
       /** What the other plan charged it as; for display only. */

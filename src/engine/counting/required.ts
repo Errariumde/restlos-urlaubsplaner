@@ -5,9 +5,8 @@ import { WEEKDAYS, weekdayOf } from "../days";
 import type { DayNumber } from "../days";
 import { holidaysBetween } from "../holidays/holidays";
 import type { Holiday } from "../holidays/types";
-import { checkUnits } from "../weight";
+import { checkSpan, checkUnits } from "../weight";
 import type { Units } from "../weight";
-import { checkSpan } from "./leave";
 import { ruleDays } from "./match";
 import type { DayRule, Part, PlanInput, RequiredOverride, SourceDay } from "./types";
 

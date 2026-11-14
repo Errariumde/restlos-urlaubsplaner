@@ -1,10 +1,10 @@
 ---
-status: open
+status: done
 priority:
 area: engine (counting model), spec
-branch:
+branch: leave-on-working-time
 created: 2026-11-04
-closed:
+closed: 2026-11-08
 ---
 <!--
 SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
@@ -32,12 +32,12 @@ Leave is charged only where it overlaps the working time of the day. On 24 Decem
 
 ## Acceptance criteria
 
-- [ ] `docs/SPEC.md` (counting model table and paragraph), `docs/day-rules-format.md`, `docs/file-format.md` and AGENTS.md state the overlap rule, including how required work without a part, overrides with a part, and finer shares (down to 1/32) place the working time.
-- [ ] The engine computes the cost as the overlap of the leave's span with the working span; tests cover 24 Dec morning/afternoon/full, a normal day, overrides with `part: "start"`, and the existing mandatory/other-plan overlap cases.
-- [ ] Stretches and "Time off needed" stay consistent with the new cost (a no-cost piece of leave on free time doesn't change them).
-- [ ] The UI's detail actions and hint line show the new costs; a booking that costs nothing and frees nothing is either not offered or shown as such (decide in the design).
-- [ ] `npm run perf` passes; a scenario is added if the cost computation changes its input size behaviour.
-- [ ] Plan files written before the change load unchanged; the changed cost is reported where it differs, if the design wants that.
+- [x] `docs/SPEC.md` (counting model table and paragraph), `docs/day-rules-format.md`, `docs/file-format.md` and AGENTS.md state the overlap rule, including how required work without a part, overrides with a part, and finer shares (down to 1/32) place the working time.
+- [x] The engine computes the cost as the overlap of the leave's span with the working span; tests cover 24 Dec morning/afternoon/full, a normal day, overrides with `part: "start"`, and the existing mandatory/other-plan overlap cases.
+- [x] Stretches and "Time off needed" stay consistent with the new cost (a no-cost piece of leave on free time doesn't change them).
+- [x] The UI's detail actions and hint line show the new costs; a booking that costs nothing and frees nothing is either not offered or shown as such (decide in the design).
+- [x] `npm run perf` passes; a scenario is added if the cost computation changes its input size behaviour.
+- [x] Plan files written before the change load unchanged; the changed cost is reported where it differs, if the design wants that.
 
 ## Notes
 
@@ -46,3 +46,5 @@ Leave is charged only where it overlaps the working time of the day. On 24 Decem
 - On the acceptance criterion "not offered or shown as such": the maintainer chose "shown as such" on 2026-11-07; the detail shows such leave with no cost ("–").
 - The day detail's leave bar (`src/ui/calendar/leave-switch.ts`) already draws own and mandatory leave at the start or the end of the day as its `part` says, and its switches write `part` that way: a click on the afternoon of 24 December writes `take` ½ at the `end`. Until this issue is done, that leave costs ½ and the cell draws it in the morning.
 - `part` then means "of the day" instead of "of the working time"; the Data model row of `docs/SPEC.md`, "Finer granularity: prepared, not implemented", says the latter and changes with it.
+- Done on the branch `leave-on-working-time`. The engine charges own and mandatory leave by its overlap with the work block, for any multiple of 1/480; leave on free time changes neither stretches nor time off needed. No path of the UI books leave that lies only on time without work: the range rules reach an edge of the day across time without work, and the day detail's leave bar is split into the plan's smallest leave unit, with fixed blocks for time without work. Own leave that overlaps no working time on a day with required work is the new problem `leaveOnFreeTime` ("Dieser Urlaub liegt auf ohnehin freier Zeit." / "This leave lies on time that is off anyway."), so a file written under the old meaning shows the days where such leave now costs nothing; costs that fell without reaching zero (own ½ in the afternoon of a ¾ day, ¼ instead of ½) are not reported. `npm run perf` passes without a new scenario (the cost computation's input size behaviour didn't change), and `npm run plan` gives the same results as before for every file in `examples/`.
+- Follow-ups: issue 0047 (a part for work-week entries), issue 0048 (a calendar key for finer leave steps, and the smallest leave unit in the contract dialog), issue 0049 (leave bar parts below ¼ are under the target size).

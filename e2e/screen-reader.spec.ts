@@ -199,6 +199,51 @@ test.describe("beside the calendar", () => {
   });
 });
 
+test.describe("the leave bar, in English", () => {
+  test.use({ locale: "en-GB", viewport: { width: 1280, height: 800 } });
+
+  const bar = (page: Page): Locator => page.getByRole("dialog", { name: /^Details for / }).getByRole("group", { name: "Leave on this day" });
+
+  test("the free afternoon of 24 December is a fixed block read by its name, not a switch", async ({ page }) => {
+    await openEditedExample(page, {});
+    await cell(page, 12, 24).focus();
+    await page.keyboard.press("ContextMenu");
+    await expect(bar(page)).toMatchAriaSnapshot(`
+      - group "Leave on this day":
+        - /children: equal
+        - button "Morning" [pressed=false]
+        - text: "Afternoon: off"
+    `);
+    await expectNoPageProblems(page);
+  });
+
+  test("in sixteenths every part is a toggle button named by its place in the day", async ({ page }) => {
+    await openEditedExample(page, { contract: { minUnit: "1/16" } });
+    await cell(page, 6, 14).focus();
+    await page.keyboard.press("ContextMenu");
+    await expect(bar(page)).toMatchAriaSnapshot(`
+      - group "Leave on this day":
+        - button "1st sixteenth" [pressed=false]
+        - button "2nd sixteenth" [pressed=false]
+        - button "3rd sixteenth" [pressed=false]
+        - button "4th sixteenth" [pressed=false]
+        - button "5th sixteenth" [pressed=false]
+        - button "6th sixteenth" [pressed=false]
+        - button "7th sixteenth" [pressed=false]
+        - button "8th sixteenth" [pressed=false]
+        - button "9th sixteenth" [pressed=false]
+        - button "10th sixteenth" [pressed=false]
+        - button "11th sixteenth" [pressed=false]
+        - button "12th sixteenth" [pressed=false]
+        - button "13th sixteenth" [pressed=false]
+        - button "14th sixteenth" [pressed=false]
+        - button "15th sixteenth" [pressed=false]
+        - button "16th sixteenth" [pressed=false]
+    `);
+    await expectNoPageProblems(page);
+  });
+});
+
 test.describe("on a phone", () => {
   test.use({ viewport: { width: 375, height: 800 } });
 

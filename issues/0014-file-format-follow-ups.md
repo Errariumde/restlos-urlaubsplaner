@@ -30,9 +30,9 @@ The task reviews of branch `file-format` found small problems that were left for
 
 Code:
 
-- [ ] `src/engine/counting/types.ts:72`: the doc comment of the `otherPlan` piece says "covers leave here but never costs". Own leave on such a day is still charged. Suggested wording: "Frees the work time it covers and the mandatory leave there; never costs in this plan."
-- [ ] `checkSpan` lives in `leave.ts` and is imported by `required.ts`, which inverts the layering. Move it to a shared place, e.g. next to the weight helpers.
-- [ ] `src/engine/counting/plan.ts:141-145`: the `uncoveredNeed` filter is a nested ternary that is hard to read. Test `source.type === "needed"` first.
+- [x] `src/engine/counting/types.ts:72`: the doc comment of the `otherPlan` piece says "covers leave here but never costs". Own leave on such a day is still charged. Suggested wording: "Frees the work time it covers and the mandatory leave there; never costs in this plan." Fixed on `leave-on-working-time`.
+- [x] `checkSpan` lives in `leave.ts` and is imported by `required.ts`, which inverts the layering. Move it to a shared place, e.g. next to the weight helpers. Moved to `src/engine/weight.ts` on `leave-on-working-time`.
+- [x] `src/engine/counting/plan.ts:141-145`: the `uncoveredNeed` filter is a nested ternary that is hard to read. Test `source.type === "needed"` first. Fixed on `leave-on-working-time`.
 - [ ] `parseAmount` (`src/engine/weight.ts`) gives `WeightError` "syntax" instead of "range" for an over-long whole part.
 - [ ] Source entries on the same date keep their input order. `except` is neither sorted nor de-duplicated. The round trip still holds, but two files with the same content can differ in text.
 - [ ] An image with empty `data` is accepted, and duplicate image names within a template aren't checked.

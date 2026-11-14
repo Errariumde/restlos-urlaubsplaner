@@ -130,6 +130,24 @@ test("Space toggles one day, H gives a half day and Delete removes it", async ({
   await expectNoPageProblems(page);
 });
 
+test("H on 24 December books the morning", async ({ page }) => {
+  // 24 December has work in the morning and a free afternoon (the day rule "Christmas Eve: afternoon off"). Half a
+  // day at the end would free no work, so H books the morning, which makes the whole day free for ½.
+  const christmasEve = cell(page, 12, 24);
+  await christmasEve.focus();
+  await page.keyboard.press("h");
+  // A day made wholly free by own leave reads as a full day of leave.
+  await expect(christmasEve).toHaveAttribute("aria-label", FULL);
+  await expect(hint(page)).toHaveText(/^24\sDec: leave full\.\s/);
+  await page.keyboard.press("Enter");
+  const detail = page.getByRole("dialog", { name: /^Details for / });
+  await expect(detail.getByRole("button", { name: "Morning", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(detail).toContainText("Costs ½ day");
+  await page.keyboard.press("Escape");
+  await expect(christmasEve).toBeFocused();
+  await expectNoPageProblems(page);
+});
+
 test("H and Delete on a selection set half days and remove them, each in one undo step", async ({ page }) => {
   await cell(page, 6, 14).focus();
   await page.keyboard.press("Shift+ArrowRight");

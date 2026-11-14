@@ -32,8 +32,11 @@ describe("computePlan: stretches from the design", () => {
   it("Christmas with 24 and 31 December at most ½", () => {
     const christmas = ["2027-12-27", "2027-12-28", "2027-12-29", "2027-12-30"].map((x) => leave(x));
     const contract = withRules(...CHRISTMAS_EVE_RULES);
-    expect(listed(plan({ contract, leave: [...christmas, leave("2027-12-31", HALF, "end")] }))).toEqual(["2027-12-24@240 2028-01-02@480 2160/4560"]);
-    expect(listed(plan({ contract, leave: [leave("2027-12-24", HALF, "end"), ...christmas, leave("2027-12-31", HALF, "end")] })))
+    // The afternoon of 31 December is free anyway: leave there costs nothing and frees none of the morning's work.
+    expect(listed(plan({ contract, leave: [...christmas, leave("2027-12-31", HALF, "end")] }))).toEqual(["2027-12-24@240 2027-12-30@480 1920/3120"]);
+    // The mornings free the whole days.
+    expect(listed(plan({ contract, leave: [...christmas, leave("2027-12-31", HALF, "start")] }))).toEqual(["2027-12-24@240 2028-01-02@480 2160/4560"]);
+    expect(listed(plan({ contract, leave: [leave("2027-12-24", HALF, "start"), ...christmas, leave("2027-12-31", HALF, "start")] })))
       .toEqual(["2027-12-24@0 2028-01-02@480 2400/4800"]);
   });
   it("the maintainer's example: own ½ in the morning, mandatory ½ in the afternoon", () => {
@@ -109,6 +112,41 @@ describe("computePlan: problems", () => {
     expect(result.problems).toEqual([{ code: "leaveWithoutRequiredWork", day: d("2027-05-09") }, { code: "leaveOutsidePeriod", day: d("2028-02-01") }]);
     expect(result.totals.planned).toBe(0);
   });
+  it("reports own leave on the free afternoon of 24 December", () => {
+    const result = plan({ contract: withRules(...CHRISTMAS_EVE_RULES), leave: [leave("2027-12-24", HALF, "end")] });
+    expect(result.problems).toEqual([{ code: "leaveOnFreeTime", day: d("2027-12-24") }]);
+    expect(dayOf(result, "2027-12-24").evaluation.ownCost).toBe(0);
+    expect(dayOf(result, "2027-12-24").evaluation.remaining).toBe(HALF);
+  });
+  it("reports a half day a later work-week entry puts on free time", () => {
+    const week = [
+      { from: d("2020-01-01"), required: FULL_TIME },
+      { from: d("2027-05-03"), required: { ...FULL_TIME, fri: HALF } },
+    ];
+    const result = plan({ contract: { ...BAVARIA, week }, leave: [leave("2027-05-07", HALF, "end")] });
+    expect(result.problems).toEqual([{ code: "leaveOnFreeTime", day: d("2027-05-07") }]);
+    expect(dayOf(result, "2027-05-07").evaluation.ownCost).toBe(0);
+  });
+  it("keeps leave on a day off as its own problem", () => {
+    const codes = plan({ leave: [leave("2027-05-08")] }).problems.map((p) => p.code);
+    expect(codes).toEqual(["leaveWithoutRequiredWork"]);
+  });
+  it("gives no leaveOnFreeTime for leave that overlaps the work", () => {
+    const contract = withRules(...CHRISTMAS_EVE_RULES);
+    expect(plan({ contract, leave: [leave("2027-12-24")] }).problems).toEqual([]);
+    expect(plan({ contract, leave: [leave("2027-12-24", HALF, "start")] }).problems).toEqual([]);
+  });
+  it("leave on free time changes neither stretches nor time off needed", () => {
+    const contract = withRules(...CHRISTMAS_EVE_RULES);
+    const sources = [need("2027-12-24", HALF, "end")];
+    const without = plan({ contract, sources });
+    const withLeave = plan({ contract, sources, leave: [leave("2027-12-24", HALF, "end")] });
+    expect(without.problems).toEqual([]);
+    expect(withLeave.problems.map((p) => p.code)).toEqual(["leaveOnFreeTime"]);
+    const starting = (r: PlanResult) => r.stretches.find((s) => s.start.day === d("2027-12-24") && s.start.offset === HALF);
+    expect(starting(without)).toBeDefined();
+    expect(starting(withLeave)).toEqual(starting(without));
+  });
   it("charges nothing for 24 and 31 December on a Sunday", () => {
     const result = plan({ contract: withRules(...CHRISTMAS_EVE_RULES), period: { from: month(2028, 1), to: month(2028, 12) }, leave: [leave("2028-12-24"), leave("2028-12-31")] });
     expect([result.totals.planned, result.problems.map((p) => p.code)]).toEqual([0, ["leaveWithoutRequiredWork", "leaveWithoutRequiredWork"]]);
@@ -143,6 +181,28 @@ describe("computePlan: problems", () => {
   ] as [Partial<PlanInput>][])("rejects invalid input %#", (changes) => expect(() => plan(changes)).toThrow(RangeError));
 });
 
+describe("computePlan: required work with its free time at the start", () => {
+  // Wednesday 12 May 2027 with ½ of work in the afternoon, from an override or from an entry of a holiday calendar.
+  const iso = "2027-05-12";
+  const layers: [string, Partial<PlanInput>][] = [
+    ["an override", { overrides: [{ day: d(iso), required: HALF, part: "start" }] }],
+    ["a holiday calendar", { sources: [{ type: "holiday", day: d(iso), sourceId: "school", required: HALF, part: "start" }] }],
+  ];
+  const costAndRemaining = (result: PlanResult) => [dayOf(result, iso).evaluation.ownCost, dayOf(result, iso).evaluation.remaining];
+  it.each(layers)("charges nothing for leave on the free morning and reports it, from %s", (_, changes) => {
+    const result = plan({ ...changes, leave: [leave(iso, HALF, "start")] });
+    expect(result.problems).toEqual([{ code: "leaveOnFreeTime", day: d(iso) }]);
+    expect(costAndRemaining(result)).toEqual([0, HALF]);
+  });
+  it.each(layers)("charges ½ for the afternoon or a full day, which free the day, from %s", (_, changes) => {
+    for (const booked of [leave(iso, HALF, "end"), leave(iso)]) {
+      const result = plan({ ...changes, leave: [booked] });
+      expect(result.problems).toEqual([]);
+      expect(costAndRemaining(result)).toEqual([HALF, 0]);
+    }
+  });
+});
+
 describe("computePlan: limits", () => {
   // the day window is clamped to the supported years
   it("works at the limits of the supported years", () => {
@@ -150,11 +210,13 @@ describe("computePlan: limits", () => {
     expect(isoFromDay(plan({ period: { from: month(1583, 1), to: month(1583, 12) } }).days[0]?.day ?? 0)).toBe("1583-01-01");
   });
   it("keeps the costs of all stretches equal to planned", () => {
-    const take = fc.integer({ min: 1, max: 32 }).map((k) => k * 15);
+    // Takes in multiples of 1/32, and in any multiple of 1/480.
+    const take = fc.oneof(fc.integer({ min: 1, max: 32 }).map((k) => k * 15), fc.integer({ min: 1, max: 480 }));
     const leaveDays = fc.uniqueArray(fc.integer({ min: 0, max: 58 }), { maxLength: 15 }).chain((offsets) =>
       fc.tuple(...offsets.map((o) => fc.tuple(take, fc.constantFrom<Part>("start", "end")).map(([t, p]) => ({ day: d("2027-01-01") + o, take: t, part: p })))));
-    const mandatoryDays = fc.uniqueArray(fc.integer({ min: 0, max: 58 }), { maxLength: 6 }).map((offsets) =>
-      offsets.map((o): SourceDay => ({ type: "mandatory", day: d("2027-01-01") + o, sourceId: "m", take: HALF, part: "end" })));
+    const mandatoryTake = fc.oneof(fc.constant(HALF), fc.integer({ min: 1, max: 480 }));
+    const mandatoryDays = fc.uniqueArray(fc.integer({ min: 0, max: 58 }), { maxLength: 6 }).chain((offsets) =>
+      fc.tuple(...offsets.map((o) => mandatoryTake.map((t): SourceDay => ({ type: "mandatory", day: d("2027-01-01") + o, sourceId: "m", take: t, part: "end" })))));
     fc.assert(fc.property(leaveDays, mandatoryDays, (leaveList, sources) => {
       const result = plan({ period: { from: month(2027, 1), to: month(2027, 2) }, leave: leaveList, sources });
       expect(result.stretches.reduce((sum, s) => sum + s.cost, 0)).toBe(result.totals.planned);

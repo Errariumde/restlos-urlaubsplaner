@@ -144,6 +144,9 @@ describe("cellLabel", () => {
     expect(cellLabel(planned, meta, i18n("en"), ["Kita"], ["uncoveredNeed"])).toBe(
       "Friday, 7 May 2027, working day, leave full, costs 1, calendars Kita, problem: You still need time off on this day.",
     );
+    expect(cellLabel(planned, meta, i18n("en"), [], ["leaveOnFreeTime"])).toBe(
+      "Friday, 7 May 2027, working day, leave full, costs 1, problem: This leave lies on time that is off anyway.",
+    );
     expect(cellLabel(planned, meta, i18n("de"), [], ["leaveWithoutRequiredWork", "leaveTakenInOtherPlan"])).toBe(
       "Freitag, 7. Mai 2027, Arbeitstag, ganzer Tag Urlaub, kostet 1, Probleme: Dieser Urlaub liegt auf einem freien Tag. Dieser Urlaub steht schon in einem anderen Plan.",
     );
