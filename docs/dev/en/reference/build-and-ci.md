@@ -85,6 +85,6 @@ No workflow has a matrix or automatic retries.
 - **Cache writes:** only the `seed` job of `seed-cache` writes caches. It restores nothing, takes everything fresh from upstream and runs no tests, no npm scripts and no pull-request code: only the flake, the Nix action and `npm ci` without install scripts. Every other job reads caches or uses none, as `cache-mode` under [Workflows](#workflows) lists. GitHub enforces `cache-mode` with scoped tokens.
 - **Nix:**
   - It is installed single-user (`--no-daemon`) from the hash-checked tarball.
-  - `require-sigs`, `trusted-public-keys` and `accept-flake-config` stay at their defaults, so only `cache.nixos.org-1` is trusted. Neither `trusted=true` nor `--no-check-sigs` may be set.
+  - `require-sigs`, `trusted-public-keys` and `accept-flake-config` stay at their defaults, so only `cache.nixos.org-1` is trusted. `trusted=true` and `--no-check-sigs` must not be set.
   - The global flake registry is off; CI resolves nixpkgs only through `flake.lock`.
   - The installed version must equal the one the pinned nixpkgs ships. Otherwise the job fails and names the two values to update, `NIX_VERSION` and `NIX_TARBALL_SHA256`.
