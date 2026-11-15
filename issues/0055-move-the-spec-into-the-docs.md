@@ -27,7 +27,7 @@ This issue is the single list that gives every spec section its destination and 
 
 - Every row of the table below is done.
 - Stage 2 of the citation rule is on: no mention of `SPEC.md` anywhere except `issues/` and the one rule in `AGENTS.md`.
-- The six indirect mentions listed under Notes are reworded to cite the page their text moved to.
+- The five indirect mentions listed under Notes are reworded to cite the page their text moved to.
 
 ## Notes
 
@@ -151,7 +151,6 @@ Found with `git grep -n -i -E "the spec('s)?\b|\bSPEC\b"` in `src`, `scripts`, `
 
 - `src/engine/file/report.ts` L107: "(SPEC, Security)", the prototype keys of "Threats and countermeasures".
 - `tests/scripts/build-html.test.ts` L37: "in the spec's order", the order of the directives in "Content Security Policy".
-- `docs/feasibility.md` L14: "the spec's reference machine", from the limits in `docs/dev/en/reference/file-format.md` ("Limits").
 - `docs/feasibility.md` L36: "the app's policy from the spec", the policy of "Content Security Policy".
 - `docs/feasibility.md` L67: "The spec relies on documentation", the calendar apps' behaviour on re-import in ".ics export (RFC 5545)" and the feasibility table of "Architecture, technology and tests"; planned, so it rewords when the .ics export is built.
 - `docs/ai-tooling.md` L136: "(see the specification)", the SHA pinning of actions in "Workflow security".

@@ -5,20 +5,15 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Files
 
-## File kinds
+The files restlos reads and writes, and what each one is for. The kinds, their file names and the `kind` field, the ban on references between files and the sources a rule set never holds are stated in the "File formats" [hard rule](../../../../AGENTS.md#hard-rules). Every key and value is in [Plan files and rule sets](file-format.md). The reasons are in [File kinds](../explanation/file-kinds.md).
 
-| File | Kind | Content | Typical use |
-| --- | --- | --- | --- |
-| `Name.urlaub.json` | plan file | a copy of a rule set (contract, calendar sources, templates, optional color scheme), personal changes to it and **exactly one plan** | one person's leave planning for one period, for example 2027 |
-| `Name.regeln.json` | rule set | the same content **without a plan** | shared per company or collective agreement as the starting point for colleagues' plan files |
+## Use
 
-A rule set is never referenced, only copied: a plan file stays usable on its own. There is no separate color scheme file; color schemes can be embedded in plan files and rule sets.
+| File | Use |
+| --- | --- |
+| plan file | one person's leave planning for one period, for example 2027 |
+| rule set | the starting point for the plan files of a company or a collective agreement, shared with colleagues |
 
 ## What is stored where
 
-| Content | Location |
-| --- | --- |
-| Contract, calendar sources, templates, color scheme (optional), plan | plan file `.urlaub.json` |
-| Contract, calendar sources, templates, color scheme (optional), without plan | rule set `.regeln.json` |
-
-Calendar sources store a **color slot** of the palette (for example "Accent 3"), not a fixed color; a fixed color is possible as an exception.
+Plans and rule sets are stored only in their files; [Kinds and versions](file-format.md#kinds-and-versions) lists what each file holds. The app stores nothing in the browser: it uses no IndexedDB, no `localStorage`, no `sessionStorage` and no cookies.

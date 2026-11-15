@@ -19,9 +19,9 @@ A file holds only language-neutral values (IDs, ISO dates, weights with a slash 
 
 The app recognizes a file by `schema` and `kind`, not by its name.
 
-`schema` is `"restlos/1"`. Every change of the format gets a new schema number. A release reads every schema written by any release of its own major version, migrates older ones on load and always saves its own; a new major version still reads the last schema of the previous major version. A file with a newer schema is refused (`newerSchema`). Nothing is promised before version 1.0.0: schema 1 may still change without migration.
+`schema` is `"restlos/1"`. Every change of the format gets a new schema number. A release reads every schema written by any release of its own major version, migrates older ones on load and always saves its own. A new major version (2.0.0) still reads the last schema of the previous major version and may drop older ones; its release notes say so. A minor release that introduces a new schema says in its release notes that older 1.x copies can't open its files. Nothing is promised before version 1.0.0: schema 1 may still change without migration.
 
-A new major version (2.0.0) still reads the last schema of the previous major version and may drop older ones; its release notes say so. A minor release that introduces a new schema says in its release notes that older 1.x copies can't open its files.
+`readFile` reads schema 1 only and refuses a file with any other schema number (`newerSchema`, see [Refused](#refused)).
 
 ## Values
 
@@ -31,7 +31,7 @@ A new major version (2.0.0) still reads the last schema of the previous major ve
 - **IDs** are non-empty strings of at most 200 characters (`"christmas-eve"`). Rule, source and template IDs are unique within their list.
 - **Characters** are counted as Unicode code points.
 - **Keys** a file chooses itself (reference keys, language codes, option names, keys inside `theme`) are never `__proto__`, `constructor` or `prototype`; an entry with such a key is invalid.
-- Keys in English according to the glossary.
+- **Format keys** are English words (`allowance`, `required`, `take`).
 
 ### Texts
 
@@ -252,9 +252,7 @@ The reader checks only the shape and the limits; what a template contains is def
 
 ## Color scheme
 
-`theme` is `null` or an object, stored and written back unchanged; it may nest at most 32 levels, none of its objects may have a key `__proto__`, `constructor` or `prototype`, and it counts towards the file size. What a color scheme contains is defined with the color editor.
-
-- **Color scheme** (optional), embedded for sharing, for example company colors.
+`theme` is the file's own color scheme, for example company colors. It is `null` or an object, stored and written back unchanged; it may nest at most 32 levels, none of its objects may have a key `__proto__`, `constructor` or `prototype`, and it counts towards the file size. What a color scheme contains is defined with the color editor.
 
 ## Plan
 
@@ -263,7 +261,7 @@ Plan files only. Keys in the order the app writes them:
 | Key | Required | Meaning |
 | --- | --- | --- |
 | `range` | yes, with `from` and `to` | The plan period: `from` and `to` as months, both inclusive, `from` ≤ `to`, at most 36 months (`{ "from": "2027-01", "to": "2028-01" }`). |
-| `allowance` | yes | The allowance as an amount (`"30"`). Remaining days from the previous year are entered here; there is no carry-over. |
+| `allowance` | yes | The allowance as an amount (`"30"`), remaining days from the previous year included: an entitlement of 30 days and 3 remaining days give `"33"`. There is no automatic carry-over. |
 | `days` | no, `[]` | Own leave, at most 2000 entries. |
 | `overrides` | no, `[]` | Manual changes of the required work on single dates, at most 2000 entries. |
 | `notes` | no, `[]` | Notes, at most 2000 entries. |
@@ -291,8 +289,6 @@ Each list has at most one entry per date and is sorted by date. The three lists 
 }
 ```
 
-Someone with a 30-day entitlement and 3 remaining days enters 33; there is no automatic carry-over.
-
 ## Rule sets
 
 A rule set has the same structure with `"kind": "ruleSet"`, and:
@@ -304,9 +300,7 @@ A rule set has the same structure with `"kind": "ruleSet"`, and:
 
 A rule set alone can't be computed: it has no period. "Save as rule set" writes the contract, the sources other than `otherPlan` and `needed`, the templates and the color scheme of a plan file as a new rule set with a new `id` and `revision` 1.
 
-In a plan file every copied part can be changed, for example a part-time work week or additional own calendar sources.
-
-Day rules, calendar sources and templates copied from a rule set carry its ID in `origin`; parts added in the plan file have none.
+A plan file may change every part it copied from a rule set, for example the work week for part-time work, and may add its own calendar sources. A day rule, calendar source or template without `origin` was added in the plan file.
 
 ## Reading
 
@@ -419,7 +413,7 @@ Progress: `onProgress` is called with `(0, N)` first and then once per rule or m
 | IDs and reference keys / URLs | 200 / 2000 characters | invalid: that entry dropped (`invalidValue`), an over-long file `id` refused (`invalidCore`) |
 | Files inside files | none: another plan is stored as entries, never embedded | |
 
-KB and MB are binary: 1 MB is 1,048,576 bytes. Reading and checking grow at most linearly with the file, and the performance gate (`npm run perf`, see Test strategy) enforces it. Target: the largest file within the limits reads and checks in under 2 s together in the Firefox ESR on the reference machine (Intel Core i7-8650U), measured at each release; slower devices take longer and show the progress bar.
+KB and MB are binary: 1 MB is 1,048,576 bytes. Reading and checking grow at most linearly with the file: the performance gate (`npm run perf`) fails when a `read:` or `check:` scenario in `tests/perf/scenarios.ts` grows faster than its input. Target: the largest file within the limits reads and checks in under 2 s together in the Firefox ESR on the reference machine, an Intel Core i7-8650U. The [release checklist](../howto/release.md) measures it at each release.
 
 ## Writing
 
