@@ -56,7 +56,7 @@ Other licenses only where necessary: built-in PDF templates, example template an
 
 ## Delivery format
 
-Status: partly implemented; the downloadable HTML file is built, the GitHub Pages version with manifest and service worker, saving and browser storage (IndexedDB) are not, planned for version 1.
+Status: partly implemented; the downloadable HTML file is built, the GitHub Pages version (the landing page, the app with manifest and service worker, the documentation website and their layout), saving and browser storage (IndexedDB) are not, planned for version 1.
 
 Recommendation: two distribution channels from the same build. A **downloadable HTML file** for offline use from your own computer, and a **hosted version on GitHub Pages** (free for public repositories) that can be installed as a web app on the phone and then also runs offline. In both cases the data stays on the device.
 
@@ -65,6 +65,8 @@ Recommendation: two distribution channels from the same build. A **downloadable 
 | Standard HTML for download (`file://`) | target under 600 KB | **main path on the computer** |
 | Pro HTML for download | measure in feasibility test | version 2 |
 | GitHub Pages with web app manifest and service worker | same as standard or Pro | **path for the phone** and quick start without download; usable offline after the first visit; installable as an app in Chrome/Edge on desktop with file association for `.urlaub.json` and `.regeln.json` |
+
+**Pages layout:** a landing page at `/<repo>/` with no service worker; the app at `/<repo>/app/`, with its service worker and manifest scoped there; the documentation at `/<repo>/docs/de/`, `/docs/en/` and `/docs/dev/` (see Build and CI, "Documentation website").
 
 **No desktop wrapper.** A local server .exe, Tauri and Electron were evaluated. The only real gain would be saving into the same file and opening by double-click in any browser. The installed Pages version in Chrome/Edge already covers that ([File Handling API](https://developer.chrome.com/articles/file-handling), from version 102, desktop only); for Firefox a browser setting helps (see below). The costs of a wrapper (builds for three operating systems, signing warnings, a second supply chain with Rust crates, a local server as attack surface) don't fit a stable hobby project.
 
@@ -616,9 +618,19 @@ Contrast according to WCAG AA for the built-in schemes, a screen reader label pe
 
 ### Built-in help
 
-Status: partly implemented; "View example" and the keys of the calendar, V, W and K are built, the help, Ctrl+S, Ctrl+O, ? and catching a file dropped anywhere on the page are not, planned for version 1.
+Status: partly implemented; "View example" and the keys of the calendar, V, W and K are built, the help with its sources, build, checks and dialog, Ctrl+S, Ctrl+O, ? and catching a file dropped anywhere on the page are not, planned for version 1.
 
 Offline, bilingual, context-sensitive ("?" on every dialog). Chapters: Getting started, Work week and part-time, Day rules, Calendar sources (incl. showing the previous year), Plan and allowance, Plan file, rule set and saving (incl. the Firefox setting for overwriting and installing the web app with file association), Colors, Keyboard shortcuts, Privacy (incl. what the browser stores: device settings, recovery copies and the revision record, and that in Chrome and Edge other local HTML files can read them), **Own PDF templates** (see Output), About/Licenses.
+
+**Sources:** one Markdown file per topic. English is the source and is written first, under `docs/user/en/`; German is required and current, under the same path in `docs/user/de/`, changed in the same commit. A sync file records, per translation, a hash of the English text it matches: a German file whose recorded hash differs from the current English fails the check, a German-only fix such as a typo passes, and one command re-records the hash after someone has checked the German. The hashes are of content, not of git commits, because `main` has only squash merges. Further languages are optional: a mismatch or a missing file only warns, the website marks an outdated page, and a missing page falls back to English. German texts use "du", gender-neutral wording without gender characters, "z. B." with a non-breaking space, no "wir" in tutorials and no Konjunktiv in instructions.
+
+**Build:** a build-only Vite plugin parses both languages with markdown-it, imported from the package root, with `html: true`, so raw HTML fails the build loudly. A converter turns the tokens into the project's own closed, typed help tree of about ten node kinds; the checks run on that tree and report file and line from markdown-it's block ranges, and a link allowlist is the real defence. The build embeds one JSON data block per language with `insertDataBlock`, which escapes every `<`. `HelpTopic.svelte` renders the tree with two recursive snippets and no `{@html}`. Estimated size: about 90–150 KB for both languages, or 40–70 KB stored compressed with `DecompressionStream`; measured against the size budget.
+
+**Help syntax:** `{ui:catalog.key}` for UI labels, resolved per language at build time; `{shortcut:action}` for keys, from one shortcut table in code that both the key handling and the help read, so the help's overview of the keyboard shortcuts is generated from it (on macOS the help shows Cmd); `{#id}` for anchors.
+
+**Topic IDs:** generated `HelpTopicId` types, checked in both directions. An alias list maps old IDs to new ones and also feeds the website's redirects.
+
+**Help dialog:** the WAI-ARIA dialog pattern: on open the topic heading has focus, Escape closes only the help, focus returns to the "?" that opened it, and a Back action leads between topics.
 
 **Keyboard shortcuts** (in the help as an overview, in menus next to the entries):
 
@@ -787,7 +799,7 @@ Recommendation: use common, widespread tools, but choose them deliberately and s
 
 ### Dependencies
 
-Status: partly implemented; ical.js comes with the iCal import, planned for version 1; typst.ts comes with the Pro HTML, planned for version 2.
+Status: partly implemented; ical.js comes with the iCal import, planned for version 1; markdown-it comes with the help, planned for version 1; typst.ts comes with the Pro HTML, planned for version 2.
 
 | Package | Purpose | In the HTML? | Assessment |
 | --- | --- | --- | --- |
@@ -802,6 +814,7 @@ Status: partly implemented; ical.js comes with the iCal import, planned for vers
 | @eslint/js | ESLint's recommended rule set | no | from the ESLint team, no dependencies; no longer installed with eslint since ESLint 10 |
 | ical.js | read iCal (and verify the export) | yes | 0 dependencies (depscope, as of 2026-10), MPL-2.0; proven parser instead of an own implementation, also covers `RRULE`/`EXDATE` |
 | intl-messageformat (FormatJS) | ICU messages | yes | established ICU implementation; check the dependency tree during setup, otherwise `@messageformat/core` |
+| markdown-it 15.0.3 | parses the help Markdown | no | approved 2026-11-14; build only; 6 packages including itself (`argparse` already present); CommonMark; installed with the help |
 | date-holidays | reference model | no | development dependency, tests only |
 | @playwright/test | end-to-end | no | standard; browsers locally from nixpkgs, in CI via Playwright |
 | axe-core | accessibility checks | no | MPL-2.0, dev only, pinned exactly; approved 2026-11-04 |
@@ -875,6 +888,23 @@ Recommendation: everything runs locally with one command; GitHub Actions only ru
 
 **GitHub Free, public repository:** standard runners are free ([GitHub docs](https://docs.github.com/billing/managing-billing-for-your-products/managing-billing-for-github-actions)), GitHub Pages is available ([GitHub plans](https://docs.github.com/en/get-started/learning-about-github/githubs-plans)). Free doesn't mean unlimited: runs are still kept sparse.
 
+### Documentation website
+
+Status: planned for version 1.
+
+The user documentation and the developer documentation are published as a website on GitHub Pages (layout under Delivery format, "Pages layout").
+
+- **Tool:** mdBook 0.5.2 from nixpkgs in the dev shell (approved 2026-11-14; no npm package).
+- **Three books, de, en and dev:** after the checks, the project's build writes them with generated `book.toml` and `SUMMARY.md` files. User pages come from the help's checked tree, as resolved Markdown. Developer pages come from `docs/dev/en/`, with links to source files rewritten to GitHub links at the release tag.
+- **Language link:** each user page gets a link to its twin in the other language as its first line, with `hreflang` set. It needs no JavaScript.
+- **Redirects:** `[output.html.redirect]` is generated from the help's alias list of old topic IDs.
+- **German interface text:** after `mdbook build`, a Node step replaces mdBook's English strings in the German book with strings from a `docsSite.*` catalog group, about 25 strings plus 5 theme names. The step fails if the mdBook version differs from the pinned one, if a rule matches nowhere, or if text outside `<main>` is identical in the German and English output.
+- **Search:** per book. German has no stemming; if that proves too weak, Pagefind over the output is tried first.
+- **Not published:** `SPEC.md`, `issues/` and the component gallery.
+- **Deployment:** together with each release, from one folder, in one deploy (see Workflows, `release`).
+- **Test build first:** before the website is built in detail, a test build confirms the string list, the search script's file name, that the rewrite leaves page content alone, the identity check, the language links under the site URL, the redirects, a German 404 page, German search, that there are no outside requests, and Firefox ESR, Chromium, WebKit and Orca.
+- **Fallback:** if the string rewrite proves unreliable, Hugo with an own layout and Pagefind. Hugo also becomes the better choice if the site grows beyond help pages.
+
 ### Workflows
 
 Status: partly implemented; check, seed-cache and Dependency Review run, templates, e2e and release are not built (issue 0029 (run the build and the end-to-end tests in CI) is open), planned for version 1.
@@ -885,7 +915,7 @@ Status: partly implemented; check, seed-cache and Dependency Review run, templat
 | `seed-cache` | pushes to `main` that change `flake.nix`, `flake.lock`, `package-lock.json`, `.npmrc`, the Nix action or the workflow itself; weekly; by hand | the only workflow that writes caches: the Nix tarball, the Nix store cache and the npm cache, each fetched fresh from upstream; a separate read-only job runs the NixOS release check, so a failed weekly run reports an outdated release |
 | `templates` (planned) | only on changes to templates or the Typst version | compile templates × DE/EN with the pinned Typst version |
 | `e2e` (planned) | pull requests with the label `e2e`, before every release, otherwise once a week only if there were commits since the last run | Playwright in Firefox, Chromium, WebKit |
-| `release` (planned) | manual (tag) | build; create a draft GitHub Release, attach standard and Pro HTML, `SHA256SUMS` and the SPDX bill of materials, then publish it (immutable release); Pages version (web app) on GitHub Pages |
+| `release` (planned) | manual (tag) | build; create a draft GitHub Release, attach standard and Pro HTML, `SHA256SUMS` and the SPDX bill of materials, then publish it (immutable release); Pages version (landing page, web app and documentation website, from one folder in one deploy) on GitHub Pages |
 | Dependency Review | pull requests that change the lockfile | GitHub's own `dependency-review-action` reports new packages and known vulnerabilities |
 
 **NixOS release check:** `npm run nixos-release` reads the release branch from `flake.lock`. NixOS supports a YY.05 release until 31 December and a YY.11 release until 30 June of the next year; its successor comes out about a month earlier. From the 1st of that last month CI warns that the successor is due; from the 16th, or for a branch that isn't a release branch, it fails, so the project moves while the old release is still supported.
