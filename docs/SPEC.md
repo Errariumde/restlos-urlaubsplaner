@@ -94,6 +94,7 @@ Status: moved to `docs/dev/en/reference/holiday-rules.md`.
 
 Status: planned for version 1.
 
+- In the UI, the contract takes over the standard work week as a suggestion, and the work week is changeable.
 - The week start in the UI is changeable.
 
 ### Region tree and German special cases

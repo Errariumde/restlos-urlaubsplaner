@@ -26,7 +26,7 @@ Countries define the work week differently: weekend Sat/Sun (DE), Fri/Sat (some 
 
 - The country data contains the **standard work week** (required work per weekday) and the **week start**.
 - Substitute-day rules refer to the country's weekend, not fixed to Sat/Sun.
-- The contract takes over the standard work week as a suggestion and can override it (part-time, shift model, six-day week).
+- The contract takes over the standard work week and can override it (part-time, shift model, six-day week).
 - The week start in the UI comes from the country data or a separate table, not from the browser (its week info is missing in Firefox); the default for DE is Monday.
 
 ## Region tree and German special cases
