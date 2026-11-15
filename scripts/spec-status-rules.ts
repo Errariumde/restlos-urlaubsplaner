@@ -2,17 +2,19 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 // docs/SPEC.md tracks what is still to be built: every `##` and `###` section says on its first line whether it
-// is implemented, partly implemented, planned or not a requirement, so a reader knows which sections describe the
-// app as it is. Run through `npm run check` (scripts/check-references.js).
+// is implemented, partly implemented, planned, not a requirement or moved, so a reader knows which sections
+// describe the app as it is. Run through `npm run check` (scripts/check-references.js).
 
 import type { TextFile } from "./reference-rules.ts";
 
 const SPEC = "docs/SPEC.md";
 
-const STATUS = /^Status: (implemented|see the subsections|planned for version [1-3]|partly implemented; .+, planned for version [1-3]|not a requirement; moves to .+ in phase [2-6])\.$/;
+const STATUS =
+  /^Status: (implemented|see the subsections|planned for version [1-3]|partly implemented; .+, planned for version [1-3]|not a requirement; moves to .+ in phase [2-6]|moved to `[^`]+`)\.$/;
 const SUBSECTIONS = "Status: see the subsections.";
+const MOVED = /^Status: moved to `/;
 const FORMS =
-  'write "Status: implemented.", "Status: see the subsections.", "Status: planned for version N." (1 to 3), "Status: partly implemented; <what is missing>, planned for version N." (1 to 3) or "Status: not a requirement; moves to <destination> in phase N." (2 to 6)';
+  'write "Status: implemented.", "Status: see the subsections.", "Status: planned for version N." (1 to 3), "Status: partly implemented; <what is missing>, planned for version N." (1 to 3), "Status: not a requirement; moves to <destination> in phase N." (2 to 6) or "Status: moved to `<path>`."';
 
 const FENCE = /^ {0,3}(`{3,}|~{3,})/;
 const HEADING = /^(#{2,3}) +\S/;
@@ -69,8 +71,12 @@ export function checkSpecStatus(files: readonly TextFile[]): string[] {
       end++;
     }
     const subsections = depth === 2 && level(end) === 3;
-    if (status.text === SUBSECTIONS && !subsections) {
+    if (MOVED.test(status.text)) {
+      if (intro) errors.push(`${where}: a moved section that still has intro text; remove the text, which lives on the page it moved to.`);
+    } else if (status.text === SUBSECTIONS && !subsections) {
       errors.push(`${where}: "see the subsections" on a section without subsections; say the section's own status.`);
+    } else if (status.text === SUBSECTIONS && intro) {
+      errors.push(`${where}: "see the subsections" on a section with intro text; say the status of the intro text.`);
     } else if (subsections && !intro && status.text !== SUBSECTIONS) {
       errors.push(`${where}: a section without intro text whose status is not "see the subsections"; write "${SUBSECTIONS}" there.`);
     }

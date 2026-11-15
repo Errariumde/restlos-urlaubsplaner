@@ -92,8 +92,49 @@ describe("checkSpecStatus", () => {
     expect(check("## Parent", "", "Status: implemented.", "", "### Child", "", "Status: implemented.")).toEqual(at(1));
   });
 
-  it("accepts any form on a section with intro text", () => {
+  it("accepts a form of its own on a section with intro text", () => {
     expect(check("## Parent", "", "Status: implemented.", "", "Intro.", "", "### Child", "", "Status: implemented.")).toEqual([]);
+    expect(check("## Parent", "", "Status: planned for version 2.", "", "Intro.", "", "### Child", "", "Status: implemented.")).toEqual([]);
+  });
+
+  it("reports see the subsections on a section with intro text", () => {
+    expect(check("## Parent", "", "Status: see the subsections.", "", "Intro.", "", "### Child", "", "Status: implemented.")).toEqual(at(1));
+  });
+
+  it("accepts a moved section that keeps only its heading and the moved line", () => {
+    expect(check("## Moved", "", "Status: moved to `docs/dev/en/reference/glossary.md`.", "", "## Next", "", "Status: implemented.")).toEqual([]);
+    expect(check("### Leaf", "", "Status: moved to `docs/dev/en/reference/glossary.md`.")).toEqual([]);
+  });
+
+  it("accepts a moved section whose subsections keep their own lines", () => {
+    expect(
+      check(
+        "## Moved",
+        "",
+        "Status: moved to `docs/dev/en/reference/security.md`.",
+        "",
+        "### Planned child",
+        "",
+        "Status: planned for version 2.",
+        "",
+        "Text.",
+        "",
+        "### Moved child",
+        "",
+        "Status: moved to `docs/dev/en/reference/security.md`.",
+      ),
+    ).toEqual([]);
+  });
+
+  it("reports a moved section that still has intro text", () => {
+    expect(check("## Moved", "", "Status: moved to `docs/dev/en/reference/glossary.md`.", "", "Old text.", "", "### Child", "", "Status: implemented.")).toEqual(
+      at(1),
+    );
+    expect(check("### Leaf", "", "Status: moved to `docs/dev/en/reference/glossary.md`.", "", "Old text.")).toEqual(at(1));
+  });
+
+  it("requires the moved path in backticks", () => {
+    expect(check("## A", "Status: moved to docs/dev/en/reference/glossary.md.", "## B", "Status: moved to ``.", "## C", "Status: moved.")).toEqual(at(1, 3, 5));
   });
 
   it("reports see the subsections on a section without subsections", () => {

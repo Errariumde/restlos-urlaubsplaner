@@ -19,7 +19,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 ## Context
 
-The authority rule in `AGENTS.md` (the "Authority" bullet under "Project"): reference pages are authoritative; `docs/SPEC.md` is being emptied; a section whose status line says "implemented" is authoritative until it moves; docs and code never cite the spec, and existing citations stay until their section moves. Every `##` and `###` section of the spec has a status line directly under its heading, and `npm run check` enforces it.
+The authority rule in `AGENTS.md` (the "Authority" bullet under "Project"): reference pages are authoritative; `docs/SPEC.md` is being emptied; a section whose status line says "implemented" is authoritative until it moves; docs and code never cite the spec, and existing citations stay until their section moves. Every `##` and `###` section of the spec has a status line directly under its heading, and `npm run check` enforces it. A section whose text has fully moved keeps its heading and one line, ``Status: moved to `<path>`.``, with the repository path of the page it moved to.
 
 This issue is the single list that gives every spec section its destination and the phase that moves it.
 
@@ -84,25 +84,25 @@ A feature branch may do a row before its phase: it moves the section (one pure-m
 | --- | --- | --- | --- |
 | [ ] Goals and scope | not a requirement | `docs/dev/en/explanation/goals-and-scope.md` (new) | 3 |
 | [ ] Delivery format | partly implemented | the browsers and the consequences of `file://`: `docs/dev/en/reference/browsers-and-file-urls.md` (new), phase 2; the recommendation and "No desktop wrapper": `docs/dev/en/explanation/delivery-format.md` (new), phase 3; the Pages version, the Pages layout, saving and browser storage (IndexedDB) stay as tracking | 2, 3 |
-| [ ] Holiday sources and work week | see the subsections | the recommendation: `docs/dev/en/explanation/holiday-rules.md` (new) | 2 |
+| [ ] Holiday sources and work week | not a requirement | the recommendation: `docs/dev/en/explanation/holiday-rules.md` (new) | 2 |
 | [ ] Rule types of the core | implemented | `docs/dev/en/reference/holiday-rules.md` (new) | 2 |
 | [ ] Work week per country | partly implemented | `docs/dev/en/reference/holiday-rules.md` (new); planned parts stay as tracking | 2 |
 | [ ] Region tree and German special cases | partly implemented | `docs/dev/en/reference/holiday-rules.md` (new); planned parts stay as tracking | 2 |
 | [ ] Multiple calendar sources (iCal) | partly implemented | the source types and their effects: `docs/dev/en/reference/calendar-sources.md` (new); planned parts stay as tracking | 2 |
 | [ ] Reference models for tests | implemented | `docs/dev/en/reference/test-strategy.md` (new) | 2 |
-| [ ] Counting model (weights) | see the subsections | the recommendation: `docs/dev/en/explanation/counting-model.md` (new) | 3 |
+| [ ] Counting model (weights) | not a requirement | the recommendation: `docs/dev/en/explanation/counting-model.md` (new) | 3 |
 | [ ] The one formula | implemented | `docs/dev/en/reference/counting-model.md` (new) | 2 |
 | [ ] Finer granularity: prepared, offered only in the leave bar | partly implemented | `docs/dev/en/reference/counting-model.md` (new); planned parts stay as tracking | 2 |
 | [ ] How a day's required work comes about | partly implemented | `docs/dev/en/reference/counting-model.md` (new); planned parts stay as tracking | 2 |
 | [ ] Work week with validity | partly implemented | `docs/dev/en/reference/counting-model.md` (new), phase 2; the text on part-time counting and § 5 BUrlG: help, phase 5 | 2, 5 |
 | [ ] Date arithmetic | implemented | `docs/dev/en/reference/architecture.md` (new) | 2 |
-| [ ] Files: plan file, rule set and settings | see the subsections | the three kinds of files and the editor model: `docs/dev/en/reference/files.md` (new), phase 2; the recommendation: `docs/dev/en/explanation/file-kinds.md` (new), phase 3 | 2, 3 |
+| [ ] Files: plan file, rule set and settings | partly implemented | the three kinds of files and the editor model: `docs/dev/en/reference/files.md` (new), phase 2; the recommendation: `docs/dev/en/explanation/file-kinds.md` (new), phase 3 | 2, 3 |
 | [ ] Content of the files | partly implemented | `docs/dev/en/reference/file-format.md` (new); planned parts stay as tracking | 2 |
 | [ ] File operations (editor behavior) | partly implemented | opening the bundled example: `docs/dev/en/reference/start-screen.md` (new); planned parts stay as tracking | 4 |
 | [ ] What is stored where | partly implemented | `docs/dev/en/reference/file-format.md` (new); planned parts stay as tracking | 2 |
 | [ ] Format | partly implemented | cut where the file format reference says it already, the rest to `docs/dev/en/reference/file-format.md` (new); planned parts stay as tracking | 2 |
 | [ ] Sharing and validation | partly implemented | cut where the file format reference says it already, the rest to `docs/dev/en/reference/file-format.md` (new); the worker and the handover to the page: `docs/dev/en/reference/architecture.md` (new); planned parts stay as tracking | 2 |
-| [ ] Operation (UI/UX) | see the subsections | the recommendation: `docs/dev/en/explanation/ui-principles.md` (new) | 3 |
+| [ ] Operation (UI/UX) | not a requirement | the recommendation: `docs/dev/en/explanation/ui-principles.md` (new) | 3 |
 | [ ] View 1: Month tiles | implemented | `docs/dev/en/reference/calendar-views.md` (new) | 4 |
 | [ ] View 2: Month columns | partly implemented | `docs/dev/en/reference/calendar-views.md` (new), with "Align by weekday" and calendar weeks; planned parts stay as tracking | 4 |
 | [ ] Day cell: what is shown how | partly implemented | `docs/dev/en/reference/day-cell.md` (new); planned parts stay as tracking | 4 |
@@ -116,15 +116,15 @@ A feature branch may do a row before its phase: it moves the section (one pure-m
 | [ ] Accessibility | partly implemented | `docs/dev/en/reference/accessibility.md` (new); planned parts stay as tracking | 4 |
 | [ ] Built-in help | partly implemented | the calendar's keys, V, W and K: `docs/dev/en/reference/keyboard-shortcuts.md` (new), phase 4; "View example": `docs/dev/en/reference/start-screen.md` (new), phase 4; the chapters: help, phase 5; planned parts (sources, build, syntax, topic IDs, dialog) stay as tracking | 4, 5 |
 | [ ] Controls, icons and fonts | partly implemented | `docs/dev/en/reference/controls.md` (new); planned parts stay as tracking | 4 |
-| [ ] Output: .ics and PDF | see the subsections | the recommendation: `docs/dev/en/explanation/pdf-with-typst.md` (new) | 3 |
+| [ ] Output: .ics and PDF | not a requirement | the recommendation: `docs/dev/en/explanation/pdf-with-typst.md` (new) | 3 |
 | [ ] .ics export (RFC 5545) | planned | stays as tracking | – |
 | [ ] PDF: variants | planned | the rejected alternatives: `docs/dev/en/explanation/pdf-with-typst.md` (new); the rest stays as tracking | 3 |
 | [ ] Own templates: workflow and help | planned | stays as tracking | – |
 | [ ] Architecture, technology and tests | partly implemented | the engine, the worker, the single-file build and the size budget: `docs/dev/en/reference/architecture.md` (new), phase 2; the test strategy: `docs/dev/en/reference/test-strategy.md` (new), phase 2; the recommendation: `docs/dev/en/explanation/architecture.md` (new), phase 3; the open feasibility tests: issues or the roadmap page, phase 3; planned parts stay as tracking | 2, 3 |
-| [ ] Dependencies and supply chain | see the subsections | the recommendation: `docs/dev/en/explanation/supply-chain.md` (new) | 2 |
+| [ ] Dependencies and supply chain | not a requirement | the recommendation: `docs/dev/en/explanation/supply-chain.md` (new) | 2 |
 | [ ] Dependencies | partly implemented | the whole table to `docs/dev/en/reference/dependencies.md` (new): it is the list of approved packages, and an approval applies today also for a package that isn't installed yet (ical.js, markdown-it, mdBook, typst.ts); the page marks which packages are installed. The same commit re-points `AGENTS.md` L58 ("only packages listed in the spec") to that page | 2 |
 | [ ] Measures against supply chain attacks | implemented | `docs/dev/en/reference/dependencies.md` (new) | 2 |
-| [ ] Security | see the subsections | the recommendation: `docs/dev/en/explanation/security.md` (new) | 3 |
+| [ ] Security | partly implemented | that files from outside are untrusted and that the app has no network access: `docs/dev/en/reference/security.md` (new), phase 2; the recommendation: `docs/dev/en/explanation/security.md` (new), phase 3; planned parts stay as tracking | 2, 3 |
 | [ ] Threats and countermeasures | partly implemented | `docs/dev/en/reference/security.md` (new); planned parts stay as tracking | 2 |
 | [ ] Content Security Policy | partly implemented | `docs/dev/en/reference/security.md` (new); planned parts stay as tracking | 2 |
 | [ ] Verification | partly implemented | `docs/dev/en/reference/security.md` (new); planned parts stay as tracking | 2 |
@@ -133,7 +133,7 @@ A feature branch may do a row before its phase: it moves the section (one pure-m
 | [ ] Workflows | partly implemented | `docs/dev/en/reference/build-and-ci.md` (new), with the NixOS release check; planned parts stay as tracking | 2 |
 | [ ] Consideration for upstream sources (caching) | partly implemented | `docs/dev/en/reference/build-and-ci.md` (new); planned parts stay as tracking | 2 |
 | [ ] Workflow security | partly implemented | `docs/dev/en/reference/build-and-ci.md` (new); planned parts stay as tracking | 2 |
-| [ ] Project operations and contributing | see the subsections | the recommendation: `docs/dev/en/explanation/hobby-project.md` (new) | 3 |
+| [ ] Project operations and contributing | not a requirement | the recommendation: `docs/dev/en/explanation/hobby-project.md` (new) | 3 |
 | [ ] Hobby project notice | not a requirement | `README.md`, the canonical copy | 2 |
 | [ ] Files in the repository | partly implemented | `docs/dev/en/reference/repository-files.md` (new); planned parts stay as tracking | 2 |
 | [ ] Repository settings on GitHub | not a requirement | `docs/dev/en/reference/github-settings.md` (new) | 2 |

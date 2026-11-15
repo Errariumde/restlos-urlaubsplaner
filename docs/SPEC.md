@@ -84,7 +84,7 @@ Recommendation: two distribution channels from the same build. A **downloadable 
 
 ## Holiday sources and work week
 
-Status: see the subsections.
+Status: not a requirement; moves to docs/dev/en/explanation/ in phase 2.
 
 Recommendation: a **country-neutral rule core** with embedded data initially only for Germany, plus **any number of calendar sources** from iCal files. Country-neutral costs hardly any extra effort as long as the core is limited to Gregorian and Easter-based rules.
 
@@ -187,7 +187,7 @@ date-holidays is a development dependency and runs directly in the Vitest tests 
 
 ## Counting model (weights)
 
-Status: see the subsections.
+Status: not a requirement; moves to docs/dev/en/explanation/ in phase 3.
 
 Recommendation: every day has a **required work** value (how much work is owed), the user takes a share of the day off (a **full** or **half** day with the calendar's clicks, keys and ranges, a part of the plan's smallest leave unit in the day detail's leave bar), and the cost is how much of that leave overlaps the day's working time. Internal calculation in integer units (1 day = 480), so that sums stay exact and planning down to 1/32 day works without restructuring.
 
@@ -261,7 +261,7 @@ In files, weights are strings: readers accept fraction strings (`"1/2"`) and dec
 
 ## Files: plan file, rule set and settings
 
-Status: see the subsections.
+Status: partly implemented; the engine reads and writes plan files and rule sets, the device settings export and the editor commands (New, Open, Save, Save as, Close, Update rules from rule set) are not built, planned for version 1.
 
 Recommendation: **three kinds of files**, each self-contained, without references between them. The app can neither remember nor reopen file paths, so a reference would make users open two files every time.
 
@@ -413,7 +413,7 @@ Status: partly implemented; reading, checking, severities and limits are built i
 
 ## Operation (UI/UX)
 
-Status: see the subsections.
+Status: not a requirement; moves to docs/dev/en/explanation/ in phase 3.
 
 Recommendation: one screen with a switchable calendar view and an always visible allowance display. Every action shows its cost immediately; nothing is blocked, overdraft is only marked.
 
@@ -682,7 +682,7 @@ No component or icon library.
 
 ## Output: .ics and PDF
 
-Status: see the subsections.
+Status: not a requirement; moves to docs/dev/en/explanation/ in phase 3.
 
 Recommendation: generate .ics ourselves. PDF with **Typst as the only template language**: the standard HTML exports a standalone `.typ` file and offers a browser print view; the **Pro HTML** contains Typst as WASM and creates the PDF with one click. Templates are created outside the app with Typst and loaded ready-made; there is no editor.
 
@@ -793,7 +793,7 @@ The version 1 tests ran automated and headless in Firefox ESR 153, Firefox 159 a
 
 ## Dependencies and supply chain
 
-Status: see the subsections.
+Status: not a requirement; moves to docs/dev/en/explanation/ in phase 2.
 
 Recommendation: use common, widespread tools, but choose them deliberately and secure them with standard measures: exact versions, lockfile, no install scripts, a waiting period for new versions, an isolated build. The risk is real: from April to July 2026 alone there were several major npm compromises, partly via `preinstall` hooks, partly with malicious code that runs on import, partly with a valid provenance signature ([Unit 42](https://unit42.paloaltonetworks.com/?p=179395)).
 
@@ -837,7 +837,7 @@ Status: implemented.
 
 ## Security
 
-Status: see the subsections.
+Status: partly implemented; plan files and rule sets are treated as untrusted and the app has no network access; iCal files follow with the iCal import, planned for version 1; own templates run isolated with the Pro HTML, planned for version 2.
 
 Recommendation: every file from outside is considered untrusted, the app has no network access, and templates run isolated. The worst a manipulated file can then cause is an error message.
 
@@ -950,7 +950,7 @@ Status: partly implemented; check, seed-cache and Dependency Review follow the r
 
 ## Project operations and contributing
 
-Status: see the subsections.
+Status: not a requirement; moves to docs/dev/en/explanation/ in phase 3.
 
 Recommendation: the expectations are stated visibly in one place, in short, friendly and clear words; GitHub's guide on balance for maintainers advises exactly this, to make your own boundaries public and to say "no" openly ([opensource.guide](https://github.com/github/opensource.guide/blob/main/_articles/maintaining-balance-for-open-source-maintainers.md)). The legal side (no warranty, no liability) is already covered by Art. 7 and 8 of the EUPL-1.2; the text below is the human side.
 

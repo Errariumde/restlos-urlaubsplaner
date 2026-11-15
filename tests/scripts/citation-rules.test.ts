@@ -91,6 +91,11 @@ describe("checkCitations", () => {
       checkCitations([spec, { path: "src/a.ts", text: '// docs/SPEC.md, "Main screen"\n// docs/SPEC.md, "Project status"\n' }]),
     ).toHaveLength(2));
 
+  it("resolves the path of a moved spec section's status line", () => {
+    const moved = { path: "docs/SPEC.md", text: "## Format\n\nStatus: moved to `docs/file-format.md`.\n\n## Gone\n\nStatus: moved to `docs/dev/en/reference/gone.md`.\n" };
+    expect(checkCitations([moved, fmt])).toEqual([expect.stringMatching(/^docs\/SPEC\.md:7: .*docs\/dev\/en\/reference\/gone\.md/)]);
+  });
+
   it("does not take a test file's path property for a citation", () =>
     expect(checkCitations([spec, { path: "tests/a.test.ts", text: '{ path: "docs/SPEC.md", text }\n' }])).toEqual([]));
 
