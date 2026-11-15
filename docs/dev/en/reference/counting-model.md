@@ -48,11 +48,7 @@ Where partial leave lies also decides:
 
 ## Required work
 
-`requiredWork` in `src/engine/counting/required.ts` computes a day's required work in three stages:
-
-1. **Minimum** of the base value from the work week and every lowering layer that applies: built-in public holidays (0), `holiday` sources (their `required`, `"0"` … `"1"`), `paidClosure` sources (0) and `requiredAtMost` rules.
-2. **Forced rules** (`requiredExactly`) replace the minimum, see [Effects](day-rules-format.md#effects).
-3. **Manual override** of the single date replaces both.
+`requiredWork` in `src/engine/counting/required.ts` computes a day's required work in the order of the "Counting model" [hard rule](../../../../AGENTS.md#hard-rules). The minimum is taken over the base value from the work week and every lowering layer that applies: built-in public holidays (0), `holiday` sources (their `required`, `"0"` … `"1"`), `paidClosure` sources (0) and `requiredAtMost` rules. Forced rules (`requiredExactly`) and the manual override of a single date: [Effects](day-rules-format.md#effects).
 
 Where the free time lies when several layers give the same value: [Part](day-rules-format.md#part). The source types are listed in [Types](file-format.md#types). Mandatory leave, time off needed, `info` sources and leave from another plan are no layers: they don't change the required work.
 
@@ -61,7 +57,7 @@ Where the free time lies when several layers give the same value: [Part](day-rul
 Mandatory leave comes from `mandatory` day rules ([Effects](day-rules-format.md#effects)) and `mandatory` sources ([Types](file-format.md#types)).
 
 - **Changes:** the calendar's actions and the leave bar change only own leave (`changeFor` in `src/ui/calendar/range.ts`, `src/ui/calendar/leave-switch.ts`). Mandatory leave changes only with its rule or source.
-- **With own leave:** the cost is the overlap of both together with the working time. On the same part of the day they count once ([Part](day-rules-format.md#part)); on different parts they add up.
+- **With own leave:** on different parts of the day they add up; on the same part see [Part](day-rules-format.md#part).
 - **With leave from another plan:** see [Leave from another plan](file-format.md#leave-from-another-plan).
 
 ## Work week
