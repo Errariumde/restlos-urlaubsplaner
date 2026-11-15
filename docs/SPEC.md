@@ -720,53 +720,15 @@ Status: moved to `docs/dev/en/explanation/hobby-project.md`.
 
 ### Hobby project notice
 
-Status: not a requirement; moves to README in phase 2.
-
-In the README (at the top, short; German and English), in `SUPPORT.md` (German and English) and in `CONTRIBUTING.md` (English):
-
-```markdown
-## Projektstatus
-
-restlos ist ein Hobbyprojekt, das ich in meiner Freizeit pflege.
-Es gibt keine Zusagen zu Antwortzeiten, Fehlerbehebungen, neuen
-Funktionen oder weiterer Pflege.
-
-- Issues und Pull Requests sind willkommen. Ich schaue sie an, wenn ich
-  Zeit und Lust habe, und schließe sie auch ohne ausführliche Begründung.
-- Größere Änderungen bitte vorher in einem Issue besprechen.
-- Die Software wird ohne Gewährleistung bereitgestellt (EUPL-1.2, Art. 7 und 8).
-  Maßgeblich für deinen Urlaub sind dein Arbeitsvertrag und deine Personalabteilung.
-- Wenn du mehr brauchst: Forken ist ausdrücklich erwünscht.
-```
-
-```markdown
-## Project status
-
-restlos is a hobby project I maintain in my spare time.
-There are no promises about response times, bug fixes, new features
-or continued maintenance.
-
-- Issues and pull requests are welcome. I look at them when I have the
-  time and energy, and I may close them without a detailed explanation.
-- Please open an issue before starting larger changes.
-- The software is provided without warranty (EUPL-1.2, Articles 7 and 8).
-  Your employment contract and HR department are authoritative for your leave.
-- If you need more: forking is explicitly welcome.
-```
+Status: moved to `README.md`.
 
 ### Files in the repository
 
-Status: partly implemented; every file exists, the README has no screenshot, download or Pages link and no verification of checksums and attestations yet, planned for version 1.
+Status: planned for version 1.
 
 | File | Content |
 | --- | --- |
-| `README.md` | short description, screenshot, download/Pages link, project status notice, verification of checksums and attestations |
-| `SUPPORT.md` | where to report bugs and ideas (issue templates); no channel for general questions; hobby project notice |
-| `CONTRIBUTING.md` | process (issue first), tests must pass, source citation for holiday data, no entitlement to a merge, language conventions, license of contributions (code, data and configuration EUPL-1.2, templates and examples MIT-0, documentation CC BY 4.0) |
-| `SECURITY.md` | private reporting, best effort, no deadlines |
-| `CODE_OF_CONDUCT.md` | short code of conduct (e.g. Contributor Covenant); gives a basis for closing unfriendly contributions |
-| `.github/ISSUE_TEMPLATE/` | bug report and feature request, each with a mandatory checkbox "I understand this is a hobby project without commitments"; blank issues disabled |
-| `CHANGELOG.md` | changes per version (format "Keep a Changelog") |
+| `README.md` | screenshot, download/Pages link, verification of checksums and attestations |
 
 ### Repository settings on GitHub
 
@@ -779,48 +741,27 @@ Status: planned for version 1.
 
 ### License compliance with REUSE
 
-Status: partly implemented; reuse lint runs locally and in CI, the SPDX bill of materials of a release and the About / Licenses page are not built, planned for version 1.
-
-The repository follows the FSFE's [REUSE specification](https://reuse.software): every file has a machine-readable license and copyright statement, and all license texts used are in the `LICENSES/` folder.
+Status: planned for version 1.
 
 | Component | License (SPDX) | Stated via |
 | --- | --- | --- |
-| Source code, holiday data, build scripts, configuration (incl. `REUSE.toml`) | `EUPL-1.2` | SPDX header in the file or `REUSE.toml` |
-| PDF templates, example template, example data, example plan file and rule set | `MIT-0` | `REUSE.toml` |
-| Documentation, help texts, agent instructions (`AGENTS.md`, `CLAUDE.md`) and skills (all Markdown) | `CC-BY-4.0` | SPDX header in the file or `REUSE.toml` |
-| Generated files (`package-lock.json`, `flake.lock`) | `CC0-1.0` | `REUSE.toml` |
-| Third-party files (Lucide SVGs, fonts) | original license (Lucide `ISC`, Feather-derived icons `MIT`; fonts e.g. `OFL-1.1`) with the original copyright | `REUSE.toml`, license text in `LICENSES/` |
+| Third-party files (fonts) | original license (fonts e.g. `OFL-1.1`) with the original copyright | `REUSE.toml`, license text in `LICENSES/` |
 
-- `reuse lint` runs in `npm run check` and in the CI workflow `check`; an error fails the build.
-- New files get an SPDX header (`SPDX-FileCopyrightText`, `SPDX-License-Identifier`) when they are created, where the file format allows comments; otherwise an entry in `REUSE.toml`.
 - Every release additionally contains an SPDX bill of materials (`reuse spdx`) of the repository files.
 - REUSE covers the files in the repository. The npm packages bundled into the HTML are collected during the build and listed on the "About / Licenses" page (see License).
 
 ### AI tools in the repository
 
-Status: implemented.
-
-`AGENTS.md` is the shared instruction file for AI coding tools; `CLAUDE.md` includes it for Claude Code via `@AGENTS.md`. In addition there are `.claude/` (settings, skills), `.mcp.json` (Svelte MCP) and a local plugin for language servers. Agents commit unsigned on branches and never push; the maintainer reviews, signs and pushes over SSH. Follow-ups and open decisions are tracked as Markdown files in `issues/` (conventions in `issues/README.md`); this internal backlog is separate from GitHub issues, which stay the channel for bug reports and ideas from users. Rationale and setup are in `docs/ai-tooling.md`. Text in the repository stands on its own: no pointers to chats, sessions or files outside it, short references always with a description, and nothing links into `docs/superpowers/`, the design and plan documents written with AI tools, which may disappear at any time but which only the maintainer deletes (`AGENTS.md`, "Text in the repository"; `npm run check` enforces the links).
+Status: moved to `docs/ai-tooling.md`.
 
 ### Releases and updates
 
-Status: partly implemented; the tools of the release checklist are built, the release workflow, the About page and the update notice of the Pages version are not, planned for version 1.
+Status: planned for version 1.
 
-- Versions according to Semantic Versioning; the version and the data status of the holiday rules are shown on the "About" page.
-- The downloaded HTML doesn't check for updates itself (no network); new versions are available via GitHub Releases with a changelog.
+- The version and the data status of the holiday rules are shown on the "About" page.
 - The Pages version updates via the service worker and shows "New version available – reload".
-- New versions read old files (migration); older versions reject newer files with a clear message.
-- Releases are immutable (see repository settings): the `release` workflow creates a draft, attaches all files and only then publishes it. A published release can't be changed and its tag can't be moved or reused; mistakes are fixed with a new patch version.
-
-**Release checklist** (lightweight, instead of formal acceptance criteria):
-
-- [ ] `check`, `templates` and `e2e` green.
-- [ ] Short manual test: open the standard HTML via `file://` in the current Firefox ESR from the dev shell (`firefox-esr`), load a file, set days, save, export .ics and `.typ`; open the Pages version on a phone.
-- [ ] Largest file: `npm run perf -- --largest-file <path>` writes the worst crafted plan file within the limits; open it in the Firefox ESR on the reference machine and note the times for reading and checking (target: under 2 s together).
-- [ ] Screen reader: `npm run orca` prints the steps (Orca with a debug log, a fixed sequence of keys in the Firefox ESR); `npm run orca -- <log>` passes.
-- [ ] Size budget met.
-- [ ] REUSE check green, SPDX bill of materials generated; changelog and version number updated, data status of the holiday rules checked.
-- [ ] Release published by the `release` workflow as an immutable release with `SHA256SUMS`, SPDX bill of materials and build provenance.
+- Older versions reject newer files with a clear message.
+- The `release` workflow creates a draft, attaches all files and only then publishes it.
 
 ### Maintaining holiday data
 

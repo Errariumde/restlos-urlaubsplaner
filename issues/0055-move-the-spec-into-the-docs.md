@@ -40,7 +40,7 @@ Each phase is one or more small branches, with `npm run check` passing after eve
   - move the "Adding a country" section of `docs/dev/en/reference/holiday-data-format.md` into the holiday-data how-to, `docs/dev/en/howto/holiday-data.md`;
   - cut the text of the spec's "Format" and "Sharing and validation" that the file format reference already says;
   - move the glossary to its own reference page and re-point `AGENTS.md` to it in the same commit;
-  - keep one canonical copy each of the hobby project notice (`README.md`), the release checklist (`docs/dev/en/howto/release.md`) and the holiday-data procedure (`docs/dev/en/howto/holiday-data.md`);
+  - keep one canonical copy each of the hobby project notice (`README.md`, done), the release checklist (`docs/dev/en/howto/release.md`, done) and the holiday-data procedure (`docs/dev/en/howto/holiday-data.md`);
   - remove the allowlist entries of the citation check for those two sections.
 - **Phase 3, explanation and status.**
   - The "Recommendation:" paragraphs become plain statements plus explanation pages; rejected alternatives move to explanation.
@@ -135,12 +135,12 @@ A feature branch may do a row before its phase. The steps of a move are in `docs
 | [x] Consideration for upstream sources (caching) | partly implemented | `docs/dev/en/reference/build-and-ci.md`; planned parts stay as tracking | 2 |
 | [x] Workflow security | partly implemented | `docs/dev/en/reference/build-and-ci.md`; planned parts stay as tracking | 2 |
 | [x] Project operations and contributing | not a requirement | the recommendation: `docs/dev/en/explanation/hobby-project.md` | 2 |
-| [ ] Hobby project notice | not a requirement | `README.md`, the canonical copy | 2 |
-| [ ] Files in the repository | partly implemented | `docs/dev/en/reference/repository-files.md` (new); planned parts stay as tracking | 2 |
+| [x] Hobby project notice | not a requirement | `README.md`, the canonical copy | 2 |
+| [x] Files in the repository | partly implemented | `docs/dev/en/reference/repository-files.md`; planned parts stay as tracking | 2 |
 | [x] Repository settings on GitHub | not a requirement | `docs/dev/en/reference/github-settings.md`; the rows "Pages" and "Environments → `github-pages`" stay as tracking until the `release` workflow is built | 2 |
-| [ ] License compliance with REUSE | partly implemented | `docs/dev/en/reference/licensing.md` (new); planned parts stay as tracking | 2 |
-| [ ] AI tools in the repository | implemented | `docs/ai-tooling.md`, cut where it says it already | 2 |
-| [ ] Releases and updates | partly implemented | the release checklist: `docs/dev/en/howto/release.md`, the canonical copy, which keeps what only the spec's checklist has: its ".ics and `.typ`" export (the how-to says "PDF and .ics export"), the size budget, checking the data status of the holiday rules and opening the Pages version on a phone; the version and update rules: `docs/dev/en/reference/releases.md` (new); planned parts stay as tracking | 2 |
+| [x] License compliance with REUSE | partly implemented | `docs/dev/en/reference/licensing.md`; planned parts stay as tracking | 2 |
+| [x] AI tools in the repository | implemented | `docs/ai-tooling.md`, cut where it says it already | 2 |
+| [x] Releases and updates | partly implemented | the release checklist: `docs/dev/en/howto/release.md`, the canonical copy, which keeps what only the spec's checklist has: its ".ics and `.typ`" export (the how-to says "PDF and .ics export"), the size budget, checking the data status of the holiday rules and opening the Pages version on a phone; the version and update rules: `docs/dev/en/reference/releases.md`; planned parts stay as tracking | 2 |
 | [x] Maintaining holiday data | partly implemented | `docs/dev/en/howto/holiday-data.md`, the canonical copy, phase 2; the notice that data can become outdated: help, phase 5 | 2, 5 |
 | [ ] Privacy | planned | help and `README.md`; unbuilt parts stay as tracking | 5 |
 | [ ] Stages, risks, decisions | not a requirement | the versions and risks: `docs/dev/en/explanation/roadmap.md` (new) and issues; the decisions: decision records in `docs/dev/en/explanation/decisions/` | 3 |

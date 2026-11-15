@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-// The screen reader check before a release (docs/SPEC.md, "Accessibility" and the release checklist): Orca writes
-// what it says to its debug log, and this reads the log after a fixed sequence of keys in the app. It looks only for
-// what a person would otherwise have to listen for: a result of a change that wasn't said, a text said twice in a
+// The screen reader check before a release (docs/SPEC.md, "Accessibility", and docs/dev/en/howto/release.md): Orca
+// writes what it says to its debug log, and this reads the log after a fixed sequence of keys in the app. It looks only
+// for what a person would otherwise have to listen for: a result of a change that wasn't said, a text said twice in a
 // row, and a very long text (a whole calendar row). Nothing has to be heard; the speakers can be muted. The log also
 // has every text Firefox sent Orca, so a result the app didn't give Orca is told apart from one Orca dropped.
 
