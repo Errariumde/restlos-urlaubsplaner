@@ -5,27 +5,32 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Test strategy
 
+What the tests check and with which tools. `npm test` runs the Vitest tests in `tests/`, `npm run test:e2e` the Playwright tests in `e2e/`. The reasons are in [Architecture choices](../explanation/architecture-choices.md).
+
 ## Reference models
 
 | Source | Role |
 | --- | --- |
-| [date-holidays](https://github.com/commenthol/date-holidays) (code ISC, data CC BY-SA 3.0) | reference model in CI, not embedded |
-| [python-holidays](https://python-holidays.readthedocs.io/en/latest/_autosummary/holidays.countries.germany.html) (MIT; in version 0.97 Assumption Day in BY and Corpus Christi in SN and TH are in the opt-in category "catholic", and Augsburg is its own subdivision) | second reference model in CI |
+| [date-holidays](https://github.com/commenthol/date-holidays) (code ISC, data CC BY-SA 3.0) | reference model in the Vitest tests |
+| [python-holidays](https://python-holidays.readthedocs.io/en/latest/_autosummary/holidays.countries.germany.html) (MIT) | second reference model, through a checked-in reference file |
 
-date-holidays is a development dependency and runs directly in the Vitest tests (all 16 federal states, 2000–2100); deviations are bugs or are on a documented exception list. python-holidays serves only as an occasional second cross-check: a script generates a reference file on rule changes, which is checked in. No online fetching at runtime.
+- **Variants:** both models are compared for every variant in `tests/reference/variants.ts`, from 2000 to 2100. The variants are the 16 federal states and five with local rules: Assumption Day and Augsburg in BY, alone and together, and Corpus Christi in SN and TH.
+- **date-holidays:** a development dependency ([Dependencies](dependencies.md)). `tests/reference/date-holidays.test.ts` calls it directly.
+- **python-holidays:** version 0.97, from the Nix dev shell. `npm run reference:python` writes `tests/reference/python-holidays-de.json`, which is checked in; it must be regenerated after rule changes. `tests/reference/python-holidays.test.ts` checks its version, years and variants. In 0.97, Assumption Day in BY and Corpus Christi in SN and TH are in the opt-in category "catholic", and Augsburg is its own subdivision (`scripts/python-holidays-reference.py`).
+- **Differences:** a difference from either model must be listed in `KNOWN_DIFFERENCES` in `tests/reference/known-differences.ts`, with its reason and an official source. An unlisted difference and an unused entry fail the tests.
 
 ## Test levels
 
 | Level | What | Tool |
 | --- | --- | --- |
-| Holidays | rule set against date-holidays (directly) and a checked-in python-holidays reference, all 16 federal states, 2000–2100; cases for SL and MV | Vitest |
+| Holidays | the rule set against both [reference models](#reference-models); cases for SL and MV in `tests/data/holidays/de.test.ts` | Vitest |
 | Rule types | Easter early/late, valid-from year, one-off days, substitute day with the country's own weekend, 29 February, 2000 and 2100 | Vitest, table-driven |
-| Counting model | cost = the overlap of the leave with the working time for random multiples of 1/32, never more than min(taken, required work) and equal to it on a normal working day; minimum of the lowering layers; 24/31 Dec on a weekend costs 0; ½ source on a holiday stays 0; mandatory leave; work week with a change; the sum is correct | Vitest + fast-check |
-| Plans | sources "Leave from another plan" (.urlaub.json) are displayed and never count | Vitest |
-| Date arithmetic | no `Date` in the engine | Vitest, ESLint rule `no-restricted-globals` |
+| Counting model | the rules in [Counting model](counting-model.md): the cost of a day, the minimum of the lowering layers, 24/31 Dec on a weekend, a ½ source on a holiday, mandatory leave, a work week with a change and the totals; the property tests listed under [Units](counting-model.md#units) | Vitest + fast-check |
+| Plans | sources "Leave from another plan" read from a .urlaub.json (`tests/engine/file/other-plan.test.ts`); they never count and appear in the day's facts (`tests/engine/counting/plan.test.ts`); the day cell, the day detail and the legend show them (`tests/ui/`, `e2e/detail.spec.ts`, `e2e/legend.spec.ts`) | Vitest, Playwright |
+| Day numbers | the ESLint rule against `Date` in the engine ([Day numbers](architecture.md#day-numbers)) applies in `src/engine/` and only there (`tests/lint/no-date-in-engine.test.ts`) | Vitest, ESLint rule `no-restricted-globals` |
 | Files | load(save(x)) = x | Vitest + fast-check |
-| Performance | no wall-clock assertions in tests; every scenario runs at 8× and 16× its base size and fails when twice the input costs more than 2.2× the work, or when it costs more than 5 % over the checked-in baseline (`tests/perf/baseline.json`); raising the baseline needs the maintainer's approval; a measured run that collects garbage fails, because when a collection runs depends on where the repository is checked out | `npm run perf`: Cachegrind instruction counts with V8 `--predictable` and without garbage collection, part of `npm run check` and CI; on GitHub's runners the counts agree with the local ones within 0.5 %, on AMD and Intel CPUs alike (measured 2026-10-24), so CI compares with the same baseline |
-| Multilingual support | missing/unused keys, pseudo-localization | small check scripts |
+| Performance | the gate of the "Performance" [hard rule](../../../../AGENTS.md#hard-rules); every scenario in `tests/perf/scenarios.ts` runs at 8× and 16× its base size and fails when twice the input costs more than 2.2× the work (`scripts/perf-verdict.ts`) | `npm run perf` with V8 `--predictable` (`scripts/perf.js`); CI runs it through `npm run check` against the same baseline |
+| Multilingual support | the catalogs: the same keys in de and en, every key used, every used key present, valid ICU syntax (`scripts/catalog-rules.ts`); the pseudo-locales en-XA (long) and en-XB (right to left), generated by `pseudoCatalog` in `src/ui/i18n/pseudo.ts` | `npm run check` with Vitest tests of the rules; Vitest for the generator |
 | Types and style | TypeScript, Svelte components, lint | `tsc`, svelte-check, ESLint |
-| End-to-end | standard HTML via `file://` in Firefox (Playwright build), Chromium, WebKit; container widths 375/768/1100/1920 px. The Firefox ESR is not covered by Playwright and is tested manually (release checklist) | Playwright |
-| Components, accessibility, keyboard | a component gallery page (dev only, not in the build) shows every component in every state: light and dark, DE, EN and the pseudo-locales; Playwright screenshots of it; axe-core on the gallery and the main screens; keyboard end-to-end tests | Playwright, axe-core |
+| End-to-end | standard HTML via `file://` in Firefox (Playwright build), Chromium, WebKit; the Firefox ESR is tested as the "Browsers" [hard rule](../../../../AGENTS.md#hard-rules) says, in the [release checklist](../howto/release.md) | Playwright |
+| Components, accessibility, keyboard | a component gallery page (`npm run build:gallery`, not in the app) shows every section in light and dark, DE, EN and the pseudo-locales; Playwright screenshots of it, the main screen at 375, 768, 1100 and 1920 px; axe-core on the gallery and the main screens in Chromium and Firefox; keyboard end-to-end tests | Playwright, axe-core |
