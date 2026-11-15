@@ -139,7 +139,7 @@ A feature branch may do a row before its phase. The steps of a move are in `docs
 | [ ] Repository settings on GitHub | not a requirement | `docs/dev/en/reference/github-settings.md` (new) | 2 |
 | [ ] License compliance with REUSE | partly implemented | `docs/dev/en/reference/licensing.md` (new); planned parts stay as tracking | 2 |
 | [ ] AI tools in the repository | implemented | `docs/ai-tooling.md`, cut where it says it already | 2 |
-| [ ] Releases and updates | partly implemented | the release checklist: `docs/dev/en/howto/release.md`, the canonical copy; the version and update rules: `docs/dev/en/reference/releases.md` (new); planned parts stay as tracking | 2 |
+| [ ] Releases and updates | partly implemented | the release checklist: `docs/dev/en/howto/release.md`, the canonical copy, which keeps what only the spec's checklist has: its ".ics and `.typ`" export (the how-to says "PDF and .ics export"), the size budget, checking the data status of the holiday rules and opening the Pages version on a phone; the version and update rules: `docs/dev/en/reference/releases.md` (new); planned parts stay as tracking | 2 |
 | [ ] Maintaining holiday data | partly implemented | `docs/dev/en/howto/holiday-data.md`, the canonical copy, phase 2; the notice that data can become outdated: help, phase 5 | 2, 5 |
 | [ ] Privacy | planned | help and `README.md`; unbuilt parts stay as tracking | 5 |
 | [ ] Stages, risks, decisions | not a requirement | the versions and risks: `docs/dev/en/explanation/roadmap.md` (new) and issues; the decisions: decision records in `docs/dev/en/explanation/decisions/` | 3 |

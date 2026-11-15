@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # AI tooling in this repository
 
-As of 2026-10-17. The setup targets Claude Code and stays usable for other agents (Codex, Cursor, Copilot, Gemini CLI, …).
+As of 2026-11-15. The setup targets Claude Code and stays usable for other agents (Codex, Cursor, Copilot, Gemini CLI, …).
 
 ## 1. Instruction files
 

@@ -912,7 +912,7 @@ Status: partly implemented; check, seed-cache and Dependency Review run, templat
 
 | Workflow | Trigger | Content |
 | --- | --- | --- |
-| `check` | push to `main`, pull requests; always the full check, without a path filter (a required check whose workflow a path filter skipped stays pending and blocks the merge) | inside `nix develop .#ci`: NixOS release check, `npm ci`, lint, REUSE check, type check, Vitest, performance gate, catalog, CSS and reference checks; then, as separate steps, the app build with its size check and the gallery build |
+| `check` | push to `main`, pull requests; always the full check, without a path filter (a required check whose workflow a path filter skipped stays pending and blocks the merge) | inside `nix develop .#ci`: NixOS release check, `npm ci`, `npm run check` (lint, type check, Vitest, performance gate, the catalog, CSS, reference, citation, spec status and docs style checks, REUSE check); then, as separate steps, the app build with its size check and the gallery build |
 | `seed-cache` | pushes to `main` that change `flake.nix`, `flake.lock`, `package-lock.json`, `.npmrc`, the Nix action or the workflow itself; weekly; by hand | the only workflow that writes caches: the Nix tarball, the Nix store cache and the npm cache, each fetched fresh from upstream; a separate read-only job runs the NixOS release check, so a failed weekly run reports an outdated release |
 | `templates` (planned) | only on changes to templates or the Typst version | compile templates × DE/EN with the pinned Typst version |
 | `e2e` (planned) | pull requests with the label `e2e`, before every release, otherwise once a week only if there were commits since the last run | Playwright in Firefox, Chromium, WebKit |

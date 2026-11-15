@@ -10,7 +10,7 @@ SPDX-License-Identifier: CC-BY-4.0
 3. Update `CHANGELOG.md` (move "Unreleased" entries, date in ISO format) and `package.json` version.
 4. Run in the dev shell:
    - `npm ci`
-   - `npm run check` (lint, types, tests, performance gate, catalog, CSS, reference and docs checks, `reuse lint`)
+   - `npm run check` (lint, types, tests, performance gate, catalog, CSS, reference, citation, spec status and docs style checks, `reuse lint`)
    - `npm run build`
    - `npm run test:e2e` (Playwright: Firefox, Chromium, WebKit – Playwright's own browser builds, not Firefox ESR)
 5. Generate the SBOM: `reuse spdx -o dist/restlos.spdx`.
