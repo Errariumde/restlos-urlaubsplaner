@@ -21,7 +21,7 @@ The app recognizes a file by `schema` and `kind`, not by its name.
 
 `schema` is `"restlos/1"`. Every change of the format gets a new schema number. A release reads every schema written by any release of its own major version, migrates older ones on load and always saves its own. A new major version (2.0.0) still reads the last schema of the previous major version and may drop older ones; its release notes say so. A minor release that introduces a new schema says in its release notes that older 1.x copies can't open its files. Nothing is promised before version 1.0.0: schema 1 may still change without migration.
 
-`readFile` reads schema 1 only and refuses a file with any other schema number (`newerSchema`, see [Refused](#refused)).
+Which schemas `readFile` refuses is listed under [Refused](#refused).
 
 ## Values
 
@@ -323,7 +323,7 @@ A report entry has a `code`, the `path` of the key itself in the text that was r
 | `tooLarge` | The text is larger than 10 MB in UTF-8. Checked before parsing. |
 | `notJson` | The text is not JSON. |
 | `unknownSchema` | The text is not a JSON object with a `schema` of the form `"restlos/N"`. |
-| `newerSchema` | The schema number is higher than 1: the file was made with a newer version of restlos. |
+| `newerSchema` | The schema number is not 1, the only schema `readFile` reads: the file was made with a newer version of restlos. |
 | `unknownKind` | `kind` is not `"plan"`, `"ruleSet"` or `"settings"`. |
 | `settingsNotSupported` | `kind` is `"settings"`. |
 | `kindMismatch` | A rule set has `plan` or `ruleSet`. |
@@ -413,7 +413,7 @@ Progress: `onProgress` is called with `(0, N)` first and then once per rule or m
 | IDs and reference keys / URLs | 200 / 2000 characters | invalid: that entry dropped (`invalidValue`), an over-long file `id` refused (`invalidCore`) |
 | Files inside files | none: another plan is stored as entries, never embedded | |
 
-KB and MB are binary: 1 MB is 1,048,576 bytes. Reading and checking grow at most linearly with the file: the performance gate (`npm run perf`) fails when a `read:` or `check:` scenario in `tests/perf/scenarios.ts` grows faster than its input. Target: the largest file within the limits reads and checks in under 2 s together in the Firefox ESR on the reference machine, an Intel Core i7-8650U. The [release checklist](../howto/release.md) measures it at each release.
+KB and MB are binary: 1 MB is 1,048,576 bytes. Reading and checking grow at most linearly with the file; the `read:` and `check:` scenarios in `tests/perf/scenarios.ts` hold them to the "Performance" [hard rule](../../../../AGENTS.md#hard-rules). Target: the largest file within the limits reads and checks in under 2 s together in the Firefox ESR on the reference machine, an Intel Core i7-8650U. The [release checklist](../howto/release.md) measures it at each release.
 
 ## Writing
 
