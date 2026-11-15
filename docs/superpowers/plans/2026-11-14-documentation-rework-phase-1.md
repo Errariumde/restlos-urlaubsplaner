@@ -84,7 +84,7 @@ A third module, `scripts/spec-status-rules.ts`, checks the status lines. The exi
     - every bold run-in label: a paragraph or list item that starts with `**Label**` or `**Label:**`, without the colon.
   - `export function checkCitations(files: readonly TextFile[]): string[]`.
 
-- [ ] **Step 1: Write the failing tests** in `tests/scripts/citation-rules.test.ts`:
+- [x] **Step 1: Write the failing tests** in `tests/scripts/citation-rules.test.ts`:
 
 ```ts
 const spec = { path: "docs/SPEC.md", text: "# T\n\n## Build and CI (GitHub Free and local)\n\n### Day cell: what is shown how\n\n**Detail view:** text\n\n```\n## Project status\n```\n" };
@@ -120,9 +120,9 @@ it("treats a path as existing when it is a file or a folder of listed files", ()
 
 Also add `githubSlug("Build and CI (GitHub Free and local)") === "build-and-ci-github-free-and-local"` and `githubSlug("Füße & Hände") === "füße--hände"`.
 
-- [ ] **Step 2: Run them and see them fail.** Run `npm test -- tests/scripts/citation-rules.test.ts`. Expected: FAIL, because the module doesn't exist.
+- [x] **Step 2: Run them and see them fail.** Run `npm test -- tests/scripts/citation-rules.test.ts`. Expected: FAIL, because the module doesn't exist.
 
-- [ ] **Step 3: Implement `scripts/citation-rules.ts`.**
+- [x] **Step 3: Implement `scripts/citation-rules.ts`.**
   - **Root paths:** match `(?<![\w/.:-])docs\/[A-Za-z0-9_./-]*[A-Za-z0-9_/-]`, which keeps sentence punctuation outside the match.
     - Skip: a match ending in `/`, and a match directly followed by ` (new)`.
     - A path resolves when it is a listed file or a prefix of one. Existence is checked against the paths in `files`, with no file system access.
@@ -137,13 +137,13 @@ Also add `githubSlug("Build and CI (GitHub Free and local)") === "build-and-ci-g
     - "the path docs/x.md does not exist; correct it, or mark a planned page with (new)";
     - "docs/SPEC.md has no section "X"; cite an existing heading or move the section first".
 
-- [ ] **Step 4: Run the tests and see them pass.** Run `npm test -- tests/scripts/citation-rules.test.ts`. Expected: PASS.
+- [x] **Step 4: Run the tests and see them pass.** Run `npm test -- tests/scripts/citation-rules.test.ts`. Expected: PASS.
 
-- [ ] **Step 5: Wire it into `scripts/check-references.js`.** Concatenate `checkCitations(files)` after `checkReferences(files)`, keep the header comment accurate, and change the summary to "reference(s) to fix." Then run `npm run check`. Expected: lint, types, tests, perf, catalogs and CSS pass, and the reference check lists findings.
+- [x] **Step 5: Wire it into `scripts/check-references.js`.** Concatenate `checkCitations(files)` after `checkReferences(files)`, keep the header comment accurate, and change the summary to "reference(s) to fix." Then run `npm run check`. Expected: lint, types, tests, perf, catalogs and CSS pass, and the reference check lists findings.
 
-- [ ] **Step 6: Fix every finding in the repository.** Correct the citation, the path or the anchor; never weaken the rule. Done issues are exempt and stay unchanged. Then run `npm run check`. Expected: PASS.
+- [x] **Step 6: Fix every finding in the repository.** Correct the citation, the path or the anchor; never weaken the rule. Done issues are exempt and stay unchanged. Then run `npm run check`. Expected: PASS.
 
-- [ ] **Step 7: Commit.** Add the four kinds of files. Subject: "Check that cited docs paths, anchors and spec sections exist". The body lists the citations fixed.
+- [x] **Step 7: Commit.** Add the four kinds of files. Subject: "Check that cited docs paths, anchors and spec sections exist". The body lists the citations fixed.
 
 ### Task 2: The spec citation rule, stage 1
 
@@ -160,7 +160,7 @@ Also add `githubSlug("Build and CI (GitHub Free and local)") === "build-and-ci-g
     - `"docs/dev/en/howto/docs.md"`: removed when `docs/SPEC.md` is deleted.
   - `export function checkSpecCitations(files: readonly TextFile[]): string[]`.
 
-- [ ] **Step 1: Write the failing tests:**
+- [x] **Step 1: Write the failing tests:**
   - `docs/dev/en/reference/a.md` with "see docs/SPEC.md" → 1 error;
   - `docs/user/de/howto/b.md` with "laut SPEC" → 1 error;
   - an allowlisted path with "docs/SPEC.md" → no error;
@@ -168,10 +168,10 @@ Also add `githubSlug("Build and CI (GitHub Free and local)") === "build-and-ci-g
   - "the CommonMark spec" in a scoped file → no error.
 
   In `tests/scripts/reference-rules.test.ts`, the "says what to do instead" test now expects `"docs/dev/en/"` instead of `"docs/SPEC.md"`.
-- [ ] **Step 2: Run both files and see the new tests fail.** Run `npm test -- tests/scripts/citation-rules.test.ts tests/scripts/reference-rules.test.ts`. Expected: FAIL.
-- [ ] **Step 3: Implement.** The pattern is `/SPEC\.md|\bSPEC\b/`. The error reads: "a citation of the spec, which docs and code never cite; cite the reference page, or move the section into docs/dev/en/reference/ first". In `reference-rules.ts`, the two `instead` texts that say "docs/SPEC.md" now say "a page under docs/dev/en/". Call `checkSpecCitations` from `check-references.js`.
-- [ ] **Step 4: Run the tests and see them pass, then run `npm run check`.** Expected: PASS for both.
-- [ ] **Step 5: Commit.** Subject: "Keep new docs from citing the spec".
+- [x] **Step 2: Run both files and see the new tests fail.** Run `npm test -- tests/scripts/citation-rules.test.ts tests/scripts/reference-rules.test.ts`. Expected: FAIL.
+- [x] **Step 3: Implement.** The pattern is `/SPEC\.md|\bSPEC\b/`. The error reads: "a citation of the spec, which docs and code never cite; cite the reference page, or move the section into docs/dev/en/reference/ first". In `reference-rules.ts`, the two `instead` texts that say "docs/SPEC.md" now say "a page under docs/dev/en/". Call `checkSpecCitations` from `check-references.js`.
+- [x] **Step 4: Run the tests and see them pass, then run `npm run check`.** Expected: PASS for both.
+- [x] **Step 5: Commit.** Subject: "Keep new docs from citing the spec".
 
 ### Task 3: The docs style check
 
@@ -203,17 +203,17 @@ The rules. Each is a `{ pattern, what, instead, applies(path) }` entry, like `re
 
 Skipped: lines inside fenced code blocks; text inside backtick code spans and HTML comments, so the SPDX header is skipped; link targets `](…)`. Skipped lines still count toward the line number.
 
-- [ ] **Step 1: Write the failing tests:**
+- [x] **Step 1: Write the failing tests:**
   - one per rule, each with the line number;
   - code fences, code spans and the SPDX comment produce no errors;
   - a `just` on line 7 after a fence on lines 3–5 reports line 7;
   - `docs/dev/en/notes.md` (no quadrant) reports the path shape;
   - `docs/dev/en/explanation/decisions/0001-documentation-model.md` passes the shape;
   - "z. B." passes; "z. B." and "z.B." fail.
-- [ ] **Step 2: Run the tests and see them fail.** Run `npm test -- tests/scripts/docs-rules.test.ts`. Expected: FAIL.
-- [ ] **Step 3: Implement `scripts/docs-rules.ts` and `scripts/check-docs.js`,** and edit `package.json`'s `"check"`. The runner prints "The docs follow the style rules." on success.
-- [ ] **Step 4: Run the tests and `npm run check`.** Expected: PASS. There are no files in scope yet.
-- [ ] **Step 5: Commit.** Subject: "Check the mechanical style rules of the new docs".
+- [x] **Step 2: Run the tests and see them fail.** Run `npm test -- tests/scripts/docs-rules.test.ts`. Expected: FAIL.
+- [x] **Step 3: Implement `scripts/docs-rules.ts` and `scripts/check-docs.js`,** and edit `package.json`'s `"check"`. The runner prints "The docs follow the style rules." on success.
+- [x] **Step 4: Run the tests and `npm run check`.** Expected: PASS. There are no files in scope yet.
+- [x] **Step 5: Commit.** Subject: "Check the mechanical style rules of the new docs".
 
 ### Task 4: Status lines on every spec section
 
@@ -229,24 +229,24 @@ The rule:
 - Under every `##` and `###` heading outside fenced code blocks, the next non-empty line must match `/^Status: (implemented|see the subsections|planned for version [1-3]|partly implemented; .+|not a requirement; moves to .+ in phase [2-6])\.$/`.
 - When a `##` has no intro text before its first `###`, its line is `Status: see the subsections.`
 
-- [ ] **Step 1: Write the failing tests:** a missing line, a wrong form, a valid line for each of the five forms, `## Project status` inside a fence ignored, a missing `docs/SPEC.md` → no errors.
-- [ ] **Step 2: Run them and see them fail.** Run `npm test -- tests/scripts/spec-status-rules.test.ts`. Expected: FAIL.
-- [ ] **Step 3: Implement the module and wire it into `check-references.js`.**
-- [ ] **Step 4: Run the tests.** Expected: PASS. `npm run check` now fails with 60 findings.
-- [ ] **Step 5: Write the 60 status lines.**
+- [x] **Step 1: Write the failing tests:** a missing line, a wrong form, a valid line for each of the five forms, `## Project status` inside a fence ignored, a missing `docs/SPEC.md` → no errors.
+- [x] **Step 2: Run them and see them fail.** Run `npm test -- tests/scripts/spec-status-rules.test.ts`. Expected: FAIL.
+- [x] **Step 3: Implement the module and wire it into `check-references.js`.**
+- [x] **Step 4: Run the tests.** Expected: PASS. `npm run check` now fails with 60 findings.
+- [x] **Step 5: Write the 60 status lines.**
   - Decide each from the code (`src/`), the open issues (`issues/`, `status:` not done) and `git log`.
   - Name an issue only where one exists, with its short description.
   - "Not a requirement; moves to … in phase N" is for: "Goals and scope", "Stages, risks, decisions", "Repository settings on GitHub" and "Hobby project notice". Each names the destination from the tracking list in Task 11.
   - Keep a list of the lines whose status was a judgement call, for the commit body.
-- [ ] **Step 6: Run `npm run check`.** Expected: PASS.
-- [ ] **Step 7: Commit.** Subject: "Mark every spec section as implemented, partly implemented or planned". The body asks the maintainer to confirm the judgement calls and lists them.
+- [x] **Step 6: Run `npm run check`.** Expected: PASS.
+- [x] **Step 7: Commit.** Subject: "Mark every spec section as implemented, partly implemented or planned". The body asks the maintainer to confirm the judgement calls and lists them.
 
 ### Task 5: Stale lines
 
 **Files:**
 - Modify: `docs/ai-tooling.md` (L20, L134), `docs/SPEC.md`
 
-- [ ] **Step 1: Make the fixes:**
+- [x] **Step 1: Make the fixes:**
   - **`docs/ai-tooling.md`:**
     - L134: replace "GitHub workflows are still missing" with what exists. `.github/workflows/` has `check.yml`, `dependency-review.yml` and `seed-cache.yml`; the pinning rule stays.
     - L20: replace "about 65 KB" with the measured size (`wc -c docs/SPEC.md`, rounded to 5 KB).
@@ -254,8 +254,8 @@ The rule:
     - "As of" becomes 2026-11-14.
     - The depscope.dev links (L712, L721 and the source list near L1001) return HTTP 410. Drop the links, keeping the counts with "(depscope, as of 2026-10)", or replace them with deps.dev links to the same versions.
     - In the workflows table, the `templates`, `e2e` and `release` rows get "(planned)" after the name.
-- [ ] **Step 2: Run `npm run check`.** Expected: PASS.
-- [ ] **Step 3: Commit.** Subject: "Fix stale lines in the AI tooling notes and the spec".
+- [x] **Step 2: Run `npm run check`.** Expected: PASS.
+- [x] **Step 3: Commit.** Subject: "Fix stale lines in the AI tooling notes and the spec".
 
 ### Task 6: The style page and decision record 0001
 
@@ -265,39 +265,39 @@ The rule:
 **Interfaces:**
 - Consumes: the checks of Tasks 1–3, which both pages must pass.
 
-- [ ] **Step 1: Write `documentation-style.md`.** It is reference: indicative, terse, no "you". It holds:
+- [x] **Step 1: Write `documentation-style.md`.** It is reference: indicative, terse, no "you". It holds:
   - the spec's section 3 in full: audience first; mixing is the defect; voice; order; lengths; the cut list; grammar; the register table, including the row for agent files;
   - the German rules of section 2;
   - the layout and topic-ID rules of section 1;
   - must, must not and may, defined once at the top.
-- [ ] **Step 2: Write `0001-documentation-model.md`.** It is explanation:
+- [x] **Step 2: Write `0001-documentation-model.md`.** It is explanation:
   - the decision first, in three or four sentences;
   - then why;
   - then the approaches table of the spec's "Approaches considered", one row per question;
   - "Status: accepted, 2026-11-14".
 
   It must not cite `SPEC.md` or `docs/superpowers/`; it states the reasons itself.
-- [ ] **Step 3: Run `npm run check`.** Expected: PASS, including the docs check and REUSE.
-- [ ] **Step 4: Commit.** Subject: "Write the documentation style page and the first decision record".
+- [x] **Step 3: Run `npm run check`.** Expected: PASS, including the docs check and REUSE.
+- [x] **Step 4: Commit.** Subject: "Write the documentation style page and the first decision record".
 
 ### Task 7: The how-tos
 
 **Files:**
 - Create: `docs/dev/en/howto/dependency-update.md`, `holiday-data.md`, `release.md`, `ui-texts.md`, `docs.md`
 
-- [ ] **Step 1: Copy the procedures.** For each of the four skills, copy the body of `.claude/skills/<name>/SKILL.md` into `docs/dev/en/howto/<name>.md`. The body is everything after the frontmatter and the SPDX comment. Add an SPDX header and an `#` title. Change only what the checks reject, and note each such change for the commit body.
-- [ ] **Step 2: Run `npm run check`.** Expected: PASS. The two spec citations are allowlisted.
-- [ ] **Step 3: Commit.** Subject: "Copy the four procedures from the skills into docs/dev/en/howto". The body lists any check-forced changes.
-- [ ] **Step 4: Fix the content.**
+- [x] **Step 1: Copy the procedures.** For each of the four skills, copy the body of `.claude/skills/<name>/SKILL.md` into `docs/dev/en/howto/<name>.md`. The body is everything after the frontmatter and the SPDX comment. Add an SPDX header and an `#` title. Change only what the checks reject, and note each such change for the commit body.
+- [x] **Step 2: Run `npm run check`.** Expected: PASS. The two spec citations are allowlisted.
+- [x] **Step 3: Commit.** Subject: "Copy the four procedures from the skills into docs/dev/en/howto". The body lists any check-forced changes.
+- [x] **Step 4: Fix the content.**
   - In `release.md`, the schema check reads `"restlos/1"`, the value of `schema` in `docs/file-format.md`. The old text was `urlaubsplaner/N`.
   - Fix anything else stale: compare each step with `package.json` scripts and the workflows.
-- [ ] **Step 5: Write `docs.md`,** following the spec's section 5:
+- [x] **Step 5: Write `docs.md`,** following the spec's section 5:
   - the hard rules first, one line each;
   - then about ten imperative steps, ending with `npm run check`.
 
   It names `docs/SPEC.md` only in its step on moving text out of it; that's allowlisted.
-- [ ] **Step 6: Run `npm run check`.** Expected: PASS.
-- [ ] **Step 7: Commit.** Subject: "Bring the how-tos up to date and add the docs procedure".
+- [x] **Step 6: Run `npm run check`.** Expected: PASS.
+- [x] **Step 7: Commit.** Subject: "Bring the how-tos up to date and add the docs procedure".
 
 ### Task 8: Pointer skills (main session only)
 
@@ -306,9 +306,9 @@ The rule:
 - Create: `.claude/skills/docs/SKILL.md`
 - Modify: `scripts/citation-rules.ts` (`SPEC_CITATION_SCOPE` gains `".claude/skills/"`), `tests/scripts/citation-rules.test.ts`
 
-- [ ] **Step 1: Add the test:** `.claude/skills/x/SKILL.md` containing "docs/SPEC.md" gives 1 error. Run `npm test -- tests/scripts/citation-rules.test.ts`. Expected: FAIL.
-- [ ] **Step 2: Add the scope entry.** Run the same tests. Expected: PASS.
-- [ ] **Step 3: Write the five skill files with the Write tool.** The maintainer approves the prompt.
+- [x] **Step 1: Add the test:** `.claude/skills/x/SKILL.md` containing "docs/SPEC.md" gives 1 error. Run `npm test -- tests/scripts/citation-rules.test.ts`. Expected: FAIL.
+- [x] **Step 2: Add the scope entry.** Run the same tests. Expected: PASS.
+- [x] **Step 3: Write the five skill files with the Write tool.** The maintainer approves the prompt.
   - Keep the frontmatter of each existing skill unchanged. The new `docs` skill gets:
     - `name: docs`;
     - `description: Write, move or review documentation in docs/ (user docs in English and German, developer docs in English) following the Diátaxis layout and the style rules. Use when adding or changing a docs page, moving text out of the spec, or writing help topics.`;
@@ -321,16 +321,16 @@ Read `docs/dev/en/howto/<name>.md` completely (the path is from the repository r
 ```
 
   - `triage` stays unchanged.
-- [ ] **Step 4: Run `npm run check`.** Expected: PASS. The pointer targets resolve, and no skill cites the spec.
-- [ ] **Step 5: Commit.** Subject: "Point the skills to the how-tos in docs/dev/en/howto".
+- [x] **Step 4: Run `npm run check`.** Expected: PASS. The pointer targets resolve, and no skill cites the spec.
+- [x] **Step 5: Commit.** Subject: "Point the skills to the how-tos in docs/dev/en/howto".
 
 ### Task 9: `AGENTS.md` and the AI tooling notes
 
 **Files:**
 - Modify: `AGENTS.md` (the "Project" bullets, a new "Documentation" section, "Repository-specific procedures", the `npm run check` description), `docs/ai-tooling.md` (L16)
 
-- [ ] **Step 1: Replace the "Full specification" and "File format" bullets** with one "Authority" bullet holding the rule from the spec's section 4. Copy it verbatim, including the strict-move sentence. Keep the glossary bullet until phase 2.
-- [ ] **Step 2: Add a "## Documentation" section after "Text in the repository":**
+- [x] **Step 1: Replace the "Full specification" and "File format" bullets** with one "Authority" bullet holding the rule from the spec's section 4. Copy it verbatim, including the strict-move sentence. Keep the glossary bullet until phase 2.
+- [x] **Step 2: Add a "## Documentation" section after "Text in the repository":**
 
 ```markdown
 ## Documentation
@@ -341,20 +341,20 @@ Read `docs/dev/en/howto/<name>.md` completely (the path is from the repository r
 - Style rules: `docs/dev/en/reference/documentation-style.md`. Procedure: `docs/dev/en/howto/docs.md`. `npm run check` runs the docs, citation and spec status checks.
 ```
 
-- [ ] **Step 3: Replace the intro of "Repository-specific procedures"** with: "Step-by-step procedures live as how-tos in `docs/dev/en/howto/`, readable by humans and every agent. The skills in `.claude/skills/*/SKILL.md` (Agent Skills format) point to them." Add the line "`docs` – writing or moving documentation". `triage` keeps its line and gets "(a full skill, not a pointer)".
-- [ ] **Step 4: Update the descriptions of `npm run check`.** The Environment line and the "Text in the repository" bullet both name the new checks: unresolved citations, citations of the spec, spec status lines and the docs style rules.
-- [ ] **Step 5: In `docs/ai-tooling.md`,** change the L16 table row "Specification, authoritative" to "Tracking of planned work; reference pages are authoritative".
-- [ ] **Step 6: Run `npm run check`.** Expected: PASS.
-- [ ] **Step 7: Commit.** Subject: "State the documentation model and the new authority rule in AGENTS.md".
+- [x] **Step 3: Replace the intro of "Repository-specific procedures"** with: "Step-by-step procedures live as how-tos in `docs/dev/en/howto/`, readable by humans and every agent. The skills in `.claude/skills/*/SKILL.md` (Agent Skills format) point to them." Add the line "`docs` – writing or moving documentation". `triage` keeps its line and gets "(a full skill, not a pointer)".
+- [x] **Step 4: Update the descriptions of `npm run check`.** The Environment line and the "Text in the repository" bullet both name the new checks: unresolved citations, citations of the spec, spec status lines and the docs style rules.
+- [x] **Step 5: In `docs/ai-tooling.md`,** change the L16 table row "Specification, authoritative" to "Tracking of planned work; reference pages are authoritative".
+- [x] **Step 6: Run `npm run check`.** Expected: PASS.
+- [x] **Step 7: Commit.** Subject: "State the documentation model and the new authority rule in AGENTS.md".
 
 ### Task 10: The decided help and website design as planned work in the spec
 
 **Files:**
 - Modify: `docs/SPEC.md`: "Dependencies" (L708ff), "Built-in help" (L553ff), the Pages parts of "Delivery format" (L55ff), "Build and CI" (L776ff) and its "Workflows" table
 
-- [ ] **Step 1: Add markdown-it to the dependency table:** markdown-it 15.0.3; purpose "parses the help Markdown"; not in the HTML; assessment "approved 2026-11-14; build only; 6 packages including itself (`argparse` already present); CommonMark; installed with the help".
-- [ ] **Step 2: Add mdBook to the dev shell description in "Build and CI":** mdBook 0.5.2 from nixpkgs, planned with the website, "approved 2026-11-14; no npm package".
-- [ ] **Step 3: Rewrite the planned part of "Built-in help"** in short form, from the spec's sections 2 and 7:
+- [x] **Step 1: Add markdown-it to the dependency table:** markdown-it 15.0.3; purpose "parses the help Markdown"; not in the HTML; assessment "approved 2026-11-14; build only; 6 packages including itself (`argparse` already present); CommonMark; installed with the help".
+- [x] **Step 2: Add mdBook to the dev shell description in "Build and CI":** mdBook 0.5.2 from nixpkgs, planned with the website, "approved 2026-11-14; no npm package".
+- [x] **Step 3: Rewrite the planned part of "Built-in help"** in short form, from the spec's sections 2 and 7:
   - the sources under `docs/user/`;
   - markdown-it with `html: true` in a Vite plugin;
   - the closed typed tree and the checks;
@@ -364,19 +364,19 @@ Read `docs/dev/en/howto/<name>.md` completely (the path is from the repository r
   - the dialog pattern.
 
   Keep the chapter list and the keyboard table where they are; they move in phase 5. Keep its status line "planned".
-- [ ] **Step 4: Write the website into "Delivery format" and "Build and CI":**
+- [x] **Step 4: Write the website into "Delivery format" and "Build and CI":**
   - "Delivery format" gets the Pages layout: a landing page at `/<repo>/`, the app at `/<repo>/app/` with the service worker scoped there, and docs at `/<repo>/docs/de/`, `/docs/en/` and `/docs/dev/`.
   - "Build and CI" gets the three mdBook books, the language link, the checked interface-string rewrite and deployment with releases.
   - Keep the status lines consistent with Task 4.
-- [ ] **Step 5: Run `npm run check`.** Expected: PASS.
-- [ ] **Step 6: Commit.** Subject: "Record the decided help and website design as planned work in the spec".
+- [x] **Step 5: Run `npm run check`.** Expected: PASS.
+- [x] **Step 6: Commit.** Subject: "Record the decided help and website design as planned work in the spec".
 
 ### Task 11: The tracking issue
 
 **Files:**
 - Create: `issues/0055-move-the-spec-into-the-docs.md`, from `issues/_template.md`
 
-- [ ] **Step 1: Write the issue.** Frontmatter: `status: open`, `priority: 2`, `area: docs`, `branch:` empty, `created: 2026-11-14`. The body:
+- [x] **Step 1: Write the issue.** Frontmatter: `status: open`, `priority: 2`, `area: docs`, `branch:` empty, `created: 2026-11-14`. The body:
   - **Problem:** built behaviour, rationale and status still live in `SPEC.md`, and code cites it.
   - **Context:** the authority rule in `AGENTS.md`.
   - **Acceptance criteria:**
@@ -392,12 +392,12 @@ Read `docs/dev/en/howto/<name>.md` completely (the path is from the repository r
   - phase 3: explanation and status;
   - phase 4: UI behaviour;
   - planned parts stay as tracking.
-- [ ] **Step 2: Find the four indirect mentions** with `git grep -n -i -E "the spec('s)?\b|\bSPEC\b"`, run separately in `src`, `scripts`, `e2e`, `tests` and `docs`. The command excludes nothing, so read each hit. List the hits that refer to `SPEC.md`, among them `src/engine/file/report.ts` L107 and `docs/file-format.md` L411.
-- [ ] **Step 3: Run `npm run check`.** Expected: PASS. The ` (new)` paths are skipped.
-- [ ] **Step 4: Commit.** Subject: "Track the move of every spec section into the docs".
+- [x] **Step 2: Find the four indirect mentions** with `git grep -n -i -E "the spec('s)?\b|\bSPEC\b"`, run separately in `src`, `scripts`, `e2e`, `tests` and `docs`. The command excludes nothing, so read each hit. List the hits that refer to `SPEC.md`, among them `src/engine/file/report.ts` L107 and `docs/file-format.md` L411.
+- [x] **Step 3: Run `npm run check`.** Expected: PASS. The ` (new)` paths are skipped.
+- [x] **Step 4: Commit.** Subject: "Track the move of every spec section into the docs".
 
 ### Task 12: Final verification
 
-- [ ] **Step 1: Run `npm run check`.** Expected: PASS, with "The text stands on its own." and "The docs follow the style rules." in the output.
-- [ ] **Step 2: Check the spec's "Done means" list for phase 1** item by item against the branch (`git log main..HEAD --stat`). Report each item with the file that proves it.
-- [ ] **Step 3: Tick this plan's checkboxes.** Stop at the branch: the maintainer reviews, signs, merges and pushes.
+- [x] **Step 1: Run `npm run check`.** Expected: PASS, with "The text stands on its own." and "The docs follow the style rules." in the output.
+- [x] **Step 2: Check the spec's "Done means" list for phase 1** item by item against the branch (`git log main..HEAD --stat`). Report each item with the file that proves it.
+- [x] **Step 3: Tick this plan's checkboxes.** Stop at the branch: the maintainer reviews, signs, merges and pushes.
