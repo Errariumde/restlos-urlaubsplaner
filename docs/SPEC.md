@@ -874,7 +874,7 @@ Recommendation: three versions; each is usable on its own. The must lists under 
 - Svelte 5, TypeScript, Vite with vite-plugin-singlefile, Vitest; ical.js for the import; no component or icon library (Lucide SVGs as files); hardening according to "Measures against supply chain attacks".
 - Option "Align by weekday" in the month columns, stored in the device settings.
 - Public repository on GitHub Free; distribution as a download and via GitHub Pages (installable, offline); everything also buildable locally, CI only mirrors.
-- GitHub settings as listed under "Repository settings on GitHub", including immutable releases, enforced SHA pinning of actions, rulesets for `main` and release tags, Dependabot malware alerts and CodeQL default setup.
+- GitHub settings as listed in `docs/dev/en/reference/github-settings.md`, including immutable releases, enforced SHA pinning of actions, rulesets for `main` and release tags, Dependabot malware alerts and CodeQL default setup.
 - Browser baseline: current Firefox ESR, plus current Chromium browsers and Safari.
 - Hobby project without commitments, visible in README, SUPPORT, CONTRIBUTING and the issue templates.
 - Three kinds of files without references between them: plan file `.urlaub.json`, rule set `.regeln.json`, device settings export `.einstellungen.json` (German like the established `.urlaub.json`). Rule sets are copied into plan files and updated explicitly. No separate color scheme file: schemes live in the device settings and can be embedded in plan files and rule sets.

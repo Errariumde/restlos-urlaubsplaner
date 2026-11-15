@@ -40,7 +40,7 @@ The approved packages and the measures against supply chain attacks. Exact versi
   - Its pull requests must not be merged automatically.
   - A pull request for `flake.lock` must be checked with the [dependency update how-to](../howto/dependency-update.md).
 - **Update cadence:** routine updates come through the monthly Dependabot pull requests. An update made by hand follows the [dependency update how-to](../howto/dependency-update.md). An update for a security advisory may bypass the 14-day delay only after the maintainer's explicit approval.
-- **Alerts:** Dependabot alerts, malware alerts for known malicious packages ([GitHub's description](https://docs.github.com/en/code-security/concepts/supply-chain-security/dependabot-malware-alerts)) and Dependabot security updates must be on for the repository.
+- **Alerts:** Dependabot alerts, malware alerts and security updates are [GitHub settings](github-settings.md#settings).
 - **Dependency Review:** [`.github/workflows/dependency-review.yml`](../../../../.github/workflows/dependency-review.yml) runs GitHub's dependency review on every pull request that changes `package-lock.json`.
 - **Isolated build:** `npm ci` and builds must run in a separate user account or container without access to SSH keys, the password manager or tokens.
 - **Network lock:** the delivered HTML carries the [Content Security Policy](security.md#content-security-policy).
