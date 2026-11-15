@@ -7,7 +7,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 Reference for people who write plan files (`.urlaub.json`) and rule sets (`.regeln.json`) by hand, or who want to check what the app wrote. The TypeScript shape of a checked file is `AnyFile` in `src/engine/file/types.ts`. `readFile` in `src/engine/file/read.ts` reads untrusted text and returns either a refusal or the file with a report of everything it dropped, changed or noticed; `writeFile` in `src/engine/file/write.ts` writes a file in the canonical form described here. `npm run plan -- <file>` prints what the engine reads and computes for a plan file or rule set. Day rules have their own reference, [Day rules](day-rules-format.md). To write a file by hand, start from the [minimal examples](#minimal-examples).
 
-A file holds only language-neutral values (IDs, ISO dates, weights with a slash or a decimal point) and is self-contained: it never refers to another file. It carries no timestamp, no time zone, no working hours and nothing about the device or the person that saved it.
+A file holds only language-neutral values (IDs, ISO dates, weights with a slash or a decimal point) and is self-contained: it never refers to another file. [Files](files.md) says what each file is for and what is stored where. It carries no timestamp, no time zone, no working hours and nothing about the device or the person that saved it.
 
 ## Kinds and versions
 
@@ -322,8 +322,8 @@ A report entry has a `code`, the `path` of the key itself in the text that was r
 | --- | --- |
 | `tooLarge` | The text is larger than 10 MB in UTF-8. Checked before parsing. |
 | `notJson` | The text is not JSON. |
-| `unknownSchema` | The text is not a JSON object with a `schema` of the form `"restlos/N"`. |
-| `newerSchema` | The schema number is not 1, the only schema `readFile` reads: the file was made with a newer version of restlos. |
+| `unknownSchema` | The text is not a JSON object with a `schema` `"restlos/N"`, N a whole number from 1 without leading zeros. |
+| `newerSchema` | N is higher than 1, the only schema `readFile` reads: the file was made with a newer version of restlos. |
 | `unknownKind` | `kind` is not `"plan"`, `"ruleSet"` or `"settings"`. |
 | `settingsNotSupported` | `kind` is `"settings"`. |
 | `kindMismatch` | A rule set has `plan` or `ruleSet`. |

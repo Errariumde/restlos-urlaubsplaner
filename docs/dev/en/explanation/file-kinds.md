@@ -15,5 +15,5 @@ restlos has three kinds of files: the plan file, the rule set and the device set
 
 ## Rejected alternatives
 
-- **References between files**, for example a plan file that points to its rule set: every opening would need both files, and a plan file would no longer work on its own.
+- **References between files**, for example a plan file that must be opened together with its rule set: every opening would need both files, and a plan file would no longer work on its own.
 - **A separate color scheme file:** it would be one more file to pass on and open, for a part that fits into the plan file or rule set.
