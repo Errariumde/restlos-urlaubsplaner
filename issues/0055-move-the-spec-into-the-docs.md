@@ -27,7 +27,7 @@ This issue is the single list that gives every spec section its destination and 
 
 - Every row of the table below is done.
 - Stage 2 of the citation rule is on: no mention of `SPEC.md` anywhere except `issues/` and the one rule in `AGENTS.md`.
-- The six indirect mentions listed under Notes are reworded to cite the page their text moved to.
+- The seven indirect mentions listed under Notes are reworded to cite the page their text moved to.
 
 ## Notes
 
@@ -59,7 +59,12 @@ Each phase is one or more small branches, with `npm run check` passing after eve
 ### The citation rule
 
 - **Stage 1 (on since phase 1):** no mention of `SPEC.md` in `docs/user/`, `docs/dev/` and `.claude/skills/`, except the files on the check's allowlist. Each allowlist entry names what removes it.
-- **Stage 2 (after phase 4):** no mention of `SPEC.md` anywhere except `issues/` and the one rule in `AGENTS.md`. Besides the code comments that cite moved sections, this also needs the README's two pointers to the spec, the glossary and "Sizes" pointers in `AGENTS.md` and the spec row of `docs/ai-tooling.md` rewritten.
+- **Stage 2 (after phase 4):** no mention of `SPEC.md` anywhere except `issues/` and the one rule in `AGENTS.md`. Besides the code comments that cite moved sections, these lines need rewriting by then:
+  - `README.md` L12 and L41, the pointers to the spec;
+  - `AGENTS.md` L21 (the glossary, phase 2), L40 ("feasibility tests from the spec"), L58 ("only packages listed in the spec", phase 2 with the Dependencies row) and L61 (the reason for "Sizes", phase 4 with "Controls, icons and fonts");
+  - `CONTRIBUTING.md` L26 ("including `docs/SPEC.md`") and L28 (the glossary, phase 2);
+  - `docs/ai-tooling.md` L16 (the spec's row in the table of instruction files);
+  - `docs/feasibility.md` L8 (which spec sections build on the results).
 
 ### Doing a row early
 
@@ -78,7 +83,7 @@ A feature branch may do a row before its phase: it moves the section (one pure-m
 | Section | Status | Destination | Phase |
 | --- | --- | --- | --- |
 | [ ] Goals and scope | not a requirement | `docs/dev/en/explanation/goals-and-scope.md` (new) | 3 |
-| [ ] Delivery format | partly implemented | the browsers and the consequences of `file://`: `docs/dev/en/reference/browsers-and-file-urls.md` (new), phase 2; the recommendation and "No desktop wrapper": `docs/dev/en/explanation/delivery-format.md` (new), phase 3; the Pages version and the Pages layout stay as tracking | 2, 3 |
+| [ ] Delivery format | partly implemented | the browsers and the consequences of `file://`: `docs/dev/en/reference/browsers-and-file-urls.md` (new), phase 2; the recommendation and "No desktop wrapper": `docs/dev/en/explanation/delivery-format.md` (new), phase 3; the Pages version, the Pages layout, saving and browser storage (IndexedDB) stay as tracking | 2, 3 |
 | [ ] Holiday sources and work week | see the subsections | the recommendation: `docs/dev/en/explanation/holiday-rules.md` (new) | 2 |
 | [ ] Rule types of the core | implemented | `docs/dev/en/reference/holiday-rules.md` (new) | 2 |
 | [ ] Work week per country | partly implemented | `docs/dev/en/reference/holiday-rules.md` (new); planned parts stay as tracking | 2 |
@@ -117,7 +122,7 @@ A feature branch may do a row before its phase: it moves the section (one pure-m
 | [ ] Own templates: workflow and help | planned | stays as tracking | – |
 | [ ] Architecture, technology and tests | partly implemented | the engine, the worker, the single-file build and the size budget: `docs/dev/en/reference/architecture.md` (new), phase 2; the test strategy: `docs/dev/en/reference/test-strategy.md` (new), phase 2; the recommendation: `docs/dev/en/explanation/architecture.md` (new), phase 3; the open feasibility tests: issues or the roadmap page, phase 3; planned parts stay as tracking | 2, 3 |
 | [ ] Dependencies and supply chain | see the subsections | the recommendation: `docs/dev/en/explanation/supply-chain.md` (new) | 2 |
-| [ ] Dependencies | partly implemented | `docs/dev/en/reference/dependencies.md` (new), with the approved packages that aren't installed yet marked as such | 2 |
+| [ ] Dependencies | partly implemented | the whole table to `docs/dev/en/reference/dependencies.md` (new): it is the list of approved packages, and an approval applies today also for a package that isn't installed yet (ical.js, markdown-it, mdBook, typst.ts); the page marks which packages are installed. The same commit re-points `AGENTS.md` L58 ("only packages listed in the spec") to that page | 2 |
 | [ ] Measures against supply chain attacks | implemented | `docs/dev/en/reference/dependencies.md` (new) | 2 |
 | [ ] Security | see the subsections | the recommendation: `docs/dev/en/explanation/security.md` (new) | 3 |
 | [ ] Threats and countermeasures | partly implemented | `docs/dev/en/reference/security.md` (new); planned parts stay as tracking | 2 |
@@ -136,7 +141,7 @@ A feature branch may do a row before its phase: it moves the section (one pure-m
 | [ ] AI tools in the repository | implemented | `docs/ai-tooling.md`, cut where it says it already | 2 |
 | [ ] Releases and updates | partly implemented | the release checklist: `docs/dev/en/howto/release.md`, the canonical copy; the version and update rules: `docs/dev/en/reference/releases.md` (new); planned parts stay as tracking | 2 |
 | [ ] Maintaining holiday data | partly implemented | `docs/dev/en/howto/holiday-data.md`, the canonical copy, phase 2; the notice that data can become outdated: help, phase 5 | 2, 5 |
-| [ ] Privacy | planned | help and `README.md` | 5 |
+| [ ] Privacy | planned | help and `README.md`; unbuilt parts stay as tracking | 5 |
 | [ ] Stages, risks, decisions | not a requirement | the versions and risks: `docs/dev/en/explanation/roadmap.md` (new) and issues; the decisions: decision records in `docs/dev/en/explanation/decisions/` | 3 |
 
 ### Indirect mentions
@@ -144,10 +149,15 @@ A feature branch may do a row before its phase: it moves the section (one pure-m
 Found with `git grep -n -i -E "the spec('s)?\b|\bSPEC\b"` in `src`, `scripts`, `e2e`, `tests` and `docs`: these lines refer to `docs/SPEC.md` without its file name, so the citation check doesn't see them. Each is reworded when the text it points to moves.
 
 - `src/engine/file/report.ts` L107: "(SPEC, Security)", the prototype keys of "Threats and countermeasures".
-- `tests/engine/file/severity.test.ts` L9: "the severity the spec fixes"; the severities per code are listed in `docs/file-format.md`.
 - `tests/scripts/build-html.test.ts` L37: "in the spec's order", the order of the directives in "Content Security Policy".
 - `docs/feasibility.md` L14: "the spec's reference machine", from the limits of "Sharing and validation".
 - `docs/feasibility.md` L36: "the app's policy from the spec", the policy of "Content Security Policy".
+- `docs/feasibility.md` L67: "The spec relies on documentation", the calendar apps' behaviour on re-import in ".ics export (RFC 5545)" and the feasibility table of "Architecture, technology and tests"; planned, so it rewords when the .ics export is built.
+- `docs/ai-tooling.md` L136: "(see the specification)", the SHA pinning of actions in "Workflow security".
 - `docs/file-format.md` L411: "the spec's Limits bullet", the "Limits" bullet of "Sharing and validation".
 
-Two more lines name the spec in a rule, not a citation, and go when `docs/SPEC.md` is deleted: `docs/dev/en/howto/docs.md` L18 ("Docs never cite the spec") and `docs/ai-tooling.md` L67 ("text from the spec moved unchanged").
+More lines name the spec in a rule or in the description of a check, not as a citation, and go when `docs/SPEC.md` is deleted:
+
+- `docs/dev/en/howto/docs.md` L18 ("Docs never cite the spec");
+- `docs/ai-tooling.md` L21 ("The specification is deliberately not imported") and L67 ("text from the spec moved unchanged");
+- `AGENTS.md` L28 (the check fails on spec section names that don't resolve and on citations of the spec), L35 and L68 (the spec status check).
