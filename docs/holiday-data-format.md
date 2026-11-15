@@ -76,12 +76,3 @@ The engine takes a selection `{ country, state, options }`. A switch that is mis
 ## Substitute days
 
 `holidaysBetween(data, selection, from, to)` computes the regular holidays of every year from one year before `from` to one year after `to` (clamped to 1583 … 9999), so substitutes of holidays just outside the range are found. Then, in order of day and rule ID, every regular holiday whose rule has `substitute.when` containing its weekday gets one substitute day: the first day after it that is neither a weekend day of the country nor already taken by a regular holiday or an earlier substitute. A substitute keeps the rule's `ruleId` and `nameKey` and has `substitute: true`. The result contains the days from `from` to `to` (both inclusive), sorted by day, then rule ID, regular before substitute.
-
-## Adding a country
-
-1. Find the official legal sources (see the how-to above, step 2).
-2. Create `src/data/holidays/<cc>.json` (lowercase country code); `REUSE.toml` already covers `src/data/**`.
-3. Import it in `src/data/holidays/index.ts` and add it to `countries` under its code.
-4. Add `tests/data/holidays/<cc>.test.ts` with known dates for at least three years per rule, including the years before and after each rule change. The validity test in `tests/data/holidays/de.test.ts` runs for every entry of `countries`.
-5. Add the translation keys used by the file to the message catalogs (`docs/dev/en/howto/ui-texts.md`).
-6. Cross-check against the Python `holidays` package and explain the differences.

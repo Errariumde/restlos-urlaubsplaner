@@ -58,6 +58,7 @@ The section-name check (`SECTIONS`, `scripts/citation-rules.ts:101`) only reads 
 - An italic path at the end of a sentence, `*docs/<missing>.md*.`, is skipped as a pattern (`pattern`, `scripts/citation-rules.ts:104`), because a `*` followed by a dot marks a pattern. A writer expects it to be resolved like a bold path.
 - A code span of two or more backticks that contains a single backtick is not recognised (`CODE_SPAN`, `scripts/docs-rules.ts:113`), so its content is checked as prose.
 - Reference-style link definitions and bare URLs are not skipped by the docs style check (`proseLines`, `scripts/docs-rules.ts:124`), so a word inside a URL can be reported.
+- No check enforces that a topic ID is unique within an audience (`docs/dev/en/reference/documentation-style.md`), so a reference page and an explanation page with the same file name pass. A writer expects the check to report the second page.
 
 ### Test gaps
 

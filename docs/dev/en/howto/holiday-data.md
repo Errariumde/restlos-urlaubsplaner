@@ -5,16 +5,16 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Holiday data
 
-1. Read the section "Holiday sources and work week" in `docs/SPEC.md` and the format reference `docs/holiday-data-format.md`.
-2. Find the **official legal source** (law portal, official gazette, parliament documentation, authority page). Wikipedia, legal reference collections or holiday websites are not sources. Cite only documents you actually opened and read.
-3. Express the rule as data in `src/data/holidays/<cc>.json` with the existing rule types (`fixed`, `easter`, `orthodoxEaster`, `weekdayRelative`, `nthWeekday`, `once`, plus `validFrom`/`validUntil` and `substitute`) – do not add special-case code. If a new rule type is needed, stop and ask.
-4. Add each document to the file's `sources` map as `{ title, url, checked }` (`checked` = ISO date you read it) and list its key in the rule's `sources`. Cite the defining law and, where it matters, the amending law behind a change of validity.
-5. Regional sub-areas (for example Augsburg, Catholic municipalities in Bavaria) are local-rule switches (`localRules`, plus `localRule` on the holiday), phrased as "applies at my place of work" – never silently applied, no municipality lists. A new switch also needs a variant in `tests/reference/variants.ts` and its mapping in `tests/reference/date-holidays.test.ts` and `scripts/python-holidays-reference.py`.
-6. Add tests in `tests/data/holidays/<cc>.test.ts`: known dates for at least three years per rule, including the years before and after each rule change, written from the source, not from engine output.
-7. Cross-check against the reference models:
+1. Read the [holiday rules](../reference/holiday-rules.md) reference, the [holiday sources](../explanation/holiday-sources.md) explanation and the [holiday data format](../../../holiday-data-format.md).
+2. Find the **official legal source** of each rule, as [sources](../../../holiday-data-format.md#sources) defines it. Cite only documents you opened and read.
+3. For a new country, create `src/data/holidays/<cc>.json` (lowercase country code), import it in `src/data/holidays/index.ts` and add it to `countries` under its code. `REUSE.toml` already covers `src/data/**`.
+4. Express each rule as data in `src/data/holidays/<cc>.json` with the existing [date rules](../../../holiday-data-format.md#date-rules), validity years and substitute days. Do not add special-case code. If a new rule type is needed, stop and ask. Do not add school holidays: they belong in calendar sources.
+5. Add each document to the file's `sources` map, with `checked` set to the date you read it, and list its key in the rule's `sources`. Cite the defining law and, where it matters, the amending law behind a change of validity.
+6. Model a regional sub-area, such as Augsburg or the Catholic municipalities in Bavaria, as a [local rule](../../../holiday-data-format.md#local-rules). Do not add municipality lists. For a new switch, add a variant in `tests/reference/variants.ts` and its mapping in `tests/reference/date-holidays.test.ts` and `scripts/python-holidays-reference.py`.
+7. Add tests in `tests/data/holidays/<cc>.test.ts`: known dates for at least three years per rule, including the years before and after each rule change. Write them from the source, not from engine output. The validity test in `tests/data/holidays/de.test.ts` already runs for every entry of `countries`.
+8. Cross-check against the reference models:
    - date-holidays runs inside `npm test`;
    - after rule changes, run `npm run reference:python` and commit the regenerated `tests/reference/python-holidays-de.json`.
-   Fix every difference or explain it in `tests/reference/known-differences.ts` with the official source that settles it (the packages are oracles, not the authority).
-8. Add the translation keys used by the data (`nameKey`, `explanationKey`) to both message catalogs ([UI texts](ui-texts.md)).
-9. School holidays are **not** built in; they come via iCal import.
+   Fix every difference or explain it in `tests/reference/known-differences.ts` with the official source that settles it (the packages are oracles, not the authority). Both reference models cover only DE; for a new country, ask before extending them.
+9. Add the translation keys used by the data (`nameKey`, `explanationKey`) to both message catalogs ([UI texts](ui-texts.md)).
 10. Run `npm run check` (includes `reuse lint`).
