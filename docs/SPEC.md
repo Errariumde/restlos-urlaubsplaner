@@ -139,14 +139,7 @@ The app doesn't download these files itself; the user imports the saved file.
 
 ### Reference models for tests
 
-Status: implemented.
-
-| Source | Role |
-| --- | --- |
-| [date-holidays](https://github.com/commenthol/date-holidays) (code ISC, data CC BY-SA 3.0) | reference model in CI, not embedded |
-| [python-holidays](https://python-holidays.readthedocs.io/en/latest/_autosummary/holidays.countries.germany.html) (MIT; in version 0.97 Assumption Day in BY and Corpus Christi in SN and TH are in the opt-in category "catholic", and Augsburg is its own subdivision) | second reference model in CI |
-
-date-holidays is a development dependency and runs directly in the Vitest tests (all 16 federal states, 2000–2100); deviations are bugs or are on a documented exception list. python-holidays serves only as an occasional second cross-check: a script generates a reference file on rule changes, which is checked in. No online fetching at runtime.
+Status: moved to `docs/dev/en/reference/test-strategy.md`.
 
 ## Counting model (weights)
 
@@ -184,11 +177,7 @@ The help explains the two common counting methods for part-time ("day off has re
 
 ### Date arithmetic
 
-Status: implemented.
-
-The engine calculates only with calendar days as integer day numbers (days since a fixed reference date), never with JavaScript `Date` and the local time zone. This prevents shifts by one day around daylight saving time changes; a lint rule forbids `Date` in the engine module.
-
-In files, weights are strings: readers accept fraction strings (`"1/2"`) and decimal strings with a decimal point (`"0.5"`); writers always write fraction strings. Values that cannot be represented exactly in 1/480 are rejected on loading with a message.
+Status: moved to `docs/dev/en/reference/architecture.md`.
 
 ## Files: plan file, rule set and settings
 
@@ -255,12 +244,11 @@ Status: planned for version 1.
 
 ### Sharing and validation
 
-Status: partly implemented; the two steps of opening run in the worker, the open dialog with its progress bar and report, the restore of a newer recovery copy, "Save as rule set" and the .ics export are not (issue 0030 (open real files in the UI: rule sets and the read report) and issue 0017 (messages in the open dialog) are open), planned for version 1; the contract part in the PDF, planned for version 2; the HTML self-copy, planned for version 3.
+Status: planned for version 1.
 
-- **Rule set for colleagues:** "Save as rule set" (see File operations): contract, sources, templates and color scheme, no leave days.
 - **HTML self-copy** (version 3, after feasibility test): a copy of the app with an embedded rule set and without personal settings; opens directly in "New → From rule set".
 - **No contract data in .ics.** In the PDF only on explicit request, and only the contract part without plan and notes.
-- **Loading:** if the recovery copy of the same `id` is newer, the app offers to restore it (see File operations); then the revision warning applies. Opening runs in two steps in a Web Worker, so the page stays responsive, with a progress bar from the start. **The model stays in the worker; the page receives only what it shows.** With the largest file within the limits, the model is 13.2 MB as JSON. Handing all of it to the page blocked the page for 69–152 ms per handover (median, all three tested browsers, reference machine, 2026-11-02), with single handovers up to 250 ms in the Firefox ESR. Handing over what one year of the calendar shows took 0.3–2 ms. **Reading:** its bar has no measure, and Cancel stops opening. **Checking:** its bar shows "rule n of N", Skip opens the file without the hints, and Cancel stops opening. The opened file shows the lists of reading and checking together, sorted by severity; with at least one Error the choice is "Open without these parts" or "Cancel", otherwise "OK".
+- **Loading:** if the recovery copy of the same `id` is newer, the app offers to restore it (see File operations); then the revision warning applies. Opening runs in two steps in a Web Worker, with a progress bar from the start. **Reading:** its bar has no measure, and Cancel stops opening. **Checking:** its bar shows "rule n of N", Skip opens the file without the hints, and Cancel stops opening. The opened file shows the lists of reading and checking together, sorted by severity; with at least one Error the choice is "Open without these parts" or "Cancel", otherwise "OK".
 - **Refused at once:** one message says why.
 - **Refused with a list:** one dialog lists every Error reading found, each with its own message, so all of them can be fixed in one go.
 
@@ -588,9 +576,7 @@ Own templates are created outside the app. The help page "Create your own PDF te
 
 ## Architecture, technology and tests
 
-Status: partly implemented; the engine, the worker, the single-file build and its size check are built; the About / Licenses page and the iCal and PDF/Typst tests are not, planned for version 1; the Pro HTML and its feasibility test, planned for version 2; the feasibility test of the HTML self-copy, planned for version 3.
-
-Recommendation: **Svelte 5** (currently 5.57.2 from 6 October 2026) and **TypeScript**, built with **Vite** and [vite-plugin-singlefile](https://cdn.jsdelivr.net/npm/vite-plugin-singlefile@2.3.3/README.md), which inlines JavaScript and CSS into one HTML file; tested with **Vitest**. The calendar engine is a pure TypeScript module without DOM and without runtime dependencies and can be verified in isolation.
+Status: partly implemented; the About / Licenses page and the iCal and PDF/Typst tests are not built, planned for version 1; the Pro HTML and its feasibility test, planned for version 2; the feasibility test of the HTML self-copy, planned for version 3.
 
 ```text
 Architecture: one engine calculates, all outputs read the same state
@@ -605,11 +591,11 @@ Plan/rule set (JSON; load, migration, validation) -/   (required work per     (s
                                                         functions, no UI)
 ```
 
-All outputs (UI, .ics, PDF, JSON) read the same computed state; no output recalculates costs itself.
+All outputs (.ics, PDF, JSON) read the same computed state; no output recalculates costs itself.
 
-**Worker:** the engine runs in a **classic** Web Worker started from a `blob:` URL. A module worker from a `blob:` URL doesn't start from `file://` in Chromium, and Vite's inline-worker wrapper falls back to a `data:` URL, which the CSP blocks. So the UI branch writes its own small wrapper. The worker keeps the model (see Sharing and validation, Loading). Data to and from the worker are strings, plain objects or ArrayBuffers, never Blobs (Safari, [WebKit bug 258443](https://bugs.webkit.org/show_bug.cgi?id=258443)). The worker inherits the page's CSP: no `eval`, no `fetch`, and WebAssembly only with `'wasm-unsafe-eval'` (Pro HTML).
+**Worker:** the worker inherits the page's CSP: WebAssembly only with `'wasm-unsafe-eval'` (Pro HTML).
 
-**Size budget:** standard HTML under 600 KB including the DE/EN catalogs, help, templates and one font. The Pro HTML is a second build target from the same sources plus Typst WASM; its size is measured in the feasibility test.
+**Size budget:** standard HTML under 600 KB including help, templates and one font. The Pro HTML is a second build target from the same sources plus Typst WASM; its size is measured in the feasibility test.
 
 **Licenses in the build:** third-party licenses and NOTICE files are collected automatically and embedded as the "About / Licenses" page with a link to the source repository.
 
@@ -630,19 +616,14 @@ The version 1 tests ran automated and headless in Firefox ESR 153, Firefox 159 a
 
 | Level | What | Tool |
 | --- | --- | --- |
-| Holidays | rule set against date-holidays (directly) and a checked-in python-holidays reference, all 16 federal states, 2000–2100; cases for SL and MV | Vitest |
-| Rule types | Easter early/late, valid-from year, one-off days, substitute day with the country's own weekend, 29 February, 2000 and 2100 | Vitest, table-driven |
-| Counting model | cost = the overlap of the leave with the working time for random multiples of 1/32, never more than min(taken, required work) and equal to it on a normal working day; minimum of the lowering layers; 24/31 Dec on a weekend costs 0; ½ source on a holiday stays 0; mandatory leave; work week with a change; the sum is correct | Vitest + fast-check |
-| Plans | sources "Leave from another plan" (.ics or .urlaub.json) are displayed and never count | Vitest |
-| Date arithmetic | daylight saving time changes; no `Date` in the engine | Vitest, ESLint rule `no-restricted-globals` |
+| Plans | sources "Leave from another plan" (.ics) are displayed and never count | Vitest |
+| Date arithmetic | daylight saving time changes | Vitest |
 | iCal | round trip export → ical.js → same days; mandatory fields; UTF-8-safe folding; real example files (Google, Outlook, Thunderbird) | Vitest + ical.js |
-| Files | load(save(x)) = x, migration, `revision` warning | Vitest + fast-check |
-| Performance | no wall-clock assertions in tests; every scenario runs at 8× and 16× its base size and fails when twice the input costs more than 2.2× the work, or when it costs more than 5 % over the checked-in baseline (`tests/perf/baseline.json`); raising the baseline needs the maintainer's approval; a measured run that collects garbage fails, because when a collection runs depends on where the repository is checked out | `npm run perf`: Cachegrind instruction counts with V8 `--predictable` and without garbage collection, part of `npm run check` and CI; on GitHub's runners the counts agree with the local ones within 0.5 %, on AMD and Intel CPUs alike (measured 2026-10-24), so CI compares with the same baseline |
-| Multilingual support, colors | missing/unused keys, pseudo-localization, contrast of the schemes | small check scripts |
-| Types and style | TypeScript, Svelte components, lint | `tsc`, svelte-check, ESLint |
+| Files | migration, `revision` warning | Vitest + fast-check |
+| Colors | contrast of the schemes | small check scripts |
 | PDF/Typst | every template × DE/EN with example data, pinned Typst version | Typst CLI |
-| End-to-end | standard and Pro HTML via `file://` in Firefox (Playwright build), Chromium, WebKit; container widths 375/768/1100/1920 px. The Firefox ESR is not covered by Playwright and is tested manually (release checklist) | Playwright |
-| Components, accessibility, keyboard | a component gallery page (dev only, not in the build) shows every component in every state: light and dark, three schemes, DE, EN and the pseudo-locales; Playwright screenshots of it; axe-core on the gallery and the main screens; keyboard end-to-end tests | Playwright, axe-core |
+| End-to-end | Pro HTML via `file://` in Firefox (Playwright build), Chromium, WebKit | Playwright |
+| Components, accessibility, keyboard | the component gallery shows every component in the three schemes | Playwright |
 
 ## Dependencies and supply chain
 

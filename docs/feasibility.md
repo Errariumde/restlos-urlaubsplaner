@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Feasibility tests of version 1
 
-Before the UI was built, small test pages checked what browsers allow a single HTML file that is opened from disk (`file://`): storage, the Content Security Policy from `<meta>`, keyboard shortcuts, the policy of the Pages version and a Web Worker. `docs/SPEC.md` builds on these results in "Delivery format", "What is stored where", "Content Security Policy" and "Architecture, technology and tests". The test pages were used once and are not in the repository.
+Before the UI was built, small test pages checked what browsers allow a single HTML file that is opened from disk (`file://`): storage, the Content Security Policy from `<meta>`, keyboard shortcuts, the policy of the Pages version and a Web Worker. `docs/SPEC.md` builds on these results in "Delivery format", "What is stored where", "Content Security Policy" and "Architecture, technology and tests", and `docs/dev/en/reference/architecture.md` in "Worker". The test pages were used once and are not in the repository.
 
 ## How the tests ran
 

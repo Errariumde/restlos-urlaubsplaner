@@ -77,7 +77,7 @@ A feature branch may do a row before its phase. The steps of a move are in `docs
 - A partly built row names the page for its built part and its phase; its planned parts stay as tracking.
 - "help": text users read, written into `docs/user/<language>/` in phase 5. Help text about features that are still planned stays as tracking until they are built.
 - A `##` row covers only its own intro text; its subsections have rows of their own.
-- "counting-model", "architecture", "security" and "build-and-ci" appear as both a reference and an explanation page, so each explanation page gets another name when its row moves: `counting-choices.md` for the counting model.
+- "counting-model", "architecture", "security" and "build-and-ci" appear as both a reference and an explanation page, so each explanation page gets another name when its row moves: `counting-choices.md` for the counting model, `architecture-choices.md` for the architecture.
 
 ### Sections
 
@@ -90,19 +90,19 @@ A feature branch may do a row before its phase. The steps of a move are in `docs
 | [x] Work week per country | partly implemented | `docs/dev/en/reference/holiday-rules.md`; planned parts stay as tracking | 2 |
 | [x] Region tree and German special cases | partly implemented | `docs/dev/en/reference/holiday-rules.md`; planned parts stay as tracking | 2 |
 | [x] Multiple calendar sources (iCal) | partly implemented | cut where `docs/dev/en/reference/file-format.md` or the spec's "Day cell: what is shown how" says it already; the rest to `docs/dev/en/reference/file-format.md` and `docs/dev/en/reference/holiday-rules.md`; planned parts stay as tracking | 2 |
-| [ ] Reference models for tests | implemented | `docs/dev/en/reference/test-strategy.md` (new) | 2 |
+| [x] Reference models for tests | implemented | `docs/dev/en/reference/test-strategy.md` | 2 |
 | [x] Counting model (weights) | not a requirement | the recommendation: `docs/dev/en/explanation/counting-choices.md` | 2 |
 | [x] The one formula | implemented | `docs/dev/en/reference/counting-model.md` | 2 |
 | [x] Finer granularity: prepared, offered only in the leave bar | partly implemented | `docs/dev/en/reference/counting-model.md`; planned parts stay as tracking | 2 |
 | [x] How a day's required work comes about | partly implemented | `docs/dev/en/reference/counting-model.md`; planned parts stay as tracking | 2 |
 | [x] Work week with validity | partly implemented | `docs/dev/en/reference/counting-model.md`, phase 2; the text on part-time counting and § 5 BUrlG: help, phase 5 | 2, 5 |
-| [ ] Date arithmetic | implemented | `docs/dev/en/reference/architecture.md` (new) | 2 |
+| [x] Date arithmetic | implemented | `docs/dev/en/reference/architecture.md` | 2 |
 | [x] Files: plan file, rule set and settings | partly implemented | the use of each file and what is stored where: `docs/dev/en/reference/files.md`; the recommendation: `docs/dev/en/explanation/file-kinds.md`; planned parts stay as tracking | 2 |
 | [x] Content of the files | partly implemented | `docs/dev/en/reference/file-format.md`; planned parts stay as tracking | 2 |
 | [ ] File operations (editor behavior) | partly implemented | opening the bundled example: `docs/dev/en/reference/start-screen.md` (new); planned parts stay as tracking | 4 |
 | [x] What is stored where | partly implemented | `docs/dev/en/reference/files.md`; planned parts stay as tracking | 2 |
 | [x] Format | partly implemented | cut where the file format reference says it already, the rest to `docs/dev/en/reference/file-format.md`; planned parts stay as tracking | 2 |
-| [ ] Sharing and validation | partly implemented | cut where the file format reference says it already (done); what remains, the worker and the handover to the page: `docs/dev/en/reference/architecture.md` (new), phase 2; planned parts stay as tracking | 2 |
+| [x] Sharing and validation | partly implemented | cut where the file format reference says it already (done); what remains, the worker and the handover to the page: `docs/dev/en/reference/architecture.md`, phase 2; planned parts stay as tracking | 2 |
 | [ ] Operation (UI/UX) | not a requirement | the recommendation: `docs/dev/en/explanation/ui-principles.md` (new) | 3 |
 | [ ] View 1: Month tiles | implemented | `docs/dev/en/reference/calendar-views.md` (new) | 4 |
 | [ ] View 2: Month columns | partly implemented | `docs/dev/en/reference/calendar-views.md` (new), with "Align by weekday" and calendar weeks; planned parts stay as tracking | 4 |
@@ -121,7 +121,7 @@ A feature branch may do a row before its phase. The steps of a move are in `docs
 | [ ] .ics export (RFC 5545) | planned | stays as tracking | – |
 | [ ] PDF: variants | planned | the rejected alternatives: `docs/dev/en/explanation/pdf-with-typst.md` (new); the rest stays as tracking | 3 |
 | [ ] Own templates: workflow and help | planned | stays as tracking | – |
-| [ ] Architecture, technology and tests | partly implemented | the engine, the worker, the single-file build and the size budget: `docs/dev/en/reference/architecture.md` (new), phase 2; the test strategy: `docs/dev/en/reference/test-strategy.md` (new), phase 2; the recommendation: `docs/dev/en/explanation/architecture.md` (new), phase 3; the open feasibility tests: issues or the roadmap page, phase 3; planned parts stay as tracking | 2, 3 |
+| [ ] Architecture, technology and tests | partly implemented | the engine, the worker, the single-file build and the size budget: `docs/dev/en/reference/architecture.md`, phase 2; the test strategy: `docs/dev/en/reference/test-strategy.md`, phase 2; the recommendation: `docs/dev/en/explanation/architecture-choices.md`, phase 2; the open feasibility tests: issues or the roadmap page, phase 3; planned parts stay as tracking | 2, 3 |
 | [x] Dependencies and supply chain | not a requirement | the recommendation: `docs/dev/en/explanation/supply-chain.md` | 2 |
 | [x] Dependencies | partly implemented | the whole table to `docs/dev/en/reference/dependencies.md`: it is the list of approved packages, and an approval applies today also for a package that isn't installed yet (ical.js, markdown-it, mdBook, typst.ts); the page marks which packages are installed. The same commit re-points `AGENTS.md` L58 ("only packages listed in the spec") to that page | 2 |
 | [x] Measures against supply chain attacks | implemented | `docs/dev/en/reference/dependencies.md` | 2 |

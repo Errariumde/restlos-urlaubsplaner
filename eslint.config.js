@@ -43,7 +43,7 @@ export default defineConfig(
     rules: {
       "no-restricted-globals": [
         "error",
-        { name: "Date", message: "The engine counts calendar days as integer day numbers (docs/SPEC.md, Date arithmetic)." },
+        { name: "Date", message: "The engine counts calendar days as integer day numbers (docs/dev/en/reference/architecture.md, Date arithmetic)." },
       ],
     },
   },

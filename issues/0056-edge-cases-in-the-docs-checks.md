@@ -39,8 +39,8 @@ The three checks run in `npm run check`. Their tests are in `tests/scripts/citat
 
 The section-name check (`SECTIONS`, `scripts/citation-rules.ts:101`) only reads quoted names that directly follow the file name, after a comma, a parenthesis or a space. A writer expects these to be checked too:
 
-- unquoted names, as in `eslint.config.js:46` (Date arithmetic, after a comma);
-- a parent section before the quoted name, as in `src/ui/worker/protocol.ts:4` (Architecture, then the quoted "Worker");
+- unquoted names, as in `(docs/SPEC.md, Date arithmetic)`;
+- a parent section before the quoted name, as in `(docs/SPEC.md, Architecture, "Worker")`;
 - names in curly quotes;
 - two names joined by "and" instead of a comma: only the first one is checked.
 
