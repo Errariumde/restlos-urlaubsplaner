@@ -7,8 +7,11 @@ SPDX-License-Identifier: CC-BY-4.0
 
 ## Supported browsers
 
-The current **Firefox ESR** (153, as of 2026-10-17; ESR 140 received its last update on 2026-09-29, see [Mozilla's release calendar](https://whattrainisitnow.com/calendar/)) and current Firefox, the two newest versions of Chromium browsers (Chrome, Edge) and Safari (macOS, iOS). The ESR is decisive: only browser features available there are used (among others container queries, `<dialog>`, popover, `DecompressionStream`, Web Workers, WebAssembly; checked against the ESR before project start). Vite's `build.target` is set to the current ESR. Playwright's Firefox is a patched Playwright build, not the ESR; ESR compatibility is therefore checked manually with `firefox-esr` from the dev shell.
+- **Firefox:** the current Firefox ESR and the current Firefox.
+- **Chrome, Edge and Safari (macOS, iOS):** the two newest versions.
+
+The current Firefox ESR is the baseline for browser features, as the "Browsers" [hard rule](../../../../AGENTS.md#hard-rules) says. `build.target` in `vite.config.ts` is `firefox153` and must name the current ESR. The browsers the end-to-end tests run in are in [Test strategy](test-strategy.md). The browser versions tested from `file://` are in the [feasibility tests](../../../feasibility.md).
 
 ## Opened from disk
 
-- No `fetch()` on local files: holiday data and images are embedded inline.
+The app must not `fetch()` a local file. The holiday data and the images, which are the SVG icons, are part of the built page ([Single-file build](architecture.md#single-file-build)).
