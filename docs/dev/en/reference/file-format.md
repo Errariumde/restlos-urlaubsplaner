@@ -161,8 +161,8 @@ A rule set fixes as much of the region as it knows: an agreement valid everywher
 | `holiday` | lowers the required work | `required` (`"0"` … `"1"`), `part` | lowering layer: the required work is at most `required` |
 | `paidClosure` | paid closure | – | required work 0 |
 | `mandatory` | mandatory leave | `take` (`"1/480"` … `"1"`), `part` | that share of the day is taken and charged where it overlaps the working time, like a `mandatory` day rule |
-| `info` | background band, e.g. school holidays | – | none |
-| `needed` | time off needed: the user must be free, e.g. the Kita closes | `take` (`"1/480"` … `"1"`), `part` | never costs; a problem on every day of the plan period where that much time is not free, see [Time off needed](#time-off-needed) |
+| `info` | background band, for example school holidays | – | none |
+| `needed` | time off needed: the user must be free, for example the Kita closes | `take` (`"1/480"` … `"1"`), `part` | never costs; a problem on every day of the plan period where that much time is not free, see [Time off needed](#time-off-needed) |
 | `otherPlan` | leave from another plan | `from`, `to`, `kind` | never costs; see [Leave from another plan](#leave-from-another-plan) |
 
 `part` means the same in leave, overrides, rules and source entries: `"start"` or `"end"` of the day. For leave days, mandatory leave (`mandatory` rules and entries) and time off needed it is where that time lies; for required work (overrides, `holiday` entries, `requiredAtMost` and `requiredExactly` rules) it is where the free time lies, and the work lies at the other end of the day. Leave is charged only where it overlaps the working time: own leave of ½ at the end of a day whose afternoon is free costs nothing. A rule set never contains `otherPlan` or `needed` sources: both are personal.
@@ -408,7 +408,7 @@ Progress: `onProgress` is called with `(0, N)` first and then once per rule or m
 | IDs and reference keys / URLs | 200 / 2000 characters | invalid: that entry dropped (`invalidValue`), an over-long file `id` refused (`invalidCore`) |
 | Files inside files | none: another plan is stored as entries, never embedded | |
 
-KB and MB are binary: 1 MB is 1,048,576 bytes. How fast reading and checking a file within these limits must be is set in the spec's Limits bullet ([Sharing and validation](SPEC.md#sharing-and-validation)).
+KB and MB are binary: 1 MB is 1,048,576 bytes. Reading and checking grow at most linearly with the file, and the performance gate (`npm run perf`, see Test strategy) enforces it. Target: the largest file within the limits reads and checks in under 2 s together in the Firefox ESR on the reference machine (Intel Core i7-8650U), measured at each release; slower devices take longer and show the progress bar.
 
 ## Writing
 

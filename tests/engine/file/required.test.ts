@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-// Pins the Required columns of docs/file-format.md and docs/day-rules-format.md against the reader: every
+// Pins the Required columns of docs/dev/en/reference/file-format.md and docs/dev/en/reference/day-rules-format.md against the reader: every
 // required key, removed, gives `missingValue` at that key with the outcome the docs give (the file refused, or
 // the part that holds it dropped); every optional key, removed, gives no report entry.
 

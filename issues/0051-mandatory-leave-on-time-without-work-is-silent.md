@@ -15,7 +15,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 ## Problem
 
-A rule set gives 24 December `requiredAtMost: "1/2"` (work at the start of the day, the afternoon free) and `mandatory: "1/2"` without `part`. A `mandatory` rule without `part` lies at the `"end"` of the day (`docs/day-rules-format.md`, "Part"), so the mandatory leave lands on the free afternoon: it covers no work, costs nothing, the day keeps ½ day of work left, and no problem is listed.
+A rule set gives 24 December `requiredAtMost: "1/2"` (work at the start of the day, the afternoon free) and `mandatory: "1/2"` without `part`. A `mandatory` rule without `part` lies at the `"end"` of the day (`docs/dev/en/reference/day-rules-format.md`, "Part"), so the mandatory leave lands on the free afternoon: it covers no work, costs nothing, the day keeps ½ day of work left, and no problem is listed.
 
 Before leave was charged by its overlap with the working time (issue 0031, charge leave only where it overlaps the working time), the same rules cost ½ and freed the day. A rule author can't tell that the rule now does nothing on that day.
 
@@ -43,7 +43,7 @@ Problems: none
 - `src/engine/counting/plan.ts`: `leavePieces` puts mandatory leave without `part` at `"end"`; `computePlan` reports leave on time that is off anyway (`leaveOnFreeTime`) only for own leave (`evaluation.ownWorkOverlap === 0`).
 - `src/engine/counting/leave.ts`, `evaluateLeave`: mandatory leave is charged only where it overlaps the work block.
 - `docs/SPEC.md`, "Problems": the list of what the plan reports names own leave on time that is off anyway, not mandatory leave on such time. "How a day's required work comes about" (Mandatory leave): it is charged with its overlap with the working time.
-- `docs/day-rules-format.md`: "Part" gives `"end"` as the default for every effect; "Examples" has both rules of the pair, `christmas-eve` (`requiredAtMost` ½) and `christmas-eve-noon` (`mandatory` ½ at the `"end"`), so a rule set that takes both examples gets this day; "Warnings" doesn't report a rule that changes nothing on a matched day, because rule sets span many years.
+- `docs/dev/en/reference/day-rules-format.md`: "Part" gives `"end"` as the default for every effect; "Examples" has both rules of the pair, `christmas-eve` (`requiredAtMost` ½) and `christmas-eve-noon` (`mandatory` ½ at the `"end"`), so a rule set that takes both examples gets this day; "Warnings" doesn't report a rule that changes nothing on a matched day, because rule sets span many years.
 - `examples/plans/muster-ag-2027.urlaub.json`, rule `christmas-eve` (mandatory ½, `part: "end"`), has this shape and works only because 24 December 2027 is a full working day there.
 - Mandatory leave from a calendar source of type Mandatory leave has the same default (`part` `"end"`) and the same gap.
 
@@ -51,7 +51,7 @@ Problems: none
 
 - [ ] The behaviour chosen from the options in the notes is built, for mandatory leave from day rules and from calendar sources.
 - [ ] A test with exactly this rule pair on 24 December 2027 (`requiredAtMost: "1/2"` and `mandatory: "1/2"`, both without `part`) shows the chosen result: the problem or notice on that day, or a cost of ½ and the whole day free.
-- [ ] `docs/SPEC.md` ("Problems", or "How a day's required work comes about") and `docs/day-rules-format.md` ("Part", and "Warnings" if the rule check changes) say it.
+- [ ] `docs/SPEC.md` ("Problems", or "How a day's required work comes about") and `docs/dev/en/reference/day-rules-format.md` ("Part", and "Warnings" if the rule check changes) say it.
 - [ ] `npm run plan` gives the same results as before for every file in `examples/`, or the change is stated where it differs; `npm run check` passes.
 
 ## Notes

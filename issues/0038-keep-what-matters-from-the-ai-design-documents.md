@@ -25,7 +25,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 ## Acceptance criteria
 
-- [ ] Each of the 16 files is read, and whatever still matters and isn't in `docs/SPEC.md`, `docs/file-format.md`, `docs/day-rules-format.md`, `docs/ai-tooling.md` or an issue is moved there, with its reason.
+- [ ] Each of the 16 files is read, and whatever still matters and isn't in `docs/SPEC.md`, `docs/dev/en/reference/file-format.md`, `docs/dev/en/reference/day-rules-format.md`, `docs/ai-tooling.md` or an issue is moved there, with its reason.
 - [ ] The maintainer decides whether the folder stays.
 
 ## Notes

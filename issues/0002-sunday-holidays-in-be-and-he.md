@@ -25,7 +25,7 @@ Brandenburg names Easter Sunday and Whit Sunday as holidays, and `de.json` model
 ## Acceptance criteria
 
 - It is decided how Sundays that are statutory holidays affect required work: a per-region "every Sunday is a holiday" property, named Sunday holidays for BE and HE, or a documented decision that nothing changes.
-- The decision is recorded in the spec or `docs/holiday-data-format.md`, with tests for a contract with Sunday work in BB, BE and HE.
+- The decision is recorded in the spec or `docs/dev/en/reference/holiday-data-format.md`, with tests for a contract with Sunday work in BB, BE and HE.
 
 ## Notes
 

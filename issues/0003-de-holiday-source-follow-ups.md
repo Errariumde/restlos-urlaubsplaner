@@ -15,7 +15,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 ## Problem
 
-The German holiday data is correct (both reference models agree for 2000–2100), but a few sources are weaker than the rest or don't follow the title convention in `docs/holiday-data-format.md` ("Sources").
+The German holiday data is correct (both reference models agree for 2000–2100), but a few sources are weaker than the rest or don't follow the title convention in `docs/dev/en/reference/holiday-data-format.md` ("Sources").
 
 ## Context
 

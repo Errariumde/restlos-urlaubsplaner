@@ -19,7 +19,7 @@ The file-format branch stores calendar sources as entries (a date or a repeating
 
 ## Context
 
-- `docs/file-format.md`, "Calendar sources".
+- `docs/dev/en/reference/file-format.md`, "Calendar sources".
 - `docs/SPEC.md`, "Multiple calendar sources (iCal)" and ".ics export" (updated in the file-format branch).
 - Issue 0006: its `.ics` criterion moved here.
 
