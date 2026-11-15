@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # File kinds
 
-restlos has three kinds of files: the plan file, the rule set and the device settings export, planned for version 1. Each one is self-contained and never refers to another file. A plan file holds a copy of the rule set it was made from, and a color scheme travels inside a plan file or rule set. The kinds and their keys are listed in [Files](../reference/files.md) and [Plan files and rule sets](../reference/file-format.md).
+restlos has three kinds of files: the plan file, the rule set and the device settings export. The device settings export is planned for version 1. Each one is self-contained and never refers to another file. A plan file holds a copy of the rule set it was made from, and a color scheme travels inside a plan file or rule set. The kinds are stated in the "File formats" [hard rule](../../../../AGENTS.md#hard-rules), their use in [Files](../reference/files.md) and their keys in [Plan files and rule sets](../reference/file-format.md).
 
 ## Why
 
