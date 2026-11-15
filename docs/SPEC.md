@@ -105,29 +105,17 @@ After choosing the federal state, only its local rules appear, phrased as "appli
 
 ### Multiple calendar sources (iCal)
 
-Status: partly implemented; the engine reads and counts every source type and the calendar shows them, import, update, editing, export and the duplicate mark are not built (issue 0010 (iCal import and export of calendar sources) is open), planned for version 1.
-
-A **calendar source** is a named list of days with a type and a color. It is imported once from an iCal file or another plan file, or created by hand (e.g. the closure days of a Kita from a PDF), and is stored only as its entries: a date, or a repeating `match` in the day-rule format (see Format). No iCal text is kept and no time zone is stored.
+Status: planned for version 1.
 
 | Setting | Values |
 | --- | --- |
-| Name | free, e.g. "Company 2027", "Leave 2026" |
-| Type | Holiday · Paid closure · Mandatory leave · Info · Leave from another plan · Time off needed |
-| Effect | follows from the type (table below); per entry for Holiday the required work (0 or ½), for Mandatory leave and Time off needed the share of the day, each with its part of the day |
-| Color | reference to a slot of the color palette (e.g. "Accent 3"), optionally an own color |
-| Priority | order via up/down buttons, only for the display order |
-| Visible | on/off |
+| Priority | order via up/down buttons |
 
 | Type | Effect on cost |
 | --- | --- |
-| Holiday | lowers the required work (to 0 or ½), can never raise it |
-| Paid closure | required work 0, costs nothing |
-| Mandatory leave | day counts as taken, charges the plan's allowance |
-| Info (e.g. school holidays) | none, only a background band |
-| Leave from another plan | none; shows e.g. in January the days already planned in the previous year, they are counted there (own and mandatory leave of that plan). The source is an .ics or directly another .urlaub.json file; of a .urlaub.json only the days it charged are stored (see Format) |
-| Time off needed | none; the user must be free, e.g. the Kita closes on Tuesday afternoons or on its closure days. Every day of the plan period on which the needed time is not free is reported (see Counting model) |
+| Leave from another plan | The source can also be an .ics file. |
 
-Conflicts: all sources of a day are displayed (the detail view lists them, the cell shows up to three lanes and beyond that a "+" pattern). The same day with the same name from several sources or the built-in set is shown once and marked as a duplicate.
+The same day with the same name from several sources or the built-in set is shown once and marked as a duplicate.
 
 **Import (once):** choose file → preview of all recognized events with a checkbox per entry and a list **"not supported / skipped"** → set name, type, color → apply. Only the chosen events are stored, as entries; the `.ics` file is not kept.
 
@@ -141,7 +129,7 @@ Conflicts: all sources of a day are displayed (the detail view lists them, the c
 
 **Editing and export:** entries can be removed, added (by clicking days) and changed (share, part of the day); a source can be renamed, change its type and be created without any file. Every source can be exported as `.ics`, so the user doesn't maintain it in several programs: a `match` becomes a repeating event where iCal can express it, otherwise dates for a chosen period.
 
-**School holidays** are not built in, because the dates are set anew every year. They come as a calendar source of type Info. The help names sources, in this order:
+The help names sources, in this order:
 
 1. **Kultusministerkonferenz (KMK, Standing Conference of the Ministers of Education):** official `.ics` file per federal state for the current school year ([KMK holiday calendar](https://www.kmk.org/service/ferienregelung/ferienkalender.html)).
 2. **OpenHolidays API:** school holidays per federal state from 2020, also available as iCal ([openholidaysapi.org](https://www.openholidaysapi.org/en/)); the license of the data is not stated on the site.
@@ -162,69 +150,37 @@ date-holidays is a development dependency and runs directly in the Vitest tests 
 
 ## Counting model (weights)
 
-Status: not a requirement; moves to docs/dev/en/explanation/ in phase 3.
-
-Recommendation: every day has a **required work** value (how much work is owed), the user takes a share of the day off (a **full** or **half** day with the calendar's clicks, keys and ranges, a part of the plan's smallest leave unit in the day detail's leave bar), and the cost is how much of that leave overlaps the day's working time. Internal calculation in integer units (1 day = 480), so that sums stay exact and planning down to 1/32 day works without restructuring.
+Status: moved to `docs/dev/en/explanation/counting-choices.md`.
 
 ### The one formula
 
-Status: implemented.
-
-Cost of a day = the overlap of the leave with the day's working time, both as shares of the day where they lie in it. Leave lies at the start or the end of the day as its `part` says; a full day covers the whole day. The working time is one block as long as the required work: the whole day on a normal working day; on a day with less work it lies beside its free time, which is at the end unless the layer that decides the required work says `part: "start"`. The work week has no `part`, so a part-time day has its work at the start of the day (issue 0047, a part for work-week entries). Leave on time that is off anyway costs nothing, so the cost is never more than min(taken, required work) and equals it on a normal working day.
-
-| Day | Leave | Cost | Result |
-| --- | --- | --- | --- |
-| normal working day | full | 1 | full day off |
-| normal working day | ½, either part | ½ | half day off |
-| 24 Dec, work ½ in the morning | ½ afternoon | 0 | nothing changes; a problem |
-| 24 Dec, work ½ in the morning | ½ morning | ½ | full day off |
-| 24 Dec, work ½ in the morning | full | ½ | full day off |
-| Friday ½ from the work week | as on 24 Dec | | |
-| ¾ day (free at the end) | ½ afternoon | ¼ | free from noon |
-| ¾ day (free at the end) | ½ morning | ½ | ¼ is worked |
-| ¾ day (free at the end) | full | ¾ | full day off |
-| weekend, holiday | any | 0 | not selectable; a problem when it comes from a file |
-
-Where in the day partial leave lies (at the start or the end of the day, shown as morning or afternoon for half days) decides how much of it overlaps the working time: on a normal working day either part costs the same, on a day with less work only the part that lies on the working time costs. It also decides whether the day joins a stretch (see Allowance display) and whether it overlaps mandatory leave on the same day (see Mandatory leave), and is used for display and .ics.
+Status: moved to `docs/dev/en/reference/counting-model.md`.
 
 ### Finer granularity: prepared, offered only in the leave bar
 
-Status: partly implemented; engine, file format, display and leave bar are built; the .ics and template rows wait for those outputs, planned for version 1; issue 0048 (a calendar key for finer leave steps, and the smallest leave unit in the contract dialog) is open, planned for version 3.
+Status: planned for version 1.
 
-Version 1 sets **full** and **half** days with the calendar's clicks, keys and ranges; only the day detail's leave bar offers the plan's smallest leave unit (see "Detail view"). Engine, file format and template interface are built so that planning down to **1/32 day** (15 minutes at 8 hours) works everywhere without data migration and without changing the calculation logic. Anyone working on the code must observe this:
+The template interface is built so that planning down to **1/32 day** works everywhere without data migration and without changing the calculation logic. Anyone working on the code must observe this:
 
 | Area | Requirement from version 1 |
 | --- | --- |
-| Unit | 1 day = 480 integer units (480 = 2⁵ · 3 · 5); thus ½, ⅓, ¼, ⅕, ⅙, ⅛, 1/16 and 1/32 are exact. Never floats, never the assumption "only 0, ½, 1". |
-| Data model | `take` is a share of the day, written as a fraction string (`"1"`, `"1/2"`, later e.g. `"3/32"`), not `"full"`/`"half"`; on reading, decimal strings (`"0.5"`) are accepted too (see Date arithmetic). Where in the day partial leave lies is a separate field `part` (`"start"` or `"end"` of the day); partial leave without it is kept with a suggested part and reported. |
-| Contract | The field `minUnit` (smallest leave unit) already exists; loading reports values that are not multiples of it and keeps them (the engine computes them exactly). The contract dialog of version 1 offers only `"1"` and `"1/2"`. The planning follows the unit of the open plan, also another one from a handwritten file: half days only where ½ is a multiple of it, so none under `"1"`; there H changes nothing and the hint line says so. |
-| Engine | Cost = the overlap of the leave with the working time, for arbitrary multiples of 1/32 (exactly in 1/480); no special cases for ½. |
-| Display | one central formatting function for shares (mixed fractions like "12 ¾" or a decimal number, depending on the setting) that handles every denominator up to 32; the day cell draws its fill proportionally to the share, not just "half" or "full". |
-| Operation | The choices are generated from `minUnit`, not hard-wired: the detail's leave bar is split into parts of it (at most 32: a finer unit is drawn in the smallest multiple of it that gives at most 32 parts), and H and the range actions offer a half day only where ½ is a multiple of it. |
+| Display | the central formatting function for shares shows a decimal number instead of mixed fractions, depending on the setting |
 | .ics | Partial days as all-day events with share and part in the title, plus the machine-readable fields `X-RESTLOS-TAKE`, `X-RESTLOS-PART` and `X-RESTLOS-TYPE`; no working hours, no appointments with times. |
 | Templates | The data interface delivers shares as a number and as a fraction string; built-in templates must not contain fixed "half" assumptions. |
-| Tests | Property tests calculate with random multiples of 1/32 (and exactly in 1/480), although the calendar's keys and ranges offer only ½. |
 
 What is still missing later is only UI: a calendar key and range actions for finer steps, and the `minUnit` setting in the contract dialog (issue 0048, a calendar key for finer leave steps, and the smallest leave unit in the contract dialog).
 
 ### How a day's required work comes about
 
-Status: partly implemented; the engine computes every layer, issue 0043 (dismiss a time-off need for one day) is open, planned for version 1.
+Status: planned for version 1.
 
-1. **Base value** from the contract's work week (e.g. Mon–Fri = 1, Sat/Sun = 0; part-time Friday = 0 or ½).
-2. **Lowering layers:** built-in holidays (0), calendar sources of type Holiday (0 or ½) and Paid closure (0), own day rules (e.g. "24 Dec and 31 Dec: at most ½"). The **minimum** of all applicable values applies. A rule can therefore never make a Sunday or holiday more expensive; if New Year's Eve falls on a Sunday, it stays 0.
-3. **Force** (rare, explicitly marked): a rule sets the required work to a fixed value, e.g. working Saturday = 1. Forced rules apply after step 2.
-4. **Manual override** of a single date applies last.
-
-**Mandatory leave** (e.g. company-wide leave 27–30 Dec) is not a required-work value but marks days as taken, by a share of the day (a full day or e.g. ½); they charge the allowance with their overlap with the working time, like own leave, and can only be changed via their rule or source. If own leave is set on such a day as well, leave on the same part of the day counts once; leave on different parts of the day adds up. Mandatory leave is not charged on the part of a day that leave from another plan already covers, because it was counted there; own leave on that part is charged and reported, as far as it overlaps the working time. Paid closure, on the other hand, is required work 0.
-
-**Time off needed** (a source of that type, e.g. the Kita closes on Tuesday afternoons) never costs anything and doesn't change the required work. It is measured on the whole day, not only on its working time: a need of a share at the end of the day is covered when the day is entirely free or its free time at the end is at least that share, at the start the same with the free time at the start, whatever made the time free (own leave, mandatory leave, leave from another plan, a holiday, lowered required work, the work week). Every day of the plan period on which a need is not covered is reported as a problem. Covering it is ordinary own leave; dismissing it for one day adds the date to the entry's exceptions.
+Dismissing a time-off need for one day adds the date to the entry's exceptions.
 
 ### Work week with validity
 
-Status: partly implemented; the engine and the file format are built, the help's text on the two counting methods for part-time and on § 5 BUrlG is not written, planned for version 1.
+Status: planned for version 1.
 
-The work week is a list with start dates, e.g. full-time until 30 June, four days from 1 July. This way a contract with a switch to part-time stays one file. The first entry also applies before its start date; the rules describe ongoing employment, and there is no separate state for days before or after it. The help explains the two common counting methods for part-time ("day off has required work 0, allowance reduced" vs. "required work ½") and that partial entitlements can be rounded according to § 5 BUrlG (Federal Leave Act); the user enters the allowance themselves.
+The help explains the two common counting methods for part-time ("day off has required work 0, allowance reduced" vs. "required work ½") and that partial entitlements can be rounded according to § 5 BUrlG (Federal Leave Act); the user enters the allowance themselves.
 
 ### Date arithmetic
 

@@ -226,6 +226,8 @@ In the plan that holds the source, a span is free time that never costs. Mandato
 
 Nothing else of the other plan is stored: no notes, contract or allowance. Because each plan stores what the other actually charged, a shared day is charged in exactly one plan, also when two plans import each other. The import is refused with the reader's refusal, with `notAPlan` for a rule set, and with `limitExceeded` (`entriesPerSource`) when the plan charged more than 2000 spans. For "Update source" it gives notices: `differentPlan` when the file has another `id` than the plan imported before, `olderRevision` when its `revision` is lower than before, and `outdatedCopyOfCurrent` when it contains an older copy of the current plan as a source of its own.
 
+An `otherPlan` source shows for example in January the days already planned in the previous year.
+
 ## Templates
 
 `templates` holds at most 20 own PDF templates:
