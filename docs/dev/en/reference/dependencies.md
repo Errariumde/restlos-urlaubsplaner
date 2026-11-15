@@ -43,4 +43,4 @@ The approved packages and the measures against supply chain attacks. Exact versi
 - **Alerts:** Dependabot alerts, malware alerts for known malicious packages ([GitHub's description](https://docs.github.com/en/code-security/concepts/supply-chain-security/dependabot-malware-alerts)) and Dependabot security updates must be on for the repository.
 - **Dependency Review:** [`.github/workflows/dependency-review.yml`](../../../../.github/workflows/dependency-review.yml) runs GitHub's dependency review on every pull request that changes `package-lock.json`.
 - **Isolated build:** `npm ci` and builds must run in a separate user account or container without access to SSH keys, the password manager or tokens.
-- **Network lock:** the delivered HTML carries the Content Security Policy in a `<meta http-equiv="Content-Security-Policy">` tag right after `<meta charset="utf-8">` (`insertCsp` in `scripts/build/html.ts`).
+- **Network lock:** the delivered HTML carries the [Content Security Policy](security.md#content-security-policy).

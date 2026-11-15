@@ -5,4 +5,17 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Security choices
 
-Recommendation: every file from outside is considered untrusted, the app has no network access, and templates run isolated. The worst a manipulated file can then cause is an error message.
+Every file from outside is untrusted, and the app has no network access. Templates are to run isolated as well; that part is planned for version 2. The worst a manipulated file can then cause is an error message. The facts are in [Security](../reference/security.md).
+
+## Why
+
+- **No network access:** the data stays on the device. Malicious code in a dependency finds no way to send it anywhere.
+- **The policy in a `<meta>` tag:** GitHub Pages, which is to host the Pages version, cannot set custom HTTP headers.
+- **Right after `<meta charset>`:** a meta policy applies only to what comes after it.
+- **`style-src 'unsafe-inline'`:** the styles are embedded in the page. The risk is low, since no foreign HTML is rendered.
+- **Defence in depth:** on `file://`, Firefox lets the page fetch its own file and show an image file next to it, without a `connect-src` or `img-src` violation, where Chromium blocks both ([feasibility tests](../../../feasibility.md#content-security-policy-from-meta-and-keyboard-shortcuts), C3 and C4). The app never fetches and embeds all images, so this gap changes nothing for it. The policy is defence in depth, not the only barrier.
+
+## Rejected alternatives
+
+- **The policy as an HTTP header:** GitHub Pages cannot set one.
+- **The policy as the only barrier:** Firefox doesn't block every request on `file://`, so the app itself never fetches.
