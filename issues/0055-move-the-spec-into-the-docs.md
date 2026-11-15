@@ -77,14 +77,14 @@ A feature branch may do a row before its phase. The steps of a move are in `docs
 - A partly built row names the page for its built part and its phase; its planned parts stay as tracking.
 - "help": text users read, written into `docs/user/<language>/` in phase 5. Help text about features that are still planned stays as tracking until they are built.
 - A `##` row covers only its own intro text; its subsections have rows of their own.
-- "counting-model", "architecture", "security" and "build-and-ci" appear as both a reference and an explanation page, so each explanation page gets another name when its row moves: `counting-choices.md` for the counting model, `architecture-choices.md` for the architecture.
+- "counting-model", "architecture", "security" and "build-and-ci" appear as both a reference and an explanation page, so each explanation page gets another name when its row moves: `counting-choices.md` for the counting model, `architecture-choices.md` for the architecture, `security-choices.md` for security.
 
 ### Sections
 
 | Section | Status | Destination | Phase |
 | --- | --- | --- | --- |
 | [ ] Goals and scope | not a requirement | `docs/dev/en/explanation/goals-and-scope.md` (new) | 3 |
-| [x] Delivery format | partly implemented | the browsers and the built part of the first `file://` bullet: `docs/dev/en/reference/browsers-and-file-urls.md`, phase 2; the recommendation and "No desktop wrapper": `docs/dev/en/explanation/delivery-format.md`, phase 2; the bullet on network access moves with "Security"; the Pages version, the Pages layout, saving, browser storage (IndexedDB) and the other planned parts stay as tracking | 2 |
+| [x] Delivery format | partly implemented | the browsers and the built part of the first `file://` bullet: `docs/dev/en/reference/browsers-and-file-urls.md`, phase 2; the recommendation and "No desktop wrapper": `docs/dev/en/explanation/delivery-format.md`, phase 2; the bullet on network access: `docs/dev/en/reference/security.md`, phase 2; the Pages version, the Pages layout, saving, browser storage (IndexedDB) and the other planned parts stay as tracking | 2 |
 | [x] Holiday sources and work week | not a requirement | the recommendation: `docs/dev/en/explanation/holiday-sources.md` | 2 |
 | [x] Rule types of the core | implemented | `docs/dev/en/reference/holiday-rules.md` | 2 |
 | [x] Work week per country | partly implemented | `docs/dev/en/reference/holiday-rules.md`; planned parts stay as tracking | 2 |
@@ -125,10 +125,10 @@ A feature branch may do a row before its phase. The steps of a move are in `docs
 | [x] Dependencies and supply chain | not a requirement | the recommendation: `docs/dev/en/explanation/supply-chain.md` | 2 |
 | [x] Dependencies | partly implemented | the whole table to `docs/dev/en/reference/dependencies.md`: it is the list of approved packages, and an approval applies today also for a package that isn't installed yet (ical.js, markdown-it, mdBook, typst.ts); the page marks which packages are installed. The same commit re-points `AGENTS.md` L58 ("only packages listed in the spec") to that page | 2 |
 | [x] Measures against supply chain attacks | implemented | `docs/dev/en/reference/dependencies.md` | 2 |
-| [ ] Security | partly implemented | that files from outside are untrusted and that the app has no network access: `docs/dev/en/reference/security.md` (new), phase 2; the recommendation: `docs/dev/en/explanation/security.md` (new), phase 3; planned parts stay as tracking | 2, 3 |
-| [ ] Threats and countermeasures | partly implemented | `docs/dev/en/reference/security.md` (new); planned parts stay as tracking | 2 |
-| [ ] Content Security Policy | partly implemented | `docs/dev/en/reference/security.md` (new); planned parts stay as tracking | 2 |
-| [ ] Verification | partly implemented | `docs/dev/en/reference/security.md` (new); planned parts stay as tracking | 2 |
+| [x] Security | partly implemented | the recommendation: `docs/dev/en/explanation/security-choices.md`, phase 2; its planned parts are tracked in the subsections | 2 |
+| [x] Threats and countermeasures | partly implemented | `docs/dev/en/reference/security.md`; planned parts stay as tracking | 2 |
+| [x] Content Security Policy | partly implemented | `docs/dev/en/reference/security.md`; planned parts stay as tracking | 2 |
+| [x] Verification | partly implemented | `docs/dev/en/reference/security.md`; planned parts stay as tracking | 2 |
 | [ ] Build and CI (GitHub Free and local) | implemented | the local setup and its commands: `docs/dev/en/reference/build-and-ci.md` (new), phase 2; the recommendation: `docs/dev/en/explanation/build-and-ci.md` (new), phase 3 | 2, 3 |
 | [ ] Documentation website | planned | stays as tracking; `docs/dev/en/reference/documentation-website.md` (new) once it is built | 6 |
 | [ ] Workflows | partly implemented | `docs/dev/en/reference/build-and-ci.md` (new), with the NixOS release check; planned parts stay as tracking | 2 |
@@ -149,9 +149,6 @@ A feature branch may do a row before its phase. The steps of a move are in `docs
 
 Found with `git grep -n -i -E "the spec('s)?\b|\bSPEC\b"` in `src`, `scripts`, `e2e`, `tests` and `docs`: these lines refer to `docs/SPEC.md` without its file name, so the citation check doesn't see them. Each is reworded when the text it points to moves.
 
-- `src/engine/file/report.ts` L107: "(SPEC, Security)", the prototype keys of "Threats and countermeasures".
-- `tests/scripts/build-html.test.ts` L37: "in the spec's order", the order of the directives in "Content Security Policy".
-- `docs/feasibility.md` L36: "the app's policy from the spec", the policy of "Content Security Policy".
 - `docs/feasibility.md` L67: "The spec relies on documentation", the calendar apps' behaviour on re-import in ".ics export (RFC 5545)" and the feasibility table of "Architecture, technology and tests"; planned, so it rewords when the .ics export is built.
 - `docs/ai-tooling.md` L136: "(see the specification)", the SHA pinning of actions in "Workflow security".
 

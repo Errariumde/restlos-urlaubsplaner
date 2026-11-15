@@ -34,7 +34,7 @@ describe("build HTML helpers", () => {
     expect(out).toMatch(/^<head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'">/);
   });
 
-  it("writes the standard policy in the spec's order", () => {
+  it("writes the standard policy in the order of the security reference", () => {
     expect(standardPolicy(["'sha256-A'"])).toBe(
       "default-src 'none'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; script-src 'sha256-A'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; worker-src blob:",
     );

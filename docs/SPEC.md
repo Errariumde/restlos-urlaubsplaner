@@ -76,7 +76,7 @@ Status: partly implemented; the downloadable HTML file is built, the GitHub Page
 - **Where storage is kept:** Firefox keeps one storage area per file path. A reload keeps it, and so do `?query` and `#hash`; a copy under a new name or the same name in another folder starts empty, and so does, according to the research, a renamed or moved file, while replacing the file under the same name keeps it (from the research, not tested). Chromium (Chrome, Edge) has one storage area for every HTML file opened from disk. It survives renaming, and every local HTML file can read and overwrite it. The GitHub Pages version has its own, stable storage (its own origin), separate from the downloaded file.
 - **Empty storage is normal, not an error:** a fresh copy of restlos under a new name, another browser, Safari, a private window (not tested). The start screen then offers "Open plan file" and "Import device settings (`.einstellungen.json`)", which also brings the settings into a renamed copy.
 - **IndexedDB, not localStorage:** localStorage refuses 10 MB in every tested browser, and after the browser was killed it lost values written 5 s earlier (Firefox) or 1 s earlier (Chromium). IndexedDB kept 10 MB, and kept both values written 1 s and 5 s before the kill (one trial each, `kill -9` of the browser, not a power loss). All records live in one IndexedDB database `urlaubsplaner` (object stores per record type). Every record carries the app version and the schema that wrote it. An older copy of restlos never overwrites a record that a newer one wrote, because in Chromium all local copies share storage.
-- No network access at runtime; the service worker of the Pages version only loads the app's own files.
+- The service worker of the Pages version only loads the app's own files.
 
 ## Holiday sources and work week
 
@@ -635,47 +635,36 @@ Status: moved to `docs/dev/en/reference/dependencies.md`.
 
 ## Security
 
-Status: partly implemented; plan files and rule sets are treated as untrusted and the app has no network access; iCal files follow with the iCal import, planned for version 1; own templates run isolated with the Pro HTML, planned for version 2.
-
-Recommendation: every file from outside is considered untrusted, the app has no network access, and templates run isolated. The worst a manipulated file can then cause is an error message.
+Status: moved to `docs/dev/en/explanation/security-choices.md`.
 
 ### Threats and countermeasures
 
-Status: partly implemented; the measures for plan files, rule sets and displayed text are built; those for iCal files, the .ics export, data passed to Typst, file names when saving and releases wait for their features, planned for version 1; running own templates isolated in Typst WASM, planned for version 2.
+Status: planned for version 1.
 
 | Input / risk | Example | Countermeasure |
 | --- | --- | --- |
-| Plan file or rule set from a colleague | manipulated JSON, huge file, `__proto__` key | size limit (10 MB) and count limits (see Sharing and validation); `JSON.parse` followed by schema validation of every field; keys like `__proto__`/`constructor` are discarded; data in `Map` or objects without prototype |
 | iCal file from the internet | script in event names, endless `RRULE`, millions of events | size limit (5 MB) and event limit; recurrences stored as a `match` or expanded only for a period chosen at import; names always displayed as text |
-| Display of foreign text | HTML/script in names and notes | Svelte escapes text; `{@html}` is forbidden for data (ESLint rule `svelte/no-at-html-tags`) |
 | Own Typst template | endless loop, file or network access | Typst runs as WASM in a Web Worker with a time limit; it only sees the passed data and the bundled fonts, no files, no network |
 | Data in Typst | injecting Typst code via holiday or note names | data is never inserted into Typst source code, but passed as JSON input and read there |
 | .ics export | broken lines due to commas, semicolons, line breaks | RFC 5545 escaping of all TEXT values, tested |
 | File names when saving | path characters in the contract name | file names reduced to safe characters |
 | HTML file from a foreign source | HTML self-copy or "release" by third parties with malicious code | the help warns: HTML only from the official repository or from people you trust; immutable releases with `SHA256SUMS`, GitHub build provenance (`actions/attest-build-provenance`) and GitHub's release attestation; verification instructions in the README |
-| Compromised dependency | malicious code in the bundle | see supply chain; additionally network lock via CSP |
 
 ### Content Security Policy
 
-Status: partly implemented; the policy of the downloadable HTML file is built and tested; the Pages version's additions, planned for version 1; 'wasm-unsafe-eval' for the Pro HTML, planned for version 2.
+Status: planned for version 1.
 
-In the HTML's `<meta>` tag (GitHub Pages cannot set custom HTTP headers), as the first element after `<meta charset>`: a meta policy applies only to what comes after it.
-
-- `default-src 'none'`, `connect-src 'none'`, `object-src 'none'`, `base-uri 'none'`, `form-action 'none'`.
-- `script-src` only with the SHA-256 hashes of the embedded scripts, computed at build time over the LF-normalized script text; in the Pro HTML additionally `'wasm-unsafe-eval'` for WebAssembly. No `eval`, no `new Function`. Data blocks (`type="application/json"`, `application/octet-stream`) need no hash.
-- `style-src 'unsafe-inline'` (embedded styles; low risk, since no foreign HTML is rendered), `img-src data: blob:`, `font-src data:`, `worker-src blob:`; in the Pages version `worker-src 'self' blob:` for the service worker.
+- In the Pro HTML, `script-src` additionally has `'wasm-unsafe-eval'` for WebAssembly.
+- In the Pages version `worker-src 'self' blob:` for the service worker.
 - The Pages version additionally needs `manifest-src 'self'`: with `default-src 'none'` the web app manifest would otherwise be blocked and the app could not be installed.
 - WebAssembly is compiled from embedded bytes (`WebAssembly.instantiate`), never fetched, since `connect-src 'none'` applies inside the worker too.
-- **Tested** (2026-11-02, Firefox ESR 153, Firefox 159, Chromium 147, on `file://` and for the Pages policy on `http://127.0.0.1`): the directives are enforced from `<meta>`, also on `file://` in Firefox, except Firefox's `file:` requests (see Known gap); whether the manifest loads under `manifest-src 'self'` was not observed, and `font-src data:` only showed no violation. Hashed scripts run; scripts without a hash, event handler attributes, `eval`, `new Function`, `<object>`, `<embed>`, `<base href>`, form submits, `data:` workers and `fetch`/XHR of `blob:` and `data:` URLs are blocked, and WebAssembly runs only with `'wasm-unsafe-eval'`. The service worker registers, and the Pages version loads again offline.
-- **Known gap:** on `file://`, Firefox let the page fetch its own file and show an image file next to it without a `connect-src` or `img-src` violation, where Chromium blocks both. The app never fetches and embeds all images, so this changes nothing for it; the policy is defence in depth, not the only barrier.
 
 ### Verification
 
-Status: partly implemented; the plan file and rule set reader is fuzzed and SECURITY.md exists, the iCal and settings parsers don't exist yet and the CSP and network test runs only locally (issue 0029 (run the build and the end-to-end tests in CI) is open), planned for version 1.
+Status: planned for version 1.
 
-- Fuzzing of the parsers (iCal, plan file, rule set, settings export, template metadata) with fast-check: random and broken inputs may only lead to error messages, never to crashes or wrong data.
-- CI test: the built HTML contains the CSP, and no network request leaves the page (Playwright intercepts requests).
-- `SECURITY.md` with private reporting via GitHub's "Private vulnerability reporting"; handled on a best-effort basis, without any deadline commitment.
+- Fuzzing of the parsers (iCal, settings export, template metadata) with fast-check: random and broken inputs may only lead to error messages, never to crashes or wrong data.
+- CI test: the end-to-end test of the CSP and network access in `docs/dev/en/reference/security.md` runs in CI (issue 0029 (run the build and the end-to-end tests in CI) is open).
 
 ## Build and CI (GitHub Free and local)
 

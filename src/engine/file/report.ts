@@ -104,7 +104,7 @@ const PROTOTYPE_KEYS: readonly string[] = ["__proto__", "constructor", "prototyp
 
 /**
  * True for a key that must not become a key of an object the reader returns: copying or merging such an
- * object naively into another could change a prototype (SPEC, Security).
+ * object naively into another could change a prototype (docs/dev/en/reference/security.md, "Threats and countermeasures").
  */
 export const isPrototypeKey = (key: string): boolean => PROTOTYPE_KEYS.includes(key);
 

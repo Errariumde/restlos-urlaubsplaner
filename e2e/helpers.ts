@@ -74,7 +74,7 @@ async function open(page: Page, url: string): Promise<void> {
 
 /**
  * Opens the built app. Every request that isn't `file:` or `blob:` fails the test: the app makes no network
- * request (docs/SPEC.md, "Content Security Policy"). CSP violations and uncaught page errors are recorded
+ * request (docs/dev/en/reference/security.md, "Network access"). CSP violations and uncaught page errors are recorded
  * for `expectNoPageProblems`.
  */
 export async function openApp(page: Page): Promise<void> {
