@@ -19,4 +19,4 @@ The repository follows [REUSE](https://reuse.software) by the FSFE: every file h
 
 ## Checks
 
-- `npm run check` runs `reuse lint`, and the CI workflow `check` runs `npm run check`. A `reuse lint` error fails both.
+- A `reuse lint` error fails the check. The command and the workflow that run `reuse lint` are in [Local setup](build-and-ci.md#local-setup) and [Workflows](build-and-ci.md#workflows).

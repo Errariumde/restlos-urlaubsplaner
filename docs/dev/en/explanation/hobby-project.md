@@ -21,3 +21,4 @@ restlos is a hobby project without commitments. Its expectations are stated visi
 
 - **A stale bot:** issues are closed by hand instead.
 - **A channel for general questions:** Discussions stay off, and `SUPPORT.md` names the issue templates for bug reports and ideas.
+- **Formal acceptance criteria for a release:** a lightweight [release checklist](../howto/release.md) is used instead.
