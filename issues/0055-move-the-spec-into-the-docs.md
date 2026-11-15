@@ -84,7 +84,7 @@ A feature branch may do a row before its phase. The steps of a move are in `docs
 | Section | Status | Destination | Phase |
 | --- | --- | --- | --- |
 | [ ] Goals and scope | not a requirement | `docs/dev/en/explanation/goals-and-scope.md` (new) | 3 |
-| [ ] Delivery format | partly implemented | the browsers and the consequences of `file://`: `docs/dev/en/reference/browsers-and-file-urls.md` (new), phase 2; the recommendation and "No desktop wrapper": `docs/dev/en/explanation/delivery-format.md` (new), phase 3; the Pages version, the Pages layout, saving and browser storage (IndexedDB) stay as tracking | 2, 3 |
+| [x] Delivery format | partly implemented | the browsers and the consequences of `file://`: `docs/dev/en/reference/browsers-and-file-urls.md`, phase 2; the recommendation and "No desktop wrapper": `docs/dev/en/explanation/delivery-format.md`, phase 2; the bullet on network access moves with "Security"; the Pages version, the Pages layout, saving, browser storage (IndexedDB) and the other planned parts stay as tracking | 2 |
 | [x] Holiday sources and work week | not a requirement | the recommendation: `docs/dev/en/explanation/holiday-sources.md` | 2 |
 | [x] Rule types of the core | implemented | `docs/dev/en/reference/holiday-rules.md` | 2 |
 | [x] Work week per country | partly implemented | `docs/dev/en/reference/holiday-rules.md`; planned parts stay as tracking | 2 |
