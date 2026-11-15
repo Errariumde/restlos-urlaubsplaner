@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Dependency update
 
-1. Never add new packages without explicit approval. Only packages listed in `docs/SPEC.md` ("Dependencies and supply chain") are allowed.
+1. Never add new packages without explicit approval. Only packages listed in [Dependencies](../reference/dependencies.md) are allowed.
 2. Keep `.npmrc` unchanged (`ignore-scripts=true`, `min-release-age=14`, `save-exact=true`). Run tools via npm scripts, never `npx` (without a TTY it installs missing packages without asking, bypassing the lockfile).
 3. Update one group at a time (build, test, runtime). Prefer minor/patch; for majors read the changelog and summarize breaking changes first.
 4. `@playwright/test` must equal the `playwright-driver` version of the Nix dev shell; Dependabot ignores it for that reason. Update it only together with `flake.lock` (step 8).

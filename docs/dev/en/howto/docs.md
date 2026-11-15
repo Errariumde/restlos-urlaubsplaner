@@ -15,7 +15,7 @@ Write or change a page under `docs/user/` or `docs/dev/`. The rules behind the s
 - Normative statements live only in reference pages, rationale only in explanation pages.
 - English and German user pages change in the same commit.
 - Every new file gets SPDX headers, with CC-BY-4.0 for documentation.
-- Docs never cite the spec. Exceptions: the dependency-update how-to until phase 2, and this page's move steps.
+- Docs never cite the spec. Exception: this page's move steps.
 
 ## Steps
 

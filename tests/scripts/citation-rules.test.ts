@@ -168,10 +168,7 @@ describe("checkSpecCitations", () => {
     expect(checkSpecCitations([{ path: "docs/dev/en/reference/a.md", text: "the CommonMark spec\n" }])).toEqual([]));
 
   it("keeps the stage 1 scope and allowlist, each entry with the step that removes it", () => {
-    expect(Object.keys(SPEC_CITATION_ALLOWLIST).sort()).toEqual([
-      "docs/dev/en/howto/dependency-update.md",
-      "docs/dev/en/howto/docs.md",
-    ]);
+    expect(Object.keys(SPEC_CITATION_ALLOWLIST).sort()).toEqual(["docs/dev/en/howto/docs.md"]);
     for (const reason of Object.values(SPEC_CITATION_ALLOWLIST)) expect(reason).toMatch(/^removed /);
     expect(SPEC_CITATION_SCOPE).toEqual(["docs/user/", "docs/dev/", ".claude/skills/"]);
   });

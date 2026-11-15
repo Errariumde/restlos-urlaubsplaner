@@ -190,7 +190,6 @@ export const SPEC_CITATION_SCOPE: readonly string[] = ["docs/user/", "docs/dev/"
 
 /** Scoped files that may still cite the spec, each with the step that removes it. */
 export const SPEC_CITATION_ALLOWLIST: Readonly<Record<string, string>> = {
-  "docs/dev/en/howto/dependency-update.md": 'removed in phase 2, when "Dependencies and supply chain" moves',
   "docs/dev/en/howto/docs.md": "removed when docs/SPEC.md is deleted",
 };
 

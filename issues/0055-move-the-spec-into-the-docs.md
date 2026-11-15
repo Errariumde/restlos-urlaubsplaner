@@ -61,7 +61,7 @@ Each phase is one or more small branches, with `npm run check` passing after eve
 - **Stage 1 (on since phase 1):** no mention of `SPEC.md` in `docs/user/`, `docs/dev/` and `.claude/skills/`, except the files on the check's allowlist. Each allowlist entry names what removes it.
 - **Stage 2 (after phase 4):** no mention of `SPEC.md` anywhere except `issues/` and the one rule in `AGENTS.md`. Besides the code comments that cite moved sections, these lines need rewriting by then:
   - `README.md` L12 and L41, the pointers to the spec;
-  - `AGENTS.md` L21 (the glossary, phase 2), L40 ("feasibility tests from the spec"), L58 ("only packages listed in the spec", phase 2 with the Dependencies row) and L61 (the reason for "Sizes", phase 4 with "Controls, icons and fonts");
+  - `AGENTS.md` L21 (the glossary, phase 2), L40 ("feasibility tests from the spec") and L61 (the reason for "Sizes", phase 4 with "Controls, icons and fonts");
   - `CONTRIBUTING.md` L26 ("including `docs/SPEC.md`") and L28 (the glossary, phase 2);
   - `docs/ai-tooling.md` L16 (the spec's row in the table of instruction files);
   - `docs/feasibility.md` L8 (which spec sections build on the results).
@@ -122,9 +122,9 @@ A feature branch may do a row before its phase. The steps of a move are in `docs
 | [ ] PDF: variants | planned | the rejected alternatives: `docs/dev/en/explanation/pdf-with-typst.md` (new); the rest stays as tracking | 3 |
 | [ ] Own templates: workflow and help | planned | stays as tracking | – |
 | [ ] Architecture, technology and tests | partly implemented | the engine, the worker, the single-file build and the size budget: `docs/dev/en/reference/architecture.md` (new), phase 2; the test strategy: `docs/dev/en/reference/test-strategy.md` (new), phase 2; the recommendation: `docs/dev/en/explanation/architecture.md` (new), phase 3; the open feasibility tests: issues or the roadmap page, phase 3; planned parts stay as tracking | 2, 3 |
-| [ ] Dependencies and supply chain | not a requirement | the recommendation: `docs/dev/en/explanation/supply-chain.md` (new) | 2 |
-| [ ] Dependencies | partly implemented | the whole table to `docs/dev/en/reference/dependencies.md` (new): it is the list of approved packages, and an approval applies today also for a package that isn't installed yet (ical.js, markdown-it, mdBook, typst.ts); the page marks which packages are installed. The same commit re-points `AGENTS.md` L58 ("only packages listed in the spec") to that page | 2 |
-| [ ] Measures against supply chain attacks | implemented | `docs/dev/en/reference/dependencies.md` (new) | 2 |
+| [x] Dependencies and supply chain | not a requirement | the recommendation: `docs/dev/en/explanation/supply-chain.md` (new) | 2 |
+| [x] Dependencies | partly implemented | the whole table to `docs/dev/en/reference/dependencies.md` (new): it is the list of approved packages, and an approval applies today also for a package that isn't installed yet (ical.js, markdown-it, mdBook, typst.ts); the page marks which packages are installed. The same commit re-points `AGENTS.md` L58 ("only packages listed in the spec") to that page | 2 |
+| [x] Measures against supply chain attacks | implemented | `docs/dev/en/reference/dependencies.md` (new) | 2 |
 | [ ] Security | partly implemented | that files from outside are untrusted and that the app has no network access: `docs/dev/en/reference/security.md` (new), phase 2; the recommendation: `docs/dev/en/explanation/security.md` (new), phase 3; planned parts stay as tracking | 2, 3 |
 | [ ] Threats and countermeasures | partly implemented | `docs/dev/en/reference/security.md` (new); planned parts stay as tracking | 2 |
 | [ ] Content Security Policy | partly implemented | `docs/dev/en/reference/security.md` (new); planned parts stay as tracking | 2 |
