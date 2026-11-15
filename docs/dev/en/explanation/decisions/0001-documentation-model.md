@@ -19,7 +19,7 @@ The specification was cited 144 times from 100 files, mostly by quoted section n
 
 Sorting by audience first lets each reader find their kind of text. Sorting by mode second keeps reference free of rationale and plans, so a reference page can be authoritative. The folder names the mode, so the register of a page is visible from its path. A check can then apply the register rules per folder.
 
-English is the source because equal languages in lockstep do not scale to a third language. German is required because the main audience reads German. German help must never fall back to English text in silence. More languages stay optional, so a third language never blocks a change.
+English is the source for two reasons: every contributor reads English, and equal languages in lockstep do not scale to a third language. German is required because users read English or German, and a user who reads only German needs a complete and current page. German help must never fall back to English text in silence. More languages stay optional, so a third language never blocks a change.
 
 The rules of style live on one page that humans and agents share. A deterministic check enforces the mechanical rules, so an agent that skips the page still meets them.
 
@@ -37,7 +37,7 @@ The move happens section by section because one maintainer reviews every diff. A
 | Multilingual mdBook | mdbook-i18n-helpers (gettext); forked theme; three generated books plus a checked string rewrite | **three generated books plus a checked string rewrite** | gettext makes German a PO file tied to English sentences and needs an extra pass for the app. A forked theme is a merge on every upgrade. |
 | Help rendering | a Svelte Markdown library; mdsvex; own typed tree plus one component | **own typed tree plus one component** | Every maintained library parses in the browser, so the parser ships in the single HTML file, whose budget is 600 KB. Several insert raw HTML with `{@html}` from `node_modules`, and none runs the project's checks. |
 | Parser | marked; markdown-it; remark parser layer; Markdoc | **markdown-it 15.0.3, build-only, approved** | It parses like GitHub (CommonMark) and gives block line ranges for errors. Its `Token` format was unchanged from 14 to 15, and it drops `javascript:` and `data:` links. It adds 6 lockfile entries. |
-| Languages | equal languages in lockstep; gettext; English source with German required | **English source, German required and current in the same commit, more languages optional** | Equal lockstep doesn't scale to a third language, and gettext puts the main audience's language into PO files. |
+| Languages | equal languages in lockstep; gettext; English source with German required | **English source, German required and current in the same commit, more languages optional** | Equal lockstep doesn't scale to a third language, and gettext puts German, a required language, into PO files. |
 | Language in paths | suffix on every file; suffix on translations; language folders for user docs; language folders everywhere | **language folders everywhere, including `docs/dev/en/`** | One rule for all of `docs/`: clean trees for optional languages, ownership per folder, and room for translated developer docs. |
 
 ## Status
