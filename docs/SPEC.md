@@ -622,7 +622,7 @@ Status: partly implemented; "View example" and the keys of the calendar, V, W an
 
 Offline, bilingual, context-sensitive ("?" on every dialog). Chapters: Getting started, Work week and part-time, Day rules, Calendar sources (incl. showing the previous year), Plan and allowance, Plan file, rule set and saving (incl. the Firefox setting for overwriting and installing the web app with file association), Colors, Keyboard shortcuts, Privacy (incl. what the browser stores: device settings, recovery copies and the revision record, and that in Chrome and Edge other local HTML files can read them), **Own PDF templates** (see Output), About/Licenses.
 
-**Sources:** one Markdown file per topic. English is the source and is written first, under `docs/user/en/`; German is required and current, under the same path in `docs/user/de/`, changed in the same commit. A sync file records, per translation, a hash of the English text it matches: a German file whose recorded hash differs from the current English fails the check, a German-only fix such as a typo passes, and one command re-records the hash after someone has checked the German. The hashes are of content, not of git commits, because `main` has only squash merges. Further languages are optional: a mismatch or a missing file only warns, the website marks an outdated page, and a missing page falls back to English. German texts use "du", gender-neutral wording without gender characters, "z. B." with a non-breaking space, no "wir" in tutorials and no Konjunktiv in instructions.
+**Sources:** one Markdown file per topic. English is the source and is written first, under `docs/user/en/`; German is required and current, under the same path in `docs/user/de/`, changed in the same commit. A sync file records, per translation, a hash of the English text it matches: a German file whose recorded hash differs from the current English fails the check, a German-only fix such as a typo passes, and one command re-records the hash after someone has checked the German. The hashes are of content, not of git commits, because `main` has only squash merges. Further languages are optional: a mismatch or a missing file only warns, the website marks an outdated page, and a missing page falls back to English. The style rules for the help sources are on `docs/dev/en/reference/documentation-style.md`.
 
 **Build:** a build-only Vite plugin parses both languages with markdown-it, imported from the package root, with `html: true`, so raw HTML fails the build loudly. A converter turns the tokens into the project's own closed, typed help tree of about ten node kinds; the checks run on that tree and report file and line from markdown-it's block ranges, and a link allowlist is the real defence. The build embeds one JSON data block per language with `insertDataBlock`, which escapes every `<`. `HelpTopic.svelte` renders the tree with two recursive snippets and no `{@html}`. Estimated size: about 90–150 KB for both languages, or 40–70 KB stored compressed with `DecompressionStream`; measured against the size budget.
 
@@ -799,7 +799,7 @@ Recommendation: use common, widespread tools, but choose them deliberately and s
 
 ### Dependencies
 
-Status: partly implemented; ical.js comes with the iCal import, planned for version 1; markdown-it comes with the help, planned for version 1; typst.ts comes with the Pro HTML, planned for version 2.
+Status: partly implemented; ical.js comes with the iCal import, planned for version 1; markdown-it comes with the help, planned for version 1; mdBook comes with the website, planned for version 1; typst.ts comes with the Pro HTML, planned for version 2.
 
 | Package | Purpose | In the HTML? | Assessment |
 | --- | --- | --- | --- |
@@ -815,6 +815,7 @@ Status: partly implemented; ical.js comes with the iCal import, planned for vers
 | ical.js | read iCal (and verify the export) | yes | 0 dependencies (depscope, as of 2026-10), MPL-2.0; proven parser instead of an own implementation, also covers `RRULE`/`EXDATE` |
 | intl-messageformat (FormatJS) | ICU messages | yes | established ICU implementation; check the dependency tree during setup, otherwise `@messageformat/core` |
 | markdown-it 15.0.3 | parses the help Markdown | no | approved 2026-11-14; build only; 6 packages including itself (`argparse` already present); CommonMark; installed with the help |
+| mdBook 0.5.2 | builds the documentation website | no | approved 2026-11-14; a tool from the Nix dev shell (nixpkgs), no npm package; comes with the website |
 | date-holidays | reference model | no | development dependency, tests only |
 | @playwright/test | end-to-end | no | standard; browsers locally from nixpkgs, in CI via Playwright |
 | axe-core | accessibility checks | no | MPL-2.0, dev only, pinned exactly; approved 2026-11-04 |
@@ -899,11 +900,11 @@ The user documentation and the developer documentation are published as a websit
 - **Language link:** each user page gets a link to its twin in the other language as its first line, with `hreflang` set. It needs no JavaScript.
 - **Redirects:** `[output.html.redirect]` is generated from the help's alias list of old topic IDs.
 - **German interface text:** after `mdbook build`, a Node step replaces mdBook's English strings in the German book with strings from a `docsSite.*` catalog group, about 25 strings plus 5 theme names. The step fails if the mdBook version differs from the pinned one, if a rule matches nowhere, or if text outside `<main>` is identical in the German and English output.
-- **Search:** per book. German has no stemming; if that proves too weak, Pagefind over the output is tried first.
+- **Search:** per book. German has no stemming; if that proves too weak, Pagefind over the output is tried first (needs the maintainer's approval).
 - **Not published:** `SPEC.md`, `issues/` and the component gallery.
 - **Deployment:** together with each release, from one folder, in one deploy (see Workflows, `release`).
-- **Test build first:** before the website is built in detail, a test build confirms the string list, the search script's file name, that the rewrite leaves page content alone, the identity check, the language links under the site URL, the redirects, a German 404 page, German search, that there are no outside requests, and Firefox ESR, Chromium, WebKit and Orca.
-- **Fallback:** if the string rewrite proves unreliable, Hugo with an own layout and Pagefind. Hugo also becomes the better choice if the site grows beyond help pages.
+- **Test build first:** before the website is planned in detail, a test build confirms the string list, the search script's file name, that the rewrite leaves page content alone, the identity check, the language links under the site URL, the redirects, a German 404 page, German search, that there are no outside requests, and Firefox ESR, Chromium, WebKit and Orca.
+- **Fallback:** if the string rewrite proves unreliable, Hugo with an own layout and Pagefind (both need the maintainer's approval). Hugo also becomes the better choice if the site grows beyond help pages.
 
 ### Workflows
 
