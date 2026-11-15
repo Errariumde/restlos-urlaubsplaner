@@ -42,7 +42,7 @@ Where partial leave lies also decides:
 
 - **Smallest leave unit:** the calendar plans in the open plan's `minUnit` ([Smallest leave unit](file-format.md#smallest-leave-unit)). Under a unit that ½ is no multiple of, such as `"1"`, H changes nothing and the hint line says that the plan has no half days (`src/ui/calendar/keyboard.svelte.ts`). The selection bar then offers no half day (`halfDayFits` in `src/ui/calendar/range.ts`).
 - **Leave bar:** the day detail's leave bar splits the day into parts of `minUnit`, at most 32. A finer unit is drawn in its smallest multiple that gives at most 32 parts (`partCount` in `src/ui/calendar/leave-switch.ts`).
-- **Display:** `formatDays` in `src/ui/i18n/format.ts` is the one function that writes day amounts. It is exact for every multiple of 1/480: the whole days, then the fraction in lowest terms, as a Unicode glyph where one exists ("12¾"), else as numerator/denominator after a no-break space ("1 3/32").
+- **Display:** `formatDays` in `src/ui/i18n/format.ts` is the one function that writes day amounts. It is exact for every multiple of 1/480: the whole days, then the fraction in lowest terms, as a Unicode glyph where one exists ("12¾"), else as numerator/denominator, after a no-break space when whole days come first ("3/32", "1 3/32").
 - **Day cell:** the fill of each share covers an area of the cell proportional to the share (`src/ui/calendar/day-leave.ts`).
 - **Tests:** property tests in `tests/engine/counting/leave.test.ts` and `tests/engine/counting/plan.test.ts` compute with random multiples of 1/32 and of 1/480.
 

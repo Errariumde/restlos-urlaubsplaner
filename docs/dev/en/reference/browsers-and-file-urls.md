@@ -5,6 +5,8 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Browsers and file URLs
 
+Which browsers restlos supports and what follows from opening it from disk. The reasons are in [Delivery format](../explanation/delivery-format.md).
+
 ## Supported browsers
 
 - **Firefox:** the current Firefox ESR and the current Firefox.
@@ -14,4 +16,4 @@ The current Firefox ESR is the baseline for browser features, as the "Browsers" 
 
 ## Opened from disk
 
-The app must not `fetch()` a local file. The holiday data and the images, which are the SVG icons, are part of the built page ([Single-file build](architecture.md#single-file-build)).
+The app must not `fetch()` a local file; everything it needs is part of the built page ([Single-file build](architecture.md#single-file-build)).

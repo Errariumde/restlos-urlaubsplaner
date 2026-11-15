@@ -113,7 +113,7 @@ Status: planned for version 1.
 
 The same day with the same name from several sources or the built-in set is shown once and marked as a duplicate.
 
-**Import (once):** choose file → preview of all recognized events with a checkbox per entry and a list **"not supported / skipped"** → set name, type, color → apply. Only the chosen events are stored, as entries; the `.ics` file is not kept.
+**Import (once):** choose file → preview of all recognized events with a checkbox per entry and a list **"not supported / skipped"** → set name, type, color → apply. Only the chosen events are stored, as entries; the `.ics` file is not kept. Import, update, editing and export are issue 0010 (iCal import and export of calendar sources).
 
 - The user chooses the meaning, as easily as possible: the preview groups events by name (twelve "Schulferien" events or a repeating "Elternabend" are one decision) and offers every type, including Time off needed. Nothing is guessed silently; events that don't fit (e.g. 10:00–14:00, or shorter than `minUnit`) are the user's decision.
 - Defaults without working hours: all-day events become full days; an event that ends by 12:00 suggests "½ start", one that starts at 12:00 or later "½ end"; one that spans noon gets no suggestion.
@@ -149,7 +149,7 @@ Status: moved to `docs/dev/en/reference/counting-model.md`.
 
 Status: planned for version 1.
 
-The template interface is built so that planning down to **1/32 day** works everywhere without data migration and without changing the calculation logic. Anyone working on the code must observe this:
+The template interface must be built so that planning down to **1/32 day** works everywhere without data migration and without changing the calculation logic. Anyone working on the code must observe this:
 
 | Area | Requirement from version 1 |
 | --- | --- |
@@ -157,7 +157,7 @@ The template interface is built so that planning down to **1/32 day** works ever
 | .ics | Partial days as all-day events with share and part in the title, plus the machine-readable fields `X-RESTLOS-TAKE`, `X-RESTLOS-PART` and `X-RESTLOS-TYPE`; no working hours, no appointments with times. |
 | Templates | The data interface delivers shares as a number and as a fraction string; built-in templates must not contain fixed "half" assumptions. |
 
-What is still missing later is only UI: a calendar key and range actions for finer steps, and the `minUnit` setting in the contract dialog (issue 0048, a calendar key for finer leave steps, and the smallest leave unit in the contract dialog).
+What is still missing later is also UI: a calendar key and range actions for finer steps, and the `minUnit` setting in the contract dialog (issue 0048, a calendar key for finer leave steps, and the smallest leave unit in the contract dialog).
 
 ### How a day's required work comes about
 
@@ -601,7 +601,7 @@ All outputs (.ics, PDF, JSON) read the same computed state; no output recalculat
 | --- | --- | --- |
 | Browser storage with `file://` | Do local files share one storage? Does it survive renaming the file? (Firefox, Chromium) | version 1: **done** 2026-11-02 (see Delivery format) |
 | CSP and keyboard shortcuts | Do all CSP directives work via `<meta>` in the Firefox ESR? Do Ctrl+S and Ctrl+O reach the page? | version 1: **done** 2026-11-02 (see Content Security Policy, Built-in help) |
-| Web Worker from `file://` | Does a worker built into the HTML file start from `file://` with the CSP from `<meta>` (`worker-src blob:`) in the Firefox ESR, Chromium and Safari? How long does handing a 10 MB file's model to the page take? | version 1: **done** 2026-11-02 for Firefox and Chromium (see Architecture, Loading); Safari from documentation |
+| Web Worker from `file://` | Does a worker built into the HTML file start from `file://` with the CSP from `<meta>` (`worker-src blob:`) in the Firefox ESR, Chromium and Safari? How long does handing a 10 MB file's model to the page take? | version 1: **done** 2026-11-02 for Firefox and Chromium (see Architecture); Safari from documentation |
 | Calendar import | Behavior of Thunderbird, Google, Outlook on re-import of the same `UID` | version 1: **from documentation only** (see .ics export) |
 | Typst WASM offline | compressed size, load time, fonts as bytes, compiling from `file://` | version 2 |
 | HTML self-copy | rewrite the app's original bytes unchanged (carry the app source along as `type="text/plain"`) | version 3 |

@@ -17,6 +17,4 @@ restlos comes in two forms from the same build: a downloadable HTML file for off
 
 ## Rejected alternatives
 
-- **A local server .exe:** builds for three operating systems, signing warnings, and a local server as attack surface.
-- **Tauri:** builds for three operating systems, signing warnings, and a second supply chain with Rust crates.
-- **Electron:** builds for three operating systems and signing warnings.
+- **A desktop wrapper: a local server .exe, Tauri or Electron.** The costs of a wrapper are builds for three operating systems, signing warnings, a second supply chain with Rust crates and a local server as attack surface.

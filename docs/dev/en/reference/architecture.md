@@ -39,5 +39,5 @@ The engine counts calendar days as integer day numbers, as the "Dates" [hard rul
 ## Single-file build
 
 - **One file:** `npm run build` writes one HTML file, `dist/restlos-urlaubsplaner.html` (`OUTPUT_FILE` in `scripts/build/vite-restlos.ts`).
-- **Inlined:** vite-plugin-singlefile puts the scripts and styles into the page. The worker's code and the built-in example plan are in it too. The build fails when the page still loads a script or style file.
+- **Inlined:** vite-plugin-singlefile puts the scripts and styles into the page. The worker's code with the holiday data (`src/data/holidays/`), the SVG icons (`src/ui/icons/`) and the built-in example plan are in it too. The build fails when the page still loads a script or style file.
 - **Size budget:** the build fails when the HTML file is larger than 600 KB, 614,400 bytes (`MAX_BYTES`). The limit covers the whole file, the DE/EN catalogs included.
