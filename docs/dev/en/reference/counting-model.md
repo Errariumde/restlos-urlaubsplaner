@@ -5,49 +5,65 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Counting model
 
-## The one formula
+How the engine computes a day's required work and the cost of its leave. The unit, the cost as an overlap, the order of the layers and the offer of the calendar's actions are set by the "Counting model" [hard rule](../../../../AGENTS.md#hard-rules). How weights, `take` and `part` are written is in [Plan files and rule sets](file-format.md#values). The reasons are in [Counting choices](../explanation/counting-choices.md).
 
-Cost of a day = the overlap of the leave with the day's working time, both as shares of the day where they lie in it. Leave lies at the start or the end of the day as its `part` says; a full day covers the whole day. The working time is one block as long as the required work: the whole day on a normal working day; on a day with less work it lies beside its free time, which is at the end unless the layer that decides the required work says `part: "start"`. The work week has no `part`, so a part-time day has its work at the start of the day (issue 0047, a part for work-week entries). Leave on time that is off anyway costs nothing, so the cost is never more than min(taken, required work) and equals it on a normal working day.
+## Cost of a day
+
+`evaluateLeave` in `src/engine/counting/leave.ts` computes the cost in day positions: 0 is the start of the day, 480 its end.
+
+- **Leave** lies at the start or the end of the day, as its `part` says; a full day covers the whole day. Leave from another plan lies at its span.
+- **Working time** is one block as long as the required work. On a day with less work, the free time lies at the end unless the layer that decides the required work says `part: "start"` ([Part](day-rules-format.md#part)).
+- **Work week:** its entries have no `part`, so on a part-time weekday the work lies at the start of the day (issue 0047, a part for work-week entries).
 
 | Day | Leave | Cost | Result |
 | --- | --- | --- | --- |
 | normal working day | full | 1 | full day off |
 | normal working day | ½, either part | ½ | half day off |
-| 24 Dec, work ½ in the morning | ½ afternoon | 0 | nothing changes; a problem |
+| 24 Dec, work ½ in the morning | ½ afternoon | 0 | nothing changes; problem `leaveOnFreeTime` |
 | 24 Dec, work ½ in the morning | ½ morning | ½ | full day off |
 | 24 Dec, work ½ in the morning | full | ½ | full day off |
 | Friday ½ from the work week | as on 24 Dec | | |
 | ¾ day (free at the end) | ½ afternoon | ¼ | free from noon |
 | ¾ day (free at the end) | ½ morning | ½ | ¼ is worked |
 | ¾ day (free at the end) | full | ¾ | full day off |
-| weekend, holiday | any | 0 | not selectable; a problem when it comes from a file |
+| weekend, holiday | any | 0 | not selectable; problem `leaveWithoutRequiredWork` when it comes from a file |
 
-Where in the day partial leave lies (at the start or the end of the day, shown as morning or afternoon for half days) decides how much of it overlaps the working time: on a normal working day either part costs the same, on a day with less work only the part that lies on the working time costs. It also decides whether the day joins a stretch (see Allowance display) and whether it overlaps mandatory leave on the same day (see Mandatory leave), and is used for display and .ics.
+The problems are reported by `computePlan` in `src/engine/counting/plan.ts`. The calendar's actions set no own leave on a day without required work, and the leave bar books no own leave that lies only on time without work.
 
-## Finer granularity
+Where partial leave lies also decides:
 
-Version 1 sets **full** and **half** days with the calendar's clicks, keys and ranges; only the day detail's leave bar offers the plan's smallest leave unit (see "Detail view"). Engine and file format are built so that planning down to **1/32 day** (15 minutes at 8 hours) works everywhere without data migration and without changing the calculation logic. Anyone working on the code must observe this:
+- whether the day joins a stretch, an unbroken run of time off (`findStretches` in `src/engine/counting/stretches.ts`);
+- how it overlaps mandatory leave on the same day, see [Mandatory leave](#mandatory-leave);
+- where the day cell and the day detail draw it. Half days are shown as morning or afternoon.
 
-| Area | Requirement from version 1 |
-| --- | --- |
-| Unit | 1 day = 480 integer units (480 = 2⁵ · 3 · 5); thus ½, ⅓, ¼, ⅕, ⅙, ⅛, 1/16 and 1/32 are exact. Never floats, never the assumption "only 0, ½, 1". |
-| Contract | The planning follows the unit of the open plan, also another one from a handwritten file: half days only where ½ is a multiple of it, so none under `"1"`; there H changes nothing and the hint line says so. |
-| Engine | Cost = the overlap of the leave with the working time, for arbitrary multiples of 1/32 (exactly in 1/480); no special cases for ½. |
-| Display | one central formatting function for shares (mixed fractions like "12 ¾") that handles every denominator up to 32; the day cell draws its fill proportionally to the share, not only "half" or "full". |
-| Operation | The choices are generated from `minUnit`, not hard-wired: the detail's leave bar is split into parts of it (at most 32: a finer unit is drawn in the smallest multiple of it that gives at most 32 parts), and H and the range actions offer a half day only where ½ is a multiple of it. |
-| Tests | Property tests calculate with random multiples of 1/32 (and exactly in 1/480), although the calendar's keys and ranges offer only ½. |
+## Units
 
-## How a day's required work comes about
+`UNITS_PER_DAY` in `src/engine/weight.ts` is 480. 480 = 2⁵ · 3 · 5, so ½, ⅓, ¼, ⅕, ⅙, ⅛, 1/16 and 1/32 are whole numbers of units.
 
-1. **Base value** from the contract's work week (for example Mon–Fri = 1, Sat/Sun = 0; part-time Friday = 0 or ½).
-2. **Lowering layers:** built-in holidays (0), calendar sources of type Holiday (0 or ½) and Paid closure (0), own day rules (for example "24 Dec and 31 Dec: at most ½"). The **minimum** of all applicable values applies. A rule can therefore never make a Sunday or holiday more expensive; if New Year's Eve falls on a Sunday, it stays 0.
-3. **Force** (rare, explicitly marked): a rule sets the required work to a fixed value, for example working Saturday = 1. Forced rules apply after step 2.
-4. **Manual override** of a single date applies last.
+- **Smallest leave unit:** the calendar plans in the open plan's `minUnit` ([Smallest leave unit](file-format.md#smallest-leave-unit)). Under a unit that ½ is no multiple of, such as `"1"`, H changes nothing and the hint line says that the plan has no half days (`src/ui/calendar/keyboard.svelte.ts`). The selection bar then offers no half day (`halfDayFits` in `src/ui/calendar/range.ts`).
+- **Leave bar:** the day detail's leave bar splits the day into parts of `minUnit`, at most 32. A finer unit is drawn in its smallest multiple that gives at most 32 parts (`partCount` in `src/ui/calendar/leave-switch.ts`).
+- **Display:** `formatDays` in `src/ui/i18n/format.ts` is the one function that writes day amounts. It is exact for every multiple of 1/480: the whole days, then the fraction in lowest terms, as a Unicode glyph where one exists ("12¾"), else as numerator/denominator after a no-break space ("1 3/32").
+- **Day cell:** the fill of each share covers an area of the cell proportional to the share (`src/ui/calendar/day-leave.ts`).
+- **Tests:** property tests in `tests/engine/counting/leave.test.ts` and `tests/engine/counting/plan.test.ts` compute with random multiples of 1/32 and of 1/480.
 
-**Mandatory leave** (for example company-wide leave 27–30 Dec) is not a required-work value but marks days as taken, by a share of the day (a full day or for example ½); they charge the allowance with their overlap with the working time, like own leave, and can only be changed via their rule or source. If own leave is set on such a day as well, leave on the same part of the day counts once; leave on different parts of the day adds up.
+## Required work
 
-**Time off needed** (a source of that type, for example the Kita closes on Tuesday afternoons) never costs anything and doesn't change the required work.
+`requiredWork` in `src/engine/counting/required.ts` computes a day's required work in three stages:
 
-## Work week with validity
+1. **Minimum** of the base value from the work week and every lowering layer that applies: built-in public holidays (0), `holiday` sources (their `required`, `"0"` … `"1"`), `paidClosure` sources (0) and `requiredAtMost` rules.
+2. **Forced rules** (`requiredExactly`) replace the minimum, see [Effects](day-rules-format.md#effects).
+3. **Manual override** of the single date replaces both.
 
-This way a contract with a switch to part-time stays one file. The rules describe ongoing employment, and there is no separate state for days before or after it.
+Where the free time lies when several layers give the same value: [Part](day-rules-format.md#part). The source types are listed in [Types](file-format.md#types). Mandatory leave, time off needed, `info` sources and leave from another plan are no layers: they don't change the required work.
+
+## Mandatory leave
+
+Mandatory leave comes from `mandatory` day rules ([Effects](day-rules-format.md#effects)) and `mandatory` sources ([Types](file-format.md#types)).
+
+- **Changes:** the calendar's actions and the leave bar change only own leave (`changeFor` in `src/ui/calendar/range.ts`, `src/ui/calendar/leave-switch.ts`). Mandatory leave changes only with its rule or source.
+- **With own leave:** the cost is the overlap of both together with the working time. On the same part of the day they count once ([Part](day-rules-format.md#part)); on different parts they add up.
+- **With leave from another plan:** see [Leave from another plan](file-format.md#leave-from-another-plan).
+
+## Work week
+
+The work week is a list of entries with start dates ([Work week](file-format.md#work-week)). The list has no end date: the rules describe ongoing employment, and there is no separate state for days before or after it.

@@ -206,7 +206,7 @@ A need of `take` at the `"end"` is covered on a day that is entirely free or who
 
 ### Leave from another plan
 
-An `otherPlan` source holds the days another plan charged, as the spans it charged, in positions of the day:
+An `otherPlan` source holds the days another plan charged, for example the days in January that the previous year's plan already charged. It holds them as the spans that plan charged, in positions of the day:
 
 | Key | Required | Meaning |
 | --- | --- | --- |
@@ -225,8 +225,6 @@ In the plan that holds the source, a span is free time that never costs. Mandato
 - `entries`: for every day of its period with a cost above 0, one entry per span it charged, that is where its leave overlaps its working time. A span is `"mandatory"` where mandatory leave was charged, also where own leave lies on the same part of the day, and `"leave"` for the rest of the charged own leave.
 
 Nothing else of the other plan is stored: no notes, contract or allowance. Because each plan stores what the other actually charged, a shared day is charged in exactly one plan, also when two plans import each other. The import is refused with the reader's refusal, with `notAPlan` for a rule set, and with `limitExceeded` (`entriesPerSource`) when the plan charged more than 2000 spans. For "Update source" it gives notices: `differentPlan` when the file has another `id` than the plan imported before, `olderRevision` when its `revision` is lower than before, and `outdatedCopyOfCurrent` when it contains an older copy of the current plan as a source of its own.
-
-An `otherPlan` source shows for example in January the days already planned in the previous year.
 
 ## Templates
 
