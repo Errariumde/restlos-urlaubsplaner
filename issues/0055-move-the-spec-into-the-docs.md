@@ -27,7 +27,7 @@ This issue is the single list that gives every spec section its destination and 
 
 - Every row of the table below is done.
 - Stage 2 of the citation rule is on: no mention of `SPEC.md` anywhere except `issues/` and the one rule in `AGENTS.md`.
-- The five indirect mentions listed under Notes are reworded to cite the page their text moved to.
+- The indirect mentions listed under Notes are reworded to cite the page their text moved to.
 
 ## Notes
 

@@ -643,6 +643,7 @@ Status: planned for version 1.
 
 | Input / risk | Example | Countermeasure |
 | --- | --- | --- |
+| Plan file or rule set from a colleague | manipulated JSON, huge file, `__proto__` key | data in `Map` or objects without prototype |
 | iCal file from the internet | script in event names, endless `RRULE`, millions of events | size limit (5 MB) and event limit; recurrences stored as a `match` or expanded only for a period chosen at import; names always displayed as text |
 | Own Typst template | endless loop, file or network access | Typst runs as WASM in a Web Worker with a time limit; it only sees the passed data and the bundled fonts, no files, no network |
 | Data in Typst | injecting Typst code via holiday or note names | data is never inserted into Typst source code, but passed as JSON input and read there |

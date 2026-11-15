@@ -13,7 +13,6 @@ SPDX-License-Identifier: CC-BY-4.0
 
 | Input / risk | Example | Countermeasure |
 | --- | --- | --- |
-| Plan file or rule set from a colleague | manipulated JSON, huge file, `__proto__` key | data in `Map` or objects without prototype |
 | Display of foreign text | HTML/script in names and notes | Svelte escapes text; `{@html}` is forbidden for data (ESLint rule `svelte/no-at-html-tags`) |
 
 ## Content Security Policy
