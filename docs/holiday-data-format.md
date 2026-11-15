@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Holiday data format
 
-Reference for the country data files in `src/data/holidays/` (one JSON file per country, e.g. `de.json`). The TypeScript shape is `CountryData` in `src/engine/holidays/types.ts`; `validateCountryData` in `src/engine/holidays/validate.ts` checks a file and reports every problem it finds, including unknown keys. The procedure for changing holiday data is in [`.claude/skills/holiday-data/SKILL.md`](../.claude/skills/holiday-data/SKILL.md).
+Reference for the country data files in `src/data/holidays/` (one JSON file per country, e.g. `de.json`). The TypeScript shape is `CountryData` in `src/engine/holidays/types.ts`; `validateCountryData` in `src/engine/holidays/validate.ts` checks a file and reports every problem it finds, including unknown keys. The procedure for changing holiday data is in [`docs/dev/en/howto/holiday-data.md`](dev/en/howto/holiday-data.md).
 
 ## Top level
 
@@ -79,9 +79,9 @@ The engine takes a selection `{ country, state, options }`. A switch that is mis
 
 ## Adding a country
 
-1. Find the official legal sources (see the skill above).
+1. Find the official legal sources (see the how-to above, step 2).
 2. Create `src/data/holidays/<cc>.json` (lowercase country code); `REUSE.toml` already covers `src/data/**`.
 3. Import it in `src/data/holidays/index.ts` and add it to `countries` under its code.
 4. Add `tests/data/holidays/<cc>.test.ts` with known dates for at least three years per rule, including the years before and after each rule change. The validity test in `tests/data/holidays/de.test.ts` runs for every entry of `countries`.
-5. Add the translation keys used by the file to the message catalogs (`ui-texts` skill).
+5. Add the translation keys used by the file to the message catalogs (`docs/dev/en/howto/ui-texts.md`).
 6. Cross-check against the Python `holidays` package and explain the differences.

@@ -5,9 +5,11 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # restlos-urlaubsplaner – Specification (single-file HTML)
 
-As of: 2026-10-19
+As of: 2026-11-14
 
 ## Goals and scope
+
+Status: not a requirement; moves to docs/dev/en/explanation/ in phase 3.
 
 A personal vacation planner as a single HTML file that runs offline: calculate public holidays, plan leave with a click, see the allowance live, export the plan as PDF and .ics. A plan file holds everything for one person's planning period, including a copy of the rules; rules can be shared as a rule set per company or collective agreement; the next year is created as a new file based on the old one.
 
@@ -54,6 +56,8 @@ Other licenses only where necessary: built-in PDF templates, example template an
 
 ## Delivery format
 
+Status: partly implemented; the downloadable HTML file is built, the GitHub Pages version (the landing page, the app with manifest and service worker, the documentation website and their layout), saving and browser storage (IndexedDB) are not, planned for version 1.
+
 Recommendation: two distribution channels from the same build. A **downloadable HTML file** for offline use from your own computer, and a **hosted version on GitHub Pages** (free for public repositories) that can be installed as a web app on the phone and then also runs offline. In both cases the data stays on the device.
 
 | Variant | Size | Role |
@@ -61,6 +65,8 @@ Recommendation: two distribution channels from the same build. A **downloadable 
 | Standard HTML for download (`file://`) | target under 600 KB | **main path on the computer** |
 | Pro HTML for download | measure in feasibility test | version 2 |
 | GitHub Pages with web app manifest and service worker | same as standard or Pro | **path for the phone** and quick start without download; usable offline after the first visit; installable as an app in Chrome/Edge on desktop with file association for `.urlaub.json` and `.regeln.json` |
+
+**Pages layout:** a landing page at `/<repo>/` with no service worker; the app at `/<repo>/app/`, with its service worker and manifest scoped there; the documentation at `/<repo>/docs/de/`, `/docs/en/` and `/docs/dev/` (see Build and CI, "Documentation website").
 
 **No desktop wrapper.** A local server .exe, Tauri and Electron were evaluated. The only real gain would be saving into the same file and opening by double-click in any browser. The installed Pages version in Chrome/Edge already covers that ([File Handling API](https://developer.chrome.com/articles/file-handling), from version 102, desktop only); for Firefox a browser setting helps (see below). The costs of a wrapper (builds for three operating systems, signing warnings, a second supply chain with Rust crates, a local server as attack surface) don't fit a stable hobby project.
 
@@ -78,9 +84,13 @@ Recommendation: two distribution channels from the same build. A **downloadable 
 
 ## Holiday sources and work week
 
+Status: not a requirement; moves to docs/dev/en/explanation/ in phase 2.
+
 Recommendation: a **country-neutral rule core** with embedded data initially only for Germany, plus **any number of calendar sources** from iCal files. Country-neutral costs hardly any extra effort as long as the core is limited to Gregorian and Easter-based rules.
 
 ### Rule types of the core
+
+Status: implemented.
 
 | Rule type | Example | Needed for DE? |
 | --- | --- | --- |
@@ -97,6 +107,8 @@ A fixed date "02-29" is only allowed with an explicit behavior for non-leap year
 
 ### Work week per country
 
+Status: partly implemented; the engine and the file format are built, the work week and the week start can't be changed in the UI yet, planned for version 1.
+
 Countries define the work week differently: weekend Sat/Sun (DE), Fri/Sat (some countries in the Middle East), only one day off (six-day week), week start Monday, Sunday or Saturday. Therefore:
 
 - The country data contains the **standard work week** (required work per weekday) and the **week start**.
@@ -105,6 +117,8 @@ Countries define the work week differently: weekend Sat/Sun (DE), Fri/Sat (some 
 - The week start in the UI comes from the country data or a separate table, not from the browser (its week info is missing in Firefox); the default for DE is Monday, changeable.
 
 ### Region tree and German special cases
+
+Status: partly implemented; the region tree and the local rules are in the holiday data, choosing the federal state and its local rules in the UI is not built, planned for version 1.
 
 Region tree country → region → optional sub-areas (e.g. DE → BY → "City of Augsburg", "Assumption Day applies"). Holiday names are translation keys. Further countries come later as a data file without code changes.
 
@@ -115,6 +129,8 @@ Region tree country → region → optional sub-areas (e.g. DE → BY → "City 
 After choosing the federal state, only its local rules appear, phrased as "applies at my **place of work**" (the place of work is decisive, not the place of residence; have it legally proofread before publication), with an explanatory text and a link to the official source. Municipality lists are not embedded.
 
 ### Multiple calendar sources (iCal)
+
+Status: partly implemented; the engine reads and counts every source type and the calendar shows them, import, update, editing, export and the duplicate mark are not built (issue 0010 (iCal import and export of calendar sources) is open), planned for version 1.
 
 A **calendar source** is a named list of days with a type and a color. It is imported once from an iCal file or another plan file, or created by hand (e.g. the closure days of a Kita from a PDF), and is stored only as its entries: a date, or a repeating `match` in the day-rule format (see Format). No iCal text is kept and no time zone is stored.
 
@@ -160,6 +176,8 @@ The app doesn't download these files itself; the user imports the saved file.
 
 ### Reference models for tests
 
+Status: implemented.
+
 | Source | Role |
 | --- | --- |
 | [date-holidays](https://github.com/commenthol/date-holidays) (code ISC, data CC BY-SA 3.0) | reference model in CI, not embedded |
@@ -169,9 +187,13 @@ date-holidays is a development dependency and runs directly in the Vitest tests 
 
 ## Counting model (weights)
 
+Status: not a requirement; moves to docs/dev/en/explanation/ in phase 3.
+
 Recommendation: every day has a **required work** value (how much work is owed), the user takes a share of the day off (a **full** or **half** day with the calendar's clicks, keys and ranges, a part of the plan's smallest leave unit in the day detail's leave bar), and the cost is how much of that leave overlaps the day's working time. Internal calculation in integer units (1 day = 480), so that sums stay exact and planning down to 1/32 day works without restructuring.
 
 ### The one formula
+
+Status: implemented.
 
 Cost of a day = the overlap of the leave with the day's working time, both as shares of the day where they lie in it. Leave lies at the start or the end of the day as its `part` says; a full day covers the whole day. The working time is one block as long as the required work: the whole day on a normal working day; on a day with less work it lies beside its free time, which is at the end unless the layer that decides the required work says `part: "start"`. The work week has no `part`, so a part-time day has its work at the start of the day (issue 0047, a part for work-week entries). Leave on time that is off anyway costs nothing, so the cost is never more than min(taken, required work) and equals it on a normal working day.
 
@@ -192,6 +214,8 @@ Where in the day partial leave lies (at the start or the end of the day, shown a
 
 ### Finer granularity: prepared, offered only in the leave bar
 
+Status: partly implemented; engine, file format, display and leave bar are built; the .ics and template rows wait for those outputs, planned for version 1; issue 0048 (a calendar key for finer leave steps, and the smallest leave unit in the contract dialog) is open, planned for version 3.
+
 Version 1 sets **full** and **half** days with the calendar's clicks, keys and ranges; only the day detail's leave bar offers the plan's smallest leave unit (see "Detail view"). Engine, file format and template interface are built so that planning down to **1/32 day** (15 minutes at 8 hours) works everywhere without data migration and without changing the calculation logic. Anyone working on the code must observe this:
 
 | Area | Requirement from version 1 |
@@ -210,6 +234,8 @@ What is still missing later is only UI: a calendar key and range actions for fin
 
 ### How a day's required work comes about
 
+Status: partly implemented; the engine computes every layer, issue 0043 (dismiss a time-off need for one day) is open, planned for version 1.
+
 1. **Base value** from the contract's work week (e.g. Mon–Fri = 1, Sat/Sun = 0; part-time Friday = 0 or ½).
 2. **Lowering layers:** built-in holidays (0), calendar sources of type Holiday (0 or ½) and Paid closure (0), own day rules (e.g. "24 Dec and 31 Dec: at most ½"). The **minimum** of all applicable values applies. A rule can therefore never make a Sunday or holiday more expensive; if New Year's Eve falls on a Sunday, it stays 0.
 3. **Force** (rare, explicitly marked): a rule sets the required work to a fixed value, e.g. working Saturday = 1. Forced rules apply after step 2.
@@ -221,15 +247,21 @@ What is still missing later is only UI: a calendar key and range actions for fin
 
 ### Work week with validity
 
+Status: partly implemented; the engine and the file format are built, the help's text on the two counting methods for part-time and on § 5 BUrlG is not written, planned for version 1.
+
 The work week is a list with start dates, e.g. full-time until 30 June, four days from 1 July. This way a contract with a switch to part-time stays one file. The first entry also applies before its start date; the rules describe ongoing employment, and there is no separate state for days before or after it. The help explains the two common counting methods for part-time ("day off has required work 0, allowance reduced" vs. "required work ½") and that partial entitlements can be rounded according to § 5 BUrlG (Federal Leave Act); the user enters the allowance themselves.
 
 ### Date arithmetic
+
+Status: implemented.
 
 The engine calculates only with calendar days as integer day numbers (days since a fixed reference date), never with JavaScript `Date` and the local time zone. This prevents shifts by one day around daylight saving time changes; a lint rule forbids `Date` in the engine module.
 
 In files, weights are strings: readers accept fraction strings (`"1/2"`) and decimal strings with a decimal point (`"0.5"`); writers always write fraction strings. Values that cannot be represented exactly in 1/480 are rejected on loading with a message.
 
 ## Files: plan file, rule set and settings
+
+Status: partly implemented; the engine reads and writes plan files and rule sets, the device settings export and the editor commands (New, Open, Save, Save as, Close, Update rules from rule set) are not built, planned for version 1.
 
 Recommendation: **three kinds of files**, each self-contained, without references between them. The app can neither remember nor reopen file paths, so a reference would make users open two files every time.
 
@@ -243,6 +275,8 @@ The plan file is operated like a document in a normal desktop editor: New, Open,
 
 ### Content of the files
 
+Status: partly implemented; the engine reads and writes every part, a single template can't be exported yet, planned for version 1.
+
 - **Contract:** name, description and references (what the contract is and what it is based on), country/region, local rules, smallest leave unit (`minUnit`), work week with validity, day rules. No time zone and no working hours.
 - **Calendar sources** as entries (dates or repeating matches) with name, type, color slot and visibility; no file content. A rule set never contains sources of type "Leave from another plan" or "Time off needed" (personal data).
 - **Own PDF templates** (`.typ` text, optional images), individually exportable.
@@ -254,6 +288,8 @@ The plan file is operated like a document in a normal desktop editor: New, Open,
 In a plan file every copied part can be changed, e.g. a part-time work week or additional own calendar sources.
 
 ### File operations (editor behavior)
+
+Status: partly implemented; only the bundled example opens, New, Open, Save, Save as, the rule set commands, Close, restore, the revision warning and the list of notes and manual changes are not built (issue 0030 (open real files in the UI: rule sets and the read report) is open), planned for version 1.
 
 | Command | Behavior |
 | --- | --- |
@@ -278,6 +314,8 @@ In a plan file every copied part can be changed, e.g. a part-time work week or a
 
 ### What is stored where
 
+Status: partly implemented; the plan file and rule set hold their parts, the device settings and recovery copies in IndexedDB, the revision record and "Use colors from file?" are not built, planned for version 1.
+
 | Content | Location |
 | --- | --- |
 | Contract, calendar sources, templates, color scheme (optional), plan | plan file `.urlaub.json` |
@@ -291,6 +329,8 @@ In a plan file every copied part can be changed, e.g. a part-time work week or a
 Calendar sources store a **color slot** of the palette (e.g. "Accent 3"), not a fixed color; a fixed color is possible as an exception. If a plan file or rule set contains a color scheme, the app asks on first opening "Use colors from file?"; on "Yes" the scheme is added to the own color schemes in the device settings and activated. The answer is remembered via the file's `id`.
 
 ### Format
+
+Status: partly implemented; plan files and rule sets are read and written, the device settings export is recognized but refused, planned for version 1.
 
 JSON with a `schema` version and a `kind` (`"plan"`, `"ruleSet"` or `"settings"`); the app recognizes a file by its content, not by its extension. All values language-neutral (IDs, ISO dates, decimal point); keys in English according to the glossary. Sketch of a plan file showing every part (illustrative; not one of the example files):
 
@@ -357,6 +397,8 @@ JSON with a `schema` version and a `kind` (`"plan"`, `"ruleSet"` or `"settings"`
 
 ### Sharing and validation
 
+Status: partly implemented; reading, checking, severities and limits are built in the engine and the worker, the open dialog with its progress bar and report is not (issue 0030 (open real files in the UI: rule sets and the read report) and issue 0017 (messages in the open dialog) are open), planned for version 1; the HTML self-copy, planned for version 3.
+
 - **Rule set for colleagues:** "Save as rule set" (see File operations): contract, sources, templates and color scheme, no leave days.
 - **HTML self-copy** (version 3, after feasibility test): a copy of the app with an embedded rule set and without personal settings; opens directly in "New → From rule set".
 - **No contract data in .ics.** In the PDF only on explicit request, and only the contract part without plan and notes.
@@ -371,9 +413,13 @@ JSON with a `schema` version and a `kind` (`"plan"`, `"ruleSet"` or `"settings"`
 
 ## Operation (UI/UX)
 
+Status: not a requirement; moves to docs/dev/en/explanation/ in phase 3.
+
 Recommendation: one screen with a switchable calendar view and an always visible allowance display. Every action shows its cost immediately; nothing is blocked, overdraft is only marked.
 
 ### View 1: Month tiles
+
+Status: implemented.
 
 ```text
 Wireframe month tiles: calendar on the left, allowance always visible on the right
@@ -398,6 +444,8 @@ Classic calendar sheets per month (week start according to the country data, for
 
 ### View 2: Month columns
 
+Status: partly implemented; the view, alignment by weekday and calendar weeks are built, storing both settings in the device settings and the templates' switches are not, planned for version 1.
+
 ```text
 Wireframe month columns: one month per column, days as rows
 Day | Jan | Feb | Mar | Apr | May | Jun | Jul ...
@@ -416,6 +464,8 @@ One month per column, days 1–31 as rows, weekday abbreviation in every cell, l
 
 ### Day cell: what is shown how
 
+Status: partly implemented; every layer is drawn, the sources list that shows each source's colour and line style is not built, planned for version 1.
+
 A cell in the month columns is only about 75 px wide on desktop, so a fixed ranking of the layers applies:
 
 1. **Background:** required work (working day, weekend, holiday). A partly free day is split along the diagonal: the work block in the working-day colour where it lies (in the morning unless the free time is at the start), the free time with its pattern. A day that a holiday calendar frees, wholly or in part, counts as a holiday like a public holiday; the label names it after its entry, or after the calendar when the entry has no name. A worked one stays a working day.
@@ -427,6 +477,8 @@ A cell in the month columns is only about 75 px wide on desktop, so a fixed rank
 Day number and weekday abbreviation are always shown; the detail view shows everything else. A day with a problem has its number on a filled box (see Problems).
 
 ### Screen sizes
+
+Status: implemented.
 
 The **views** switch on the **width of the calendar area** (container queries), not of the whole window. The **allowance layout** (sidebar or top bar) switches on the **width of the app's main container**, because the sidebar takes its width from the calendar area and a rule on the calendar area would be circular. The table uses the same breakpoints for both: the view columns read them as the calendar area's width, the Allowance column as the app's width. The sidebar has a fixed width (20rem); the calendar area gets the rest. A row therefore doesn't describe one window: with the sidebar shown, the calendar area is 20rem narrower than the app, so an app of 1100 px shows the views of the 520–799 px row. The widths are px at the browser's default text size; the code uses rem (520 px = 32.5rem, 800 px = 50rem, 1100 px = 68.75rem), so with a larger text size the layout switches earlier, when the text needs the room.
 
@@ -445,6 +497,8 @@ Minimum size for tap targets on touch devices: 40 × 40 px.
 
 ### First start
 
+Status: partly implemented; the start screen offers only "View example", Open file, New and its steps are not built, planned for version 1.
+
 1. Start screen: **Open file** · **New** · **View example**. If the HTML already contains a rule set (HTML self-copy, version 3), it starts directly with "New → From rule set".
 2. On "New": language (preset), country/federal state.
 3. Work week (suggestion from the country data, part-time adjustable).
@@ -455,6 +509,8 @@ Minimum size for tap targets on touch devices: 40 × 40 px.
 With "From rule set", country, region, local rules and day rules come from the rule set and steps 2 and 6 are skipped (only the language is asked); the work week is preset from the rule set and can be adjusted. A rule set that leaves out the federal state or the local rules asks for them. When the rule sets that come with restlos are offered as templates, each one shows its basis (agreement or law with the paragraph), the version, the date it was checked and the warning that users must check it against their own contract and that there is no guarantee.
 
 ### Calendar interaction
+
+Status: partly implemented; the detail view doesn't set notes or change the required work yet, planned for version 1.
 
 - **Mouse:**
   - Click = full leave day on/off; Shift-click = range up to the last clicked day.
@@ -480,6 +536,8 @@ With "From rule set", country, region, local rules and day rules come from the r
 
 ### Allowance display
 
+Status: partly implemented; "Change allowance" in the overdraft line is not built, planned for version 1; bridge day hints, planned for version 3.
+
 - Plan allowance, planned, remaining, progress bar; remaining < 0 clearly marked. No carry-over field.
 - **Overdraft:** the bar is scaled to what is planned, with a tick at the allowance. The part over the allowance is hatched red (a pattern, not colour alone), and a warning line says by how much, with "Change allowance". Nothing is blocked.
 - List of **stretches**: a stretch is unbroken time off without any work in it (even 15 minutes of work ends it), including weekends, holidays, paid closures and days from "Leave from another plan". Its first and last day may be partial. It shows the cost (the leave charged inside it) and the days off from its start to its end (from noon counts ½ for that day). It is listed when it contains leave that costs something or a paid closure (a paid-closure source or a day rule that frees the whole day), so a paid closure without leave appears with cost 0; it may extend beyond the plan period.
@@ -489,6 +547,8 @@ With "From rule set", country, region, local rules and day rules come from the r
 - Bridge day hints (version 3): working days that yield many days off with little leave; can be turned off.
 
 ### Problems
+
+Status: partly implemented; issue 0043 (dismiss a time-off need for one day) is open, planned for version 1.
 
 A problem is something on a day that can't be right; like the overdraft, it is only marked, nothing is blocked. The plan reports own leave outside the plan period, own leave on a day without required work, own leave on time that is off anyway (a day with required work whose work the leave doesn't overlap, such as the free afternoon of 24 December; it costs nothing), own leave on a day that another plan already has as leave, day rules that force contradicting values, and time off needed that is not covered. Each kind has one sentence ("Dieser Urlaub liegt auf einem freien Tag."), the same wherever it shows:
 
@@ -501,6 +561,8 @@ Dismissing a problem of time off needed for one day is not built yet: issue 0043
 
 ### Colors, light and dark mode
 
+Status: partly implemented; the colour roles, the scheme "Standard" and the three modes are built, "High contrast", "Color vision deficiency", the editor and the print palette are not, planned for version 1; the editor's contrast check, planned for version 3.
+
 - **Color roles:** working day, weekend, holiday, required work ½, leave full, leave half, mandatory leave, other plan, overdraft, today, focus, info band, accent 1–8 (for calendar sources).
 - **Color scheme** = values for all roles, each for light and dark. Built in: "Standard", "High contrast", "Color vision deficiency" (Okabe-Ito); not changeable, only duplicable.
 - **Mode:** light, dark, automatic (follows `prefers-color-scheme`, also when it changes). Technically: one custom property per colour role with `light-dark()` values; the mode is `color-scheme` on the root (`light`, `dark` or `light dark`). User schemes are written with `style.setProperty()`, one value per role for both modes; colours mixed from other roles (the second stripe of mandatory leave, the drag preview) are `color-mix()` of those roles, so they follow. A finished value per mode was tried and did not make a switch faster in Firefox ESR; what made it slow was a reduced-motion reset with a transition duration above 0 (issue 0032, light/dark switch not instant in Firefox ESR).
@@ -511,6 +573,8 @@ Dismissing a problem of time off needed for one day is not built yet: issue 0043
 - **Print/PDF** uses its own light print palette per scheme.
 
 ### Multilingual support (from the start)
+
+Status: partly implemented; the catalogs, formatting, the language switch, the catalog check, the pseudo-locales and right-to-left readiness are built, the bilingual help and PDF templates, Intl.Collator for sorted lists and the locale's decimal separator in number fields are not, planned for version 1.
 
 - All texts via message IDs in catalogs (`de.json`, `en.json`) in ICU MessageFormat, including plural rules; no composed sentence parts in code.
 - Dates and month names via `Intl.DateTimeFormat`, numbers via `Intl.NumberFormat`, plurals via `Intl.PluralRules` (also for 1.5 days). Week start from the country data, not from the browser.
@@ -548,11 +612,25 @@ Dismissing a problem of time off needed for one day is not built yet: issue 0043
 
 ### Accessibility
 
+Status: partly implemented; issue 0040 (forced colours: day types and the allowance bar) is open, planned for version 1.
+
 Contrast according to WCAG AA for the built-in schemes, a screen reader label per day ("Friday, 7 May 2027, working day, leave full, costs 1"), fully operable by keyboard, focus visible in both modes. Each view is an ARIA grid with a roving tabindex (one Tab stop, not 365); the selection is `aria-selected` and the leave state is part of the label. The slots before the first and after the last day of a month are empty grid cells, so every cell sits under its header. The allowance panel follows the calendar in the document, because the calendar is the main content. In forced colours (Windows contrast themes) the system colours replace the tokens; planned days and pressed buttons draw Highlight with HighlightText themselves, because the browser's backplate behind their text would hide it. What a screen reader gets is checked in two layers: e2e tests compare the accessibility tree with ARIA snapshots (the grid and its labels, the day detail, the allowance panel, the live regions), and before each release Orca's debug log is read after a fixed sequence of keys in the Firefox ESR (`npm run orca`, release checklist), for a result that wasn't said, a text said twice in a row and very long texts; nothing has to be heard. Orca 50 drops some results at random with its own filters (issue 0046, Orca 50 drops some hint line results), so the check lists those apart and fails only when the app didn't give Orca a result, when fewer than half were said or when a text was said twice. The live regions are divs: Orca 50 lets a live region's text change past its filter for changes that come many at once only from an element Firefox reports as a section, and every change updates many texts at the same time. axe-core checks the component gallery and the main screens; in the gallery it leaves out the whole group of day details in sixteenths (its heading, details and leave bars), because the parts of those leave bars are smaller than the target size of WCAG 2.5.8 (issue 0049, leave bar parts below ¼ are under the target size).
 
 ### Built-in help
 
+Status: partly implemented; "View example" and the keys of the calendar, V, W and K are built, the help with its sources, build, checks and dialog, Ctrl+S, Ctrl+O, ? and catching a file dropped anywhere on the page are not, planned for version 1.
+
 Offline, bilingual, context-sensitive ("?" on every dialog). Chapters: Getting started, Work week and part-time, Day rules, Calendar sources (incl. showing the previous year), Plan and allowance, Plan file, rule set and saving (incl. the Firefox setting for overwriting and installing the web app with file association), Colors, Keyboard shortcuts, Privacy (incl. what the browser stores: device settings, recovery copies and the revision record, and that in Chrome and Edge other local HTML files can read them), **Own PDF templates** (see Output), About/Licenses.
+
+**Sources:** one Markdown file per topic. English is the source and is written first, under `docs/user/en/`; German is required and current, under the same path in `docs/user/de/`, changed in the same commit. A sync file records, per translation, a hash of the English text it matches: a German file whose recorded hash differs from the current English fails the check, a German-only fix such as a typo passes, and one command re-records the hash after someone has checked the German. The hashes are of content, not of git commits, because `main` has only squash merges. Further languages are optional: a mismatch or a missing file only warns, the website marks an outdated page, and a missing page falls back to English. The style rules for the help sources are on `docs/dev/en/reference/documentation-style.md`.
+
+**Build:** a build-only Vite plugin parses both languages with markdown-it, imported from the package root, with `html: true`, so raw HTML fails the build loudly. A converter turns the tokens into the project's own closed, typed help tree of about ten node kinds; the checks run on that tree and report file and line from markdown-it's block ranges, and a link allowlist is the real defence. The build embeds one JSON data block per language with `insertDataBlock`, which escapes every `<`. `HelpTopic.svelte` renders the tree with two recursive snippets and no `{@html}`. Estimated size: about 90–150 KB for both languages, or 40–70 KB stored compressed with `DecompressionStream`; measured against the size budget.
+
+**Help syntax:** `{ui:catalog.key}` for UI labels, resolved per language at build time; `{shortcut:action}` for keys, from one shortcut table in code that both the key handling and the help read, so the help's overview of the keyboard shortcuts is generated from it (on macOS the help shows Cmd); `{#id}` for anchors.
+
+**Topic IDs:** generated `HelpTopicId` types, checked in both directions. An alias list maps old IDs to new ones and also feeds the website's redirects.
+
+**Help dialog:** the WAI-ARIA dialog pattern: on open the topic heading has focus, Escape closes only the help, focus returns to the "?" that opened it, and a Back action leads between topics.
 
 **Keyboard shortcuts** (in the help as an overview, in menus next to the entries):
 
@@ -578,6 +656,8 @@ New, Save as and Close are only available in the menu: Ctrl+N, Ctrl+T and Ctrl+W
 
 ### Controls, icons and fonts
 
+Status: partly implemented; Open and Save, the File menu, colour picking, the order of calendar sources and the print font are not built, planned for version 1.
+
 No component or icon library.
 
 **Look and structure**
@@ -602,9 +682,13 @@ No component or icon library.
 
 ## Output: .ics and PDF
 
+Status: not a requirement; moves to docs/dev/en/explanation/ in phase 3.
+
 Recommendation: generate .ics ourselves. PDF with **Typst as the only template language**: the standard HTML exports a standalone `.typ` file and offers a browser print view; the **Pro HTML** contains Typst as WASM and creates the PDF with one click. Templates are created outside the app with Typst and loaded ready-made; there is no editor.
 
 ### .ics export (RFC 5545)
+
+Status: planned for version 1.
 
 - Mandatory: `VERSION:2.0`, `PRODID`, per event `UID` and `DTSTAMP`; TEXT values correctly escaped (`,` `;` `\`, line breaks).
 - All-day events only: `DTSTART;VALUE=DATE`, `DTEND` exclusive. Partial days are all-day events with share and part in the title ("Leave (½, morning)") plus the machine-readable fields `X-RESTLOS-TAKE`, `X-RESTLOS-PART` and `X-RESTLOS-TYPE`, so restlos reads its own export back exactly. No working hours, no times, no `TZID` or `VTIMEZONE`.
@@ -619,6 +703,8 @@ Recommendation: generate .ics ourselves. PDF with **Typst as the only template l
 - Calendar sources can be exported as .ics as well (see Multiple calendar sources).
 
 ### PDF: variants
+
+Status: planned for version 1.
 
 | Variant | Size | Role |
 | --- | --- | --- |
@@ -636,6 +722,8 @@ Rejected: pdfmake and pdf-lib/jsPDF (a second template language or templates as 
 
 ### Own templates: workflow and help
 
+Status: planned for version 1.
+
 Own templates are created outside the app. The help page "Create your own PDF template" (offline, bilingual) provides everything needed:
 
 1. **Starter pack for download**: example template (\~40 commented lines) and a file with **example data** in the interface format; plus "Export current plan as data" to test with real data.
@@ -646,6 +734,8 @@ Own templates are created outside the app. The help page "Create your own PDF te
 6. Built-in templates can be downloaded as a starting point.
 
 ## Architecture, technology and tests
+
+Status: partly implemented; the engine, the worker, the single-file build and its size check are built; the About / Licenses page and the iCal and PDF/Typst tests are not, planned for version 1; the Pro HTML and its feasibility test, planned for version 2; the feasibility test of the HTML self-copy, planned for version 3.
 
 Recommendation: **Svelte 5** (currently 5.57.2 from 6 October 2026) and **TypeScript**, built with **Vite** and [vite-plugin-singlefile](https://cdn.jsdelivr.net/npm/vite-plugin-singlefile@2.3.3/README.md), which inlines JavaScript and CSS into one HTML file; tested with **Vitest**. The calendar engine is a pure TypeScript module without DOM and without runtime dependencies and can be verified in isolation.
 
@@ -703,13 +793,17 @@ The version 1 tests ran automated and headless in Firefox ESR 153, Firefox 159 a
 
 ## Dependencies and supply chain
 
+Status: not a requirement; moves to docs/dev/en/explanation/ in phase 2.
+
 Recommendation: use common, widespread tools, but choose them deliberately and secure them with standard measures: exact versions, lockfile, no install scripts, a waiting period for new versions, an isolated build. The risk is real: from April to July 2026 alone there were several major npm compromises, partly via `preinstall` hooks, partly with malicious code that runs on import, partly with a valid provenance signature ([Unit 42](https://unit42.paloaltonetworks.com/?p=179395)).
 
 ### Dependencies
 
+Status: partly implemented; ical.js comes with the iCal import, planned for version 1; markdown-it comes with the help, planned for version 1; mdBook comes with the website, planned for version 1; typst.ts comes with the Pro HTML, planned for version 2.
+
 | Package | Purpose | In the HTML? | Assessment |
 | --- | --- | --- | --- |
-| svelte 5 | UI | runtime part | needed; 16 direct dependencies according to [depscope](https://depscope.dev/pkg/npm/svelte), almost all only for the compiler |
+| svelte 5 | UI | runtime part | needed; 16 direct dependencies (depscope, as of 2026-10), almost all only for the compiler |
 | vite, @sveltejs/vite-plugin-svelte | build, dev server | no | standard for Svelte; largest dependency tree in the project, build time only |
 | vite-plugin-singlefile | everything into one HTML | no | small, fulfils exactly the core requirement |
 | typescript | types | no | no dependencies |
@@ -718,8 +812,10 @@ Recommendation: use common, widespread tools, but choose them deliberately and s
 | eslint, eslint-plugin-svelte, svelte-check | lint, type checking | no | standard; covers among others "no `Date` in the engine" |
 | typescript-eslint | ESLint parser and rules for TypeScript | no | needed to lint TypeScript; umbrella for parser, plugin, utils and typescript-estree from the same project |
 | @eslint/js | ESLint's recommended rule set | no | from the ESLint team, no dependencies; no longer installed with eslint since ESLint 10 |
-| ical.js | read iCal (and verify the export) | yes | 0 dependencies, MPL-2.0 ([depscope](https://depscope.dev/pkg/npm/ical.js)); proven parser instead of an own implementation, also covers `RRULE`/`EXDATE` |
+| ical.js | read iCal (and verify the export) | yes | 0 dependencies (depscope, as of 2026-10), MPL-2.0; proven parser instead of an own implementation, also covers `RRULE`/`EXDATE` |
 | intl-messageformat (FormatJS) | ICU messages | yes | established ICU implementation; check the dependency tree during setup, otherwise `@messageformat/core` |
+| markdown-it 15.0.3 | parses the help Markdown | no | approved 2026-11-14; build only; 6 packages including itself (`argparse` already present); CommonMark; installed with the help |
+| mdBook 0.5.2 | builds the documentation website | no | approved 2026-11-14; a tool from the Nix dev shell (nixpkgs), no npm package; comes with the website |
 | date-holidays | reference model | no | development dependency, tests only |
 | @playwright/test | end-to-end | no | standard; browsers locally from nixpkgs, in CI via Playwright |
 | axe-core | accessibility checks | no | MPL-2.0, dev only, pinned exactly; approved 2026-11-04 |
@@ -727,6 +823,8 @@ Recommendation: use common, widespread tools, but choose them deliberately and s
 | date library | – | – | not needed; the engine calculates with day numbers |
 
 ### Measures against supply chain attacks
+
+Status: implemented.
 
 - **Exact versions** in `package.json`, `package-lock.json` checked in, installation with `npm ci`.
 - **No install scripts:** `.npmrc` with `ignore-scripts=true`. esbuild (used by Vite) brings its binary via platform-specific packages; whether everything runs without an install script is checked during setup, otherwise a targeted exception. With `ignore-scripts=true`, npm also skips the `pre`/`post` scripts of `npm run`; the project doesn't rely on them.
@@ -739,9 +837,13 @@ Recommendation: use common, widespread tools, but choose them deliberately and s
 
 ## Security
 
+Status: partly implemented; plan files and rule sets are treated as untrusted and the app has no network access; iCal files follow with the iCal import, planned for version 1; own templates run isolated with the Pro HTML, planned for version 2.
+
 Recommendation: every file from outside is considered untrusted, the app has no network access, and templates run isolated. The worst a manipulated file can then cause is an error message.
 
 ### Threats and countermeasures
+
+Status: partly implemented; the measures for plan files, rule sets and displayed text are built; those for iCal files, the .ics export, data passed to Typst, file names when saving and releases wait for their features, planned for version 1; running own templates isolated in Typst WASM, planned for version 2.
 
 | Input / risk | Example | Countermeasure |
 | --- | --- | --- |
@@ -757,6 +859,8 @@ Recommendation: every file from outside is considered untrusted, the app has no 
 
 ### Content Security Policy
 
+Status: partly implemented; the policy of the downloadable HTML file is built and tested; the Pages version's additions, planned for version 1; 'wasm-unsafe-eval' for the Pro HTML, planned for version 2.
+
 In the HTML's `<meta>` tag (GitHub Pages cannot set custom HTTP headers), as the first element after `<meta charset>`: a meta policy applies only to what comes after it.
 
 - `default-src 'none'`, `connect-src 'none'`, `object-src 'none'`, `base-uri 'none'`, `form-action 'none'`.
@@ -769,11 +873,15 @@ In the HTML's `<meta>` tag (GitHub Pages cannot set custom HTTP headers), as the
 
 ### Verification
 
+Status: partly implemented; the plan file and rule set reader is fuzzed and SECURITY.md exists, the iCal and settings parsers don't exist yet and the CSP and network test runs only locally (issue 0029 (run the build and the end-to-end tests in CI) is open), planned for version 1.
+
 - Fuzzing of the parsers (iCal, plan file, rule set, settings export, template metadata) with fast-check: random and broken inputs may only lead to error messages, never to crashes or wrong data.
 - CI test: the built HTML contains the CSP, and no network request leaves the page (Playwright intercepts requests).
 - `SECURITY.md` with private reporting via GitHub's "Private vulnerability reporting"; handled on a best-effort basis, without any deadline commitment.
 
 ## Build and CI (GitHub Free and local)
+
+Status: implemented.
 
 Recommendation: everything runs locally with one command; GitHub Actions only runs the same commands, as rarely as possible, with a cache for all downloads and minimal permissions. This way neither the npm registry nor any other server is hit again on every run, and the project stays buildable without GitHub.
 
@@ -781,20 +889,41 @@ Recommendation: everything runs locally with one command; GitHub Actions only ru
 
 **GitHub Free, public repository:** standard runners are free ([GitHub docs](https://docs.github.com/billing/managing-billing-for-your-products/managing-billing-for-github-actions)), GitHub Pages is available ([GitHub plans](https://docs.github.com/en/get-started/learning-about-github/githubs-plans)). Free doesn't mean unlimited: runs are still kept sparse.
 
+### Documentation website
+
+Status: planned for version 1.
+
+The user documentation and the developer documentation are published as a website on GitHub Pages (layout under Delivery format, "Pages layout").
+
+- **Tool:** mdBook 0.5.2 from nixpkgs in the dev shell (approved 2026-11-14; no npm package).
+- **Three books, de, en and dev:** after the checks, the project's build writes them with generated `book.toml` and `SUMMARY.md` files. User pages come from the help's checked tree, as resolved Markdown. Developer pages come from `docs/dev/en/`, with links to source files rewritten to GitHub links at the release tag.
+- **Language link:** each user page gets a link to its twin in the other language as its first line, with `hreflang` set. It needs no JavaScript.
+- **Redirects:** `[output.html.redirect]` is generated from the help's alias list of old topic IDs.
+- **German interface text:** after `mdbook build`, a Node step replaces mdBook's English strings in the German book with strings from a `docsSite.*` catalog group, about 25 strings plus 5 theme names. The step fails if the mdBook version differs from the pinned one, if a rule matches nowhere, or if text outside `<main>` is identical in the German and English output.
+- **Search:** per book. German has no stemming; if that proves too weak, Pagefind over the output is tried first (needs the maintainer's approval).
+- **Not published:** `SPEC.md`, `issues/` and the component gallery.
+- **Deployment:** together with each release, from one folder, in one deploy (see Workflows, `release`).
+- **Test build first:** before the website is planned in detail, a test build confirms the string list, the search script's file name, that the rewrite leaves page content alone, the identity check, the language links under the site URL, the redirects, a German 404 page, German search, that there are no outside requests, and Firefox ESR, Chromium, WebKit and Orca.
+- **Fallback:** if the string rewrite proves unreliable, Hugo with an own layout and Pagefind (both need the maintainer's approval). Hugo also becomes the better choice if the site grows beyond help pages.
+
 ### Workflows
+
+Status: partly implemented; check, seed-cache and Dependency Review run, templates, e2e and release are not built (issue 0029 (run the build and the end-to-end tests in CI) is open), planned for version 1.
 
 | Workflow | Trigger | Content |
 | --- | --- | --- |
-| `check` | push to `main`, pull requests; always the full check, without a path filter (a required check whose workflow a path filter skipped stays pending and blocks the merge) | inside `nix develop .#ci`: NixOS release check, `npm ci`, lint, REUSE check, type check, Vitest, performance gate, catalog, CSS and reference checks; then, as separate steps, the app build with its size check and the gallery build |
+| `check` | push to `main`, pull requests; always the full check, without a path filter (a required check whose workflow a path filter skipped stays pending and blocks the merge) | inside `nix develop .#ci`: NixOS release check, `npm ci`, `npm run check` (lint, type check, Vitest, performance gate, the catalog, CSS, reference, citation, spec status and docs style checks, REUSE check); then, as separate steps, the app build with its size check and the gallery build |
 | `seed-cache` | pushes to `main` that change `flake.nix`, `flake.lock`, `package-lock.json`, `.npmrc`, the Nix action or the workflow itself; weekly; by hand | the only workflow that writes caches: the Nix tarball, the Nix store cache and the npm cache, each fetched fresh from upstream; a separate read-only job runs the NixOS release check, so a failed weekly run reports an outdated release |
-| `templates` | only on changes to templates or the Typst version | compile templates × DE/EN with the pinned Typst version |
-| `e2e` | pull requests with the label `e2e`, before every release, otherwise once a week only if there were commits since the last run | Playwright in Firefox, Chromium, WebKit |
-| `release` | manual (tag) | build; create a draft GitHub Release, attach standard and Pro HTML, `SHA256SUMS` and the SPDX bill of materials, then publish it (immutable release); Pages version (web app) on GitHub Pages |
+| `templates` (planned) | only on changes to templates or the Typst version | compile templates × DE/EN with the pinned Typst version |
+| `e2e` (planned) | pull requests with the label `e2e`, before every release, otherwise once a week only if there were commits since the last run | Playwright in Firefox, Chromium, WebKit |
+| `release` (planned) | manual (tag) | build; create a draft GitHub Release, attach standard and Pro HTML, `SHA256SUMS` and the SPDX bill of materials, then publish it (immutable release); Pages version (landing page, web app and documentation website, from one folder in one deploy) on GitHub Pages |
 | Dependency Review | pull requests that change the lockfile | GitHub's own `dependency-review-action` reports new packages and known vulnerabilities |
 
 **NixOS release check:** `npm run nixos-release` reads the release branch from `flake.lock`. NixOS supports a YY.05 release until 31 December and a YY.11 release until 30 June of the next year; its successor comes out about a month earlier. From the 1st of that last month CI warns that the successor is due; from the 16th, or for a branch that isn't a release branch, it fails, so the project moves while the old release is still supported.
 
 ### Consideration for upstream sources (caching)
+
+Status: partly implemented; the Nix, npm and Dependabot parts are built, the caches for the Playwright browsers and the Typst CLI and the build artifact of check are not, planned for version 1.
 
 - **Nix:** the release tarball of the pinned Nix version (the one the pinned nixpkgs ships) is cached with the version as key and checked against a SHA-256 pinned in `.github/actions/nix/action.yml` before it is installed. The dev shell comes from a `file://` binary cache kept in GitHub's cache, keyed on `flake.lock`, `flake.nix`, the action and the `seed-cache` workflow. `nix copy` keeps cache.nixos.org's signatures in it, so Nix checks every path against the `cache.nixos.org-1` key as it would on download; the shell's own `-env` output is rebuilt. CI also downloads the cheap wrappers that nixpkgs would otherwise build locally (`always-allow-substitutes`), so they too come signed. cache.nixos.org is the fallback on a miss; with a warm cache, the Nix setup needs neither it, releases.nixos.org nor github.com (checked on GitHub's runners on 2026-10-24; the checkout and the actions still come from GitHub). Signatures and the pinned hash detect altered content, not a poisoned cache entry: restoring an entry can write any file the runner can write, before Nix or the hash check looks at it. Only the single writer and the cache scopes keep such entries out (see "Avoid cache poisoning").
 - **npm packages:** `~/.npm` is cached with the hash of `package-lock.json` and `.npmrc` as key; `check` restores it and runs `npm ci --prefer-offline`, which checks every package against the `integrity` in the lockfile. Registry access only happens when the lockfile changes.
@@ -808,6 +937,8 @@ Recommendation: everything runs locally with one command; GitHub Actions only ru
 
 ### Workflow security
 
+Status: partly implemented; check, seed-cache and Dependency Review follow the rules, the release workflow with its write permissions (contents, pages, id-token, attestations), actions/attest-build-provenance and the Pages actions is not built, planned for version 1.
+
 - Only actions from GitHub itself (`actions/checkout`, `actions/cache`, `actions/upload-artifact`, `actions/dependency-review-action`, `actions/attest-build-provenance`, Pages actions), each pinned by **commit SHA**, plus the repository's own composite action `.github/actions/nix`; Dependabot keeps the SHAs current. The repository settings enforce both: only actions created by GitHub are allowed, and a workflow using an action that isn't pinned to a full-length commit SHA doesn't start. Tools without an official GitHub action (Nix, Typst CLI) are installed with checksum pinning (see caching).
 - `permissions: contents: read` as the default at workflow level; only `release` gets `contents: write`, `pages: write`, `id-token: write` and `attestations: write`.
 - `actions/checkout` with `persist-credentials: false`.
@@ -819,9 +950,13 @@ Recommendation: everything runs locally with one command; GitHub Actions only ru
 
 ## Project operations and contributing
 
+Status: not a requirement; moves to docs/dev/en/explanation/ in phase 3.
+
 Recommendation: the expectations are stated visibly in one place, in short, friendly and clear words; GitHub's guide on balance for maintainers advises exactly this, to make your own boundaries public and to say "no" openly ([opensource.guide](https://github.com/github/opensource.guide/blob/main/_articles/maintaining-balance-for-open-source-maintainers.md)). The legal side (no warranty, no liability) is already covered by Art. 7 and 8 of the EUPL-1.2; the text below is the human side.
 
 ### Hobby project notice
+
+Status: not a requirement; moves to README in phase 2.
 
 In the README (at the top, short; German and English), in `SUPPORT.md` (German and English) and in `CONTRIBUTING.md` (English):
 
@@ -857,6 +992,8 @@ or continued maintenance.
 
 ### Files in the repository
 
+Status: partly implemented; every file exists, the README has no screenshot, download or Pages link and no verification of checksums and attestations yet, planned for version 1.
+
 | File | Content |
 | --- | --- |
 | `README.md` | short description, screenshot, download/Pages link, project status notice, verification of checksums and attestations |
@@ -868,6 +1005,8 @@ or continued maintenance.
 | `CHANGELOG.md` | changes per version (format "Keep a Changelog") |
 
 ### Repository settings on GitHub
+
+Status: not a requirement; moves to docs/dev/en/reference/ in phase 2.
 
 Recommendation: settings that exist only on GitHub are listed here, so the repository (or a fork with the same protection) can be set up again without guessing. They are set once by hand; labels as of October 2026.
 
@@ -895,6 +1034,8 @@ Nothing needs to be set for GitHub's workflow execution protections: the default
 
 ### License compliance with REUSE
 
+Status: partly implemented; reuse lint runs locally and in CI, the SPDX bill of materials of a release and the About / Licenses page are not built, planned for version 1.
+
 The repository follows the FSFE's [REUSE specification](https://reuse.software): every file has a machine-readable license and copyright statement, and all license texts used are in the `LICENSES/` folder.
 
 | Component | License (SPDX) | Stated via |
@@ -912,9 +1053,13 @@ The repository follows the FSFE's [REUSE specification](https://reuse.software):
 
 ### AI tools in the repository
 
+Status: implemented.
+
 `AGENTS.md` is the shared instruction file for AI coding tools; `CLAUDE.md` includes it for Claude Code via `@AGENTS.md`. In addition there are `.claude/` (settings, skills), `.mcp.json` (Svelte MCP) and a local plugin for language servers. Agents commit unsigned on branches and never push; the maintainer reviews, signs and pushes over SSH. Follow-ups and open decisions are tracked as Markdown files in `issues/` (conventions in `issues/README.md`); this internal backlog is separate from GitHub issues, which stay the channel for bug reports and ideas from users. Rationale and setup are in `docs/ai-tooling.md`. Text in the repository stands on its own: no pointers to chats, sessions or files outside it, short references always with a description, and nothing links into `docs/superpowers/`, the design and plan documents written with AI tools, which may disappear at any time but which only the maintainer deletes (`AGENTS.md`, "Text in the repository"; `npm run check` enforces the links).
 
 ### Releases and updates
+
+Status: partly implemented; the tools of the release checklist are built, the release workflow, the About page and the update notice of the Pages version are not, planned for version 1.
 
 - Versions according to Semantic Versioning; the version and the data status of the holiday rules are shown on the "About" page.
 - The downloaded HTML doesn't check for updates itself (no network); new versions are available via GitHub Releases with a changelog.
@@ -934,15 +1079,21 @@ The repository follows the FSFE's [REUSE specification](https://reuse.software):
 
 ### Maintaining holiday data
 
+Status: partly implemented; every rule carries its source and the date of its check, the help's notice that data can become outdated is not written, planned for version 1.
+
 - Every rule in the data file carries a link to the official source and the date of the last check.
 - Changes to rules only with a source and a test; contributions for further countries as a data file plus tests, described in a data format documentation.
 - No obligation to review annually; the help says openly that data can become outdated and that own day rules or iCal files take precedence.
 
 ### Privacy
 
+Status: planned for version 1.
+
 In the help and README: no accounts, no tracking, no network access; all data stays in the browser or in the files you save yourself. The browser keeps the device settings, the revision record and, while a plan has unsaved changes, a recovery copy of it (it can be switched off in the settings). In Chrome and Edge, other HTML files opened from the computer can read them. The Pages version is served by GitHub; GitHub's terms apply to retrieving the page, but planning data doesn't leave the device.
 
 ## Stages, risks, decisions
+
+Status: not a requirement; moves to docs/dev/en/explanation/ and issues in phase 3.
 
 Recommendation: three versions; each is usable on its own. The must lists under "Goals and scope" apply to versions 1 and 2; version 3 is only described here.
 
@@ -998,7 +1149,7 @@ Recommendation: three versions; each is usable on its own. The must lists under 
 - [typst.ts all-in-one library](https://myriad-dreamin.github.io/typst.ts/cookery/guide/all-in-one.html)
 - [Typst 0.13 changelog](https://typst.app/docs/changelog/0.13.0/)
 - [Svelte releases](https://releases.sh/svelte/svelte-releases.md)
-- [depscope: svelte](https://depscope.dev/pkg/npm/svelte)
+- depscope: svelte
 - [Unit 42: npm supply chain attacks](https://unit42.paloaltonetworks.com/?p=179395)
 - [npm min-release-age and Dependabot cooldown](https://dev.classmethod.jp/en/articles/npm-min-release-age-dependabot-cooldown/)
 - [GitHub: billing for Actions](https://docs.github.com/billing/managing-billing-for-your-products/managing-billing-for-github-actions)

@@ -45,7 +45,7 @@ const USAGE = "Usage: npm run perf [-- --update | -- --largest-file <path>]";
 
 const args = process.argv.slice(2);
 
-// 0. The largest file, for the manual timing at a release (.claude/skills/release/SKILL.md): no Valgrind needed.
+// 0. The largest file, for the manual timing at a release (docs/dev/en/howto/release.md): no Valgrind needed.
 if (args[0] === "--largest-file") {
   const path = args[1];
   if (path === undefined || args.length > 2) {

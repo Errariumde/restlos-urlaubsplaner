@@ -20,7 +20,7 @@ SPDX-License-Identifier: CC-BY-4.0
 ## Context
 
 - `flake.nix`: `inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05"`.
-- `.claude/skills/dependency-update/SKILL.md`, step 8: the update procedure.
+- `docs/dev/en/howto/dependency-update.md`, step 8: the update procedure.
 
 ## Acceptance criteria
 

@@ -9,7 +9,7 @@ set -euo pipefail
 installed="$(nix --version | awk '{print $NF}')"
 expected="$(nix eval --raw --inputs-from . nixpkgs#nix.version)"
 if [ "$installed" != "$expected" ]; then
-  echo "::error title=Nix version::flake.lock ships Nix $expected, the action installs $installed. Update NIX_VERSION and NIX_TARBALL_SHA256 in .github/actions/nix/action.yml (dependency-update skill, step 8)."
+  echo "::error title=Nix version::flake.lock ships Nix $expected, the action installs $installed. Update NIX_VERSION and NIX_TARBALL_SHA256 in .github/actions/nix/action.yml (docs/dev/en/howto/dependency-update.md, step 8)."
   exit 1
 fi
 echo "Nix $installed, as flake.lock's nixpkgs ships."

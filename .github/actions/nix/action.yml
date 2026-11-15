@@ -20,7 +20,7 @@ runs:
   steps:
     # The one place for the Nix version and its tarball's SHA-256. They must
     # follow the Nix that flake.lock's nixpkgs ships (the version check below);
-    # updating them: .claude/skills/dependency-update/SKILL.md, step 8.
+    # updating them: docs/dev/en/howto/dependency-update.md, step 8.
     # Also the one place for the cache keys, which seed-cache.yml saves under
     # and check.yml restores from. Each key covers every file that changes what
     # the seed puts into that cache, so a change to them is seeded afresh.

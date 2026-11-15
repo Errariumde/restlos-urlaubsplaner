@@ -348,7 +348,7 @@ SPDX-License-Identifier: EUPL-1.2
     }
 
     /*
-     * The allowance is always visible (docs/SPEC.md, "Main screen"): the compact bar and the hint line stick
+     * The allowance is always visible (docs/SPEC.md, "Screen sizes"): the compact bar and the hint line stick
      * to the top of the window, above the cells and the columns' day column, below the selection bar. Beside
      * the sidebar the hint line alone sticks to the top of the calendar area.
      */

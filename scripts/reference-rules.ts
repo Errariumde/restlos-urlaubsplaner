@@ -21,12 +21,12 @@ const FORBIDDEN: readonly Forbidden[] = [
     // A path into the folder, also relative from docs/; naming the folder itself, as the rule does, is fine.
     pattern: /superpowers\/[A-Za-z0-9]/,
     what: "a link into the docs/superpowers folder, which may disappear at any time",
-    instead: "point to docs/SPEC.md or another file in the repository, or copy what is needed into the text",
+    instead: "point to a page under docs/dev/en/ or another file in the repository, or copy what is needed into the text",
   },
   {
     pattern: /\b[Rr]uling [A-Z]{1,2}[0-9]*\b/,
     what: "a ruling, which is not written down in the repository",
-    instead: "state the rule itself, or move it into docs/SPEC.md",
+    instead: "state the rule itself, or move it into a page under docs/dev/en/",
   },
   {
     pattern: /final-review\.md/,
@@ -35,9 +35,17 @@ const FORBIDDEN: readonly Forbidden[] = [
   },
 ];
 
-/** docs/superpowers/ itself, done issues, which stay as they were written, and this check's own test. */
-function exempt({ path, text }: TextFile): boolean {
-  if (path.startsWith("docs/superpowers/") || path === "tests/scripts/reference-rules.test.ts") return true;
+/** Tests of the text checks, which cite what the checks report. */
+const CHECK_TESTS: ReadonlySet<string> = new Set([
+  "tests/scripts/reference-rules.test.ts",
+  "tests/scripts/citation-rules.test.ts",
+  "tests/scripts/docs-rules.test.ts",
+  "tests/scripts/spec-status-rules.test.ts",
+]);
+
+/** docs/superpowers/ itself, done issues, which stay as they were written, and the text checks' own tests. */
+export function exempt({ path, text }: TextFile): boolean {
+  if (path.startsWith("docs/superpowers/") || CHECK_TESTS.has(path)) return true;
   return path.startsWith("issues/") && /^status: done$/m.test(text);
 }
 

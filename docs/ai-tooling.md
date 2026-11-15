@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # AI tooling in this repository
 
-As of 2026-10-17. The setup targets Claude Code and stays usable for other agents (Codex, Cursor, Copilot, Gemini CLI, …).
+As of 2026-11-15. The setup targets Claude Code and stays usable for other agents (Codex, Cursor, Copilot, Gemini CLI, …).
 
 ## 1. Instruction files
 
@@ -13,11 +13,12 @@ As of 2026-10-17. The setup targets Claude Code and stays usable for other agent
 | --- | --- | --- |
 | `AGENTS.md` | Canonical rules for all agents | Codex, Cursor, Copilot, Gemini CLI, Zed, … |
 | `CLAUDE.md` | Imports `@AGENTS.md`, plus a few Claude Code notes | Claude Code |
-| `docs/SPEC.md` | Specification, authoritative | linked from `AGENTS.md`, not loaded automatically |
-| `.claude/skills/*/SKILL.md` | Procedures (holiday data, UI texts, updates, release, issue triage) | Claude Code automatically; other agents as plain Markdown |
+| `docs/SPEC.md` | Being emptied: sections marked implemented stay authoritative until they move; the rest tracks planned work. Reference pages are authoritative | linked from `AGENTS.md`, not loaded automatically |
+| `docs/dev/en/howto/*.md` | Procedures (holiday data, UI texts, updates, release, documentation) | all agents, through the skills or directly |
+| `.claude/skills/*/SKILL.md` | Pointers to those procedures, plus issue triage in full | Claude Code automatically; other agents as plain Markdown |
 | `issues/` | File-based issue tracker for follow-ups and open decisions; conventions in `issues/README.md`, rules in `AGENTS.md` | all agents |
 
-Why the import instead of `AGENTS.md` alone: Claude Code reads `AGENTS.md` natively only since version 2.1.277, and only when there is no `CLAUDE.md` (nixpkgs 26.05 ships 2.1.223). With both files present it loads only `CLAUDE.md`, so the `@AGENTS.md` import is what loads the shared rules; the import never loads them twice. It works in every version and keeps a single source. The specification is deliberately not imported (about 65 KB in every session); agents read the relevant sections on demand.
+Why the import instead of `AGENTS.md` alone: Claude Code reads `AGENTS.md` natively only since version 2.1.277, and only when there is no `CLAUDE.md` (nixpkgs 26.05 ships 2.1.223). With both files present it loads only `CLAUDE.md`, so the `@AGENTS.md` import is what loads the shared rules; the import never loads them twice. It works in every version and keeps a single source. The specification is deliberately not imported (about 145 KB in every session); agents read the relevant sections on demand.
 
 Block-level HTML comments, such as the SPDX headers, are stripped before `CLAUDE.md` is loaded, so they cost no context.
 
@@ -55,14 +56,15 @@ Recommendation: **only the Svelte MCP server, as a remote server** (`.mcp.json` 
 
 ## 4. Skills
 
-The skills follow the open Agent Skills format (agentskills.io) and use only portable frontmatter fields (`name`, `description`, `license`, `metadata`). Other agents can read them as plain instructions; `AGENTS.md` points to them. The one exception is `triage`: only the maintainer starts it (`/triage`), so it also uses the Claude Code fields `disable-model-invocation`, `argument-hint` and `allowed-tools`.
+The procedures live in `docs/dev/en/howto/`, one page per skill name. Each skill is a one-paragraph pointer that tells the agent to read that page and follow it step by step, so the page is the single source and any agent can read it directly. The skills follow the open Agent Skills format (agentskills.io) and use only portable frontmatter fields (`name`, `description`, `license`, `metadata`); `AGENTS.md` points to them. The one exception is `triage`, a full skill without a how-to: only the maintainer starts it (`/triage`), so it also uses the Claude Code fields `disable-model-invocation`, `argument-hint` and `allowed-tools`.
 
-| Skill | When | Key points |
+| Skill | When | Key points of the procedure (in `docs/dev/en/howto/<skill>.md`, for `triage` in the skill) |
 | --- | --- | --- |
 | `holiday-data` | changing holiday rules | official source, rule as data, tests over several years, cross-check with date-holidays and python-holidays |
 | `ui-texts` | changing texts | both catalogs, ICU MessageFormat, no sentence concatenation |
 | `dependency-update` | package and nixpkgs updates | no new packages without asking, review the lockfile diff, couple Playwright to the Nix version |
 | `release` | preparing a release | checks, `reuse lint`, SPDX bill of materials, manual test in Firefox ESR; tagging and pushing only by the maintainer |
+| `docs` | writing or moving documentation | one reader, one need and one mode per page, Diátaxis path, text from the spec moved unchanged before the rewrite, citations updated in the same commit, user pages in English and German together |
 | `triage` | choosing issues for the next branch (maintainer only) | checks open issues in `issues/` against the code, proposes a plan, changes status only after confirmation, no commit |
 
 No external skills (marketplaces) are needed. Deliberately left out: a skill for Typst templates, which only makes sense once templates exist.
@@ -131,4 +133,4 @@ GitHub MCP servers and connectors stay off (see section 3): they would act on Gi
 - **Server arguments:** `svelteserver --stdio`, `tinymist lsp` and `nixd` without arguments are untested; check with `/plugin` and the LSP diagnostics in a session.
 - **Sandbox with the toolchain:** writing to `~/.npm`, Node child processes with IPC and worker threads work inside the sandbox (checked 2026-10-17). `npm install` and `npm ci` against the registry work inside the sandbox (checked 2026-10-18). Still to check: `npm run test:e2e`.
 - **Unsigned agent commits:** check that the `env` setting reaches the shell: in a Claude Code session, `git config commit.gpgsign` should print `false`.
-- **GitHub workflows** are still missing. Actions must be pinned by commit SHA (see the specification).
+- **GitHub workflows:** `.github/workflows/` has `check.yml`, `dependency-review.yml` and `seed-cache.yml`. Actions must be pinned by commit SHA (see the specification).
