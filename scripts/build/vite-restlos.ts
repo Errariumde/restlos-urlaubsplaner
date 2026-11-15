@@ -83,7 +83,8 @@ const SCRIPT_BREAKER = /<(?:\/?script|!--)/i;
  * `import source from "virtual:restlos-worker"`: the engine worker bundled into one classic script
  * (format iife, the page's build target), for `new Worker(URL.createObjectURL(new Blob([source])))`.
  * A module worker from a `blob:` URL doesn't start from `file://` in Chromium, and Vite's own inline
- * worker falls back to a `data:` URL, which the CSP blocks (docs/dev/en/reference/architecture.md, "Worker").
+ * worker falls back to a `data:` URL, which the CSP blocks (docs/dev/en/explanation/architecture-choices.md,
+ * "Rejected alternatives").
  */
 function engineWorker(): Plugin {
   let root: string | undefined;
