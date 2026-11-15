@@ -5,10 +5,13 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Releases
 
+The steps of a release are in the [release checklist](../howto/release.md).
+
 ## Versions
 
-- Versions according to Semantic Versioning.
+- Versions follow [Semantic Versioning](https://semver.org/). Which schemas of the file format a version reads is in [Kinds and versions](file-format.md#kinds-and-versions).
 
 ## Updates
 
-- The downloaded HTML doesn't check for updates itself (no network); new versions are available via GitHub Releases with a changelog.
+- The downloaded HTML must not check for updates itself; it has no [network access](security.md#network-access).
+- A new version must be published as a GitHub release with its `CHANGELOG.md` entries. The [GitHub settings](github-settings.md#settings) make a published release immutable.

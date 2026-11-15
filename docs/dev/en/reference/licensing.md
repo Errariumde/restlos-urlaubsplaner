@@ -7,17 +7,16 @@ SPDX-License-Identifier: CC-BY-4.0
 
 ## Licenses
 
-The repository follows the FSFE's [REUSE specification](https://reuse.software): every file has a machine-readable license and copyright statement, and all license texts used are in the `LICENSES/` folder.
+The repository follows [REUSE](https://reuse.software) by the FSFE: every file has a machine-readable license and copyright statement, and every license text used is in `LICENSES/`. The "Licensing (REUSE)" [hard rule](../../../../AGENTS.md#hard-rules) sums up the table and states what a new file needs.
 
 | Component | License (SPDX) | Stated via |
 | --- | --- | --- |
-| Source code, holiday data, build scripts, configuration (incl. `REUSE.toml`) | `EUPL-1.2` | SPDX header in the file or `REUSE.toml` |
+| Source code, holiday data, build scripts, configuration (including `REUSE.toml`) | `EUPL-1.2` | SPDX header in the file or `REUSE.toml` |
 | PDF templates, example template, example data, example plan file and rule set | `MIT-0` | `REUSE.toml` |
-| Documentation, help texts, agent instructions (`AGENTS.md`, `CLAUDE.md`) and skills (all Markdown) | `CC-BY-4.0` | SPDX header in the file or `REUSE.toml` |
-| Generated files (`package-lock.json`, `flake.lock`) | `CC0-1.0` | `REUSE.toml` |
-| Third-party files (Lucide SVGs) | original license (Lucide `ISC`, Feather-derived icons `MIT`) with the original copyright | `REUSE.toml`, license text in `LICENSES/` |
+| Documentation, help texts, agent instructions (`AGENTS.md`, `CLAUDE.md`) and skills (all Markdown) | `CC-BY-4.0` | SPDX header in the file |
+| Generated lockfiles (`package-lock.json`, `flake.lock`) | `CC0-1.0` | `REUSE.toml` |
+| Third-party files: Lucide icons (`src/ui/icons/*.svg`) | `ISC`; the Feather-derived icons among them `ISC AND MIT`; with the original copyright | `REUSE.toml`, license texts in `LICENSES/` |
 
 ## Checks
 
-- `reuse lint` runs in `npm run check` and in the CI workflow `check`; an error fails the build.
-- New files get an SPDX header (`SPDX-FileCopyrightText`, `SPDX-License-Identifier`) when they are created, where the file format allows comments; otherwise an entry in `REUSE.toml`.
+- `npm run check` runs `reuse lint`, and the CI workflow `check` runs `npm run check`. A `reuse lint` error fails both.

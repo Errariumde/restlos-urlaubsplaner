@@ -7,14 +7,14 @@ SPDX-License-Identifier: CC-BY-4.0
 
 1. Working tree clean, on `main`, CI green.
 2. Choose the version (SemVer). File format changes → check the `schema` version (`"restlos/1"`, see `docs/dev/en/reference/file-format.md`) and migration tests.
-3. Update `CHANGELOG.md` (move "Unreleased" entries, date in ISO format) and `package.json` version; check the data status of the holiday rules.
+3. Update `CHANGELOG.md` (move "Unreleased" entries, date in ISO format) and `package.json` version; check the data status of the holiday rules: the `checked` date of each rule in `src/data/holidays/`.
 4. Run in the dev shell:
    - `npm ci`
    - `npm run check` (lint, types, tests, performance gate, catalog, CSS, reference, citation, spec status and docs style checks, `reuse lint`)
-   - `npm run build` (size budget met)
+   - `npm run build` (fails when the HTML file is over the [size budget](../reference/architecture.md#single-file-build))
    - `npm run test:e2e` (Playwright: Firefox, Chromium, WebKit – Playwright's own browser builds, not Firefox ESR)
 5. Generate the SBOM: `reuse spdx -o dist/restlos.spdx`.
-6. Open `dist/*.html` from disk (file://) in the current Firefox ESR from the dev shell (`firefox-esr`) and check: set days, no network requests (devtools). Opening and saving a file and the PDF, .ics and `.typ` exports are planned for version 1. Open the Pages version on a phone; the Pages version is planned for version 1.
-6a. Largest file: `npm run perf -- --largest-file /tmp/largest.urlaub.json`; open it in the Firefox ESR from the dev shell and note the times for reading and checking (target: under 2 s together on the i7-8650U).
+6. Open `dist/*.html` from disk (file://) in the current Firefox ESR from the dev shell (`firefox-esr`) and check: set days, no network requests (devtools). Opening and saving a file, the PDF, .ics and `.typ` exports and a check of the Pages version on a phone are planned for version 1.
+6a. Largest file: `npm run perf -- --largest-file /tmp/largest.urlaub.json` writes the worst crafted plan file within the [limits](../reference/file-format.md#limits). Open it in the Firefox ESR from the dev shell and note the times for reading and checking (target: under 2 s together on the i7-8650U).
 6b. Screen reader: `npm run orca` prints the steps. Orca takes over the desktop it runs on, so never start it yourself: ask the maintainer to run the steps (speakers muted) and hand over the log, then run `npm run orca -- <log>` and report what it finds.
 7. Hand the summary to the maintainer. Tagging, pushing and publishing are done by the maintainer. The `release` workflow is planned for version 1: it creates a draft release, attaches the HTML files, `SHA256SUMS` and the SBOM, adds provenance and then publishes it. Releases are immutable: once published, a release can't be changed and its tag can't be reused, so a mistake needs a new patch version.

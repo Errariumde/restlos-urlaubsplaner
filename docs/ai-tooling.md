@@ -16,7 +16,7 @@ As of 2026-11-15. The setup targets Claude Code and stays usable for other agent
 | `docs/SPEC.md` | Being emptied: sections marked implemented stay authoritative until they move; the rest tracks planned work. Reference pages are authoritative | linked from `AGENTS.md`, not loaded automatically |
 | `docs/dev/en/howto/*.md` | Procedures (holiday data, UI texts, updates, release, documentation) | all agents, through the skills or directly |
 | `.claude/skills/*/SKILL.md` | Pointers to those procedures, plus issue triage in full | Claude Code automatically; other agents as plain Markdown |
-| `issues/` | File-based issue tracker for follow-ups and open decisions; conventions in `issues/README.md`, rules in `AGENTS.md`; this internal backlog is separate from GitHub issues, which stay the channel for bug reports and ideas from users | all agents |
+| `issues/` | File-based issue tracker for follow-ups and open decisions; conventions in `issues/README.md`, rules in `AGENTS.md`; separate from GitHub issues, which stay the channel for bug reports and ideas from users | all agents |
 
 Why the import instead of `AGENTS.md` alone: Claude Code reads `AGENTS.md` natively only since version 2.1.277, and only when there is no `CLAUDE.md` (nixpkgs 26.05 ships 2.1.223). With both files present it loads only `CLAUDE.md`, so the `@AGENTS.md` import is what loads the shared rules; the import never loads them twice. It works in every version and keeps a single source. The specification is deliberately not imported (about 145 KB in every session); agents read the relevant sections on demand.
 
