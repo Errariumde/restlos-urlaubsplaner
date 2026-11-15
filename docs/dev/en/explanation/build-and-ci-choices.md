@@ -13,12 +13,12 @@ Everything runs locally with one command. GitHub Actions only runs the same comm
 - **GitHub Free, public repository:** standard runners are free ([GitHub docs](https://docs.github.com/billing/managing-billing-for-your-products/managing-billing-for-github-actions)), and GitHub Pages is available ([GitHub plans](https://docs.github.com/en/get-started/learning-about-github/githubs-plans)). Free doesn't mean unlimited, so runs are still kept sparse.
 - **`check` without a path filter:** a required check whose workflow a path filter skipped stays pending and blocks the merge.
 - **One Node version:** the app runs in the browser, and Node is only for building.
-- **Short timeouts and cancelled outdated runs:** a hanging or outdated run costs runner time and shows nothing new.
+- **Cancelled outdated runs, short timeouts and no automatic retries:** they avoid pointless runs, so runs stay sparse.
 - **One cache writer:** cache poisoning was the route of the TanStack attack. Signatures and the pinned tarball hash detect altered content, not a poisoned cache entry. Restoring an entry can write any file the runner can write, before Nix or the hash check looks at it. Only the single writer and GitHub's cache scopes keep such entries out.
 - **A warm cache needs no upstream:** checked on GitHub's runners on 2026-10-24, the Nix setup with a warm cache needed none of cache.nixos.org, releases.nixos.org and github.com. The checkout and the actions still came from GitHub.
-- **Fork pull requests after approval:** a workflow from a fork runs code from outside the project, and the approval protects the runners and the caches.
+- **Fork pull requests after approval:** the approval protects the runners and the caches.
 - **Read-only workflow permissions:** least privilege. A workflow requests more only where it needs it.
-- **No `pull_request_target`:** it runs with the rights of the target repository. For public repositories, GitHub blocks it by default from 2 November 2026 ([workflow execution protections](https://github.blog/changelog/2026-09-17-workflow-execution-protections-in-github-actions-generally-available/)).
+- **No `pull_request_target`:** for public repositories, GitHub blocks it by default from 2 November 2026 ([workflow execution protections](https://github.blog/changelog/2026-09-17-workflow-execution-protections-in-github-actions-generally-available/)).
 - **The ruleset for `main`:** every change goes through `check`. A pull request needs 0 approvals, since a sole maintainer can't approve their own.
 - **The ruleset for `v*` tags:** it protects release tags before publication. Published releases are immutable anyway.
 - **Rulesets after the first push:** created before it, the pull request rule would block that push.
@@ -29,7 +29,7 @@ Everything runs locally with one command. GitHub Actions only runs the same comm
 ## Rejected alternatives
 
 - **A path filter on `check`:** the required check would stay pending on pull requests the filter skips.
-- **A matrix over several Node versions:** Node only builds the app, so more versions test nothing the users run.
-- **Automatic retries:** they add runs without a change, against the aim of sparse runs.
-- **`pull_request_target`:** it would run pull-request code with the target repository's rights, and GitHub blocks it by default.
-- **Caches written by every workflow:** any run, a pull request's included, could then plant a poisoned entry for the next one.
+- **A matrix over several Node versions:** the app runs in the browser, and Node is only for building.
+- **Automatic retries:** runs are kept sparse.
+- **`pull_request_target`:** GitHub blocks it by default for public repositories.
+- **Caches written by every workflow:** only a single writer keeps poisoned entries out.

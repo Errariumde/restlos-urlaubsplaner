@@ -71,7 +71,7 @@ No workflow has a matrix or automatic retries.
   - `nix copy` keeps cache.nixos.org's signatures in it, so Nix checks every path against the `cache.nixos.org-1` key as on download. `seed` fails when a path lacks that signature, except the shell's own `-env` output and content-addressed paths.
   - Every reader rebuilds the shell's `-env` output.
   - `always-allow-substitutes` makes CI download the cheap wrappers that nixpkgs would otherwise build locally, so they too come signed.
-  - cache.nixos.org is the fallback on a miss. With a warm cache, the Nix setup contacts none of cache.nixos.org, releases.nixos.org and github.com. The checkout and the actions still come from GitHub.
+  - cache.nixos.org is the fallback on a miss.
 - **npm packages:** `~/.npm` is cached with the hash of `package-lock.json` and `.npmrc` as key. `check` restores it and runs `npm ci --prefer-offline`, which checks every package against the `integrity` in the lockfile. The registry is contacted only for packages missing from the restored cache.
 - **Holiday sources:** CI fetches none. date-holidays comes through `npm ci`, and the python-holidays reference is checked in.
 - **NixOS release branches:** within a release branch, Dependabot updates `flake.lock`. Once the next release branch exists, it opens a pull request that moves `flake.nix` to it. That pull request is only the notice: the move is made by hand on a branch of its own ([dependency update](../howto/dependency-update.md), step 8), and Dependabot's pull request is closed afterwards. The [NixOS release check](#nixos-release-check) sets the deadline.

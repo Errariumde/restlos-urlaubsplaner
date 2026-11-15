@@ -10,7 +10,7 @@ restlos is a hobby project without commitments. Its expectations are stated visi
 ## Why
 
 - **The expectations in public:** GitHub's guide on balance for maintainers advises exactly this, to make your own boundaries public and to say "no" openly ([opensource.guide](https://github.com/github/opensource.guide/blob/main/_articles/maintaining-balance-for-open-source-maintainers.md)).
-- **The human side:** the legal side, no warranty and no liability, is already covered by Art. 7 and 8 of the EUPL-1.2. The notice adds what the licence doesn't say.
+- **The human side:** the legal side, no warranty and no liability, is already covered by Art. 7 and 8 of the EUPL-1.2. The notice is the human side.
 - **Wikis, Projects and Discussions off:** there is no channel for general questions ([`SUPPORT.md`](../../../../SUPPORT.md)).
 - **Issues on and pull requests open to everyone:** contributions are welcome.
 - **Squash merging only:** it keeps the history on `main` linear.
