@@ -56,7 +56,13 @@ restlos is an offline vacation planner delivered as a single HTML file (plus a G
 - **i18n:** ICU MessageFormat catalogs (de, en); no string concatenation of sentences.
 - **Security:** no `{@html}` with data, no `eval`/`new Function`, no network access at runtime (CSP `connect-src 'none'`), data passed to Typst only as JSON input, size limits on all imports.
 - **Dependencies:** only packages listed in `docs/dev/en/reference/dependencies.md`. Ask before adding any package. Exact versions, `npm ci`, `.npmrc` keeps `ignore-scripts=true` and `min-release-age=14`. `@playwright/test` must match the `playwright-driver` version from the Nix dev shell.
-- **Git:** commit on a branch, never directly on `main`. Never push, tag or sign: the maintainer reviews, signs and pushes. If a commit fails because it can't be signed, use `git -c commit.gpgsign=false commit …`, never the maintainer's keys or SSH agent.
+- **Git:**
+  - Commit only on a branch, never on `main`. Checking out, reading and comparing `main` are fine.
+  - One agent: before the first change of a task, create the task's branch from `main` (`git switch -c <topic>`) and do all of the work in this checkout.
+  - Agents that work at the same time: each gets a worktree outside the repository, with a branch of its own made from the task's branch and merged back into it.
+  - Comparing versions: `git diff` and `git show <rev>:<path>`. To build or test another version, use a worktree on a detached HEAD (`git worktree add --detach <dir> <rev>`), in which nobody commits.
+  - No worktree checks out the branch `main`. Remove each worktree when its work is done.
+  - Never push, tag or sign: the maintainer reviews, signs and pushes. Always commit with `git -c commit.gpgsign=false commit …`, which turns signing off whatever the Git configuration says; never use the maintainer's keys or SSH agent.
 - **npm usage:** run tools through npm scripts (`npm run …`), never `npx`: without a TTY, npx installs missing packages without asking, bypassing the lockfile. `ignore-scripts=true` also skips `pre*`/`post*` scripts, so don't rely on them.
 - **Sizes:** rem for font sizes, spacing, anything that holds text, and breakpoints, also the width limits in code (`src/ui/state/width.ts`); px only for what must not grow with the text: borders, outlines, shadows, patterns and marks up to 16 px. `npm run check` fails on font sizes and breakpoints in px and on px boxes over 16 px. The reason is in `docs/SPEC.md`, "Controls, icons and fonts".
 - **Browsers:** only features available in the current Firefox ESR. Playwright's Firefox is not the ESR; check ESR behaviour manually with `firefox-esr` from the dev shell.
