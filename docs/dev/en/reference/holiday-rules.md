@@ -11,6 +11,7 @@ The embedded holiday data and how the app uses it. The keys of a country data fi
 
 - `countries` in `src/data/holidays/index.ts` maps a country code to its data file. It holds `DE` only.
 - A country is a data file in `src/data/holidays/` plus its import and its entry in `countries`. A country needs no rule code.
+- The holiday data holds no school holidays. They come as a calendar source of type `info` ([Types](file-format.md#types)).
 
 ## Work week and week start
 

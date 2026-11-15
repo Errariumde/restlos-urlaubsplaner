@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-// The messages between the page and the engine worker (docs/SPEC.md, Architecture, "Worker"). Every
+// The messages between the page and the engine worker (docs/dev/en/reference/architecture.md, "Worker"). Every
 // message is a plain object: the model stays in the worker, the page receives only what it shows.
 import type { Part, PlanPeriod } from "../../engine/counting/types.ts";
 import type { PlanResult } from "../../engine/counting/plan.ts";

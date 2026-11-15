@@ -65,7 +65,7 @@ const FRACTION_GLYPHS: Readonly<Record<string, string>> = {
 const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
 
 /**
- * Day amount for display, exact for every share of a day (docs/SPEC.md, "Finer granularity"): the whole days,
+ * Day amount for display, exact for every share of a day (docs/dev/en/reference/counting-model.md, "Units"): the whole days,
  * then the fraction as its glyph where Unicode has one ("1½", "¼", "−2⅓"), else as numerator/denominator after a
  * no-break space ("3/32", "1 3/32").
  */

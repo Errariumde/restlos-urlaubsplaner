@@ -67,7 +67,7 @@ interface WaitingPreview {
 
 const asError = (error: unknown): Error => (error instanceof Error ? error : new Error(String(error)));
 
-/** Starts the engine worker from its source code: a classic worker from a `blob:` URL (docs/SPEC.md, "Worker"). */
+/** Starts the engine worker from its source code: a classic worker from a `blob:` URL (docs/dev/en/reference/architecture.md, "Worker"). */
 export function startEngine(source: string, makeWorker: MakeWorker): Engine {
   const url = browser.URL.createObjectURL(new browser.Blob([source], { type: "text/javascript" }));
   const worker = makeWorker(url);

@@ -113,7 +113,7 @@ A rule set fixes as much of the region as it knows: an agreement valid everywher
 
 ### Smallest leave unit
 
-`minUnit` is a weight that divides one day into whole units: `"1"`, `"1/2"`, `"1/4"`, … `"1/32"`, or any other `1/n` where `n` divides 480. The contract dialog of version 1 offers only `"1"` and `"1/2"`; with any other unit from a handwritten file, the app plans in that unit (half days only where ½ is a multiple of it). Leave and overrides that are not a multiple of it are kept and reported (`notMultipleOfMinUnit`).
+`minUnit` is a weight that divides one day into whole units: `"1"`, `"1/2"`, `"1/4"`, … `"1/32"`, or any other `1/n` where `n` divides 480. The contract dialog of version 1 offers only `"1"` and `"1/2"`; a handwritten file may give any other of these units. How the app plans in it: [Units](counting-model.md#units). Leave and overrides that are not a multiple of it are kept and reported (`notMultipleOfMinUnit`).
 
 ### Work week
 
@@ -168,7 +168,7 @@ A rule set fixes as much of the region as it knows: an agreement valid everywher
 | `needed` | time off needed: the user must be free, for example the Kita closes | `take` (`"1/480"` … `"1"`), `part` | never costs; a problem on every day of the plan period where that much time is not free, see [Time off needed](#time-off-needed) |
 | `otherPlan` | leave from another plan | `from`, `to`, `kind` | never costs; see [Leave from another plan](#leave-from-another-plan) |
 
-`part` means the same in leave, overrides, rules and source entries: `"start"` or `"end"` of the day. For leave days, mandatory leave (`mandatory` rules and entries) and time off needed it is where that time lies; for required work (overrides, `holiday` entries, `requiredAtMost` and `requiredExactly` rules) it is where the free time lies, and the work lies at the other end of the day. Leave is charged only where it overlaps the working time: own leave of ½ at the end of a day whose afternoon is free costs nothing. A rule set never contains `otherPlan` or `needed` sources: both are personal.
+`part` means the same in leave, overrides, rules and source entries: `"start"` or `"end"` of the day. For leave days, mandatory leave (`mandatory` rules and entries) and time off needed it is where that time lies; for required work (overrides, `holiday` entries, `requiredAtMost` and `requiredExactly` rules) it is where the free time lies, and the work lies at the other end of the day. What that costs: [Cost of a day](counting-model.md#cost-of-a-day). A rule set never contains `otherPlan` or `needed` sources: both are personal.
 
 ### Entries
 
@@ -206,7 +206,7 @@ A need of `take` at the `"end"` is covered on a day that is entirely free or who
 
 ### Leave from another plan
 
-An `otherPlan` source holds the days another plan charged, as the spans it charged, in positions of the day:
+An `otherPlan` source holds the days another plan charged, for example the days in January that the previous year's plan already charged. It holds them as the spans that plan charged, in positions of the day:
 
 | Key | Required | Meaning |
 | --- | --- | --- |

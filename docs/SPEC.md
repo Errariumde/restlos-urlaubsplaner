@@ -56,9 +56,7 @@ Other licenses only where necessary: built-in PDF templates, example template an
 
 ## Delivery format
 
-Status: partly implemented; the downloadable HTML file is built, the GitHub Pages version (the landing page, the app with manifest and service worker, the documentation website and their layout), saving and browser storage (IndexedDB) are not, planned for version 1.
-
-Recommendation: two distribution channels from the same build. A **downloadable HTML file** for offline use from your own computer, and a **hosted version on GitHub Pages** (free for public repositories) that can be installed as a web app on the phone and then also runs offline. In both cases the data stays on the device.
+Status: partly implemented; the downloadable HTML file is built, the GitHub Pages version (the landing page, the app with manifest and service worker, the documentation website and their layout), saving, browser storage (IndexedDB), the message for a missing browser feature, the help's pointers for Safari and iPhone users, the embedded font and opening the user's own files (issue 0030 (open real files in the UI: rule sets and the read report) is open) are not, planned for version 1; WASM with the Pro HTML, planned for version 2.
 
 | Variant | Size | Role |
 | --- | --- | --- |
@@ -68,13 +66,11 @@ Recommendation: two distribution channels from the same build. A **downloadable 
 
 **Pages layout:** a landing page at `/<repo>/` with no service worker; the app at `/<repo>/app/`, with its service worker and manifest scoped there; the documentation at `/<repo>/docs/de/`, `/docs/en/` and `/docs/dev/` (see Build and CI, "Documentation website").
 
-**No desktop wrapper.** A local server .exe, Tauri and Electron were evaluated. The only real gain would be saving into the same file and opening by double-click in any browser. The installed Pages version in Chrome/Edge already covers that ([File Handling API](https://developer.chrome.com/articles/file-handling), from version 102, desktop only); for Firefox a browser setting helps (see below). The costs of a wrapper (builds for three operating systems, signing warnings, a second supply chain with Rust crates, a local server as attack surface) don't fit a stable hobby project.
-
-**Supported browsers:** the current **Firefox ESR** (currently 153, as of 2026-10-17; ESR 140 received its last update on 2026-09-29, see [Mozilla's release calendar](https://whattrainisitnow.com/calendar/)) and current Firefox, the two newest versions of Chromium browsers (Chrome, Edge) and Safari (macOS, iOS). The ESR is decisive: only browser features available there are used (among others container queries, `<dialog>`, popover, `DecompressionStream`, Web Workers, WebAssembly; checked against the ESR before project start). Vite's `build.target` is set to the current ESR. Playwright's Firefox is a patched Playwright build, not the ESR; ESR compatibility is therefore checked manually with `firefox-esr` from the dev shell. If a feature is missing, the app shows a clear message instead of a broken UI. The `file://` behaviour below was tested on 2026-11-02 in Firefox ESR 153, Firefox 159 and Chromium 147 (Playwright's headless build; Chrome and Edge are assumed to behave the same) unless it says otherwise ([results](feasibility.md)). Safari was not tested. According to its documentation, Safari probably keeps no storage for local files, and iOS probably doesn't run a local HTML file at all. The help therefore points Safari users, and every iPhone user, to the Pages version, and mentions that Safari deletes a website's storage after seven days without a visit. The app still works without storage there.
+**Supported browsers:** if a feature is missing, the app shows a clear message instead of a broken UI. The `file://` behaviour below was tested on 2026-11-02 in Firefox ESR 153, Firefox 159 and Chromium 147 (Playwright's headless build; Chrome and Edge are assumed to behave the same) unless it says otherwise ([results](feasibility.md)). Safari was not tested. According to its documentation, Safari probably keeps no storage for local files, and iOS probably doesn't run a local HTML file at all. The help therefore points Safari users, and every iPhone user, to the Pages version, and mentions that Safari deletes a website's storage after seven days without a visit. The app still works without storage there.
 
 **Consequences of `file://` for the design**
 
-- No `fetch()` on local files: holiday data, fonts, images and WASM are embedded inline. The user's files only come in via the file picker or drag and drop.
+- No `fetch()` on local files: fonts and WASM are embedded inline. The user's files only come in via the file picker or drag and drop.
 - Saving: in Chrome/Edge the app writes directly back into the opened file via the File System Access API (on `file://` Chromium offers `showOpenFilePicker`, `showSaveFilePicker` and `getAsFileSystemHandle`; using them needs real dialogs and wasn't tested); Firefox and Safari don't have this interface ([web.dev](https://web.dev/articles/files/save-a-file)), there the file is downloaded, with the name of the opened file and the new revision as suggestion (see File operations). For Firefox, the help explains the setting "Always ask you where to save files": a save dialog then appears in which the original file can be overwritten, instead of collecting copies like "(1)" in the download folder. On the phone via download or the share menu.
 - **Browser storage is a cache; the plan file is the only real record.** The app works fully when storage is empty, missing or throws, and checks everything it reads back like an imported file (size limits, schema, values).
 - **Where storage is kept:** Firefox keeps one storage area per file path. A reload keeps it, and so do `?query` and `#hash`; a copy under a new name or the same name in another folder starts empty, and so does, according to the research, a renamed or moved file, while replacing the file under the same name keeps it (from the research, not tested). Chromium (Chrome, Edge) has one storage area for every HTML file opened from disk. It survives renaming, and every local HTML file can read and overwrite it. The GitHub Pages version has its own, stable storage (its own origin), separate from the downloaded file.
@@ -105,31 +101,19 @@ After choosing the federal state, only its local rules appear, phrased as "appli
 
 ### Multiple calendar sources (iCal)
 
-Status: partly implemented; the engine reads and counts every source type and the calendar shows them, import, update, editing, export and the duplicate mark are not built (issue 0010 (iCal import and export of calendar sources) is open), planned for version 1.
-
-A **calendar source** is a named list of days with a type and a color. It is imported once from an iCal file or another plan file, or created by hand (e.g. the closure days of a Kita from a PDF), and is stored only as its entries: a date, or a repeating `match` in the day-rule format (see Format). No iCal text is kept and no time zone is stored.
+Status: planned for version 1.
 
 | Setting | Values |
 | --- | --- |
-| Name | free, e.g. "Company 2027", "Leave 2026" |
-| Type | Holiday · Paid closure · Mandatory leave · Info · Leave from another plan · Time off needed |
-| Effect | follows from the type (table below); per entry for Holiday the required work (0 or ½), for Mandatory leave and Time off needed the share of the day, each with its part of the day |
-| Color | reference to a slot of the color palette (e.g. "Accent 3"), optionally an own color |
-| Priority | order via up/down buttons, only for the display order |
-| Visible | on/off |
+| Priority | order via up/down buttons |
 
 | Type | Effect on cost |
 | --- | --- |
-| Holiday | lowers the required work (to 0 or ½), can never raise it |
-| Paid closure | required work 0, costs nothing |
-| Mandatory leave | day counts as taken, charges the plan's allowance |
-| Info (e.g. school holidays) | none, only a background band |
-| Leave from another plan | none; shows e.g. in January the days already planned in the previous year, they are counted there (own and mandatory leave of that plan). The source is an .ics or directly another .urlaub.json file; of a .urlaub.json only the days it charged are stored (see Format) |
-| Time off needed | none; the user must be free, e.g. the Kita closes on Tuesday afternoons or on its closure days. Every day of the plan period on which the needed time is not free is reported (see Counting model) |
+| Leave from another plan | The source can also be an .ics file. |
 
-Conflicts: all sources of a day are displayed (the detail view lists them, the cell shows up to three lanes and beyond that a "+" pattern). The same day with the same name from several sources or the built-in set is shown once and marked as a duplicate.
+The same day with the same name from several sources or the built-in set is shown once and marked as a duplicate.
 
-**Import (once):** choose file → preview of all recognized events with a checkbox per entry and a list **"not supported / skipped"** → set name, type, color → apply. Only the chosen events are stored, as entries; the `.ics` file is not kept.
+**Import (once):** choose file → preview of all recognized events with a checkbox per entry and a list **"not supported / skipped"** → set name, type, color → apply. Only the chosen events are stored, as entries; the `.ics` file is not kept. Import, update, editing and export are issue 0010 (iCal import and export of calendar sources).
 
 - The user chooses the meaning, as easily as possible: the preview groups events by name (twelve "Schulferien" events or a repeating "Elternabend" are one decision) and offers every type, including Time off needed. Nothing is guessed silently; events that don't fit (e.g. 10:00–14:00, or shorter than `minUnit`) are the user's decision.
 - Defaults without working hours: all-day events become full days; an event that ends by 12:00 suggests "½ start", one that starts at 12:00 or later "½ end"; one that spans noon gets no suggestion.
@@ -141,7 +125,7 @@ Conflicts: all sources of a day are displayed (the detail view lists them, the c
 
 **Editing and export:** entries can be removed, added (by clicking days) and changed (share, part of the day); a source can be renamed, change its type and be created without any file. Every source can be exported as `.ics`, so the user doesn't maintain it in several programs: a `match` becomes a repeating event where iCal can express it, otherwise dates for a chosen period.
 
-**School holidays** are not built in, because the dates are set anew every year. They come as a calendar source of type Info. The help names sources, in this order:
+The help names sources, in this order:
 
 1. **Kultusministerkonferenz (KMK, Standing Conference of the Ministers of Education):** official `.ics` file per federal state for the current school year ([KMK holiday calendar](https://www.kmk.org/service/ferienregelung/ferienkalender.html)).
 2. **OpenHolidays API:** school holidays per federal state from 2020, also available as iCal ([openholidaysapi.org](https://www.openholidaysapi.org/en/)); the license of the data is not stated on the site.
@@ -151,88 +135,45 @@ The app doesn't download these files itself; the user imports the saved file.
 
 ### Reference models for tests
 
-Status: implemented.
-
-| Source | Role |
-| --- | --- |
-| [date-holidays](https://github.com/commenthol/date-holidays) (code ISC, data CC BY-SA 3.0) | reference model in CI, not embedded |
-| [python-holidays](https://python-holidays.readthedocs.io/en/latest/_autosummary/holidays.countries.germany.html) (MIT; in version 0.97 Assumption Day in BY and Corpus Christi in SN and TH are in the opt-in category "catholic", and Augsburg is its own subdivision) | second reference model in CI |
-
-date-holidays is a development dependency and runs directly in the Vitest tests (all 16 federal states, 2000–2100); deviations are bugs or are on a documented exception list. python-holidays serves only as an occasional second cross-check: a script generates a reference file on rule changes, which is checked in. No online fetching at runtime.
+Status: moved to `docs/dev/en/reference/test-strategy.md`.
 
 ## Counting model (weights)
 
-Status: not a requirement; moves to docs/dev/en/explanation/ in phase 3.
-
-Recommendation: every day has a **required work** value (how much work is owed), the user takes a share of the day off (a **full** or **half** day with the calendar's clicks, keys and ranges, a part of the plan's smallest leave unit in the day detail's leave bar), and the cost is how much of that leave overlaps the day's working time. Internal calculation in integer units (1 day = 480), so that sums stay exact and planning down to 1/32 day works without restructuring.
+Status: moved to `docs/dev/en/explanation/counting-choices.md`.
 
 ### The one formula
 
-Status: implemented.
-
-Cost of a day = the overlap of the leave with the day's working time, both as shares of the day where they lie in it. Leave lies at the start or the end of the day as its `part` says; a full day covers the whole day. The working time is one block as long as the required work: the whole day on a normal working day; on a day with less work it lies beside its free time, which is at the end unless the layer that decides the required work says `part: "start"`. The work week has no `part`, so a part-time day has its work at the start of the day (issue 0047, a part for work-week entries). Leave on time that is off anyway costs nothing, so the cost is never more than min(taken, required work) and equals it on a normal working day.
-
-| Day | Leave | Cost | Result |
-| --- | --- | --- | --- |
-| normal working day | full | 1 | full day off |
-| normal working day | ½, either part | ½ | half day off |
-| 24 Dec, work ½ in the morning | ½ afternoon | 0 | nothing changes; a problem |
-| 24 Dec, work ½ in the morning | ½ morning | ½ | full day off |
-| 24 Dec, work ½ in the morning | full | ½ | full day off |
-| Friday ½ from the work week | as on 24 Dec | | |
-| ¾ day (free at the end) | ½ afternoon | ¼ | free from noon |
-| ¾ day (free at the end) | ½ morning | ½ | ¼ is worked |
-| ¾ day (free at the end) | full | ¾ | full day off |
-| weekend, holiday | any | 0 | not selectable; a problem when it comes from a file |
-
-Where in the day partial leave lies (at the start or the end of the day, shown as morning or afternoon for half days) decides how much of it overlaps the working time: on a normal working day either part costs the same, on a day with less work only the part that lies on the working time costs. It also decides whether the day joins a stretch (see Allowance display) and whether it overlaps mandatory leave on the same day (see Mandatory leave), and is used for display and .ics.
+Status: moved to `docs/dev/en/reference/counting-model.md`.
 
 ### Finer granularity: prepared, offered only in the leave bar
 
-Status: partly implemented; engine, file format, display and leave bar are built; the .ics and template rows wait for those outputs, planned for version 1; issue 0048 (a calendar key for finer leave steps, and the smallest leave unit in the contract dialog) is open, planned for version 3.
+Status: planned for version 1.
 
-Version 1 sets **full** and **half** days with the calendar's clicks, keys and ranges; only the day detail's leave bar offers the plan's smallest leave unit (see "Detail view"). Engine, file format and template interface are built so that planning down to **1/32 day** (15 minutes at 8 hours) works everywhere without data migration and without changing the calculation logic. Anyone working on the code must observe this:
+The template interface must be built so that planning down to **1/32 day** works everywhere without data migration and without changing the calculation logic. Anyone working on the code must observe this:
 
 | Area | Requirement from version 1 |
 | --- | --- |
-| Unit | 1 day = 480 integer units (480 = 2⁵ · 3 · 5); thus ½, ⅓, ¼, ⅕, ⅙, ⅛, 1/16 and 1/32 are exact. Never floats, never the assumption "only 0, ½, 1". |
-| Data model | `take` is a share of the day, written as a fraction string (`"1"`, `"1/2"`, later e.g. `"3/32"`), not `"full"`/`"half"`; on reading, decimal strings (`"0.5"`) are accepted too (see Date arithmetic). Where in the day partial leave lies is a separate field `part` (`"start"` or `"end"` of the day); partial leave without it is kept with a suggested part and reported. |
-| Contract | The field `minUnit` (smallest leave unit) already exists; loading reports values that are not multiples of it and keeps them (the engine computes them exactly). The contract dialog of version 1 offers only `"1"` and `"1/2"`. The planning follows the unit of the open plan, also another one from a handwritten file: half days only where ½ is a multiple of it, so none under `"1"`; there H changes nothing and the hint line says so. |
-| Engine | Cost = the overlap of the leave with the working time, for arbitrary multiples of 1/32 (exactly in 1/480); no special cases for ½. |
-| Display | one central formatting function for shares (mixed fractions like "12 ¾" or a decimal number, depending on the setting) that handles every denominator up to 32; the day cell draws its fill proportionally to the share, not just "half" or "full". |
-| Operation | The choices are generated from `minUnit`, not hard-wired: the detail's leave bar is split into parts of it (at most 32: a finer unit is drawn in the smallest multiple of it that gives at most 32 parts), and H and the range actions offer a half day only where ½ is a multiple of it. |
+| Display | the central formatting function for shares shows a decimal number instead of mixed fractions, depending on the setting |
 | .ics | Partial days as all-day events with share and part in the title, plus the machine-readable fields `X-RESTLOS-TAKE`, `X-RESTLOS-PART` and `X-RESTLOS-TYPE`; no working hours, no appointments with times. |
 | Templates | The data interface delivers shares as a number and as a fraction string; built-in templates must not contain fixed "half" assumptions. |
-| Tests | Property tests calculate with random multiples of 1/32 (and exactly in 1/480), although the calendar's keys and ranges offer only ½. |
 
-What is still missing later is only UI: a calendar key and range actions for finer steps, and the `minUnit` setting in the contract dialog (issue 0048, a calendar key for finer leave steps, and the smallest leave unit in the contract dialog).
+What is still missing later is also UI: a calendar key and range actions for finer steps, and the `minUnit` setting in the contract dialog (issue 0048, a calendar key for finer leave steps, and the smallest leave unit in the contract dialog).
 
 ### How a day's required work comes about
 
-Status: partly implemented; the engine computes every layer, issue 0043 (dismiss a time-off need for one day) is open, planned for version 1.
+Status: planned for version 1.
 
-1. **Base value** from the contract's work week (e.g. Mon–Fri = 1, Sat/Sun = 0; part-time Friday = 0 or ½).
-2. **Lowering layers:** built-in holidays (0), calendar sources of type Holiday (0 or ½) and Paid closure (0), own day rules (e.g. "24 Dec and 31 Dec: at most ½"). The **minimum** of all applicable values applies. A rule can therefore never make a Sunday or holiday more expensive; if New Year's Eve falls on a Sunday, it stays 0.
-3. **Force** (rare, explicitly marked): a rule sets the required work to a fixed value, e.g. working Saturday = 1. Forced rules apply after step 2.
-4. **Manual override** of a single date applies last.
-
-**Mandatory leave** (e.g. company-wide leave 27–30 Dec) is not a required-work value but marks days as taken, by a share of the day (a full day or e.g. ½); they charge the allowance with their overlap with the working time, like own leave, and can only be changed via their rule or source. If own leave is set on such a day as well, leave on the same part of the day counts once; leave on different parts of the day adds up. Mandatory leave is not charged on the part of a day that leave from another plan already covers, because it was counted there; own leave on that part is charged and reported, as far as it overlaps the working time. Paid closure, on the other hand, is required work 0.
-
-**Time off needed** (a source of that type, e.g. the Kita closes on Tuesday afternoons) never costs anything and doesn't change the required work. It is measured on the whole day, not only on its working time: a need of a share at the end of the day is covered when the day is entirely free or its free time at the end is at least that share, at the start the same with the free time at the start, whatever made the time free (own leave, mandatory leave, leave from another plan, a holiday, lowered required work, the work week). Every day of the plan period on which a need is not covered is reported as a problem. Covering it is ordinary own leave; dismissing it for one day adds the date to the entry's exceptions.
+Dismissing a time-off need for one day adds the date to the entry's exceptions.
 
 ### Work week with validity
 
-Status: partly implemented; the engine and the file format are built, the help's text on the two counting methods for part-time and on § 5 BUrlG is not written, planned for version 1.
+Status: planned for version 1.
 
-The work week is a list with start dates, e.g. full-time until 30 June, four days from 1 July. This way a contract with a switch to part-time stays one file. The first entry also applies before its start date; the rules describe ongoing employment, and there is no separate state for days before or after it. The help explains the two common counting methods for part-time ("day off has required work 0, allowance reduced" vs. "required work ½") and that partial entitlements can be rounded according to § 5 BUrlG (Federal Leave Act); the user enters the allowance themselves.
+The help explains the two common counting methods for part-time ("day off has required work 0, allowance reduced" vs. "required work ½") and that partial entitlements can be rounded according to § 5 BUrlG (Federal Leave Act); the user enters the allowance themselves.
 
 ### Date arithmetic
 
-Status: implemented.
-
-The engine calculates only with calendar days as integer day numbers (days since a fixed reference date), never with JavaScript `Date` and the local time zone. This prevents shifts by one day around daylight saving time changes; a lint rule forbids `Date` in the engine module.
-
-In files, weights are strings: readers accept fraction strings (`"1/2"`) and decimal strings with a decimal point (`"0.5"`); writers always write fraction strings. Values that cannot be represented exactly in 1/480 are rejected on loading with a message.
+Status: moved to `docs/dev/en/reference/architecture.md`.
 
 ## Files: plan file, rule set and settings
 
@@ -299,12 +240,11 @@ Status: planned for version 1.
 
 ### Sharing and validation
 
-Status: partly implemented; the two steps of opening run in the worker, the open dialog with its progress bar and report, the restore of a newer recovery copy, "Save as rule set" and the .ics export are not (issue 0030 (open real files in the UI: rule sets and the read report) and issue 0017 (messages in the open dialog) are open), planned for version 1; the contract part in the PDF, planned for version 2; the HTML self-copy, planned for version 3.
+Status: planned for version 1.
 
-- **Rule set for colleagues:** "Save as rule set" (see File operations): contract, sources, templates and color scheme, no leave days.
 - **HTML self-copy** (version 3, after feasibility test): a copy of the app with an embedded rule set and without personal settings; opens directly in "New → From rule set".
 - **No contract data in .ics.** In the PDF only on explicit request, and only the contract part without plan and notes.
-- **Loading:** if the recovery copy of the same `id` is newer, the app offers to restore it (see File operations); then the revision warning applies. Opening runs in two steps in a Web Worker, so the page stays responsive, with a progress bar from the start. **The model stays in the worker; the page receives only what it shows.** With the largest file within the limits, the model is 13.2 MB as JSON. Handing all of it to the page blocked the page for 69–152 ms per handover (median, all three tested browsers, reference machine, 2026-11-02), with single handovers up to 250 ms in the Firefox ESR. Handing over what one year of the calendar shows took 0.3–2 ms. **Reading:** its bar has no measure, and Cancel stops opening. **Checking:** its bar shows "rule n of N", Skip opens the file without the hints, and Cancel stops opening. The opened file shows the lists of reading and checking together, sorted by severity; with at least one Error the choice is "Open without these parts" or "Cancel", otherwise "OK".
+- **Loading:** if the recovery copy of the same `id` is newer, the app offers to restore it (see File operations); then the revision warning applies. Opening runs in two steps in a Web Worker, with a progress bar from the start. **Reading:** its bar has no measure, and Cancel stops opening. **Checking:** its bar shows "rule n of N", Skip opens the file without the hints, and Cancel stops opening. The opened file shows the lists of reading and checking together, sorted by severity; with at least one Error the choice is "Open without these parts" or "Cancel", otherwise "OK".
 - **Refused at once:** one message says why.
 - **Refused with a list:** one dialog lists every Error reading found, each with its own message, so all of them can be fixed in one go.
 
@@ -632,9 +572,7 @@ Own templates are created outside the app. The help page "Create your own PDF te
 
 ## Architecture, technology and tests
 
-Status: partly implemented; the engine, the worker, the single-file build and its size check are built; the About / Licenses page and the iCal and PDF/Typst tests are not, planned for version 1; the Pro HTML and its feasibility test, planned for version 2; the feasibility test of the HTML self-copy, planned for version 3.
-
-Recommendation: **Svelte 5** (currently 5.57.2 from 6 October 2026) and **TypeScript**, built with **Vite** and [vite-plugin-singlefile](https://cdn.jsdelivr.net/npm/vite-plugin-singlefile@2.3.3/README.md), which inlines JavaScript and CSS into one HTML file; tested with **Vitest**. The calendar engine is a pure TypeScript module without DOM and without runtime dependencies and can be verified in isolation.
+Status: partly implemented; the About / Licenses page, the .ics, PDF and JSON outputs, help, templates and a font in the size budget, the iCal and PDF/Typst tests and the other planned parts of the test strategy are not built, planned for version 1; the Pro HTML and its feasibility test, planned for version 2; the feasibility test of the HTML self-copy, planned for version 3.
 
 ```text
 Architecture: one engine calculates, all outputs read the same state
@@ -649,11 +587,11 @@ Plan/rule set (JSON; load, migration, validation) -/   (required work per     (s
                                                         functions, no UI)
 ```
 
-All outputs (UI, .ics, PDF, JSON) read the same computed state; no output recalculates costs itself.
+All outputs (.ics, PDF, JSON) read the same computed state; no output recalculates costs itself.
 
-**Worker:** the engine runs in a **classic** Web Worker started from a `blob:` URL. A module worker from a `blob:` URL doesn't start from `file://` in Chromium, and Vite's inline-worker wrapper falls back to a `data:` URL, which the CSP blocks. So the UI branch writes its own small wrapper. The worker keeps the model (see Sharing and validation, Loading). Data to and from the worker are strings, plain objects or ArrayBuffers, never Blobs (Safari, [WebKit bug 258443](https://bugs.webkit.org/show_bug.cgi?id=258443)). The worker inherits the page's CSP: no `eval`, no `fetch`, and WebAssembly only with `'wasm-unsafe-eval'` (Pro HTML).
+**Worker:** the worker inherits the page's CSP: WebAssembly only with `'wasm-unsafe-eval'` (Pro HTML).
 
-**Size budget:** standard HTML under 600 KB including the DE/EN catalogs, help, templates and one font. The Pro HTML is a second build target from the same sources plus Typst WASM; its size is measured in the feasibility test.
+**Size budget:** standard HTML under 600 KB including help, templates and one font. The Pro HTML is a second build target from the same sources plus Typst WASM; its size is measured in the feasibility test.
 
 **Licenses in the build:** third-party licenses and NOTICE files are collected automatically and embedded as the "About / Licenses" page with a link to the source repository.
 
@@ -663,7 +601,7 @@ All outputs (UI, .ics, PDF, JSON) read the same computed state; no output recalc
 | --- | --- | --- |
 | Browser storage with `file://` | Do local files share one storage? Does it survive renaming the file? (Firefox, Chromium) | version 1: **done** 2026-11-02 (see Delivery format) |
 | CSP and keyboard shortcuts | Do all CSP directives work via `<meta>` in the Firefox ESR? Do Ctrl+S and Ctrl+O reach the page? | version 1: **done** 2026-11-02 (see Content Security Policy, Built-in help) |
-| Web Worker from `file://` | Does a worker built into the HTML file start from `file://` with the CSP from `<meta>` (`worker-src blob:`) in the Firefox ESR, Chromium and Safari? How long does handing a 10 MB file's model to the page take? | version 1: **done** 2026-11-02 for Firefox and Chromium (see Architecture, Loading); Safari from documentation |
+| Web Worker from `file://` | Does a worker built into the HTML file start from `file://` with the CSP from `<meta>` (`worker-src blob:`) in the Firefox ESR, Chromium and Safari? How long does handing a 10 MB file's model to the page take? | version 1: **done** 2026-11-02 for Firefox and Chromium (see Architecture); Safari from documentation |
 | Calendar import | Behavior of Thunderbird, Google, Outlook on re-import of the same `UID` | version 1: **from documentation only** (see .ics export) |
 | Typst WASM offline | compressed size, load time, fonts as bytes, compiling from `file://` | version 2 |
 | HTML self-copy | rewrite the app's original bytes unchanged (carry the app source along as `type="text/plain"`) | version 3 |
@@ -674,19 +612,14 @@ The version 1 tests ran automated and headless in Firefox ESR 153, Firefox 159 a
 
 | Level | What | Tool |
 | --- | --- | --- |
-| Holidays | rule set against date-holidays (directly) and a checked-in python-holidays reference, all 16 federal states, 2000–2100; cases for SL and MV | Vitest |
-| Rule types | Easter early/late, valid-from year, one-off days, substitute day with the country's own weekend, 29 February, 2000 and 2100 | Vitest, table-driven |
-| Counting model | cost = the overlap of the leave with the working time for random multiples of 1/32, never more than min(taken, required work) and equal to it on a normal working day; minimum of the lowering layers; 24/31 Dec on a weekend costs 0; ½ source on a holiday stays 0; mandatory leave; work week with a change; the sum is correct | Vitest + fast-check |
-| Plans | sources "Leave from another plan" (.ics or .urlaub.json) are displayed and never count | Vitest |
-| Date arithmetic | daylight saving time changes; no `Date` in the engine | Vitest, ESLint rule `no-restricted-globals` |
+| Plans | sources "Leave from another plan" (.ics) are displayed and never count | Vitest |
+| Date arithmetic | daylight saving time changes | Vitest |
 | iCal | round trip export → ical.js → same days; mandatory fields; UTF-8-safe folding; real example files (Google, Outlook, Thunderbird) | Vitest + ical.js |
-| Files | load(save(x)) = x, migration, `revision` warning | Vitest + fast-check |
-| Performance | no wall-clock assertions in tests; every scenario runs at 8× and 16× its base size and fails when twice the input costs more than 2.2× the work, or when it costs more than 5 % over the checked-in baseline (`tests/perf/baseline.json`); raising the baseline needs the maintainer's approval; a measured run that collects garbage fails, because when a collection runs depends on where the repository is checked out | `npm run perf`: Cachegrind instruction counts with V8 `--predictable` and without garbage collection, part of `npm run check` and CI; on GitHub's runners the counts agree with the local ones within 0.5 %, on AMD and Intel CPUs alike (measured 2026-10-24), so CI compares with the same baseline |
-| Multilingual support, colors | missing/unused keys, pseudo-localization, contrast of the schemes | small check scripts |
-| Types and style | TypeScript, Svelte components, lint | `tsc`, svelte-check, ESLint |
+| Files | migration, `revision` warning | Vitest + fast-check |
+| Colors | contrast of the schemes | small check scripts |
 | PDF/Typst | every template × DE/EN with example data, pinned Typst version | Typst CLI |
-| End-to-end | standard and Pro HTML via `file://` in Firefox (Playwright build), Chromium, WebKit; container widths 375/768/1100/1920 px. The Firefox ESR is not covered by Playwright and is tested manually (release checklist) | Playwright |
-| Components, accessibility, keyboard | a component gallery page (dev only, not in the build) shows every component in every state: light and dark, three schemes, DE, EN and the pseudo-locales; Playwright screenshots of it; axe-core on the gallery and the main screens; keyboard end-to-end tests | Playwright, axe-core |
+| End-to-end | Pro HTML via `file://` in Firefox (Playwright build), Chromium, WebKit | Playwright |
+| Components, accessibility, keyboard | the component gallery shows every component in the three schemes | Playwright |
 
 ## Dependencies and supply chain
 

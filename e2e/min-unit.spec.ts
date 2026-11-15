@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The restlos-urlaubsplaner authors
 // SPDX-License-Identifier: EUPL-1.2
 
-// The smallest leave unit (docs/dev/en/reference/file-format.md, "Smallest leave unit"): a plan that counts leave in whole days
+// The smallest leave unit (docs/dev/en/reference/file-format.md, "Smallest leave unit";
+// docs/dev/en/reference/counting-model.md, "Units"): a plan that counts leave in whole days
 // offers no half day anywhere, and H says so in the hint line instead of doing nothing silently.
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { dayFromYmd } from "../src/engine/days.ts";
