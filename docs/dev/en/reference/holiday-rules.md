@@ -14,7 +14,7 @@ The embedded holiday data and how the app uses it. The keys of a country data fi
 
 ## Work week and week start
 
-- The calendar starts each week on the country's `weekStart` ([top level](../../../holiday-data-format.md#top-level)). The browser's locale does not set the week start.
+- The browser's locale does not set the week start ([`weekStart`](../../../holiday-data-format.md#top-level)).
 - The required work per weekday comes from the contract's `week` in the plan file ([work week](../../../file-format.md#work-week)). The engine does not fill it from the country's `workWeek`.
 
 ## German local rules
