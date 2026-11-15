@@ -21,7 +21,7 @@ The app recognizes a file by `schema` and `kind`, not by its name.
 
 `schema` is `"restlos/1"`. Every change of the format gets a new schema number. A release reads every schema written by any release of its own major version, migrates older ones on load and always saves its own; a new major version still reads the last schema of the previous major version. A file with a newer schema is refused (`newerSchema`). Nothing is promised before version 1.0.0: schema 1 may still change without migration.
 
-A new major version (2.0.0) still reads the last schema of the previous major version and may drop older ones; its release notes say so. Files too old for this version are refused with the way out ("open it once with restlos 1.x and save it"). A minor release that introduces a new schema says in its release notes that older 1.x copies can't open its files.
+A new major version (2.0.0) still reads the last schema of the previous major version and may drop older ones; its release notes say so. A minor release that introduces a new schema says in its release notes that older 1.x copies can't open its files.
 
 ## Values
 

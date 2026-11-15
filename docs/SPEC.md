@@ -294,6 +294,7 @@ If a plan file or rule set contains a color scheme, the app asks on first openin
 Status: planned for version 1.
 
 - "Update rules from rule set" uses `origin` to tell copied parts from parts added in the plan file.
+- Files too old for this version are refused with the way out ("open it once with restlos 1.x and save it").
 - The device settings export (`.einstellungen.json`) has `"kind": "settings"` and contains only the device settings listed above.
 
 ### Sharing and validation
