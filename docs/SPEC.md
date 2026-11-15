@@ -236,31 +236,19 @@ In files, weights are strings: readers accept fraction strings (`"1/2"`) and dec
 
 ## Files: plan file, rule set and settings
 
-Status: partly implemented; the engine reads and writes plan files and rule sets, the device settings export and the editor commands (New, Open, Save, Save as, Close, Update rules from rule set) are not built, planned for version 1.
-
-Recommendation: **three kinds of files**, each self-contained, without references between them. The app can neither remember nor reopen file paths, so a reference would make users open two files every time.
+Status: planned for version 1.
 
 | File | Kind | Content | Typical use |
 | --- | --- | --- | --- |
-| `Name.urlaub.json` | plan file | a copy of a rule set (contract, calendar sources, templates, optional color scheme), personal changes to it and **exactly one plan** | one person's leave planning for one period, e.g. 2027 |
-| `Name.regeln.json` | rule set | the same content **without a plan** | shared per company or collective agreement as the starting point for colleagues' plan files |
 | `restlos.einstellungen.json` | device settings export | language, display options and own color schemes | moving personal settings to another browser or device |
 
-The plan file is operated like a document in a normal desktop editor: New, Open, Save, Save as, Close. For the next year you create a new plan file based on the old one. A rule set is never referenced, only copied: a plan file stays usable on its own, and changes to a rule set are pulled in explicitly with "Update rules from rule set". There is no separate color scheme file; color schemes live in the device settings and can be embedded in plan files and rule sets.
+The plan file is operated like a document in a normal desktop editor: New, Open, Save, Save as, Close. For the next year you create a new plan file based on the old one. Changes to a rule set are pulled in explicitly with "Update rules from rule set". Color schemes live in the device settings.
 
 ### Content of the files
 
-Status: partly implemented; the engine reads and writes every part, a single template can't be exported yet, planned for version 1.
+Status: planned for version 1.
 
-- **Contract:** name, description and references (what the contract is and what it is based on), country/region, local rules, smallest leave unit (`minUnit`), work week with validity, day rules. No time zone and no working hours.
-- **Calendar sources** as entries (dates or repeating matches) with name, type, color slot and visibility; no file content. A rule set never contains sources of type "Leave from another plan" or "Time off needed" (personal data).
-- **Own PDF templates** (`.typ` text, optional images), individually exportable.
-- **Color scheme** (optional), embedded for sharing, e.g. company colors.
-- **Only in the plan file:**
-  - **One plan:** period (start and end month), **one number of available days**, own leave days, manual changes of the required work, notes. Someone with a 30-day entitlement and 3 remaining days enters 33; there is no automatic carry-over.
-  - The reference to the rule set it was created from or last updated from (ID, name, revision).
-
-In a plan file every copied part can be changed, e.g. a part-time work week or additional own calendar sources.
+- **Own PDF templates**, individually exportable.
 
 ### File operations (editor behavior)
 
@@ -289,102 +277,35 @@ Status: partly implemented; only the bundled example opens, New, Open, Save, Sav
 
 ### What is stored where
 
-Status: partly implemented; the plan file and rule set hold their parts, the device settings and recovery copies in IndexedDB, the revision record and "Use colors from file?" are not built, planned for version 1.
+Status: planned for version 1.
 
 | Content | Location |
 | --- | --- |
-| Contract, calendar sources, templates, color scheme (optional), plan | plan file `.urlaub.json` |
-| Contract, calendar sources, templates, color scheme (optional), without plan | rule set `.regeln.json` |
 | Language, light/dark/automatic, active color scheme, own color schemes, view, "Align by weekday", show calendar weeks, "Recovery copies: on / off" | device settings (IndexedDB); exportable and importable as `.einstellungen.json` |
 | Recovery copy of a plan with unsaved changes (see File operations, Restore) | IndexedDB, deleted on Save and "Don't save" |
 | Revision record per `id` (highest revision, date, fingerprint) | IndexedDB |
 
 "Recovery copies: off" writes no copies and shows no restore page; the browser's warning when closing a tab with unsaved changes stays. In Chromium on `file://`, the setting carries the same sentence as the restore page: other local HTML files can read these copies.
 
-Calendar sources store a **color slot** of the palette (e.g. "Accent 3"), not a fixed color; a fixed color is possible as an exception. If a plan file or rule set contains a color scheme, the app asks on first opening "Use colors from file?"; on "Yes" the scheme is added to the own color schemes in the device settings and activated. The answer is remembered via the file's `id`.
+If a plan file or rule set contains a color scheme, the app asks on first opening "Use colors from file?"; on "Yes" the scheme is added to the own color schemes in the device settings and activated. The answer is remembered via the file's `id`.
 
 ### Format
 
-Status: partly implemented; plan files and rule sets are read and written, the device settings export is recognized but refused, planned for version 1.
+Status: planned for version 1.
 
-JSON with a `schema` version and a `kind` (`"plan"`, `"ruleSet"` or `"settings"`); the app recognizes a file by its content, not by its extension. All values language-neutral (IDs, ISO dates, decimal point); keys in English according to the glossary. Sketch of a plan file showing every part (illustrative; not one of the example files):
-
-```json
-{
-  "schema": "restlos/1", "kind": "plan",
-  "id": "6f1c…-uuid", "revision": 7,
-  "ruleSet": { "id": "a93e…-uuid", "name": "Beispiel GmbH (ohne Tarifvertrag)", "revision": 3 },
-  "contract": {
-    "name": "Beispiel GmbH (ohne Tarifvertrag)",
-    "description": { "de": "…", "en": "…" },
-    "references": {
-      "betrvg-87": { "title": "Betriebsverfassungsgesetz, § 87 Abs. 1 Nr. 5", "version": "…", "url": "https://…", "checked": "2026-10-18" } },
-    "region": { "country": "DE", "state": "BY", "options": { "assumption": true, "augsburg": false } },
-    "minUnit": "1/2",
-    "week": [ { "from": "2020-01-01", "required": { "mon": "1", "tue": "1", "wed": "1", "thu": "1", "fri": "1", "sat": "0", "sun": "0" } } ],
-    "rules": [ { "id": "new-years-eve", "origin": "a93e…-uuid", "label": { "de": "Silvester", "en": "New Year's Eve" },
-                 "match": { "type": "fixed", "month": 12, "day": 31 }, "requiredAtMost": "1/2",
-                 "note": { "de": "…", "en": "…" }, "references": ["betrvg-87"] } ] },
-  "sources": [
-    { "id": "project", "name": "Projektphase", "type": "info", "color": { "slot": "accent-2" }, "visible": true,
-      "entries": [ { "match": { "type": "range", "from": { "type": "once", "date": "2027-09-06" },
-                                "to": { "type": "once", "date": "2027-10-29" } }, "name": "Release 3" } ] },
-    { "id": "kita", "name": "Kita", "type": "needed", "color": { "slot": "accent-4" }, "visible": true,
-      "entries": [
-        { "date": "2027-11-12", "name": "Pädagogischer Tag" },
-        { "match": { "type": "range", "from": { "type": "fixed", "month": 9, "day": 1 },
-                     "to": { "type": "fixed", "month": 8, "day": 31 }, "weekdays": ["tue"] },
-          "validFrom": 2027, "validUntil": 2027, "except": ["2027-12-28"], "name": "Abholen",
-          "take": "1/2", "part": "end" } ] },
-    { "id": "previous-year", "name": "Urlaub 2026", "type": "otherPlan", "color": { "slot": "accent-3" }, "visible": true,
-      "plan": { "id": "51b0…-uuid", "name": "Beispiel GmbH (ohne Tarifvertrag)", "revision": 9 },
-      "entries": [ { "date": "2027-01-04", "from": "0", "to": "1", "kind": "leave" },
-                   { "date": "2027-01-05", "from": "0", "to": "1/2", "kind": "leave" },
-                   { "date": "2027-01-08", "from": "1/4", "to": "2/4", "kind": "mandatory" } ] } ],
-  "templates": [ { "id": "my-band", "name": "My year band", "api": 1, "typst": ">=0.13", "typ": "…",
-                   "images": [ { "name": "logo.png", "type": "image/png", "data": "iVBOR…" } ] } ],
-  "theme": null,
-  "plan": {
-    "range": { "from": "2027-01", "to": "2028-01" },
-    "allowance": "30",
-    "days":      [ { "date": "2027-05-07", "take": "1" },
-                   { "date": "2027-12-23", "take": "1/2", "part": "start" } ],
-    "overrides": [ { "date": "2027-11-11", "required": "1/2", "part": "end" } ],
-    "notes":     [ { "date": "2027-05-07", "text": "Brückentag" } ]
-  }
-}
-```
-
-- **Identity:** `id` is a random UUID version 4, created at "New"; "Save as" and "New → Based on the current file" create a new one. `revision` is a whole number from 1, raised by 1 on every save; a new `id` starts at 1. A file contains no timestamp, no time zone, no working hours and nothing else about when, where or by whom it was saved.
-- **Versions:** `schema` is `"restlos/1"`, and every change of the format gets a new schema number. The app reads every schema written by any release of its own major version, migrates older ones on load and always saves its own. A new major version (2.0.0) still reads the last schema of the previous major version and may drop older ones; its release notes say so. Files with a newer schema are refused ("made with a newer version of restlos"); files too old for this version are refused with the way out ("open it once with restlos 1.x and save it"). A minor release that introduces a new schema says in its release notes that older 1.x copies can't open its files. Nothing is promised before 1.0.0: schema 1 may still change without migration.
-- **Texts:** every free text (names, `description`, `label`, `note`, reference titles and versions, template names) is a plain string or a map from language code to text, e.g. `{ "de": "Heiligabend", "en": "Christmas Eve" }`. Any lowercase language code is allowed, so further languages need no format change. The app shows the UI language, otherwise `en`, otherwise the first entry; a plain string as it is. Notes and names typed in the app are plain strings.
-- **What a file is based on:** `contract.name`, `description` and `references` say what the contract is and what it is based on. `references` maps a key to `title`, `version`, `url` and `checked` (the date the link was last opened); a rule cites keys in its `references`. The rule sets that come with restlos have all three, and every one of their rules cites a reference.
-- **Region:** `country` is a country of the holiday data, `state` one of its regions and `options` the local rules of that state; a plan file names the state wherever the country's data has states.
-- A day rule's `match` uses the date rules of the holiday data (`docs/dev/en/reference/holiday-data-format.md`) with named fields instead of a text syntax: full dates as ISO dates, a day without a year as `month` and `day`, offsets as signed integers; a `range` has a start `from` (any date rule) and either an end `to` (any date rule; looked up from the start onwards, so a range can cross New Year) or a length `days`, plus an optional `weekdays` filter. A rule has exactly one effect: `requiredAtMost` (lowering layer), `requiredExactly` (forced, applies after all lowering layers) or `mandatory` (share of the day taken as mandatory leave). Besides `label`, a rule may have a `note` and `references`. Day rules are described in `docs/dev/en/reference/day-rules-format.md`.
-- Day rules, calendar sources and templates copied from a rule set carry its ID in `origin`; parts added in the plan file have none. "Update rules from rule set" uses this to tell them apart.
-- **Calendar sources** have `id`, `name`, `type`, `color` (a slot, or an own `rgb` color), `visible` and `entries`; the list order is the display priority. An entry is a `date`, or a `match` in the day-rule format with optional `validFrom`/`validUntil` and `except` (dates the match skips); every entry may have a `name`. Entries of type Holiday carry `required`, entries of Mandatory leave and Time off needed `take`, each with a `part`.
-- **Leave from another plan** stores only the days that plan charged: `plan` (its `id`, name and `revision`) and, for every charged day, one entry per charged span with `from` and `to` (shares of a full day measured from the start of the day, both written with their smallest shared denominator, e.g. `"1/4"` to `"2/4"`) and `kind` (`"leave"` or `"mandatory"`, for display). Nothing else of that plan is stored. Each plan stores what the other actually charged, so a day shared by two plans is charged in exactly one of them, also when they import each other.
-- `part` means the same everywhere (leave, overrides, rules, source entries): `"start"` or `"end"` of the day. For leave it is where the leave lies, for required work where its free time lies.
-- **Plan:** `range` (months, both inclusive, at most 36), `allowance` (may be far above one day) and three lists with at most one entry per date: `days` (own leave with `take` and `part`), `overrides` (manual changes of the required work with `required` and `part`; they are personal and therefore in the plan, never in the contract) and `notes` (`text` on any date, independent of leave).
-- A rule set (`.regeln.json`) has the same structure with `"kind": "ruleSet"`, without `ruleSet`, `plan` and `origin`, and never with sources of type `otherPlan` or `needed`. Its `contract.region` may leave out `state` and `options`: a rule set fixes as much of the region as it knows (an agreement valid everywhere only the country, a company site everything), and "New → From rule set" asks for the rest.
+- "Update rules from rule set" uses `origin` to tell copied parts from parts added in the plan file.
 - The device settings export (`.einstellungen.json`) has `"kind": "settings"` and contains only the device settings listed above.
-- Files are written canonically: keys in a fixed order, the plan lists and source entries sorted, weights as fraction strings. `docs/dev/en/reference/file-format.md`, with `docs/dev/en/reference/day-rules-format.md` for day rules, is the reference for every key: whether it is required, its default, its checks, its codes and its limits.
 
 ### Sharing and validation
 
-Status: partly implemented; reading, checking, severities and limits are built in the engine and the worker, the open dialog with its progress bar and report is not (issue 0030 (open real files in the UI: rule sets and the read report) and issue 0017 (messages in the open dialog) are open), planned for version 1; the HTML self-copy, planned for version 3.
+Status: partly implemented; the two steps of opening run in the worker, the open dialog with its progress bar and report, the restore of a newer recovery copy, "Save as rule set" and the .ics export are not (issue 0030 (open real files in the UI: rule sets and the read report) and issue 0017 (messages in the open dialog) are open), planned for version 1; the contract part in the PDF, planned for version 2; the HTML self-copy, planned for version 3.
 
 - **Rule set for colleagues:** "Save as rule set" (see File operations): contract, sources, templates and color scheme, no leave days.
 - **HTML self-copy** (version 3, after feasibility test): a copy of the app with an embedded rule set and without personal settings; opens directly in "New → From rule set".
 - **No contract data in .ics.** In the PDF only on explicit request, and only the contract part without plan and notes.
-- **Loading:** if the recovery copy of the same `id` is newer, the app offers to restore it (see File operations); then the revision warning applies. Opening runs in two steps in a Web Worker, so the page stays responsive, with a progress bar from the start. **The model stays in the worker; the page receives only what it shows.** With the largest file within the limits, the model is 13.2 MB as JSON. Handing all of it to the page blocked the page for 69–152 ms per handover (median, all three tested browsers, reference machine, 2026-11-02), with single handovers up to 250 ms in the Firefox ESR. Handing over what one year of the calendar shows took 0.3–2 ms. **Reading** checks the size, parses the JSON, checks `schema` and `kind`, migrates older schema versions and validates every value; its bar has no measure, and Cancel stops opening. **Checking** then looks at every day rule and every source entry with a `match` for the likely mistakes listed in `docs/dev/en/reference/day-rules-format.md`, and never changes the file; its bar shows "rule n of N", Skip opens the file without the hints, and Cancel stops opening. Both steps report a list; each entry is a code, the path of the affected value in the file as it was read, and the data the message needs, and the UI writes the sentence. The opened file shows both lists together, sorted by severity; with at least one Error the choice is "Open without these parts" or "Cancel", otherwise "OK".
-- **Required and optional:** a part of a file is required when the app can't work with the file or the entry without it and no default would be right for every file. It is optional when its absence has a default that is right for every file, or when only a feature the user may never use needs it. A missing optional part reads as its default and is not reported; a feature that needs it says so when it is used. An optional part that is present must be complete and valid like everything else. `docs/dev/en/reference/file-format.md` and `docs/dev/en/reference/day-rules-format.md` mark every key as required or optional, give the defaults and show two minimal files to start from.
-- **Reading reports everything it can name for certain:** every problem gets its own entry, also several in one list entry, and a missing value is told apart from an invalid one. Where a value decides how others are read (the country, a source's type, a match's type) and is broken, the values that depend on it are skipped, not guessed.
-- **Refused at once** (nothing is loaded, one message says why) when nothing reliable can follow: a file that is too large or not JSON; a missing, unknown or newer `schema` or `kind` (the device settings `.einstellungen.json` are recognized but not yet supported, see `docs/dev/en/reference/file-format.md`); content that doesn't match its `kind` (a rule set with `plan` or `ruleSet`); a count limit of the file exceeded.
-- **Refused with a list** (nothing is loaded) when a required part of the file itself is missing or invalid, such as the work week or the plan period: one dialog lists every Error reading found, each with its own message, so all of them can be fixed in one go.
-- **Loaded with a report** otherwise: a list entry or an optional part with a missing or invalid value is dropped, and nothing in the file is dropped or changed without an entry in the report.
-- **Severities:** every code has a fixed severity: **Error** (not loaded, lost when saving), **Warning** (loaded, but changed or probably wrong), **Info** (loaded unchanged). Something that is not loaded, a refused file or a dropped entry, reports its Errors only. `docs/dev/en/reference/file-format.md` lists every code with its severity and what happens.
-- **Limits:** every file, list and text that is read has a size limit (`docs/dev/en/reference/file-format.md`, Limits). A file over 10 MB, or over a count limit of the file as a whole, is refused; a single source or template over its own limits is dropped. Reading never interprets unknown structures (they are only reported), so deeply nested JSON costs no more than parsing it.
+- **Loading:** if the recovery copy of the same `id` is newer, the app offers to restore it (see File operations); then the revision warning applies. Opening runs in two steps in a Web Worker, so the page stays responsive, with a progress bar from the start. **The model stays in the worker; the page receives only what it shows.** With the largest file within the limits, the model is 13.2 MB as JSON. Handing all of it to the page blocked the page for 69–152 ms per handover (median, all three tested browsers, reference machine, 2026-11-02), with single handovers up to 250 ms in the Firefox ESR. Handing over what one year of the calendar shows took 0.3–2 ms. **Reading:** its bar has no measure, and Cancel stops opening. **Checking:** its bar shows "rule n of N", Skip opens the file without the hints, and Cancel stops opening. The opened file shows both lists together, sorted by severity; with at least one Error the choice is "Open without these parts" or "Cancel", otherwise "OK".
+- **Refused at once:** one message says why.
+- **Refused with a list:** one dialog lists every Error reading found, each with its own message, so all of them can be fixed in one go.
 
 ## Operation (UI/UX)
 

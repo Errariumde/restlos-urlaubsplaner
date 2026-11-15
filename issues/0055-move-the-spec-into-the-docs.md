@@ -97,11 +97,11 @@ A feature branch may do a row before its phase. The steps of a move are in `docs
 | [ ] How a day's required work comes about | partly implemented | `docs/dev/en/reference/counting-model.md` (new); planned parts stay as tracking | 2 |
 | [ ] Work week with validity | partly implemented | `docs/dev/en/reference/counting-model.md` (new), phase 2; the text on part-time counting and § 5 BUrlG: help, phase 5 | 2, 5 |
 | [ ] Date arithmetic | implemented | `docs/dev/en/reference/architecture.md` (new) | 2 |
-| [ ] Files: plan file, rule set and settings | partly implemented | the three kinds of files and the editor model: `docs/dev/en/reference/files.md` (new), phase 2; the recommendation: `docs/dev/en/explanation/file-kinds.md` (new), phase 3 | 2, 3 |
-| [ ] Content of the files | partly implemented | `docs/dev/en/reference/file-format.md`; planned parts stay as tracking | 2 |
+| [x] Files: plan file, rule set and settings | partly implemented | the three kinds of files and the editor model: `docs/dev/en/reference/files.md`; the recommendation: `docs/dev/en/explanation/file-kinds.md`; planned parts stay as tracking | 2 |
+| [x] Content of the files | partly implemented | `docs/dev/en/reference/file-format.md`; planned parts stay as tracking | 2 |
 | [ ] File operations (editor behavior) | partly implemented | opening the bundled example: `docs/dev/en/reference/start-screen.md` (new); planned parts stay as tracking | 4 |
-| [ ] What is stored where | partly implemented | `docs/dev/en/reference/file-format.md`; planned parts stay as tracking | 2 |
-| [ ] Format | partly implemented | cut where the file format reference says it already, the rest to `docs/dev/en/reference/file-format.md`; planned parts stay as tracking | 2 |
+| [x] What is stored where | partly implemented | `docs/dev/en/reference/files.md`; planned parts stay as tracking | 2 |
+| [x] Format | partly implemented | cut where the file format reference says it already, the rest to `docs/dev/en/reference/file-format.md`; planned parts stay as tracking | 2 |
 | [ ] Sharing and validation | partly implemented | cut where the file format reference says it already, the rest to `docs/dev/en/reference/file-format.md`; the worker and the handover to the page: `docs/dev/en/reference/architecture.md` (new); planned parts stay as tracking | 2 |
 | [ ] Operation (UI/UX) | not a requirement | the recommendation: `docs/dev/en/explanation/ui-principles.md` (new) | 3 |
 | [ ] View 1: Month tiles | implemented | `docs/dev/en/reference/calendar-views.md` (new) | 4 |
@@ -151,7 +151,7 @@ Found with `git grep -n -i -E "the spec('s)?\b|\bSPEC\b"` in `src`, `scripts`, `
 
 - `src/engine/file/report.ts` L107: "(SPEC, Security)", the prototype keys of "Threats and countermeasures".
 - `tests/scripts/build-html.test.ts` L37: "in the spec's order", the order of the directives in "Content Security Policy".
-- `docs/feasibility.md` L14: "the spec's reference machine", from the limits of "Sharing and validation".
+- `docs/feasibility.md` L14: "the spec's reference machine", from the limits in `docs/dev/en/reference/file-format.md` ("Limits").
 - `docs/feasibility.md` L36: "the app's policy from the spec", the policy of "Content Security Policy".
 - `docs/feasibility.md` L67: "The spec relies on documentation", the calendar apps' behaviour on re-import in ".ics export (RFC 5545)" and the feasibility table of "Architecture, technology and tests"; planned, so it rewords when the .ics export is built.
 - `docs/ai-tooling.md` L136: "(see the specification)", the SHA pinning of actions in "Workflow security".

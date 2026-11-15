@@ -21,6 +21,8 @@ The app recognizes a file by `schema` and `kind`, not by its name.
 
 `schema` is `"restlos/1"`. Every change of the format gets a new schema number. A release reads every schema written by any release of its own major version, migrates older ones on load and always saves its own; a new major version still reads the last schema of the previous major version. A file with a newer schema is refused (`newerSchema`). Nothing is promised before version 1.0.0: schema 1 may still change without migration.
 
+A new major version (2.0.0) still reads the last schema of the previous major version and may drop older ones; its release notes say so. Files too old for this version are refused with the way out ("open it once with restlos 1.x and save it"). A minor release that introduces a new schema says in its release notes that older 1.x copies can't open its files.
+
 ## Values
 
 - **Weights** are shares of a day, written as strings: `"1"`, `"1/2"`, `"0"`, `"3/32"`. Readers accept fractions and decimal strings with a decimal point (`"0.5"`); the app writes reduced fractions. A weight lies between 0 and 1 and must be exact in 1/480 day: `"1/7"` and `"0.33"` are invalid (`"0.3"` is 144/480 and valid).
@@ -29,6 +31,7 @@ The app recognizes a file by `schema` and `kind`, not by its name.
 - **IDs** are non-empty strings of at most 200 characters (`"christmas-eve"`). Rule, source and template IDs are unique within their list.
 - **Characters** are counted as Unicode code points.
 - **Keys** a file chooses itself (reference keys, language codes, option names, keys inside `theme`) are never `__proto__`, `constructor` or `prototype`; an entry with such a key is invalid.
+- Keys in English according to the glossary.
 
 ### Texts
 
@@ -251,6 +254,8 @@ The reader checks only the shape and the limits; what a template contains is def
 
 `theme` is `null` or an object, stored and written back unchanged; it may nest at most 32 levels, none of its objects may have a key `__proto__`, `constructor` or `prototype`, and it counts towards the file size. What a color scheme contains is defined with the color editor.
 
+- **Color scheme** (optional), embedded for sharing, for example company colors.
+
 ## Plan
 
 Plan files only. Keys in the order the app writes them:
@@ -286,6 +291,8 @@ Each list has at most one entry per date and is sorted by date. The three lists 
 }
 ```
 
+Someone with a 30-day entitlement and 3 remaining days enters 33; there is no automatic carry-over.
+
 ## Rule sets
 
 A rule set has the same structure with `"kind": "ruleSet"`, and:
@@ -296,6 +303,10 @@ A rule set has the same structure with `"kind": "ruleSet"`, and:
 - `contract.region` may leave out `state` and `options`.
 
 A rule set alone can't be computed: it has no period. "Save as rule set" writes the contract, the sources other than `otherPlan` and `needed`, the templates and the color scheme of a plan file as a new rule set with a new `id` and `revision` 1.
+
+In a plan file every copied part can be changed, for example a part-time work week or additional own calendar sources.
+
+Day rules, calendar sources and templates copied from a rule set carry its ID in `origin`; parts added in the plan file have none.
 
 ## Reading
 
