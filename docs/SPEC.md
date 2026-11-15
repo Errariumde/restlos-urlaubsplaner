@@ -576,7 +576,7 @@ Own templates are created outside the app. The help page "Create your own PDF te
 
 ## Architecture, technology and tests
 
-Status: partly implemented; the About / Licenses page and the iCal and PDF/Typst tests are not built, planned for version 1; the Pro HTML and its feasibility test, planned for version 2; the feasibility test of the HTML self-copy, planned for version 3.
+Status: partly implemented; the About / Licenses page, the iCal and PDF/Typst tests and the other planned parts of the test strategy are not built, planned for version 1; the Pro HTML and its feasibility test, planned for version 2; the feasibility test of the HTML self-copy, planned for version 3.
 
 ```text
 Architecture: one engine calculates, all outputs read the same state
