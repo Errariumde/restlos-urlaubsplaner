@@ -16,9 +16,14 @@ function check(path: string, ...lines: string[]): string[] {
   return checkDocs([{ path, text: `${lines.join("\n")}\n` }]);
 }
 
+/** The text as a regular expression source that matches it literally, backslashes included. */
+function literal(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 /** The errors expected for the given path and lines, matched by their prefix. */
 function at(path: string, ...lines: number[]): unknown[] {
-  return lines.map((line): unknown => expect.stringMatching(new RegExp(`^${path.replace(/[.]/g, "\\.")}:${String(line)}: `)));
+  return lines.map((line): unknown => expect.stringMatching(new RegExp(`^${literal(path)}:${String(line)}: `)));
 }
 
 describe("checkDocs", () => {
