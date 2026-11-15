@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 // String helpers for the built HTML file: the Content Security Policy with the hashes of its inline scripts
-// (docs/SPEC.md, "Content Security Policy") and JSON data blocks.
+// (docs/dev/en/reference/security.md, "Content Security Policy") and JSON data blocks.
 import { createHash } from "node:crypto";
 
 /** The `type` values that make a `<script>` executable: none, empty, `module` or a JavaScript MIME type. */
@@ -36,7 +36,7 @@ export function insertCsp(html: string, policy: string): string {
   return `${html.slice(0, end)}<meta http-equiv="Content-Security-Policy" content="${policy}">${html.slice(end)}`;
 }
 
-/** The standard policy of the app, in the order docs/SPEC.md lists the directives. */
+/** The standard policy of the app, in the order docs/dev/en/reference/security.md, "Content Security Policy", lists the directives. */
 export function standardPolicy(hashes: readonly string[]): string {
   return [
     "default-src 'none'",

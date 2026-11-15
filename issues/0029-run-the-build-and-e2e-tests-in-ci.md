@@ -20,7 +20,7 @@ The `ui` branch added `npm run build`, the size limit, the component gallery and
 ## Context
 
 - Issue 0011 set up the `check` workflow and said: "Build and size check are added later with the UI build", and "`e2e` … come with the branches that add … the UI".
-- `docs/SPEC.md`, "Build and CI" and the test strategy table.
+- `docs/dev/en/reference/build-and-ci.md` and the test strategy table in `docs/dev/en/reference/test-strategy.md`.
 - The Playwright browsers come from the Nix dev shell (`playwright-driver`); `@playwright/test` must match its version. Chromium runs only without `LD_LIBRARY_PATH` (`playwright.config.ts` strips it).
 - Screenshot baselines in `e2e/__screenshots__` were made on the maintainer's machine. WebKit is software-painted there and has no screenshot comparison. Font rendering on a GitHub runner may differ, so the baselines may need a CI-specific set or a tolerance.
 - `npm run test:e2e` runs Chromium and Firefox in parallel and WebKit with `--workers=1` (WebKit flaked under parallel load).

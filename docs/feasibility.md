@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Feasibility tests of version 1
 
-Before the UI was built, small test pages checked what browsers allow a single HTML file that is opened from disk (`file://`): storage, the Content Security Policy from `<meta>`, keyboard shortcuts, the policy of the Pages version and a Web Worker. `docs/SPEC.md` builds on these results in "Delivery format", "What is stored where", "Content Security Policy" and "Architecture, technology and tests", `docs/dev/en/explanation/architecture-choices.md` in "Why", `docs/dev/en/explanation/delivery-format.md` and `docs/dev/en/reference/browsers-and-file-urls.md`. The test pages were used once and are not in the repository.
+Before the UI was built, small test pages checked what browsers allow a single HTML file that is opened from disk (`file://`): storage, the Content Security Policy from `<meta>`, keyboard shortcuts, the policy of the Pages version and a Web Worker. `docs/SPEC.md` builds on these results in "Delivery format", "What is stored where" and "Architecture, technology and tests", `docs/dev/en/explanation/architecture-choices.md` in "Why", `docs/dev/en/explanation/delivery-format.md`, `docs/dev/en/reference/browsers-and-file-urls.md` and `docs/dev/en/reference/security.md` in "Content Security Policy". The test pages were used once and are not in the repository.
 
 ## How the tests ran
 
@@ -33,7 +33,7 @@ Taken from documentation instead: S7 (Chromium's file pickers need real dialogs)
 
 ## Content Security Policy from `<meta>` and keyboard shortcuts
 
-The standard page carried the app's policy from the spec as the first element after `<meta charset>`; the Pro page added `'wasm-unsafe-eval'`.
+The standard page carried the app's standard policy as the first element after `<meta charset>`; the Pro page added `'wasm-unsafe-eval'`.
 
 | Id | Check | Result |
 | --- | --- | --- |

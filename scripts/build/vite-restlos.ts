@@ -5,7 +5,7 @@
 // block, the Content Security Policy
 // with the hashes of the inline scripts, the output file name and the size limit of the single HTML file
 // (the worker and the size limit: docs/dev/en/reference/architecture.md;
-// the CSP: docs/SPEC.md, "Content Security Policy").
+// the CSP: docs/dev/en/reference/security.md, "Content Security Policy").
 import { build, type Logger, type Plugin, type ResolvedConfig } from "vite";
 import { readFile } from "node:fs/promises";
 import { insertCsp, insertDataBlock, scriptHashes, standardPolicy, utf8Length } from "./html.ts";

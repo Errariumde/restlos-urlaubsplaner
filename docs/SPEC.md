@@ -76,7 +76,7 @@ Status: partly implemented; the downloadable HTML file is built, the GitHub Page
 - **Where storage is kept:** Firefox keeps one storage area per file path. A reload keeps it, and so do `?query` and `#hash`; a copy under a new name or the same name in another folder starts empty, and so does, according to the research, a renamed or moved file, while replacing the file under the same name keeps it (from the research, not tested). Chromium (Chrome, Edge) has one storage area for every HTML file opened from disk. It survives renaming, and every local HTML file can read and overwrite it. The GitHub Pages version has its own, stable storage (its own origin), separate from the downloaded file.
 - **Empty storage is normal, not an error:** a fresh copy of restlos under a new name, another browser, Safari, a private window (not tested). The start screen then offers "Open plan file" and "Import device settings (`.einstellungen.json`)", which also brings the settings into a renamed copy.
 - **IndexedDB, not localStorage:** localStorage refuses 10 MB in every tested browser, and after the browser was killed it lost values written 5 s earlier (Firefox) or 1 s earlier (Chromium). IndexedDB kept 10 MB, and kept both values written 1 s and 5 s before the kill (one trial each, `kill -9` of the browser, not a power loss). All records live in one IndexedDB database `urlaubsplaner` (object stores per record type). Every record carries the app version and the schema that wrote it. An older copy of restlos never overwrites a record that a newer one wrote, because in Chromium all local copies share storage.
-- No network access at runtime; the service worker of the Pages version only loads the app's own files.
+- The service worker of the Pages version only loads the app's own files.
 
 ## Holiday sources and work week
 
@@ -423,30 +423,6 @@ Status: partly implemented; the catalogs, formatting, the language switch, the c
 - **Two pseudo-locales** in the component gallery: `en-XA` (long, accented) and `en-XB` (right-to-left). Only the gallery registers them and its own texts, so the app ships German and English alone.
 - No `text-transform: uppercase` on translated text. `Intl.Collator` for sorted lists; the locale's decimal separator is accepted in number fields; engine tests include a country with a Saturday week start.
 
-**Glossary** (binding for UI, help, templates and code identifiers):
-
-| German | English | Meaning |
-| --- | --- | --- |
-| Soll | Required work | share of a day that would have to be worked (e.g. 0, ½, 1; any multiple of 1/32 possible) |
-| Genommen | Taken | share of the day taken off (in the UI full or half days, and the plan's smallest leave unit in the day detail's leave bar) |
-| Restarbeitszeit | Work left | the required work of a day that no leave covers, own, mandatory or from another plan |
-| Kontingent | Allowance | available leave days of a plan |
-| Plan | Plan | period + allowance + selected days |
-| Vertrag | Contract | rules of the employment: region, local rules, work week, day rules, smallest leave unit, with name, description and references; no time zone, no working hours |
-| Plandatei | Plan file | `.urlaub.json`: copy of a rule set plus exactly one plan |
-| Regelwerk | Rule set | `.regeln.json`: contract, calendar sources, templates and optional color scheme without a plan; shared per company or collective agreement |
-| Geräte-Einstellungen | Device settings | language, display options and own color schemes; stored in the browser, exportable as `.einstellungen.json` |
-| Arbeitswoche | Work week | required work per weekday, with validity |
-| Tagesregel | Day rule | own rule that lowers or fixes the required work (`requiredAtMost`, `requiredExactly`) or marks mandatory leave (`mandatory`) |
-| Kalenderquelle | Calendar source | named list of days (dates or repeating matches) with type and color; imported once from iCal or a .urlaub.json file, or created by hand |
-| Pflichturlaub | Mandatory leave | charges the allowance automatically |
-| Bezahlte Betriebsruhe | Paid closure | required work 0, costs nothing |
-| Urlaub aus anderem Plan | Leave from another plan | is displayed, not counted |
-| Freizeit nötig | Time off needed | days or parts of days on which the user must be free (e.g. Kita closure); never costs, reported when not free |
-| Am Stück frei | Stretch | consecutive days off |
-| Brückentag | Bridge day | working day between a holiday and the weekend |
-| Sonderschalter | Local rule | regional exception, e.g. Augsburger Friedensfest |
-
 ### Accessibility
 
 Status: partly implemented; issue 0040 (forced colours: day types and the allowance bar) is open, planned for version 1.
@@ -635,57 +611,41 @@ Status: moved to `docs/dev/en/reference/dependencies.md`.
 
 ## Security
 
-Status: partly implemented; plan files and rule sets are treated as untrusted and the app has no network access; iCal files follow with the iCal import, planned for version 1; own templates run isolated with the Pro HTML, planned for version 2.
-
-Recommendation: every file from outside is considered untrusted, the app has no network access, and templates run isolated. The worst a manipulated file can then cause is an error message.
+Status: moved to `docs/dev/en/explanation/security-choices.md`.
 
 ### Threats and countermeasures
 
-Status: partly implemented; the measures for plan files, rule sets and displayed text are built; those for iCal files, the .ics export, data passed to Typst, file names when saving and releases wait for their features, planned for version 1; running own templates isolated in Typst WASM, planned for version 2.
+Status: planned for version 1.
 
 | Input / risk | Example | Countermeasure |
 | --- | --- | --- |
-| Plan file or rule set from a colleague | manipulated JSON, huge file, `__proto__` key | size limit (10 MB) and count limits (see Sharing and validation); `JSON.parse` followed by schema validation of every field; keys like `__proto__`/`constructor` are discarded; data in `Map` or objects without prototype |
+| Plan file or rule set from a colleague | manipulated JSON, huge file, `__proto__` key | data in `Map` or objects without prototype |
 | iCal file from the internet | script in event names, endless `RRULE`, millions of events | size limit (5 MB) and event limit; recurrences stored as a `match` or expanded only for a period chosen at import; names always displayed as text |
-| Display of foreign text | HTML/script in names and notes | Svelte escapes text; `{@html}` is forbidden for data (ESLint rule `svelte/no-at-html-tags`) |
 | Own Typst template | endless loop, file or network access | Typst runs as WASM in a Web Worker with a time limit; it only sees the passed data and the bundled fonts, no files, no network |
 | Data in Typst | injecting Typst code via holiday or note names | data is never inserted into Typst source code, but passed as JSON input and read there |
 | .ics export | broken lines due to commas, semicolons, line breaks | RFC 5545 escaping of all TEXT values, tested |
 | File names when saving | path characters in the contract name | file names reduced to safe characters |
 | HTML file from a foreign source | HTML self-copy or "release" by third parties with malicious code | the help warns: HTML only from the official repository or from people you trust; immutable releases with `SHA256SUMS`, GitHub build provenance (`actions/attest-build-provenance`) and GitHub's release attestation; verification instructions in the README |
-| Compromised dependency | malicious code in the bundle | see supply chain; additionally network lock via CSP |
 
 ### Content Security Policy
 
-Status: partly implemented; the policy of the downloadable HTML file is built and tested; the Pages version's additions, planned for version 1; 'wasm-unsafe-eval' for the Pro HTML, planned for version 2.
+Status: planned for version 1.
 
-In the HTML's `<meta>` tag (GitHub Pages cannot set custom HTTP headers), as the first element after `<meta charset>`: a meta policy applies only to what comes after it.
-
-- `default-src 'none'`, `connect-src 'none'`, `object-src 'none'`, `base-uri 'none'`, `form-action 'none'`.
-- `script-src` only with the SHA-256 hashes of the embedded scripts, computed at build time over the LF-normalized script text; in the Pro HTML additionally `'wasm-unsafe-eval'` for WebAssembly. No `eval`, no `new Function`. Data blocks (`type="application/json"`, `application/octet-stream`) need no hash.
-- `style-src 'unsafe-inline'` (embedded styles; low risk, since no foreign HTML is rendered), `img-src data: blob:`, `font-src data:`, `worker-src blob:`; in the Pages version `worker-src 'self' blob:` for the service worker.
+- In the Pro HTML, `script-src` additionally has `'wasm-unsafe-eval'` for WebAssembly.
+- In the Pages version `worker-src 'self' blob:` for the service worker.
 - The Pages version additionally needs `manifest-src 'self'`: with `default-src 'none'` the web app manifest would otherwise be blocked and the app could not be installed.
 - WebAssembly is compiled from embedded bytes (`WebAssembly.instantiate`), never fetched, since `connect-src 'none'` applies inside the worker too.
-- **Tested** (2026-11-02, Firefox ESR 153, Firefox 159, Chromium 147, on `file://` and for the Pages policy on `http://127.0.0.1`): the directives are enforced from `<meta>`, also on `file://` in Firefox, except Firefox's `file:` requests (see Known gap); whether the manifest loads under `manifest-src 'self'` was not observed, and `font-src data:` only showed no violation. Hashed scripts run; scripts without a hash, event handler attributes, `eval`, `new Function`, `<object>`, `<embed>`, `<base href>`, form submits, `data:` workers and `fetch`/XHR of `blob:` and `data:` URLs are blocked, and WebAssembly runs only with `'wasm-unsafe-eval'`. The service worker registers, and the Pages version loads again offline.
-- **Known gap:** on `file://`, Firefox let the page fetch its own file and show an image file next to it without a `connect-src` or `img-src` violation, where Chromium blocks both. The app never fetches and embeds all images, so this changes nothing for it; the policy is defence in depth, not the only barrier.
 
 ### Verification
 
-Status: partly implemented; the plan file and rule set reader is fuzzed and SECURITY.md exists, the iCal and settings parsers don't exist yet and the CSP and network test runs only locally (issue 0029 (run the build and the end-to-end tests in CI) is open), planned for version 1.
+Status: planned for version 1.
 
-- Fuzzing of the parsers (iCal, plan file, rule set, settings export, template metadata) with fast-check: random and broken inputs may only lead to error messages, never to crashes or wrong data.
-- CI test: the built HTML contains the CSP, and no network request leaves the page (Playwright intercepts requests).
-- `SECURITY.md` with private reporting via GitHub's "Private vulnerability reporting"; handled on a best-effort basis, without any deadline commitment.
+- Fuzzing of the parsers (iCal, settings export, template metadata) with fast-check: random and broken inputs may only lead to error messages, never to crashes or wrong data.
+- CI test: the end-to-end test of the CSP and network access in `docs/dev/en/reference/security.md` runs in CI (issue 0029 (run the build and the end-to-end tests in CI) is open).
 
 ## Build and CI (GitHub Free and local)
 
-Status: implemented.
-
-Recommendation: everything runs locally with one command; GitHub Actions only runs the same commands, as rarely as possible, with a cache for all downloads and minimal permissions. This way neither the npm registry nor any other server is hit again on every run, and the project stays buildable without GitHub.
-
-**Local (NixOS):** a Nix flake with a dev environment (Node.js LTS with npm ≥ 11.10, Typst, Python for the python-holidays reference, Playwright browsers, Firefox ESR for the manual test, Valgrind on Linux for the performance gate). `nix develop`, then `npm ci`, `npm run check`, `npm run build`. `npm run plan -- <file>` prints what the engine reads and computes for a plan file or rule set. `npm run orca` prints the steps of the screen reader check, and `npm run orca -- <log>` checks what Orca said. `npm run perf` runs the performance gate; `npm run check` includes it. The flake lock file pins all tools; the README explains the commands for Nix beginners. CI uses a second, smaller shell, `devShells.ci` (`nix develop .#ci`), with only what `check` needs: Node.js, Valgrind and REUSE.
-
-**GitHub Free, public repository:** standard runners are free ([GitHub docs](https://docs.github.com/billing/managing-billing-for-your-products/managing-billing-for-github-actions)), GitHub Pages is available ([GitHub plans](https://docs.github.com/en/get-started/learning-about-github/githubs-plans)). Free doesn't mean unlimited: runs are still kept sparse.
+Status: moved to `docs/dev/en/reference/build-and-ci.md`.
 
 ### Documentation website
 
@@ -706,174 +666,78 @@ The user documentation and the developer documentation are published as a websit
 
 ### Workflows
 
-Status: partly implemented; check, seed-cache and Dependency Review run, templates, e2e and release are not built (issue 0029 (run the build and the end-to-end tests in CI) is open), planned for version 1.
+Status: planned for version 1.
 
 | Workflow | Trigger | Content |
 | --- | --- | --- |
-| `check` | push to `main`, pull requests; always the full check, without a path filter (a required check whose workflow a path filter skipped stays pending and blocks the merge) | inside `nix develop .#ci`: NixOS release check, `npm ci`, `npm run check` (lint, type check, Vitest, performance gate, the catalog, CSS, reference, citation, spec status and docs style checks, REUSE check); then, as separate steps, the app build with its size check and the gallery build |
-| `seed-cache` | pushes to `main` that change `flake.nix`, `flake.lock`, `package-lock.json`, `.npmrc`, the Nix action or the workflow itself; weekly; by hand | the only workflow that writes caches: the Nix tarball, the Nix store cache and the npm cache, each fetched fresh from upstream; a separate read-only job runs the NixOS release check, so a failed weekly run reports an outdated release |
 | `templates` (planned) | only on changes to templates or the Typst version | compile templates × DE/EN with the pinned Typst version |
 | `e2e` (planned) | pull requests with the label `e2e`, before every release, otherwise once a week only if there were commits since the last run | Playwright in Firefox, Chromium, WebKit |
 | `release` (planned) | manual (tag) | build; create a draft GitHub Release, attach standard and Pro HTML, `SHA256SUMS` and the SPDX bill of materials, then publish it (immutable release); Pages version (landing page, web app and documentation website, from one folder in one deploy) on GitHub Pages |
-| Dependency Review | pull requests that change the lockfile | GitHub's own `dependency-review-action` reports new packages and known vulnerabilities |
-
-**NixOS release check:** `npm run nixos-release` reads the release branch from `flake.lock`. NixOS supports a YY.05 release until 31 December and a YY.11 release until 30 June of the next year; its successor comes out about a month earlier. From the 1st of that last month CI warns that the successor is due; from the 16th, or for a branch that isn't a release branch, it fails, so the project moves while the old release is still supported.
 
 ### Consideration for upstream sources (caching)
 
-Status: partly implemented; the Nix, npm and Dependabot parts are built, the caches for the Playwright browsers and the Typst CLI and the build artifact of check are not, planned for version 1.
+Status: planned for version 1.
 
-- **Nix:** the release tarball of the pinned Nix version (the one the pinned nixpkgs ships) is cached with the version as key and checked against a SHA-256 pinned in `.github/actions/nix/action.yml` before it is installed. The dev shell comes from a `file://` binary cache kept in GitHub's cache, keyed on `flake.lock`, `flake.nix`, the action and the `seed-cache` workflow. `nix copy` keeps cache.nixos.org's signatures in it, so Nix checks every path against the `cache.nixos.org-1` key as it would on download; the shell's own `-env` output is rebuilt. CI also downloads the cheap wrappers that nixpkgs would otherwise build locally (`always-allow-substitutes`), so they too come signed. cache.nixos.org is the fallback on a miss; with a warm cache, the Nix setup needs neither it, releases.nixos.org nor github.com (checked on GitHub's runners on 2026-10-24; the checkout and the actions still come from GitHub). Signatures and the pinned hash detect altered content, not a poisoned cache entry: restoring an entry can write any file the runner can write, before Nix or the hash check looks at it. Only the single writer and the cache scopes keep such entries out (see "Avoid cache poisoning").
-- **npm packages:** `~/.npm` is cached with the hash of `package-lock.json` and `.npmrc` as key; `check` restores it and runs `npm ci --prefer-offline`, which checks every package against the `integrity` in the lockfile. Registry access only happens when the lockfile changes.
 - **Playwright browsers:** cached with the Playwright version as key; only WebKit system packages are installed if needed.
 - **Typst CLI:** official release binary of a fixed version, checksum checked against a checked-in value, cached with the version as key.
-- **REUSE tool:** comes from the dev shell (nixpkgs), like Node.js and Valgrind.
-- **No fetching of external holiday sources in CI:** date-holidays comes from the npm cache, the python-holidays reference is checked in.
-- **Dependabot:** once a month, grouped into one pull request, `cooldown` 14 days; GitHub Actions as a second ecosystem and Nix (`flake.lock`) as a third, also monthly. Within a release branch Dependabot updates `flake.lock`; once the next release branch exists, it opens a pull request that moves `flake.nix` to it. That pull request is only the notice: the move is made by hand on a branch of its own (dependency update procedure, see also the NixOS release check), and Dependabot's pull request is closed afterwards. `@playwright/test` is excluded (pinned to nixpkgs, see supply chain).
-- **No pointless runs:** `concurrency` with `cancel-in-progress` cancels outdated runs of the same branch; path filters for `templates` and Dependency Review (not for `check`, see Workflows); no matrix over several Node versions (the app runs in the browser, Node is only for building); short `timeout-minutes`; no automatic retries.
+- **No pointless runs:** a path filter for `templates`.
 - **Artifacts:** only the build result of `check`, with 3 days retention; releases live in GitHub Releases.
 
 ### Workflow security
 
-Status: partly implemented; check, seed-cache and Dependency Review follow the rules, the release workflow with its write permissions (contents, pages, id-token, attestations), actions/attest-build-provenance and the Pages actions is not built, planned for version 1.
+Status: planned for version 1.
 
-- Only actions from GitHub itself (`actions/checkout`, `actions/cache`, `actions/upload-artifact`, `actions/dependency-review-action`, `actions/attest-build-provenance`, Pages actions), each pinned by **commit SHA**, plus the repository's own composite action `.github/actions/nix`; Dependabot keeps the SHAs current. The repository settings enforce both: only actions created by GitHub are allowed, and a workflow using an action that isn't pinned to a full-length commit SHA doesn't start. Tools without an official GitHub action (Nix, Typst CLI) are installed with checksum pinning (see caching).
-- `permissions: contents: read` as the default at workflow level; only `release` gets `contents: write`, `pages: write`, `id-token: write` and `attestations: write`.
-- `actions/checkout` with `persist-credentials: false`.
-- No `pull_request_target` (for public repositories GitHub blocks it by default from 2 November 2026, [workflow execution protections](https://github.blog/changelog/2026-09-17-workflow-execution-protections-in-github-actions-generally-available/)), no secrets, nothing is published to npm.
-- **Avoid cache poisoning** (the route of the TanStack attack): caches are written only by the `seed-cache` workflow, which restores nothing, takes everything fresh from upstream and runs no tests, no npm scripts and no pull-request code (only `main`'s flake, the Nix action and `npm ci` without install scripts). Every other workflow sets `cache-mode: read` (Dependency Review: `none`), which GitHub enforces with scoped tokens. Pull requests from forks only run after approval (setting "Require approval for all external contributors").
-- **Nix:** installed single-user (`--no-daemon`) from the hash-checked tarball. `require-sigs` and `trusted-public-keys` stay at their defaults (only `cache.nixos.org-1`); never `trusted=true`, `--no-check-sigs` or `accept-flake-config`. The installed version must equal the one the pinned nixpkgs ships; otherwise the job fails and names the two values to update.
-- Rulesets protect `main` (pull request and green `check` required) and the release tags; details under "Repository settings on GitHub".
-- `npm ci` with `ignore-scripts` and `min-release-age` from the checked-in `.npmrc` applies in CI just as locally.
+- Only actions from GitHub itself (`actions/upload-artifact`, `actions/attest-build-provenance`, Pages actions), each pinned by **commit SHA**. Tools without an official GitHub action (Typst CLI) are installed with checksum pinning (see caching).
+- Only `release` gets `contents: write`, `pages: write`, `id-token: write` and `attestations: write`.
 
 ## Project operations and contributing
 
-Status: not a requirement; moves to docs/dev/en/explanation/ in phase 3.
-
-Recommendation: the expectations are stated visibly in one place, in short, friendly and clear words; GitHub's guide on balance for maintainers advises exactly this, to make your own boundaries public and to say "no" openly ([opensource.guide](https://github.com/github/opensource.guide/blob/main/_articles/maintaining-balance-for-open-source-maintainers.md)). The legal side (no warranty, no liability) is already covered by Art. 7 and 8 of the EUPL-1.2; the text below is the human side.
+Status: moved to `docs/dev/en/explanation/hobby-project.md`.
 
 ### Hobby project notice
 
-Status: not a requirement; moves to README in phase 2.
-
-In the README (at the top, short; German and English), in `SUPPORT.md` (German and English) and in `CONTRIBUTING.md` (English):
-
-```markdown
-## Projektstatus
-
-restlos ist ein Hobbyprojekt, das ich in meiner Freizeit pflege.
-Es gibt keine Zusagen zu Antwortzeiten, Fehlerbehebungen, neuen
-Funktionen oder weiterer Pflege.
-
-- Issues und Pull Requests sind willkommen. Ich schaue sie an, wenn ich
-  Zeit und Lust habe, und schließe sie auch ohne ausführliche Begründung.
-- Größere Änderungen bitte vorher in einem Issue besprechen.
-- Die Software wird ohne Gewährleistung bereitgestellt (EUPL-1.2, Art. 7 und 8).
-  Maßgeblich für deinen Urlaub sind dein Arbeitsvertrag und deine Personalabteilung.
-- Wenn du mehr brauchst: Forken ist ausdrücklich erwünscht.
-```
-
-```markdown
-## Project status
-
-restlos is a hobby project I maintain in my spare time.
-There are no promises about response times, bug fixes, new features
-or continued maintenance.
-
-- Issues and pull requests are welcome. I look at them when I have the
-  time and energy, and I may close them without a detailed explanation.
-- Please open an issue before starting larger changes.
-- The software is provided without warranty (EUPL-1.2, Articles 7 and 8).
-  Your employment contract and HR department are authoritative for your leave.
-- If you need more: forking is explicitly welcome.
-```
+Status: moved to `README.md`.
 
 ### Files in the repository
 
-Status: partly implemented; every file exists, the README has no screenshot, download or Pages link and no verification of checksums and attestations yet, planned for version 1.
+Status: planned for version 1.
 
 | File | Content |
 | --- | --- |
-| `README.md` | short description, screenshot, download/Pages link, project status notice, verification of checksums and attestations |
-| `SUPPORT.md` | where to report bugs and ideas (issue templates); no channel for general questions; hobby project notice |
-| `CONTRIBUTING.md` | process (issue first), tests must pass, source citation for holiday data, no entitlement to a merge, language conventions, license of contributions (code, data and configuration EUPL-1.2, templates and examples MIT-0, documentation CC BY 4.0) |
-| `SECURITY.md` | private reporting, best effort, no deadlines |
-| `CODE_OF_CONDUCT.md` | short code of conduct (e.g. Contributor Covenant); gives a basis for closing unfriendly contributions |
-| `.github/ISSUE_TEMPLATE/` | bug report and feature request, each with a mandatory checkbox "I understand this is a hobby project without commitments"; blank issues disabled |
-| `CHANGELOG.md` | changes per version (format "Keep a Changelog") |
+| `README.md` | screenshot, download/Pages link, verification of checksums and attestations |
 
 ### Repository settings on GitHub
 
-Status: not a requirement; moves to docs/dev/en/reference/ in phase 2.
-
-Recommendation: settings that exist only on GitHub are listed here, so the repository (or a fork with the same protection) can be set up again without guessing. They are set once by hand; labels as of October 2026.
+Status: planned for version 1.
 
 | Settings → | Setting | Reason |
 | --- | --- | --- |
-| General → Features | Issues on; Wikis, Projects and Discussions off; pull requests open to everyone | no channel for general questions (see `SUPPORT.md`); contributions are welcome |
-| General → Pull requests | squash merging only; delete head branches automatically | linear history on `main` |
-| General → Releases | release immutability on | the tag and the files of a published release can't be changed or deleted, and GitHub adds a signed release attestation ([immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases)) |
-| Actions → General | allow only actions created by GitHub; require actions to be pinned to a full-length commit SHA | enforces the rules under "Workflow security" |
-| Actions → General | approval for fork pull request workflows: all external contributors | protects runners and caches |
-| Actions → General | workflow permissions read-only; GitHub Actions may not create or approve pull requests | least privilege; workflows request more only where needed |
-| Advanced Security | private vulnerability reporting | reporting path of `SECURITY.md` |
-| Advanced Security | dependency graph, Dependabot alerts with malware alerts, Dependabot security updates | known vulnerabilities and malicious packages are reported; version updates come from `dependabot.yml` |
-| Advanced Security | secret scanning with push protection | the project has no secrets; catches tokens committed by mistake |
-| Advanced Security | code scanning: CodeQL default setup (JavaScript/TypeScript, GitHub Actions) | finds e.g. script injection in workflows; runs on pushes, pull requests and weekly, free for public repositories; a deliberate exception to "as rarely as possible" |
-| Rules → Rulesets | branch `main`: pull request required (0 approvals, since a sole maintainer can't approve their own), status check `check`, linear history, no force push, no deletion, no bypass | every change goes through `check` |
-| Rules → Rulesets | tags `v*`: no update, no deletion | protects release tags before publication; published releases are immutable anyway |
 | Pages | source "GitHub Actions" | deployment by the `release` workflow |
 | Environments → `github-pages` | deployments also allowed from tags `v*` | Pages is deployed from the release tag; by default only the default branch may deploy |
-| Moderation | "Interaction limits" for new accounts only if needed; no stale bot, issues are closed by hand | hobby project without commitments |
-
-Nothing needs to be set for GitHub's workflow execution protections: the default rule for public repositories blocks `pull_request_target`, which the project doesn't use.
-
-**Order when setting up:** create the repository empty (without README, license or `.gitignore`), push `main`, then create the rulesets; otherwise the pull request rule blocks the first push. The status check `check` is added to the ruleset once the workflow exists and has run once. After enabling SHA pinning, check that the runs managed by GitHub (Dependabot, CodeQL default setup) still start.
 
 ### License compliance with REUSE
 
-Status: partly implemented; reuse lint runs locally and in CI, the SPDX bill of materials of a release and the About / Licenses page are not built, planned for version 1.
-
-The repository follows the FSFE's [REUSE specification](https://reuse.software): every file has a machine-readable license and copyright statement, and all license texts used are in the `LICENSES/` folder.
+Status: planned for version 1.
 
 | Component | License (SPDX) | Stated via |
 | --- | --- | --- |
-| Source code, holiday data, build scripts, configuration (incl. `REUSE.toml`) | `EUPL-1.2` | SPDX header in the file or `REUSE.toml` |
-| PDF templates, example template, example data, example plan file and rule set | `MIT-0` | `REUSE.toml` |
-| Documentation, help texts, agent instructions (`AGENTS.md`, `CLAUDE.md`) and skills (all Markdown) | `CC-BY-4.0` | SPDX header in the file or `REUSE.toml` |
-| Generated files (`package-lock.json`, `flake.lock`) | `CC0-1.0` | `REUSE.toml` |
-| Third-party files (Lucide SVGs, fonts) | original license (Lucide `ISC`, Feather-derived icons `MIT`; fonts e.g. `OFL-1.1`) with the original copyright | `REUSE.toml`, license text in `LICENSES/` |
+| Third-party files (fonts) | original license (fonts e.g. `OFL-1.1`) with the original copyright | `REUSE.toml`, license text in `LICENSES/` |
 
-- `reuse lint` runs in `npm run check` and in the CI workflow `check`; an error fails the build.
-- New files get an SPDX header (`SPDX-FileCopyrightText`, `SPDX-License-Identifier`) when they are created, where the file format allows comments; otherwise an entry in `REUSE.toml`.
 - Every release additionally contains an SPDX bill of materials (`reuse spdx`) of the repository files.
 - REUSE covers the files in the repository. The npm packages bundled into the HTML are collected during the build and listed on the "About / Licenses" page (see License).
 
 ### AI tools in the repository
 
-Status: implemented.
-
-`AGENTS.md` is the shared instruction file for AI coding tools; `CLAUDE.md` includes it for Claude Code via `@AGENTS.md`. In addition there are `.claude/` (settings, skills), `.mcp.json` (Svelte MCP) and a local plugin for language servers. Agents commit unsigned on branches and never push; the maintainer reviews, signs and pushes over SSH. Follow-ups and open decisions are tracked as Markdown files in `issues/` (conventions in `issues/README.md`); this internal backlog is separate from GitHub issues, which stay the channel for bug reports and ideas from users. Rationale and setup are in `docs/ai-tooling.md`. Text in the repository stands on its own: no pointers to chats, sessions or files outside it, short references always with a description, and nothing links into `docs/superpowers/`, the design and plan documents written with AI tools, which may disappear at any time but which only the maintainer deletes (`AGENTS.md`, "Text in the repository"; `npm run check` enforces the links).
+Status: moved to `docs/ai-tooling.md`.
 
 ### Releases and updates
 
-Status: partly implemented; the tools of the release checklist are built, the release workflow, the About page and the update notice of the Pages version are not, planned for version 1.
+Status: planned for version 1.
 
-- Versions according to Semantic Versioning; the version and the data status of the holiday rules are shown on the "About" page.
-- The downloaded HTML doesn't check for updates itself (no network); new versions are available via GitHub Releases with a changelog.
+- The version and the data status of the holiday rules are shown on the "About" page.
 - The Pages version updates via the service worker and shows "New version available – reload".
-- New versions read old files (migration); older versions reject newer files with a clear message.
-- Releases are immutable (see repository settings): the `release` workflow creates a draft, attaches all files and only then publishes it. A published release can't be changed and its tag can't be moved or reused; mistakes are fixed with a new patch version.
-
-**Release checklist** (lightweight, instead of formal acceptance criteria):
-
-- [ ] `check`, `templates` and `e2e` green.
-- [ ] Short manual test: open the standard HTML via `file://` in the current Firefox ESR from the dev shell (`firefox-esr`), load a file, set days, save, export .ics and `.typ`; open the Pages version on a phone.
-- [ ] Largest file: `npm run perf -- --largest-file <path>` writes the worst crafted plan file within the limits; open it in the Firefox ESR on the reference machine and note the times for reading and checking (target: under 2 s together).
-- [ ] Screen reader: `npm run orca` prints the steps (Orca with a debug log, a fixed sequence of keys in the Firefox ESR); `npm run orca -- <log>` passes.
-- [ ] Size budget met.
-- [ ] REUSE check green, SPDX bill of materials generated; changelog and version number updated, data status of the holiday rules checked.
-- [ ] Release published by the `release` workflow as an immutable release with `SHA256SUMS`, SPDX bill of materials and build provenance.
+- Older versions reject newer files with a clear message.
+- The `release` workflow creates a draft, attaches all files and only then publishes it.
 
 ### Maintaining holiday data
 
@@ -927,7 +791,7 @@ Recommendation: three versions; each is usable on its own. The must lists under 
 - Svelte 5, TypeScript, Vite with vite-plugin-singlefile, Vitest; ical.js for the import; no component or icon library (Lucide SVGs as files); hardening according to "Measures against supply chain attacks".
 - Option "Align by weekday" in the month columns, stored in the device settings.
 - Public repository on GitHub Free; distribution as a download and via GitHub Pages (installable, offline); everything also buildable locally, CI only mirrors.
-- GitHub settings as listed under "Repository settings on GitHub", including immutable releases, enforced SHA pinning of actions, rulesets for `main` and release tags, Dependabot malware alerts and CodeQL default setup.
+- GitHub settings as listed in `docs/dev/en/reference/github-settings.md`, including immutable releases, enforced SHA pinning of actions, rulesets for `main` and release tags, Dependabot malware alerts and CodeQL default setup.
 - Browser baseline: current Firefox ESR, plus current Chromium browsers and Safari.
 - Hobby project without commitments, visible in README, SUPPORT, CONTRIBUTING and the issue templates.
 - Three kinds of files without references between them: plan file `.urlaub.json`, rule set `.regeln.json`, device settings export `.einstellungen.json` (German like the established `.urlaub.json`). Rule sets are copied into plan files and updated explicitly. No separate color scheme file: schemes live in the device settings and can be embedded in plan files and rule sets.

@@ -144,7 +144,7 @@ A rule set fixes as much of the region as it knows: an agreement valid everywher
 
 ## Calendar sources
 
-`sources` holds at most 50 sources; the list order is the display priority. A source is imported once (from iCal or from another plan file) or created by hand, and is stored only as its entries: no iCal text, no file content.
+`sources` holds at most 50 sources; the list order is the display priority. A source is stored only as its entries: no iCal text, no file content. `importOtherPlan` in `src/engine/file/other-plan.ts` makes the entries of a source of type `otherPlan` from another plan file. The iCal import is planned, in issue 0010 (iCal import and export of calendar sources).
 
 | Key | Required | Meaning |
 | --- | --- | --- |

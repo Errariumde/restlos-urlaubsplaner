@@ -18,7 +18,7 @@ restlos is an offline vacation planner delivered as a single HTML file (plus a G
 
 - Code, identifiers, file-format keys, comments, commit messages, documentation, and issues/PRs you write: English.
 - UI texts, help and bundled templates: German and English via message catalogs; never hard-code user-visible strings.
-- Domain terms follow the glossary in `docs/SPEC.md` (e.g. Soll = required work, Kontingent = allowance).
+- Domain terms follow the glossary in `docs/dev/en/reference/glossary.md` (e.g. Soll = required work, Kontingent = allowance).
 
 ## Text in the repository
 
