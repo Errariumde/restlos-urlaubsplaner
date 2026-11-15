@@ -25,7 +25,7 @@ restlos is a hobby project. Contributions are welcome, but there is no entitleme
 
 - Code, identifiers, file-format keys, comments, commit messages and developer documentation (including `docs/SPEC.md`): English.
 - User-visible texts (UI, help, bundled templates): always both German and English, via the message catalogs.
-- Domain terms follow the glossary in `docs/SPEC.md`.
+- Domain terms follow the glossary in `docs/dev/en/reference/glossary.md`.
 - Issues and pull request descriptions may be written in German or English.
 
 ## Text in the repository

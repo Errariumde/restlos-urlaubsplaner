@@ -39,7 +39,7 @@ Each phase is one or more small branches, with `npm run check` passing after eve
   - move the three format references unchanged into `docs/dev/en/reference/`, as `docs/dev/en/reference/file-format.md`, `docs/dev/en/reference/day-rules-format.md` and `docs/dev/en/reference/holiday-data-format.md`;
   - move the "Adding a country" section of `docs/dev/en/reference/holiday-data-format.md` into the holiday-data how-to, `docs/dev/en/howto/holiday-data.md`;
   - cut the text of the spec's "Format" and "Sharing and validation" that the file format reference already says;
-  - move the glossary to its own reference page and re-point `AGENTS.md` to it in the same commit;
+  - move the glossary to its own reference page (`docs/dev/en/reference/glossary.md`, done) and re-point `AGENTS.md` to it in the same commit;
   - keep one canonical copy each of the hobby project notice (`README.md`, done), the release checklist (`docs/dev/en/howto/release.md`, done) and the holiday-data procedure (`docs/dev/en/howto/holiday-data.md`);
   - remove the allowlist entries of the citation check for those two sections.
 - **Phase 3, explanation and status.**
@@ -61,8 +61,8 @@ Each phase is one or more small branches, with `npm run check` passing after eve
 - **Stage 1 (on since phase 1):** no mention of `SPEC.md` in `docs/user/`, `docs/dev/` and `.claude/skills/`, except the files on the check's allowlist. Each allowlist entry names what removes it.
 - **Stage 2 (after phase 4):** no mention of `SPEC.md` anywhere except `issues/` and the one rule in `AGENTS.md`. Besides the code comments that cite moved sections, these lines need rewriting by then:
   - `README.md` L12 and L41, the pointers to the spec;
-  - `AGENTS.md` L21 (the glossary, phase 2), L40 ("feasibility tests from the spec") and L61 (the reason for "Sizes", phase 4 with "Controls, icons and fonts");
-  - `CONTRIBUTING.md` L26 ("including `docs/SPEC.md`") and L28 (the glossary, phase 2);
+  - `AGENTS.md` L40 ("feasibility tests from the spec") and L61 (the reason for "Sizes", phase 4 with "Controls, icons and fonts");
+  - `CONTRIBUTING.md` L26 ("including `docs/SPEC.md`");
   - `docs/ai-tooling.md` L16 (the spec's row in the table of instruction files);
   - `docs/feasibility.md` L8 (which spec sections build on the results).
 
@@ -113,7 +113,7 @@ A feature branch may do a row before its phase. The steps of a move are in `docs
 | [ ] Allowance display | partly implemented | `docs/dev/en/reference/allowance-display.md` (new); planned parts stay as tracking | 4 |
 | [ ] Problems | partly implemented | `docs/dev/en/reference/problems.md` (new); planned parts stay as tracking | 4 |
 | [ ] Colors, light and dark mode | partly implemented | `docs/dev/en/reference/colors.md` (new); planned parts stay as tracking | 4 |
-| [ ] Multilingual support (from the start) | partly implemented | the glossary: `docs/dev/en/reference/glossary.md` (new), phase 2; the rest: `docs/dev/en/reference/multilingual-support.md` (new), phase 4; planned parts stay as tracking | 2, 4 |
+| [ ] Multilingual support (from the start) | partly implemented | the glossary: `docs/dev/en/reference/glossary.md`, phase 2, moved; the rest: `docs/dev/en/reference/multilingual-support.md` (new), phase 4; planned parts stay as tracking | 2, 4 |
 | [ ] Accessibility | partly implemented | `docs/dev/en/reference/accessibility.md` (new); planned parts stay as tracking | 4 |
 | [ ] Built-in help | partly implemented | the calendar's keys, V, W and K: `docs/dev/en/reference/keyboard-shortcuts.md` (new), phase 4; "View example": `docs/dev/en/reference/start-screen.md` (new), phase 4; the chapters: help, phase 5; planned parts (sources, build, syntax, topic IDs, dialog) stay as tracking | 4, 5 |
 | [ ] Controls, icons and fonts | partly implemented | `docs/dev/en/reference/controls.md` (new); planned parts stay as tracking | 4 |
