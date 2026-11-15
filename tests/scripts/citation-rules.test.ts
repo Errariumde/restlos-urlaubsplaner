@@ -171,7 +171,6 @@ describe("checkSpecCitations", () => {
     expect(Object.keys(SPEC_CITATION_ALLOWLIST).sort()).toEqual([
       "docs/dev/en/howto/dependency-update.md",
       "docs/dev/en/howto/docs.md",
-      "docs/dev/en/howto/holiday-data.md",
     ]);
     for (const reason of Object.values(SPEC_CITATION_ALLOWLIST)) expect(reason).toMatch(/^removed /);
     expect(SPEC_CITATION_SCOPE).toEqual(["docs/user/", "docs/dev/", ".claude/skills/"]);

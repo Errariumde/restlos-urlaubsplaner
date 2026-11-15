@@ -77,6 +77,7 @@ A feature branch may do a row before its phase. The steps of a move are in `docs
 - A partly built row names the page for its built part and its phase; its planned parts stay as tracking.
 - "help": text users read, written into `docs/user/<language>/` in phase 5. Help text about features that are still planned stays as tracking until they are built.
 - A `##` row covers only its own intro text; its subsections have rows of their own.
+- "counting-model", "architecture", "security" and "build-and-ci" appear as both a reference and an explanation page, so each explanation page gets another name when its row moves.
 
 ### Sections
 
@@ -84,10 +85,10 @@ A feature branch may do a row before its phase. The steps of a move are in `docs
 | --- | --- | --- | --- |
 | [ ] Goals and scope | not a requirement | `docs/dev/en/explanation/goals-and-scope.md` (new) | 3 |
 | [ ] Delivery format | partly implemented | the browsers and the consequences of `file://`: `docs/dev/en/reference/browsers-and-file-urls.md` (new), phase 2; the recommendation and "No desktop wrapper": `docs/dev/en/explanation/delivery-format.md` (new), phase 3; the Pages version, the Pages layout, saving and browser storage (IndexedDB) stay as tracking | 2, 3 |
-| [ ] Holiday sources and work week | not a requirement | the recommendation: `docs/dev/en/explanation/holiday-rules.md` (new) | 2 |
-| [ ] Rule types of the core | implemented | `docs/dev/en/reference/holiday-rules.md` (new) | 2 |
-| [ ] Work week per country | partly implemented | `docs/dev/en/reference/holiday-rules.md` (new); planned parts stay as tracking | 2 |
-| [ ] Region tree and German special cases | partly implemented | `docs/dev/en/reference/holiday-rules.md` (new); planned parts stay as tracking | 2 |
+| [x] Holiday sources and work week | not a requirement | the recommendation: `docs/dev/en/explanation/holiday-sources.md` | 2 |
+| [x] Rule types of the core | implemented | `docs/dev/en/reference/holiday-rules.md` (new) | 2 |
+| [x] Work week per country | partly implemented | `docs/dev/en/reference/holiday-rules.md` (new); planned parts stay as tracking | 2 |
+| [x] Region tree and German special cases | partly implemented | `docs/dev/en/reference/holiday-rules.md` (new); planned parts stay as tracking | 2 |
 | [ ] Multiple calendar sources (iCal) | partly implemented | the source types and their effects: `docs/dev/en/reference/calendar-sources.md` (new); planned parts stay as tracking | 2 |
 | [ ] Reference models for tests | implemented | `docs/dev/en/reference/test-strategy.md` (new) | 2 |
 | [ ] Counting model (weights) | not a requirement | the recommendation: `docs/dev/en/explanation/counting-model.md` (new) | 3 |
@@ -140,7 +141,7 @@ A feature branch may do a row before its phase. The steps of a move are in `docs
 | [ ] License compliance with REUSE | partly implemented | `docs/dev/en/reference/licensing.md` (new); planned parts stay as tracking | 2 |
 | [ ] AI tools in the repository | implemented | `docs/ai-tooling.md`, cut where it says it already | 2 |
 | [ ] Releases and updates | partly implemented | the release checklist: `docs/dev/en/howto/release.md`, the canonical copy, which keeps what only the spec's checklist has: its ".ics and `.typ`" export (the how-to says "PDF and .ics export"), the size budget, checking the data status of the holiday rules and opening the Pages version on a phone; the version and update rules: `docs/dev/en/reference/releases.md` (new); planned parts stay as tracking | 2 |
-| [ ] Maintaining holiday data | partly implemented | `docs/dev/en/howto/holiday-data.md`, the canonical copy, phase 2; the notice that data can become outdated: help, phase 5 | 2, 5 |
+| [x] Maintaining holiday data | partly implemented | `docs/dev/en/howto/holiday-data.md`, the canonical copy, phase 2; the notice that data can become outdated: help, phase 5 | 2, 5 |
 | [ ] Privacy | planned | help and `README.md`; unbuilt parts stay as tracking | 5 |
 | [ ] Stages, risks, decisions | not a requirement | the versions and risks: `docs/dev/en/explanation/roadmap.md` (new) and issues; the decisions: decision records in `docs/dev/en/explanation/decisions/` | 3 |
 
