@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Dependencies
 
-The approved packages and the measures against supply chain attacks. Exact versions, `npm ci`, the `.npmrc` settings, the `@playwright/test` version, the ban on `npx` and the Content Security Policy's `connect-src` are stated in the [hard rules](../../../../AGENTS.md#hard-rules). The reasons are in [dependencies and supply chain](../explanation/supply-chain.md).
+The approved packages and the measures against supply chain attacks. Exact versions, `npm ci`, the `.npmrc` settings `ignore-scripts` and `min-release-age`, the `@playwright/test` version, the ban on `npx` and the Content Security Policy's `connect-src` are stated in the [hard rules](../../../../AGENTS.md#hard-rules). The reasons are in [dependencies and supply chain](../explanation/supply-chain.md).
 
 ## Approved packages
 
@@ -39,7 +39,7 @@ The approved packages and the measures against supply chain attacks. Exact versi
   - It ignores `@playwright/test` and major updates of `typescript`, the latter for issue 0042 (TypeScript 7 waits for typescript-eslint and svelte-check).
   - Its pull requests must not be merged automatically.
   - A pull request for `flake.lock` must be checked with the [dependency update how-to](../howto/dependency-update.md).
-- **Update cadence:** updates must come through the monthly Dependabot pull requests. An update for a security advisory may be made at once.
+- **Update cadence:** routine updates come through the monthly Dependabot pull requests. An update made by hand follows the [dependency update how-to](../howto/dependency-update.md). An update for a security advisory may bypass the 14-day delay only after the maintainer's explicit approval.
 - **Alerts:** Dependabot alerts, malware alerts for known malicious packages ([GitHub's description](https://docs.github.com/en/code-security/concepts/supply-chain-security/dependabot-malware-alerts)) and Dependabot security updates must be on for the repository.
 - **Dependency Review:** [`.github/workflows/dependency-review.yml`](../../../../.github/workflows/dependency-review.yml) runs GitHub's dependency review on every pull request that changes `package-lock.json`.
 - **Isolated build:** `npm ci` and builds must run in a separate user account or container without access to SSH keys, the password manager or tokens.

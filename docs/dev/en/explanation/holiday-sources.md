@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Holiday sources and work week
 
-restlos computes public holidays with a country-neutral rule core. Embedded data exists only for Germany. Other days off, such as school holidays, come from any number of calendar sources, for example from iCal files.
+restlos computes public holidays with a country-neutral rule core. Embedded data exists only for Germany. Other days off, such as school holidays, come from any number of calendar sources. Importing them from iCal files is planned, in issue 0010 (iCal import and export of calendar sources).
 
 ## Why a country-neutral core
 
@@ -23,11 +23,11 @@ The week start comes from the country data and not from the browser, because the
 
 ## Why local rules are switches
 
-Some holidays apply only in parts of a region, such as one city or certain municipalities. The municipality lists are long and change: the 2022 census changed the Bavarian list for Assumption Day. restlos does not embed them. Instead, a switch asks whether the holiday applies at the place of work, and links to the official source. The place of work decides, not the place of residence, because the holiday frees a working day where the work is done.
+Some holidays apply only in parts of a region, such as one city or certain municipalities. The municipality lists are long and change: the 2022 census changed the Bavarian list for Assumption Day. restlos does not embed them. Instead, the data models such a holiday as a switch that asks whether it applies at the place of work, with a link to the official source; the UI that offers the switch is planned. The place of work decides, not the place of residence, because the holiday frees a working day where the work is done.
 
 ## Rejected alternatives
 
-- **A core for Germany only:** it would save little, and every further country would need new code.
+- **A core for Germany only:** it would save little, and every further country would need new rule code.
 - **Fetching holidays online:** restlos has no network access at runtime.
 - **Embedded municipality lists:** they go out of date, and a wrong list gives wrong required work without notice.
 - **Built-in school holidays:** they differ by state and year and are not public holidays; a calendar source covers them.
