@@ -61,7 +61,7 @@ Each phase is one or more small branches, with `npm run check` passing after eve
 - **Stage 1 (on since phase 1):** no mention of `SPEC.md` in `docs/user/`, `docs/dev/` and `.claude/skills/`, except the files on the check's allowlist. Each allowlist entry names what removes it.
 - **Stage 2 (after phase 4):** no mention of `SPEC.md` anywhere except `issues/` and the one rule in `AGENTS.md`. Besides the code comments that cite moved sections, these lines need rewriting by then:
   - `README.md` L12 and L41, the pointers to the spec;
-  - `AGENTS.md` L40 ("feasibility tests from the spec") and L61 (the reason for "Sizes", phase 4 with "Controls, icons and fonts");
+  - `AGENTS.md` L40 ("feasibility tests from the spec") and L67 (the reason for "Sizes", phase 4 with "Controls, icons and fonts");
   - `CONTRIBUTING.md` L26 ("including `docs/SPEC.md`");
   - `docs/ai-tooling.md` L16 (the spec's row in the table of instruction files);
   - `docs/feasibility.md` L8 (which spec sections build on the results).
@@ -155,4 +155,4 @@ More lines name the spec in a rule or in the description of a check, not as a ci
 
 - `docs/dev/en/howto/docs.md` L18 ("Docs never cite the spec");
 - `docs/ai-tooling.md` L21 ("The specification is deliberately not imported") and L67 ("text from the spec moved unchanged");
-- `AGENTS.md` L28 (the check fails on spec section names that don't resolve and on citations of the spec), L35 and L68 (the spec status check).
+- `AGENTS.md` L28 (the check fails on spec section names that don't resolve and on citations of the spec), L35 and L74 (the spec status check).
