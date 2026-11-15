@@ -14,7 +14,7 @@ SPDX-License-Identifier: CC-BY-4.0
    - `npm run build` (size budget met)
    - `npm run test:e2e` (Playwright: Firefox, Chromium, WebKit – Playwright's own browser builds, not Firefox ESR)
 5. Generate the SBOM: `reuse spdx -o dist/restlos.spdx`.
-6. Open `dist/*.html` from disk (file://) in the current Firefox ESR from the dev shell (`firefox-esr`) and check: open, set days, save, PDF, .ics and `.typ` export, no network requests (devtools). Open the Pages version on a phone; the Pages version is planned for version 1.
+6. Open `dist/*.html` from disk (file://) in the current Firefox ESR from the dev shell (`firefox-esr`) and check: set days, no network requests (devtools). Opening and saving a file and the PDF, .ics and `.typ` exports are planned for version 1. Open the Pages version on a phone; the Pages version is planned for version 1.
 6a. Largest file: `npm run perf -- --largest-file /tmp/largest.urlaub.json`; open it in the Firefox ESR from the dev shell and note the times for reading and checking (target: under 2 s together on the i7-8650U).
 6b. Screen reader: `npm run orca` prints the steps. Orca takes over the desktop it runs on, so never start it yourself: ask the maintainer to run the steps (speakers muted) and hand over the log, then run `npm run orca -- <log>` and report what it finds.
 7. Hand the summary to the maintainer. Tagging, pushing and publishing are done by the maintainer. The `release` workflow is planned for version 1: it creates a draft release, attaches the HTML files, `SHA256SUMS` and the SBOM, adds provenance and then publishes it. Releases are immutable: once published, a release can't be changed and its tag can't be reused, so a mistake needs a new patch version.
