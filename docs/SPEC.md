@@ -669,13 +669,7 @@ Status: planned for version 1.
 
 ## Build and CI (GitHub Free and local)
 
-Status: implemented.
-
-Recommendation: everything runs locally with one command; GitHub Actions only runs the same commands, as rarely as possible, with a cache for all downloads and minimal permissions. This way neither the npm registry nor any other server is hit again on every run, and the project stays buildable without GitHub.
-
-**Local (NixOS):** a Nix flake with a dev environment (Node.js LTS with npm ≥ 11.10, Typst, Python for the python-holidays reference, Playwright browsers, Firefox ESR for the manual test, Valgrind on Linux for the performance gate). `nix develop`, then `npm ci`, `npm run check`, `npm run build`. `npm run plan -- <file>` prints what the engine reads and computes for a plan file or rule set. `npm run orca` prints the steps of the screen reader check, and `npm run orca -- <log>` checks what Orca said. `npm run perf` runs the performance gate; `npm run check` includes it. The flake lock file pins all tools; the README explains the commands for Nix beginners. CI uses a second, smaller shell, `devShells.ci` (`nix develop .#ci`), with only what `check` needs: Node.js, Valgrind and REUSE.
-
-**GitHub Free, public repository:** standard runners are free ([GitHub docs](https://docs.github.com/billing/managing-billing-for-your-products/managing-billing-for-github-actions)), GitHub Pages is available ([GitHub plans](https://docs.github.com/en/get-started/learning-about-github/githubs-plans)). Free doesn't mean unlimited: runs are still kept sparse.
+Status: moved to `docs/dev/en/reference/build-and-ci.md`.
 
 ### Documentation website
 
@@ -696,51 +690,33 @@ The user documentation and the developer documentation are published as a websit
 
 ### Workflows
 
-Status: partly implemented; check, seed-cache and Dependency Review run, templates, e2e and release are not built (issue 0029 (run the build and the end-to-end tests in CI) is open), planned for version 1.
+Status: planned for version 1.
 
 | Workflow | Trigger | Content |
 | --- | --- | --- |
-| `check` | push to `main`, pull requests; always the full check, without a path filter (a required check whose workflow a path filter skipped stays pending and blocks the merge) | inside `nix develop .#ci`: NixOS release check, `npm ci`, `npm run check` (lint, type check, Vitest, performance gate, the catalog, CSS, reference, citation, spec status and docs style checks, REUSE check); then, as separate steps, the app build with its size check and the gallery build |
-| `seed-cache` | pushes to `main` that change `flake.nix`, `flake.lock`, `package-lock.json`, `.npmrc`, the Nix action or the workflow itself; weekly; by hand | the only workflow that writes caches: the Nix tarball, the Nix store cache and the npm cache, each fetched fresh from upstream; a separate read-only job runs the NixOS release check, so a failed weekly run reports an outdated release |
 | `templates` (planned) | only on changes to templates or the Typst version | compile templates × DE/EN with the pinned Typst version |
 | `e2e` (planned) | pull requests with the label `e2e`, before every release, otherwise once a week only if there were commits since the last run | Playwright in Firefox, Chromium, WebKit |
 | `release` (planned) | manual (tag) | build; create a draft GitHub Release, attach standard and Pro HTML, `SHA256SUMS` and the SPDX bill of materials, then publish it (immutable release); Pages version (landing page, web app and documentation website, from one folder in one deploy) on GitHub Pages |
-| Dependency Review | pull requests that change the lockfile | GitHub's own `dependency-review-action` reports new packages and known vulnerabilities |
-
-**NixOS release check:** `npm run nixos-release` reads the release branch from `flake.lock`. NixOS supports a YY.05 release until 31 December and a YY.11 release until 30 June of the next year; its successor comes out about a month earlier. From the 1st of that last month CI warns that the successor is due; from the 16th, or for a branch that isn't a release branch, it fails, so the project moves while the old release is still supported.
 
 ### Consideration for upstream sources (caching)
 
-Status: partly implemented; the Nix, npm and Dependabot parts are built, the caches for the Playwright browsers and the Typst CLI and the build artifact of check are not, planned for version 1.
+Status: planned for version 1.
 
-- **Nix:** the release tarball of the pinned Nix version (the one the pinned nixpkgs ships) is cached with the version as key and checked against a SHA-256 pinned in `.github/actions/nix/action.yml` before it is installed. The dev shell comes from a `file://` binary cache kept in GitHub's cache, keyed on `flake.lock`, `flake.nix`, the action and the `seed-cache` workflow. `nix copy` keeps cache.nixos.org's signatures in it, so Nix checks every path against the `cache.nixos.org-1` key as it would on download; the shell's own `-env` output is rebuilt. CI also downloads the cheap wrappers that nixpkgs would otherwise build locally (`always-allow-substitutes`), so they too come signed. cache.nixos.org is the fallback on a miss; with a warm cache, the Nix setup needs neither it, releases.nixos.org nor github.com (checked on GitHub's runners on 2026-10-24; the checkout and the actions still come from GitHub). Signatures and the pinned hash detect altered content, not a poisoned cache entry: restoring an entry can write any file the runner can write, before Nix or the hash check looks at it. Only the single writer and the cache scopes keep such entries out (see "Avoid cache poisoning").
-- **npm packages:** `~/.npm` is cached with the hash of `package-lock.json` and `.npmrc` as key; `check` restores it and runs `npm ci --prefer-offline`, which checks every package against the `integrity` in the lockfile. Registry access only happens when the lockfile changes.
 - **Playwright browsers:** cached with the Playwright version as key; only WebKit system packages are installed if needed.
 - **Typst CLI:** official release binary of a fixed version, checksum checked against a checked-in value, cached with the version as key.
-- **REUSE tool:** comes from the dev shell (nixpkgs), like Node.js and Valgrind.
-- **No fetching of external holiday sources in CI:** date-holidays comes from the npm cache, the python-holidays reference is checked in.
-- **Dependabot:** once a month, grouped into one pull request, `cooldown` 14 days; GitHub Actions as a second ecosystem and Nix (`flake.lock`) as a third, also monthly. Within a release branch Dependabot updates `flake.lock`; once the next release branch exists, it opens a pull request that moves `flake.nix` to it. That pull request is only the notice: the move is made by hand on a branch of its own (dependency update procedure, see also the NixOS release check), and Dependabot's pull request is closed afterwards. `@playwright/test` is excluded (pinned to nixpkgs, see supply chain).
-- **No pointless runs:** `concurrency` with `cancel-in-progress` cancels outdated runs of the same branch; path filters for `templates` and Dependency Review (not for `check`, see Workflows); no matrix over several Node versions (the app runs in the browser, Node is only for building); short `timeout-minutes`; no automatic retries.
+- **No pointless runs:** a path filter for `templates`.
 - **Artifacts:** only the build result of `check`, with 3 days retention; releases live in GitHub Releases.
 
 ### Workflow security
 
-Status: partly implemented; check, seed-cache and Dependency Review follow the rules, the release workflow with its write permissions (contents, pages, id-token, attestations), actions/attest-build-provenance and the Pages actions is not built, planned for version 1.
+Status: planned for version 1.
 
-- Only actions from GitHub itself (`actions/checkout`, `actions/cache`, `actions/upload-artifact`, `actions/dependency-review-action`, `actions/attest-build-provenance`, Pages actions), each pinned by **commit SHA**, plus the repository's own composite action `.github/actions/nix`; Dependabot keeps the SHAs current. The repository settings enforce both: only actions created by GitHub are allowed, and a workflow using an action that isn't pinned to a full-length commit SHA doesn't start. Tools without an official GitHub action (Nix, Typst CLI) are installed with checksum pinning (see caching).
-- `permissions: contents: read` as the default at workflow level; only `release` gets `contents: write`, `pages: write`, `id-token: write` and `attestations: write`.
-- `actions/checkout` with `persist-credentials: false`.
-- No `pull_request_target` (for public repositories GitHub blocks it by default from 2 November 2026, [workflow execution protections](https://github.blog/changelog/2026-09-17-workflow-execution-protections-in-github-actions-generally-available/)), no secrets, nothing is published to npm.
-- **Avoid cache poisoning** (the route of the TanStack attack): caches are written only by the `seed-cache` workflow, which restores nothing, takes everything fresh from upstream and runs no tests, no npm scripts and no pull-request code (only `main`'s flake, the Nix action and `npm ci` without install scripts). Every other workflow sets `cache-mode: read` (Dependency Review: `none`), which GitHub enforces with scoped tokens. Pull requests from forks only run after approval (setting "Require approval for all external contributors").
-- **Nix:** installed single-user (`--no-daemon`) from the hash-checked tarball. `require-sigs` and `trusted-public-keys` stay at their defaults (only `cache.nixos.org-1`); never `trusted=true`, `--no-check-sigs` or `accept-flake-config`. The installed version must equal the one the pinned nixpkgs ships; otherwise the job fails and names the two values to update.
-- Rulesets protect `main` (pull request and green `check` required) and the release tags; details under "Repository settings on GitHub".
-- `npm ci` with `ignore-scripts` and `min-release-age` from the checked-in `.npmrc` applies in CI just as locally.
+- Only actions from GitHub itself (`actions/upload-artifact`, `actions/attest-build-provenance`, Pages actions), each pinned by **commit SHA**. Tools without an official GitHub action (Typst CLI) are installed with checksum pinning (see caching).
+- Only `release` gets `contents: write`, `pages: write`, `id-token: write` and `attestations: write`.
 
 ## Project operations and contributing
 
-Status: not a requirement; moves to docs/dev/en/explanation/ in phase 3.
-
-Recommendation: the expectations are stated visibly in one place, in short, friendly and clear words; GitHub's guide on balance for maintainers advises exactly this, to make your own boundaries public and to say "no" openly ([opensource.guide](https://github.com/github/opensource.guide/blob/main/_articles/maintaining-balance-for-open-source-maintainers.md)). The legal side (no warranty, no liability) is already covered by Art. 7 and 8 of the EUPL-1.2; the text below is the human side.
+Status: moved to `docs/dev/en/explanation/hobby-project.md`.
 
 ### Hobby project notice
 
@@ -794,31 +770,12 @@ Status: partly implemented; every file exists, the README has no screenshot, dow
 
 ### Repository settings on GitHub
 
-Status: not a requirement; moves to docs/dev/en/reference/ in phase 2.
-
-Recommendation: settings that exist only on GitHub are listed here, so the repository (or a fork with the same protection) can be set up again without guessing. They are set once by hand; labels as of October 2026.
+Status: planned for version 1.
 
 | Settings → | Setting | Reason |
 | --- | --- | --- |
-| General → Features | Issues on; Wikis, Projects and Discussions off; pull requests open to everyone | no channel for general questions (see `SUPPORT.md`); contributions are welcome |
-| General → Pull requests | squash merging only; delete head branches automatically | linear history on `main` |
-| General → Releases | release immutability on | the tag and the files of a published release can't be changed or deleted, and GitHub adds a signed release attestation ([immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases)) |
-| Actions → General | allow only actions created by GitHub; require actions to be pinned to a full-length commit SHA | enforces the rules under "Workflow security" |
-| Actions → General | approval for fork pull request workflows: all external contributors | protects runners and caches |
-| Actions → General | workflow permissions read-only; GitHub Actions may not create or approve pull requests | least privilege; workflows request more only where needed |
-| Advanced Security | private vulnerability reporting | reporting path of `SECURITY.md` |
-| Advanced Security | dependency graph, Dependabot alerts with malware alerts, Dependabot security updates | known vulnerabilities and malicious packages are reported; version updates come from `dependabot.yml` |
-| Advanced Security | secret scanning with push protection | the project has no secrets; catches tokens committed by mistake |
-| Advanced Security | code scanning: CodeQL default setup (JavaScript/TypeScript, GitHub Actions) | finds e.g. script injection in workflows; runs on pushes, pull requests and weekly, free for public repositories; a deliberate exception to "as rarely as possible" |
-| Rules → Rulesets | branch `main`: pull request required (0 approvals, since a sole maintainer can't approve their own), status check `check`, linear history, no force push, no deletion, no bypass | every change goes through `check` |
-| Rules → Rulesets | tags `v*`: no update, no deletion | protects release tags before publication; published releases are immutable anyway |
 | Pages | source "GitHub Actions" | deployment by the `release` workflow |
 | Environments → `github-pages` | deployments also allowed from tags `v*` | Pages is deployed from the release tag; by default only the default branch may deploy |
-| Moderation | "Interaction limits" for new accounts only if needed; no stale bot, issues are closed by hand | hobby project without commitments |
-
-Nothing needs to be set for GitHub's workflow execution protections: the default rule for public repositories blocks `pull_request_target`, which the project doesn't use.
-
-**Order when setting up:** create the repository empty (without README, license or `.gitignore`), push `main`, then create the rulesets; otherwise the pull request rule blocks the first push. The status check `check` is added to the ruleset once the workflow exists and has run once. After enabling SHA pinning, check that the runs managed by GitHub (Dependabot, CodeQL default setup) still start.
 
 ### License compliance with REUSE
 

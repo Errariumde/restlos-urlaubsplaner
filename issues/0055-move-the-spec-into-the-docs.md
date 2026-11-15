@@ -77,7 +77,7 @@ A feature branch may do a row before its phase. The steps of a move are in `docs
 - A partly built row names the page for its built part and its phase; its planned parts stay as tracking.
 - "help": text users read, written into `docs/user/<language>/` in phase 5. Help text about features that are still planned stays as tracking until they are built.
 - A `##` row covers only its own intro text; its subsections have rows of their own.
-- "counting-model", "architecture", "security" and "build-and-ci" appear as both a reference and an explanation page, so each explanation page gets another name when its row moves: `counting-choices.md` for the counting model, `architecture-choices.md` for the architecture, `security-choices.md` for security.
+- "counting-model", "architecture", "security" and "build-and-ci" appear as both a reference and an explanation page, so each explanation page gets another name when its row moves: `counting-choices.md` for the counting model, `architecture-choices.md` for the architecture, `security-choices.md` for security, `build-and-ci-choices.md` for build and CI.
 
 ### Sections
 
@@ -129,15 +129,15 @@ A feature branch may do a row before its phase. The steps of a move are in `docs
 | [x] Threats and countermeasures | partly implemented | `docs/dev/en/reference/security.md`; planned parts stay as tracking | 2 |
 | [x] Content Security Policy | partly implemented | `docs/dev/en/reference/security.md`; planned parts stay as tracking | 2 |
 | [x] Verification | partly implemented | `docs/dev/en/reference/security.md`; planned parts stay as tracking | 2 |
-| [ ] Build and CI (GitHub Free and local) | implemented | the local setup and its commands: `docs/dev/en/reference/build-and-ci.md` (new), phase 2; the recommendation: `docs/dev/en/explanation/build-and-ci.md` (new), phase 3 | 2, 3 |
+| [x] Build and CI (GitHub Free and local) | implemented | the local setup and its commands: `docs/dev/en/reference/build-and-ci.md`, phase 2; the recommendation: `docs/dev/en/explanation/build-and-ci-choices.md`, phase 2 | 2 |
 | [ ] Documentation website | planned | stays as tracking; `docs/dev/en/reference/documentation-website.md` (new) once it is built | 6 |
-| [ ] Workflows | partly implemented | `docs/dev/en/reference/build-and-ci.md` (new), with the NixOS release check; planned parts stay as tracking | 2 |
-| [ ] Consideration for upstream sources (caching) | partly implemented | `docs/dev/en/reference/build-and-ci.md` (new); planned parts stay as tracking | 2 |
-| [ ] Workflow security | partly implemented | `docs/dev/en/reference/build-and-ci.md` (new); planned parts stay as tracking | 2 |
-| [ ] Project operations and contributing | not a requirement | the recommendation: `docs/dev/en/explanation/hobby-project.md` (new) | 3 |
+| [x] Workflows | partly implemented | `docs/dev/en/reference/build-and-ci.md`, with the NixOS release check; planned parts stay as tracking | 2 |
+| [x] Consideration for upstream sources (caching) | partly implemented | `docs/dev/en/reference/build-and-ci.md`; planned parts stay as tracking | 2 |
+| [x] Workflow security | partly implemented | `docs/dev/en/reference/build-and-ci.md`; planned parts stay as tracking | 2 |
+| [x] Project operations and contributing | not a requirement | the recommendation: `docs/dev/en/explanation/hobby-project.md` | 2 |
 | [ ] Hobby project notice | not a requirement | `README.md`, the canonical copy | 2 |
 | [ ] Files in the repository | partly implemented | `docs/dev/en/reference/repository-files.md` (new); planned parts stay as tracking | 2 |
-| [ ] Repository settings on GitHub | not a requirement | `docs/dev/en/reference/github-settings.md` (new) | 2 |
+| [x] Repository settings on GitHub | not a requirement | `docs/dev/en/reference/github-settings.md`; the rows "Pages" and "Environments → `github-pages`" stay as tracking until the `release` workflow is built | 2 |
 | [ ] License compliance with REUSE | partly implemented | `docs/dev/en/reference/licensing.md` (new); planned parts stay as tracking | 2 |
 | [ ] AI tools in the repository | implemented | `docs/ai-tooling.md`, cut where it says it already | 2 |
 | [ ] Releases and updates | partly implemented | the release checklist: `docs/dev/en/howto/release.md`, the canonical copy, which keeps what only the spec's checklist has: its ".ics and `.typ`" export (the how-to says "PDF and .ics export"), the size budget, checking the data status of the holiday rules and opening the Pages version on a phone; the version and update rules: `docs/dev/en/reference/releases.md` (new); planned parts stay as tracking | 2 |
@@ -150,7 +150,6 @@ A feature branch may do a row before its phase. The steps of a move are in `docs
 Found with `git grep -n -i -E "the spec('s)?\b|\bSPEC\b"` in `src`, `scripts`, `e2e`, `tests` and `docs`: these lines refer to `docs/SPEC.md` without its file name, so the citation check doesn't see them. Each is reworded when the text it points to moves.
 
 - `docs/feasibility.md` L67: "The spec relies on documentation", the calendar apps' behaviour on re-import in ".ics export (RFC 5545)" and the feasibility table of "Architecture, technology and tests"; planned, so it rewords when the .ics export is built.
-- `docs/ai-tooling.md` L136: "(see the specification)", the SHA pinning of actions in "Workflow security".
 
 More lines name the spec in a rule or in the description of a check, not as a citation, and go when `docs/SPEC.md` is deleted:
 
