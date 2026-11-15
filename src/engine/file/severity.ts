@@ -9,7 +9,7 @@ export type Severity = "error" | "warning" | "info";
 /** `checkSkipped` is never produced by the engine: the UI adds it when the user skips the check. */
 export type Code = ReportCode | CheckCode | "checkSkipped";
 
-/** The fixed severity of every code of reading and checking (docs/file-format.md, Reading). */
+/** The fixed severity of every code of reading and checking (docs/dev/en/reference/file-format.md, Reading). */
 export const SEVERITY: Readonly<Record<Code, Severity>> = {
   missingValue: "error",
   invalidValue: "error",

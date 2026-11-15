@@ -24,6 +24,6 @@ SPDX-License-Identifier: CC-BY-4.0
 ## Acceptance criteria
 
 - [ ] It is decided whether the import shows the Error list of a refused plan, or only says that the plan can't be read and should be opened to fix it.
-- [ ] If it shows the list: the refused branch of `OtherPlanImport` carries the reader's `report`, `docs/file-format.md` (Leave from another plan) says so, and a test covers it.
+- [ ] If it shows the list: the refused branch of `OtherPlanImport` carries the reader's `report`, `docs/dev/en/reference/file-format.md` (Leave from another plan) says so, and a test covers it.
 
 ## Notes

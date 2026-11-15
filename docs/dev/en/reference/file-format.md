@@ -7,7 +7,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 Reference for people who write plan files (`.urlaub.json`) and rule sets (`.regeln.json`) by hand, or who want to check what the app wrote. The TypeScript shape of a checked file is `AnyFile` in `src/engine/file/types.ts`. `readFile` in `src/engine/file/read.ts` reads untrusted text and returns either a refusal or the file with a report of everything it dropped, changed or noticed; `writeFile` in `src/engine/file/write.ts` writes a file in the canonical form described here. `npm run plan -- <file>` prints what the engine reads and computes for a plan file or rule set. Day rules have their own reference, [Day rules](day-rules-format.md). To write a file by hand, start from the [minimal examples](#minimal-examples).
 
-A file holds only language-neutral values (IDs, ISO dates, weights with a slash or a decimal point) and is self-contained: it never refers to another file. It carries no timestamp, no time zone, no working hours and nothing about the device or the person that saved it.
+A file holds only language-neutral values (IDs, ISO dates, weights with a slash or a decimal point) and is self-contained: it never refers to another file. [Files](files.md) says what each file is for and what is stored where. It carries no timestamp, no time zone, no working hours and nothing about the device or the person that saved it.
 
 ## Kinds and versions
 
@@ -19,7 +19,9 @@ A file holds only language-neutral values (IDs, ISO dates, weights with a slash 
 
 The app recognizes a file by `schema` and `kind`, not by its name.
 
-`schema` is `"restlos/1"`. Every change of the format gets a new schema number. A release reads every schema written by any release of its own major version, migrates older ones on load and always saves its own; a new major version still reads the last schema of the previous major version. A file with a newer schema is refused (`newerSchema`). Nothing is promised before version 1.0.0: schema 1 may still change without migration.
+`schema` is `"restlos/1"`. Every change of the format gets a new schema number. A release reads every schema written by any release of its own major version, migrates older ones on load and always saves its own. A new major version (2.0.0) still reads the last schema of the previous major version and may drop older ones; its release notes say so. A minor release that introduces a new schema says in its release notes that older 1.x copies can't open its files. Nothing is promised before version 1.0.0: schema 1 may still change without migration.
+
+Which schemas `readFile` refuses is listed under [Refused](#refused).
 
 ## Values
 
@@ -29,6 +31,7 @@ The app recognizes a file by `schema` and `kind`, not by its name.
 - **IDs** are non-empty strings of at most 200 characters (`"christmas-eve"`). Rule, source and template IDs are unique within their list.
 - **Characters** are counted as Unicode code points.
 - **Keys** a file chooses itself (reference keys, language codes, option names, keys inside `theme`) are never `__proto__`, `constructor` or `prototype`; an entry with such a key is invalid.
+- **Format keys** are English words (`allowance`, `required`, `take`).
 
 ### Texts
 
@@ -161,8 +164,8 @@ A rule set fixes as much of the region as it knows: an agreement valid everywher
 | `holiday` | lowers the required work | `required` (`"0"` … `"1"`), `part` | lowering layer: the required work is at most `required` |
 | `paidClosure` | paid closure | – | required work 0 |
 | `mandatory` | mandatory leave | `take` (`"1/480"` … `"1"`), `part` | that share of the day is taken and charged where it overlaps the working time, like a `mandatory` day rule |
-| `info` | background band, e.g. school holidays | – | none |
-| `needed` | time off needed: the user must be free, e.g. the Kita closes | `take` (`"1/480"` … `"1"`), `part` | never costs; a problem on every day of the plan period where that much time is not free, see [Time off needed](#time-off-needed) |
+| `info` | background band, for example school holidays | – | none |
+| `needed` | time off needed: the user must be free, for example the Kita closes | `take` (`"1/480"` … `"1"`), `part` | never costs; a problem on every day of the plan period where that much time is not free, see [Time off needed](#time-off-needed) |
 | `otherPlan` | leave from another plan | `from`, `to`, `kind` | never costs; see [Leave from another plan](#leave-from-another-plan) |
 
 `part` means the same in leave, overrides, rules and source entries: `"start"` or `"end"` of the day. For leave days, mandatory leave (`mandatory` rules and entries) and time off needed it is where that time lies; for required work (overrides, `holiday` entries, `requiredAtMost` and `requiredExactly` rules) it is where the free time lies, and the work lies at the other end of the day. Leave is charged only where it overlaps the working time: own leave of ½ at the end of a day whose afternoon is free costs nothing. A rule set never contains `otherPlan` or `needed` sources: both are personal.
@@ -249,7 +252,7 @@ The reader checks only the shape and the limits; what a template contains is def
 
 ## Color scheme
 
-`theme` is `null` or an object, stored and written back unchanged; it may nest at most 32 levels, none of its objects may have a key `__proto__`, `constructor` or `prototype`, and it counts towards the file size. What a color scheme contains is defined with the color editor.
+`theme` is the file's own color scheme, for example company colors. It is `null` or an object, stored and written back unchanged; it may nest at most 32 levels, none of its objects may have a key `__proto__`, `constructor` or `prototype`, and it counts towards the file size. What a color scheme contains is defined with the color editor.
 
 ## Plan
 
@@ -258,7 +261,7 @@ Plan files only. Keys in the order the app writes them:
 | Key | Required | Meaning |
 | --- | --- | --- |
 | `range` | yes, with `from` and `to` | The plan period: `from` and `to` as months, both inclusive, `from` ≤ `to`, at most 36 months (`{ "from": "2027-01", "to": "2028-01" }`). |
-| `allowance` | yes | The allowance as an amount (`"30"`). Remaining days from the previous year are entered here; there is no carry-over. |
+| `allowance` | yes | The allowance as an amount (`"30"`), remaining days from the previous year included: an entitlement of 30 days and 3 remaining days give `"33"`. There is no automatic carry-over. |
 | `days` | no, `[]` | Own leave, at most 2000 entries. |
 | `overrides` | no, `[]` | Manual changes of the required work on single dates, at most 2000 entries. |
 | `notes` | no, `[]` | Notes, at most 2000 entries. |
@@ -297,6 +300,8 @@ A rule set has the same structure with `"kind": "ruleSet"`, and:
 
 A rule set alone can't be computed: it has no period. "Save as rule set" writes the contract, the sources other than `otherPlan` and `needed`, the templates and the color scheme of a plan file as a new rule set with a new `id` and `revision` 1.
 
+A plan file may change every part it copied from a rule set, for example the work week for part-time work, and may add its own calendar sources. A day rule, calendar source or template without `origin` was added in the plan file.
+
 ## Reading
 
 `readFile(text)` checks the size (the UTF-8 length; a leading byte-order mark is skipped), parses the JSON, checks `schema` and `kind`, migrates older schemas (there are none yet) and then validates every value. It returns one of three outcomes:
@@ -317,8 +322,8 @@ A report entry has a `code`, the `path` of the key itself in the text that was r
 | --- | --- |
 | `tooLarge` | The text is larger than 10 MB in UTF-8. Checked before parsing. |
 | `notJson` | The text is not JSON. |
-| `unknownSchema` | The text is not a JSON object with a `schema` of the form `"restlos/N"`. |
-| `newerSchema` | The schema number is higher than 1: the file was made with a newer version of restlos. |
+| `unknownSchema` | The text is not a JSON object with a `schema` `"restlos/N"`, N a whole number from 1 without leading zeros. |
+| `newerSchema` | N is higher than 1, the only schema `readFile` reads: the file was made with a newer version of restlos. |
 | `unknownKind` | `kind` is not `"plan"`, `"ruleSet"` or `"settings"`. |
 | `settingsNotSupported` | `kind` is `"settings"`. |
 | `kindMismatch` | A rule set has `plan` or `ruleSet`. |
@@ -408,7 +413,7 @@ Progress: `onProgress` is called with `(0, N)` first and then once per rule or m
 | IDs and reference keys / URLs | 200 / 2000 characters | invalid: that entry dropped (`invalidValue`), an over-long file `id` refused (`invalidCore`) |
 | Files inside files | none: another plan is stored as entries, never embedded | |
 
-KB and MB are binary: 1 MB is 1,048,576 bytes. How fast reading and checking a file within these limits must be is set in the spec's Limits bullet ([Sharing and validation](SPEC.md#sharing-and-validation)).
+KB and MB are binary: 1 MB is 1,048,576 bytes. Reading and checking grow at most linearly with the file; the `read:` and `check:` scenarios in `tests/perf/scenarios.ts` hold them to the "Performance" [hard rule](../../../../AGENTS.md#hard-rules). Target: the largest file within the limits reads and checks in under 2 s together in the Firefox ESR on the reference machine, an Intel Core i7-8650U. The [release checklist](../howto/release.md) measures it at each release.
 
 ## Writing
 

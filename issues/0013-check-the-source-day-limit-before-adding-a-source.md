@@ -19,7 +19,7 @@ The reader refuses a plan file whose calendar sources give more than 50,000 days
 
 ## Context
 
-- `expandSources` in `src/engine/file/model.ts` and its check in `readFile` (`src/engine/file/read.ts`); the limits are in `src/engine/file/limits.ts` and `docs/file-format.md`, "Limits".
+- `expandSources` in `src/engine/file/model.ts` and its check in `readFile` (`src/engine/file/read.ts`); the limits are in `src/engine/file/limits.ts` and `docs/dev/en/reference/file-format.md`, "Limits".
 - `importOtherPlan` in `src/engine/file/other-plan.ts` checks only the 2000-entry limit of the one source it creates, not the plan it is added to.
 - Noticed on the `file-format` branch.
 

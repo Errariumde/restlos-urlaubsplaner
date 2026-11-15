@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Holiday data format
 
-Reference for the country data files in `src/data/holidays/` (one JSON file per country, e.g. `de.json`). The TypeScript shape is `CountryData` in `src/engine/holidays/types.ts`; `validateCountryData` in `src/engine/holidays/validate.ts` checks a file and reports every problem it finds, including unknown keys. The procedure for changing holiday data is in [`docs/dev/en/howto/holiday-data.md`](dev/en/howto/holiday-data.md).
+Reference for the country data files in `src/data/holidays/` (one JSON file per country, for example `de.json`). The TypeScript shape is `CountryData` in `src/engine/holidays/types.ts`; `validateCountryData` in `src/engine/holidays/validate.ts` checks a file and reports every problem it finds, including unknown keys. The procedure for changing holiday data is in [`docs/dev/en/howto/holiday-data.md`](../howto/holiday-data.md).
 
 ## Top level
 
@@ -62,7 +62,7 @@ Two rules may produce the same day (in Germany, 1 May 2008 was both Labour Day a
 
 ## Local rules
 
-A local rule is a switch for a sub-area of one or more regions that the user turns on explicitly, phrased as "applies at my place of work" (e.g. Augsburg's Peace Festival in Bavaria). Municipality lists are not embedded.
+A local rule is a switch for a sub-area of one or more regions that the user turns on explicitly, phrased as "applies at my place of work" (for example Augsburg's Peace Festival in Bavaria). Municipality lists are not embedded.
 
 | Key | Meaning |
 | --- | --- |
@@ -75,4 +75,4 @@ The engine takes a selection `{ country, state, options }`. A switch that is mis
 
 ## Substitute days
 
-`holidaysBetween(data, selection, from, to)` computes the regular holidays of every year from one year before `from` to one year after `to` (clamped to 1583 … 9999), so substitutes of holidays just outside the range are found. Then, in order of day and rule ID, every regular holiday whose rule has `substitute.when` containing its weekday gets one substitute day: the first day after it that is neither a weekend day of the country nor already taken by a regular holiday or an earlier substitute. A substitute keeps the rule's `ruleId` and `nameKey` and has `substitute: true`. The result contains the days from `from` to `to` (both inclusive), sorted by day, then rule ID, regular before substitute.
+`holidaysBetween(data, selection, from, to)` computes the regular holidays of every year from one year before `from` to one year after `to` (clamped to 1583 … 9999), so substitutes of holidays outside the range are found. Then, in order of day and rule ID, every regular holiday whose rule has `substitute.when` containing its weekday gets one substitute day: the first day after it that is neither a weekend day of the country nor already taken by a regular holiday or an earlier substitute. A substitute keeps the rule's `ruleId` and `nameKey` and has `substitute: true`. The result contains the days from `from` to `to` (both inclusive), sorted by day, then rule ID, regular before substitute.

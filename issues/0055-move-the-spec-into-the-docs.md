@@ -27,7 +27,7 @@ This issue is the single list that gives every spec section its destination and 
 
 - Every row of the table below is done.
 - Stage 2 of the citation rule is on: no mention of `SPEC.md` anywhere except `issues/` and the one rule in `AGENTS.md`.
-- The seven indirect mentions listed under Notes are reworded to cite the page their text moved to.
+- The five indirect mentions listed under Notes are reworded to cite the page their text moved to.
 
 ## Notes
 
@@ -36,8 +36,8 @@ This issue is the single list that gives every spec section its destination and 
 Each phase is one or more small branches, with `npm run check` passing after every commit. Phase 1 set up the guard rails: the status lines, the style page, the how-tos, the reference and citation checks, and this issue.
 
 - **Phase 2, move what is already reference.** First the two spec sections the how-to allowlist of the citation check depends on, "Dependencies and supply chain" and "Holiday sources and work week". Then:
-  - move the three format references, `docs/file-format.md`, `docs/day-rules-format.md` and `docs/holiday-data-format.md`, unchanged into `docs/dev/en/reference/`;
-  - move the "Adding a country" section of `docs/holiday-data-format.md` into the holiday-data how-to, `docs/dev/en/howto/holiday-data.md`;
+  - move the three format references unchanged into `docs/dev/en/reference/`, as `docs/dev/en/reference/file-format.md`, `docs/dev/en/reference/day-rules-format.md` and `docs/dev/en/reference/holiday-data-format.md`;
+  - move the "Adding a country" section of `docs/dev/en/reference/holiday-data-format.md` into the holiday-data how-to, `docs/dev/en/howto/holiday-data.md`;
   - cut the text of the spec's "Format" and "Sharing and validation" that the file format reference already says;
   - move the glossary to its own reference page and re-point `AGENTS.md` to it in the same commit;
   - keep one canonical copy each of the hobby project notice (`README.md`), the release checklist (`docs/dev/en/howto/release.md`) and the holiday-data procedure (`docs/dev/en/howto/holiday-data.md`);
@@ -97,12 +97,12 @@ A feature branch may do a row before its phase. The steps of a move are in `docs
 | [ ] How a day's required work comes about | partly implemented | `docs/dev/en/reference/counting-model.md` (new); planned parts stay as tracking | 2 |
 | [ ] Work week with validity | partly implemented | `docs/dev/en/reference/counting-model.md` (new), phase 2; the text on part-time counting and § 5 BUrlG: help, phase 5 | 2, 5 |
 | [ ] Date arithmetic | implemented | `docs/dev/en/reference/architecture.md` (new) | 2 |
-| [ ] Files: plan file, rule set and settings | partly implemented | the three kinds of files and the editor model: `docs/dev/en/reference/files.md` (new), phase 2; the recommendation: `docs/dev/en/explanation/file-kinds.md` (new), phase 3 | 2, 3 |
-| [ ] Content of the files | partly implemented | `docs/dev/en/reference/file-format.md` (new); planned parts stay as tracking | 2 |
+| [x] Files: plan file, rule set and settings | partly implemented | the use of each file and what is stored where: `docs/dev/en/reference/files.md`; the recommendation: `docs/dev/en/explanation/file-kinds.md`; planned parts stay as tracking | 2 |
+| [x] Content of the files | partly implemented | `docs/dev/en/reference/file-format.md`; planned parts stay as tracking | 2 |
 | [ ] File operations (editor behavior) | partly implemented | opening the bundled example: `docs/dev/en/reference/start-screen.md` (new); planned parts stay as tracking | 4 |
-| [ ] What is stored where | partly implemented | `docs/dev/en/reference/file-format.md` (new); planned parts stay as tracking | 2 |
-| [ ] Format | partly implemented | cut where the file format reference says it already, the rest to `docs/dev/en/reference/file-format.md` (new); planned parts stay as tracking | 2 |
-| [ ] Sharing and validation | partly implemented | cut where the file format reference says it already, the rest to `docs/dev/en/reference/file-format.md` (new); the worker and the handover to the page: `docs/dev/en/reference/architecture.md` (new); planned parts stay as tracking | 2 |
+| [x] What is stored where | partly implemented | `docs/dev/en/reference/files.md`; planned parts stay as tracking | 2 |
+| [x] Format | partly implemented | cut where the file format reference says it already, the rest to `docs/dev/en/reference/file-format.md`; planned parts stay as tracking | 2 |
+| [ ] Sharing and validation | partly implemented | cut where the file format reference says it already (done); what remains, the worker and the handover to the page: `docs/dev/en/reference/architecture.md` (new), phase 2; planned parts stay as tracking | 2 |
 | [ ] Operation (UI/UX) | not a requirement | the recommendation: `docs/dev/en/explanation/ui-principles.md` (new) | 3 |
 | [ ] View 1: Month tiles | implemented | `docs/dev/en/reference/calendar-views.md` (new) | 4 |
 | [ ] View 2: Month columns | partly implemented | `docs/dev/en/reference/calendar-views.md` (new), with "Align by weekday" and calendar weeks; planned parts stay as tracking | 4 |
@@ -151,11 +151,9 @@ Found with `git grep -n -i -E "the spec('s)?\b|\bSPEC\b"` in `src`, `scripts`, `
 
 - `src/engine/file/report.ts` L107: "(SPEC, Security)", the prototype keys of "Threats and countermeasures".
 - `tests/scripts/build-html.test.ts` L37: "in the spec's order", the order of the directives in "Content Security Policy".
-- `docs/feasibility.md` L14: "the spec's reference machine", from the limits of "Sharing and validation".
 - `docs/feasibility.md` L36: "the app's policy from the spec", the policy of "Content Security Policy".
 - `docs/feasibility.md` L67: "The spec relies on documentation", the calendar apps' behaviour on re-import in ".ics export (RFC 5545)" and the feasibility table of "Architecture, technology and tests"; planned, so it rewords when the .ics export is built.
 - `docs/ai-tooling.md` L136: "(see the specification)", the SHA pinning of actions in "Workflow security".
-- `docs/file-format.md` L411: "the spec's Limits bullet", the "Limits" bullet of "Sharing and validation".
 
 More lines name the spec in a rule or in the description of a check, not as a citation, and go when `docs/SPEC.md` is deleted:
 

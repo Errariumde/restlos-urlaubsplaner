@@ -6,7 +6,7 @@ SPDX-License-Identifier: CC-BY-4.0
 # Release checklist
 
 1. Working tree clean, on `main`, CI green.
-2. Choose the version (SemVer). File format changes → check the `schema` version (`"restlos/1"`, see `docs/file-format.md`) and migration tests.
+2. Choose the version (SemVer). File format changes → check the `schema` version (`"restlos/1"`, see `docs/dev/en/reference/file-format.md`) and migration tests.
 3. Update `CHANGELOG.md` (move "Unreleased" entries, date in ISO format) and `package.json` version.
 4. Run in the dev shell:
    - `npm ci`

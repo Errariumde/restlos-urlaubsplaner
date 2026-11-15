@@ -5,7 +5,7 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # Holiday rules
 
-The embedded holiday data and how the app uses it. The keys of a country data file, the date rules, the local rules and the substitute days are defined in the [holiday data format](../../../holiday-data-format.md).
+The embedded holiday data and how the app uses it. The keys of a country data file, the date rules, the local rules and the substitute days are defined in the [holiday data format](holiday-data-format.md).
 
 ## Embedded countries
 
@@ -14,8 +14,8 @@ The embedded holiday data and how the app uses it. The keys of a country data fi
 
 ## Work week and week start
 
-- The browser's locale does not set the week start ([`weekStart`](../../../holiday-data-format.md#top-level)).
-- The required work per weekday comes from the contract's `week` in the plan file ([work week](../../../file-format.md#work-week)). The engine does not fill it from the country's `workWeek`.
+- The browser's locale does not set the week start ([`weekStart`](holiday-data-format.md#top-level)).
+- The required work per weekday comes from the contract's `week` in the plan file ([work week](file-format.md#work-week)). The engine does not fill it from the country's `workWeek`.
 
 ## German local rules
 

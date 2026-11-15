@@ -22,7 +22,7 @@ Since leave costs only where it overlaps the working time (issue 0031, charge le
 ## Context
 
 - `src/engine/counting/required.ts`: `RequiredWork.freePart` comes from the deciding layer's `part`, else `"end"`; the work-week layer has none.
-- `docs/file-format.md`, "Work week": an entry has `from` and `required` (`mon` … `sun`), nothing else.
+- `docs/dev/en/reference/file-format.md`, "Work week": an entry has `from` and `required` (`mon` … `sun`), nothing else.
 - `docs/SPEC.md`, "Work week with validity" and "Finer granularity"; day rules, holiday calendars and overrides already take a `part`.
 - An override with a `part` can set it for single dates, which is no answer for a whole work week.
 
@@ -32,7 +32,7 @@ Since leave costs only where it overlaps the working time (issue 0031, charge le
 - [ ] The engine places the free time of such a day by it; cost, stretches, time off needed, the part suggestion and the day detail's leave bar follow without changes of their own.
 - [ ] Tests: a Friday with ½ of work in the afternoon, where own leave in the morning costs nothing and is reported as `leaveOnFreeTime`, own leave in the afternoon costs ½ and frees the day, and a full day costs ½.
 - [ ] Files without it read and compute as before.
-- [ ] `docs/SPEC.md` and `docs/file-format.md` describe it.
+- [ ] `docs/SPEC.md` and `docs/dev/en/reference/file-format.md` describe it.
 
 ## Notes
 

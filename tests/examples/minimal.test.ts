@@ -7,7 +7,7 @@ import { readExample, readText } from "./helpers";
 /** Paths are relative to the repository root, where `npm test` runs. */
 const PLAN = "examples/minimal/minimal.urlaub.json";
 const RULE_SET = "examples/minimal/minimal.regeln.json";
-const DOCS = "docs/file-format.md";
+const DOCS = "docs/dev/en/reference/file-format.md";
 
 /** The bodies of the ```json blocks in the section of `markdown` under `heading`, up to the next "## " heading. */
 function jsonBlocks(markdown: string, heading: string): string[] {

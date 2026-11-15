@@ -21,7 +21,7 @@ The Required column means what it means in [Plan files and rule sets](file-forma
 | `label` | no | Name of the rule, up to 200 characters: a plain string (`"Silvester"`) or a map from language code to text (`{ "de": "Silvester", "en": "New Year's Eve" }`), see [Texts](file-format.md#texts). Only shown, never interpreted. |
 | `note` | no | Explanation shown with the rule, up to 2000 characters, a plain string or a language map like `label`: for example what the rule's basis says that the rule can't express. Only shown, never interpreted. |
 | `references` | no | List of keys of the contract's `references` that the rule is based on (`["betrvg"]`), see [References](file-format.md#references). A key the contract doesn't have is dropped when the file is read. |
-| `origin` | no | ID of the rule set the rule was copied from; exists only in plan files, never in a rule set. Set by the app; "Update rules from rule set" uses it to tell copied rules from your own. Leave it out when writing a rule by hand. |
+| `origin` | no | ID of the rule set the rule was copied from; exists only in plan files, never in a rule set. Set by the app; "Update rules from rule set" uses it to tell copied rules from the plan's own. Leave it out when writing a rule by hand. |
 
 The app writes the keys in the order given in [Writing](file-format.md#writing). An invalid or over-long `label`, `note` or `references` is dropped when the file is read; the rule is kept.
 

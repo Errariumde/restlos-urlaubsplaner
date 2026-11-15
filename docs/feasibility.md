@@ -11,7 +11,7 @@ Before the UI was built, small test pages checked what browsers allow a single H
 
 - On 2026-11-02, automated and headless: WebDriver BiDi for Firefox and the Chrome DevTools Protocol for Chromium drove the unchanged pages. They clicked the buttons, set the file input, killed the browser with `kill -9` and read the results tables. Ctrl+S and Ctrl+O (K1 and K2) were checked by hand in Firefox ESR.
 - Browsers, each with a fresh profile: Firefox ESR 153.5.0esr from the dev shell, Firefox 159.0, and Chromium 147.0.7727.15 (Playwright's `chrome-headless-shell`, not a user's Chrome). "All three" below means these three.
-- Machine: Intel Core i7-8650U (the spec's reference machine), 8 threads, NixOS, on mains power.
+- Machine: Intel Core i7-8650U (the reference machine in the "Limits" section of `docs/dev/en/reference/file-format.md`), 8 threads, NixOS, on mains power.
 - Limits: every script call ran with user activation, Chromium's downloads ran under the DevTools download behaviour `allow`, and S3 had one trial per delay.
 - A trap for anyone repeating this: Firefox's remote agent sets "recommended preferences", among them `security.fileuri.strict_origin_policy = false`, so every local file then shares one storage area. With `remote.prefs.recommended = false` in the profile, Firefox behaves like a user's Firefox: one storage area per file path, the same as a run without any automation. The results below come from such a run.
 
