@@ -50,7 +50,7 @@ Each phase is one or more small branches, with `npm run check` passing after eve
 - **Phase 4, built UI behaviour.**
   - Calendar interaction, Day cell, Screen sizes, Problems, Allowance display and Accessibility move into reference pages.
   - The bold labels "Detail view", "Leave bar" and "Range rules" become headings.
-  - One pure-move commit, then one rewrite commit of the citations.
+  - Each move is one commit with the unchanged text and every citation update, then one commit that rewrites the moved text.
   - Then stage 2 of the citation rule goes on.
 - **Phase 5, help foundation:** when the help is scheduled. Help content goes to `docs/user/<language>/`.
 - **Phase 6, website:** with the first GitHub Pages release.
@@ -68,7 +68,7 @@ Each phase is one or more small branches, with `npm run check` passing after eve
 
 ### Doing a row early
 
-A feature branch may do a row before its phase: it moves the section (one pure-move commit, then the rewrite of its citations) and ticks the row in this file in the same branch, by changing `[ ]` to `[x]`. A row is done when its built parts have moved and their citations point to the new page; planned parts that stay as tracking don't keep a row open.
+A feature branch may do a row before its phase. The steps of a move are in `docs/dev/en/howto/docs.md`: one commit moves the unchanged text, updates every citation and ticks the row by changing `[ ]` to `[x]`, so `npm run check` passes after it; a second commit rewrites the moved text. A row is done when its built parts have moved and their citations point to the new page; planned parts that stay as tracking don't keep a row open.
 
 ### Destinations
 
