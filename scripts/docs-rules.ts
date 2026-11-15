@@ -84,7 +84,7 @@ const LINE_RULES: readonly Rule[] = [
     applies: reference,
   },
   {
-    pattern: /\b(einfach|eben|halt|natürlich|offensichtlich)\b/,
+    pattern: /\b([Ee]infach|eben|halt|[Nn]atürlich|[Oo]ffensichtlich)\b/,
     what: "a filler word",
     instead: "drop it",
     applies: german,

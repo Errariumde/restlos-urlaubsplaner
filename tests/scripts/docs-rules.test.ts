@@ -130,6 +130,11 @@ describe("checkDocs", () => {
       );
     });
 
+    it("reports filler words at the start of a sentence, but not the nouns Ebene and Halt", () => {
+      expect(check(DE_HOWTO, "Gut.", "Natürlich zählt das.", "Einfach klicken.", "Offensichtlich passt es.")).toEqual(at(DE_HOWTO, 2, 3, 4));
+      expect(check(DE_HOWTO, "Die Ebene der Regeln.", "Halt an der Grenze des Zeitraums.")).toEqual([]);
+    });
+
     it("reports wir", () => {
       expect(check(DE_HOWTO, "Gut.", "Wir öffnen den Plan.", "Dann speichern wir.")).toEqual(at(DE_HOWTO, 2, 3));
     });
