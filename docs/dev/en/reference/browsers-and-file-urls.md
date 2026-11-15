@@ -10,7 +10,9 @@ Which browsers restlos supports and what follows from opening it from disk. The 
 ## Supported browsers
 
 - **Firefox:** the current Firefox ESR and the current Firefox.
-- **Chrome, Edge and Safari (macOS, iOS):** the two newest versions.
+- **Chrome:** the two newest versions.
+
+Edge and Safari are not tested and not supported. A problem reported in one of them may be fixed, without a promise.
 
 The current Firefox ESR is the baseline for browser features, as the "Browsers" [hard rule](../../../../AGENTS.md#hard-rules) says. `build.target` in `vite.config.ts` is `firefox153` and must name the current ESR. The browsers the end-to-end tests run in are in [Test strategy](test-strategy.md). The browser versions tested from `file://` are in the [feasibility tests](../../../feasibility.md).
 
